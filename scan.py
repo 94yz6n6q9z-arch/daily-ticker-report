@@ -193,15 +193,17 @@ def yf_download_chunk(tickers: List[str]) -> Dict[str, pd.DataFrame]:
             continue
 
         # If single ticker, columns are flat
-        if isinstance(data.columns, pd.Index):
-            if len(chunk) == 1:
-                t = chunk[0]
-                df = data.dropna(how="all")
-                if df.empty:
-                    continue
-                df = df.rename_axis("Date").reset_index().set_index("Date")
-                out[t] = df[["Open", "High", "Low", "Close", "Volume"]].dropna()
+        # If single ticker, columns are flat (Index but NOT MultiIndex)
+            if not isinstance(data.columns, pd.MultiIndex):
+                if len(chunk) == 1:
+                    t = chunk[0]
+                    df = data.dropna(how="all")
+                    if df.empty:
+                        continue
+                    df.index.name = "Date"
+                    out[t] = df[["Open", "High", "Low", "Close", "Volume"]].dropna(subset=["Close"])
             continue
+
 
         # MultiIndex columns: (Field, Ticker) or (Ticker, Field) depending
         # yfinance returns columns like: ('Close', 'AAPL') etc
