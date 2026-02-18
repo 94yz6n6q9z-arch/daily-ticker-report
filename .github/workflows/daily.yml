@@ -1,33 +1,58 @@
-name: Daily NDX Report
+name: Daily Report
 
 on:
-  schedule:
-    # Run twice daily to approximate 22:30 Europe/Berlin across DST.
-    # The script will only execute the heavy scan when local time is ~22:30.
-    - cron: "30 20 * * *"
-    - cron: "30 21 * * *"
   workflow_dispatch:
+  schedule:
+    # Cron is UTC. 21:30 UTC = 22:30 CET (winter). In summer (CEST), this will run at 23:30 local.
+    # If you want 22:30 local year-round, we can add a second cron and enable/disable seasonally.
+    - cron: "30 21 * * 1-5"
 
 permissions:
   contents: write
 
+concurrency:
+  group: daily-report
+  cancel-in-progress: false
+
 jobs:
   run:
     runs-on: ubuntu-latest
+    env:
+      TZ: Europe/Berlin
+
     steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: true
-          fetch-depth: 0
-      - uses: actions/setup-python@v5
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install -q -r requirements.txt
-      - run: FORCE_RUN=1 python scan.py
-      - name: Commit report
+
+      - name: Install dependencies
         run: |
-          git config user.name "ndx-bot"
-          git config user.email "ndx-bot@users.noreply.github.com"
-          git add docs/report.md docs/index.md docs/state.json docs/img || true
-          git commit -m "Daily report" || echo "No changes"
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run scan
+        run: |
+          python scan.py
+
+      - name: Commit and push report
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Ensure Pages stability
+          mkdir -p docs/img
+          touch docs/.nojekyll
+
+          git add docs/.nojekyll docs/report.md docs/index.md docs/state.json docs/img || true
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git commit -m "Daily report update"
           git push
