@@ -1188,6 +1188,20 @@ def main():
     print(f"Wrote: {INDEX_PATH}")
     print(f"Signals: early={len(early_sorted)} triggered={len(triggered_sorted)} universe={len(universe)}")
 
-
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        import traceback
+        err = traceback.format_exc()
+        # Always publish something so Pages updates
+        DOCS_DIR.mkdir(parents=True, exist_ok=True)
+        (DOCS_DIR / "report.md").write_text(
+            "# Daily Report\n\n## ERROR\n\n```text\n" + err[-4000:] + "\n```\n",
+            encoding="utf-8"
+        )
+        (DOCS_DIR / "index.md").write_text(
+            "# Daily Report\n\n## ERROR\n\n```text\n" + err[-4000:] + "\n```\n",
+            encoding="utf-8"
+        )
+        raise SystemExit(0)
