@@ -294,4 +294,86 @@ def main():
             overlays.append({"type":"line","y":cons["aU"]*x + cons["bU"]})
             overlays.append({"type":"line","y":cons["aL"]*x + cons["bL"]})
 
-        rect = detect_rectangl_
+        rect = detect_rectangle(raw)
+        if rect is not None:
+            sup, res = rect["support"], rect["resistance"]
+            last_close = float(g["Close"].iloc[-1])
+            if last_close >= res*(1+BREAK_PCT/100):
+                notes.append("Rectangle breakout ↑")
+            elif last_close <= sup*(1-BREAK_PCT/100):
+                notes.append("Rectangle breakdown ↓")
+            elif abs(pct(last_close, res)) <= NEAR_PCT or abs(pct(last_close, sup)) <= NEAR_PCT:
+                notes.append("Rectangle near edge")
+            overlays.append({"type":"hline","y":sup})
+            overlays.append({"type":"hline","y":res})
+
+        hs = detect_hs_top(g)
+        if hs is not None:
+            if hs["dist_pct"] <= -BREAK_PCT:
+                notes.append("H&S Top breakdown ↓")
+            elif 0 <= hs["dist_pct"] <= NEAR_PCT:
+                notes.append("H&S Top near neckline")
+
+        inv = detect_inv_hs(g)
+        if inv is not None:
+            if inv["dist_pct"] <= -BREAK_PCT:
+                notes.append("Inverse H&S breakout ↑")
+            elif 0 <= inv["dist_pct"] <= NEAR_PCT:
+                notes.append("Inverse H&S near neckline")
+
+        if notes:
+            chart_path = os.path.join(img_dir, f"{t}.png")
+            wchart = g.tail(320).copy()
+            make_chart(wchart, f"{t} — " + "; ".join(notes), chart_path, overlays=overlays if overlays else None)
+            rows.append({
+                "universe": universe(t),
+                "ticker": t,
+                "last_close": float(g["Close"].iloc[-1]),
+                "notes": "; ".join(notes),
+                "chart": chart_path.replace("docs/","")
+            })
+
+        # after-hours: do only for custom (reliable) to avoid rate limits
+        if t in custom_set:
+            ah = after_hours_snapshot(t)
+            if not math.isnan(ah["ah_change_pct"]):
+                movers.append({"ticker":t, **ah})
+
+    triggers = pd.DataFrame(rows)
+    movers_df = pd.DataFrame(movers)
+
+    md = []
+    md.append(f"# Daily Report — {today} (22:30 {TZ})\n")
+
+    md.append("## After-hours snapshot (custom watchlist)\n")
+    if movers_df.empty:
+        md.append("_No extended-hours data available from source._\n")
+    else:
+        movers_df = movers_df.sort_values("ah_change_pct", ascending=False)
+        md.append(movers_df[["ticker","reg_close","last_px","ah_change_pct"]].to_markdown(index=False))
+        md.append("\n")
+
+    md.append("## Technical triggers & near-completions\n")
+    if triggers.empty:
+        md.append("_No triggers found under current thresholds._\n")
+    else:
+        for uni in ["CUSTOM","NDX","SPX"]:
+            sub = triggers[triggers["universe"]==uni].copy()
+            if sub.empty:
+                continue
+            md.append(f"### {uni}\n")
+            for _, r in sub.sort_values(["ticker"]).iterrows():
+                md.append(f"#### {r['ticker']} — {r['notes']}\n")
+                md.append(f"- Last close: {r['last_close']:.2f}\n")
+                md.append(f"![{r['ticker']}]({r['chart']})\n")
+
+    os.makedirs("docs", exist_ok=True)
+    with open(os.path.join("docs","report.md"), "w") as f:
+        f.write("\n".join(md))
+    with open(os.path.join("docs","index.md"), "w") as f:
+        f.write("\n".join(md))
+
+    print("Wrote docs/report.md")
+
+if __name__ == "__main__":
+    main()
