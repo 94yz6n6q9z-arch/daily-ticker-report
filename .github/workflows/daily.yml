@@ -1,0 +1,27 @@
+name: Daily NDX Report
+
+on:
+  schedule:
+    # Run twice daily to approximate 22:30 Europe/Berlin across DST.
+    # The script will only execute the heavy scan when local time is ~22:30.
+    - cron: "30 20 * * *"
+    - cron: "30 21 * * *"
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - run: python scan.py
+      - name: Commit report
+        run: |
+          git config user.name "ndx-bot"
+          git config user.email "ndx-bot@users.noreply.github.com"
+          git add docs/report.md docs/img || true
+          git commit -m "Daily report" || echo "No changes"
+          git push
