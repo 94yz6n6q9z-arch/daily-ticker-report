@@ -3,12 +3,23 @@
 
 """
 Daily Ticker Report (GitHub Pages)
-- Market narrative + key headlines (Yahoo Finance)
-- Biggest movers: session + after-hours (>= 4%)
-- Technical triggers:
-    A) Early callouts (~80%): within 0.5 ATR of trigger, not confirmed
-    B) Breakout/Breakdown (or about to): soft break (<0.5 ATR) + confirmed (>=0.5 ATR)
-- Patterns: H&S / inverse H&S + triangles/wedges/rectangles/broadening (lightweight heuristics)
+
+Agenda @22:30:
+1) Market recap & positioning (themes) + key tape table + Yahoo headlines
+2) Biggest movers (>=4%): session + after-hours (gainers/losers)
+4) Technical triggers:
+   4A Early callouts (~80%): within 0.5 ATR of trigger
+   4B Breakouts/breakdowns: SOFT (pierced but <0.5 ATR) + CONFIRMED (>=0.5 ATR)
+5) Needle-moving catalysts (Yahoo headlines)
+
+Reliability features:
+- yfinance chunk download with robust MultiIndex parsing
+- mover tables never crash (always return schema with ['symbol','pct'])
+- session movers fallback: compute from downloaded universe if scraping fails
+- after-hours movers fallback: compute from custom tickers if scraping fails
+- headless matplotlib backend for GitHub Actions
+- always writes docs/index.md and docs/report.md, exits 0 on failure (puts traceback into report)
+
 """
 
 from __future__ import annotations
@@ -19,13 +30,18 @@ import json
 import math
 import os
 import re
+import traceback
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+from urllib.request import Request, urlopen
 
 import numpy as np
 import pandas as pd
 import yfinance as yf
+
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 
@@ -36,6 +52,7 @@ BASE_DIR = Path(__file__).resolve().parent
 CONFIG_DIR = BASE_DIR / "config"
 DOCS_DIR = BASE_DIR / "docs"
 IMG_DIR = DOCS_DIR / "img"
+
 DOCS_DIR.mkdir(parents=True, exist_ok=True)
 IMG_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -51,15 +68,15 @@ NDX_LOCAL = CONFIG_DIR / "universe_nasdaq100.txt"
 
 
 # ----------------------------
-# Config knobs (your preferences)
+# Config knobs
 # ----------------------------
 MOVER_THRESHOLD_PCT = 4.0
 
 ATR_N = 14
-ATR_CONFIRM_MULT = 0.5  # >= 0.5 ATR beyond level = true breakout/breakdown
-EARLY_MULT = 0.5        # within 0.5 ATR of level = early callout
+ATR_CONFIRM_MULT = 0.5  # >= 0.5 ATR beyond trigger => CONFIRMED break
+EARLY_MULT = 0.5        # within 0.5 ATR of trigger => EARLY callout
 
-LOOKBACK_DAYS = 260 * 2  # ~2y
+LOOKBACK_DAYS = 260 * 2     # used by pattern detection
 DOWNLOAD_PERIOD = "3y"
 DOWNLOAD_INTERVAL = "1d"
 CHUNK_SIZE = 80
@@ -67,7 +84,10 @@ CHUNK_SIZE = 80
 MAX_CHARTS_EARLY = 14
 MAX_CHARTS_TRIGGERED = 18
 
-USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
+USER_AGENT = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+    "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
+)
 
 
 # ----------------------------
@@ -76,16 +96,17 @@ USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.
 def read_lines(path: Path) -> List[str]:
     if not path.exists():
         return []
-    lines = []
+    out = []
     for ln in path.read_text(encoding="utf-8").splitlines():
         ln = ln.strip()
         if not ln or ln.startswith("#"):
             continue
-        lines.append(ln)
-    return lines
+        out.append(ln)
+    return out
 
 
 def write_text(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
 
 
@@ -103,22 +124,35 @@ def save_state(state: Dict) -> None:
 
 
 # ----------------------------
-# Universe: constituents
+# Web fetch (HTML) without requests dependency
+# ----------------------------
+def fetch_url_text(url: str, timeout: int = 30) -> str:
+    req = Request(url, headers={"User-Agent": USER_AGENT})
+    with urlopen(req, timeout=timeout) as resp:
+        return resp.read().decode("utf-8", errors="ignore")
+
+
+def read_html_tables(url: str) -> List[pd.DataFrame]:
+    html = fetch_url_text(url)
+    return pd.read_html(html)
+
+
+# ----------------------------
+# Universe
 # ----------------------------
 def _clean_ticker(t: str) -> str:
-    # Wikipedia uses BRK.B, BF.B etc -> Yahoo wants BRK-B, BF-B
-    t = t.strip()
-    t = t.replace(".", "-") if re.fullmatch(r"[A-Z]+\.[A-Z]+", t) else t
+    # Wikipedia uses BRK.B / BF.B etc -> Yahoo wants BRK-B / BF-B
+    t = str(t).strip()
+    if re.fullmatch(r"[A-Z]+\.[A-Z]+", t):
+        return t.replace(".", "-")
     return t
 
 
 def get_sp500_tickers() -> List[str]:
-    # 1) local fallback
     local = read_lines(SP500_LOCAL)
     if local:
         return sorted({_clean_ticker(x) for x in local})
 
-    # 2) Wikipedia
     try:
         url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
         tables = pd.read_html(url)
@@ -137,24 +171,29 @@ def get_nasdaq100_tickers() -> List[str]:
     try:
         url = "https://en.wikipedia.org/wiki/Nasdaq-100"
         tables = pd.read_html(url)
-        # Usually the table with "Ticker" column exists
+
         df = None
         for t in tables:
-            cols = [c.lower() for c in t.columns.astype(str)]
-            if any("ticker" in c for c in cols) or any("symbol" in c for c in cols):
+            cols = [str(c).lower() for c in t.columns]
+            if "ticker" in cols or "symbol" in cols:
+                df = t
+                break
+            if any("ticker" in str(c).lower() for c in t.columns):
                 df = t
                 break
         if df is None:
             return []
+
         col = None
         for c in df.columns:
             if str(c).lower() in ("ticker", "symbol"):
                 col = c
                 break
         if col is None:
+            # best effort
             col = df.columns[0]
+
         tickers = [_clean_ticker(x) for x in df[col].astype(str).tolist()]
-        # remove obvious non-tickers
         tickers = [t for t in tickers if re.fullmatch(r"[\w\-\.\=]+", t)]
         return sorted(set(tickers))
     except Exception:
@@ -166,14 +205,69 @@ def get_custom_tickers() -> List[str]:
 
 
 # ----------------------------
-# Market data
+# Market data (yfinance) - robust extraction
 # ----------------------------
+FIELDS = ["Open", "High", "Low", "Close", "Volume"]
+
+
+def extract_ohlcv_from_download(data: pd.DataFrame, ticker: str) -> Optional[pd.DataFrame]:
+    """
+    Supports:
+    - single ticker: columns are flat
+    - multi tickers: columns are MultiIndex, either (Field, Ticker) or (Ticker, Field)
+    """
+    if data is None or data.empty:
+        return None
+
+    # Single ticker
+    if not isinstance(data.columns, pd.MultiIndex):
+        if not set(["Open", "High", "Low", "Close"]).issubset(set(data.columns)):
+            return None
+        df = data.copy()
+        df.index.name = df.index.name or "Date"
+        keep = [c for c in FIELDS if c in df.columns]
+        df = df[keep].dropna(subset=["Close"])
+        return df if not df.empty else None
+
+    cols = data.columns
+
+    # Orientation A: (Field, Ticker)
+    if ("Close", ticker) in cols:
+        df = pd.DataFrame({
+            "Open": data[("Open", ticker)] if ("Open", ticker) in cols else np.nan,
+            "High": data[("High", ticker)] if ("High", ticker) in cols else np.nan,
+            "Low": data[("Low", ticker)] if ("Low", ticker) in cols else np.nan,
+            "Close": data[("Close", ticker)],
+            "Volume": data[("Volume", ticker)] if ("Volume", ticker) in cols else np.nan,
+        })
+        df.index.name = df.index.name or "Date"
+        df = df.dropna(subset=["Close"])
+        return df if not df.empty else None
+
+    # Orientation B: (Ticker, Field)
+    if (ticker, "Close") in cols:
+        df = pd.DataFrame({
+            "Open": data[(ticker, "Open")] if (ticker, "Open") in cols else np.nan,
+            "High": data[(ticker, "High")] if (ticker, "High") in cols else np.nan,
+            "Low": data[(ticker, "Low")] if (ticker, "Low") in cols else np.nan,
+            "Close": data[(ticker, "Close")],
+            "Volume": data[(ticker, "Volume")] if (ticker, "Volume") in cols else np.nan,
+        })
+        df.index.name = df.index.name or "Date"
+        df = df.dropna(subset=["Close"])
+        return df if not df.empty else None
+
+    return None
+
+
 def yf_download_chunk(tickers: List[str]) -> Dict[str, pd.DataFrame]:
     """
-    Returns dict ticker -> OHLCV df (columns Open High Low Close Volume)
-    Uses chunked yf.download for speed.
+    Returns dict ticker -> OHLCV df.
     """
     out: Dict[str, pd.DataFrame] = {}
+    if not tickers:
+        return out
+
     for i in range(0, len(tickers), CHUNK_SIZE):
         chunk = tickers[i:i + CHUNK_SIZE]
         if not chunk:
@@ -192,59 +286,13 @@ def yf_download_chunk(tickers: List[str]) -> Dict[str, pd.DataFrame]:
         except Exception:
             continue
 
-        # If single ticker, columns are flat
-        # If single ticker, columns are flat (Index but NOT MultiIndex)
-            if not isinstance(data.columns, pd.MultiIndex):
-                if len(chunk) == 1:
-                    t = chunk[0]
-                    df = data.dropna(how="all")
-                    if df.empty:
-                        continue
-                    df.index.name = "Date"
-                    out[t] = df[["Open", "High", "Low", "Close", "Volume"]].dropna(subset=["Close"])
+        if data is None or data.empty:
             continue
 
-
-        # MultiIndex columns: (Field, Ticker) or (Ticker, Field) depending
-        # yfinance returns columns like: ('Close', 'AAPL') etc
-        if data.columns.nlevels != 2:
-            continue
-
-        level0 = data.columns.get_level_values(0)
-        level1 = data.columns.get_level_values(1)
-
-        # Determine orientation
-        fields = {"Open", "High", "Low", "Close", "Adj Close", "Volume"}
-        if set(level0) & fields:
-            # (Field, Ticker)
-            for t in chunk:
-                if ("Close", t) not in data.columns:
-                    continue
-                df = pd.DataFrame({
-                    "Open": data[("Open", t)],
-                    "High": data[("High", t)],
-                    "Low": data[("Low", t)],
-                    "Close": data[("Close", t)],
-                    "Volume": data[("Volume", t)] if ("Volume", t) in data.columns else np.nan,
-                }).dropna(subset=["Close"])
-                df.index.name = "Date"
-                if not df.empty:
-                    out[t] = df
-        else:
-            # (Ticker, Field)
-            for t in chunk:
-                if (t, "Close") not in data.columns:
-                    continue
-                df = pd.DataFrame({
-                    "Open": data[(t, "Open")],
-                    "High": data[(t, "High")],
-                    "Low": data[(t, "Low")],
-                    "Close": data[(t, "Close")],
-                    "Volume": data[(t, "Volume")] if (t, "Volume") in data.columns else np.nan,
-                }).dropna(subset=["Close"])
-                df.index.name = "Date"
-                if not df.empty:
-                    out[t] = df
+        for t in chunk:
+            df = extract_ohlcv_from_download(data, t)
+            if df is not None and not df.empty:
+                out[t] = df
 
     return out
 
@@ -269,12 +317,9 @@ def atr(df: pd.DataFrame, n: int = ATR_N) -> pd.Series:
 
 
 # ----------------------------
-# News + narrative (Yahoo Finance)
+# Yahoo headlines + narrative
 # ----------------------------
 def fetch_yahoo_headlines(limit: int = 10) -> List[Dict[str, str]]:
-    """
-    Uses yfinance's news (Yahoo Finance feed) for SPY/QQQ as a proxy for market headlines.
-    """
     items: List[Dict[str, str]] = []
     for sym in ["SPY", "QQQ"]:
         try:
@@ -288,7 +333,7 @@ def fetch_yahoo_headlines(limit: int = 10) -> List[Dict[str, str]]:
         except Exception:
             continue
 
-    # de-dupe by title
+    # De-dupe by title
     seen = set()
     uniq = []
     for it in items:
@@ -301,9 +346,6 @@ def fetch_yahoo_headlines(limit: int = 10) -> List[Dict[str, str]]:
 
 
 def build_market_narrative(headlines: List[Dict[str, str]]) -> str:
-    """
-    Lightweight 'theme' summary from headline keywords.
-    """
     if not headlines:
         return "Markets: No headline feed available from Yahoo Finance at runtime."
 
@@ -324,7 +366,6 @@ def build_market_narrative(headlines: List[Dict[str, str]]) -> str:
     if has_any(["china", "tariff", "europe", "ecb", "boj", "geopolitical", "war"]):
         themes.append("Macro/geopolitics influenced risk appetite and rotation.")
 
-    # If nothing detected, keep it generic but useful
     if not themes:
         themes = ["Narrative: mixed cross-currents; watch index leadership + rates for confirmation."]
 
@@ -332,23 +373,13 @@ def build_market_narrative(headlines: List[Dict[str, str]]) -> str:
 
 
 # ----------------------------
-# Movers (>=4%)
-# - Session movers from Yahoo "markets/stocks/gainers|losers"
-# - After-hours movers from Investing.com (fallback: stockanalysis.com)
+# Movers
 # ----------------------------
-def _read_html_tables(url: str) -> List[pd.DataFrame]:
-    import requests
-    headers = {"User-Agent": USER_AGENT}
-    r = requests.get(url, headers=headers, timeout=30)
-    r.raise_for_status()
-    return pd.read_html(r.text)
-
-
 def fetch_session_movers_yahoo() -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Returns (gainers_df, losers_df) with columns: Symbol, Name, % Change, Price (best-effort)
+    Returns (gainers_df, losers_df) from Yahoo HTML tables.
+    If blocked, returns empty DFs.
     """
-    # Yahoo gainers/losers list (HTML tables)
     gain_urls = [
         "https://finance.yahoo.com/markets/stocks/gainers/",
         "https://finance.yahoo.com/gainers?count=100&offset=0",
@@ -361,77 +392,62 @@ def fetch_session_movers_yahoo() -> Tuple[pd.DataFrame, pd.DataFrame]:
     def pick_table(urls):
         for u in urls:
             try:
-                tables = _read_html_tables(u)
+                tables = read_html_tables(u)
                 if not tables:
                     continue
-                # pick the largest table
                 df = max(tables, key=lambda x: x.shape[0])
                 return df
             except Exception:
                 continue
         return pd.DataFrame()
 
-    g = pick_table(gain_urls)
-    l = pick_table(lose_urls)
-
-    return g, l
+    return pick_table(gain_urls), pick_table(lose_urls)
 
 
 def fetch_afterhours_movers() -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Uses Investing.com After Hours page (works well for >=4% filtering).
-    Returns (gainers, losers).
+    Tries Investing.com after-hours table; falls back to StockAnalysis afterhours.
+    Returns (gainers, losers) normalized to include _pct + _symbol when possible.
     """
-    # Investing.com provides a clean after-hours table (no login).
-    # If it breaks, fallback to stockanalysis afterhours.
     gain = pd.DataFrame()
     lose = pd.DataFrame()
 
-    # Primary: investing.com
+    # Investing.com
     try:
-        tables = _read_html_tables("https://www.investing.com/equities/after-hours")
-        # This page has multiple tables (most active, gainers, losers). We identify by columns.
+        tables = read_html_tables("https://www.investing.com/equities/after-hours")
+        # try to pick a usable table
         for t in tables:
             cols = [str(c).lower() for c in t.columns]
-            if any("chg. %" in c or "chg%" in c for c in cols) and any("symbol" in c or "name" in c for c in cols):
-                # heuristic: split by sign later
-                df = t.copy()
-                gain = df
+            if any("%" in c for c in cols) and (any("chg" in c for c in cols) or any("change" in c for c in cols)):
+                gain = t.copy()
                 break
-        # If gain is a combined table, we’ll still filter by % sign.
     except Exception:
         pass
 
-    # Fallback: stockanalysis afterhours
+    # fallback StockAnalysis
     if gain.empty:
         try:
-            tables = _read_html_tables("https://stockanalysis.com/markets/afterhours/")
-            # First big table is usually gainers; second is losers
+            tables = read_html_tables("https://stockanalysis.com/markets/afterhours/")
             if len(tables) >= 2:
                 gain = tables[0]
                 lose = tables[1]
         except Exception:
             pass
 
-    # Normalize:
     def normalize(df: pd.DataFrame) -> pd.DataFrame:
         if df is None or df.empty:
-            return pd.DataFrame()
+            return pd.DataFrame(columns=["_symbol", "_pct"])
+
         out = df.copy()
-        # attempt to find a percent column
+
+        # find % column
         pct_col = None
         for c in out.columns:
-            if "chg" in str(c).lower() and "%" in str(c).lower():
-                pct_col = c
-                break
-            if "change" in str(c).lower() and "%" in str(c).lower():
-                pct_col = c
-                break
-            if str(c).lower() in ("% change", "change %", "chg %"):
+            s = str(c).lower()
+            if "%" in s and ("chg" in s or "change" in s):
                 pct_col = c
                 break
         if pct_col is None:
-            # try any column containing %
             for c in out.columns:
                 if "%" in str(c):
                     pct_col = c
@@ -439,8 +455,7 @@ def fetch_afterhours_movers() -> Tuple[pd.DataFrame, pd.DataFrame]:
 
         if pct_col is not None:
             out["_pct"] = (
-                out[pct_col]
-                .astype(str)
+                out[pct_col].astype(str)
                 .str.replace("%", "", regex=False)
                 .str.replace("+", "", regex=False)
                 .str.replace(",", "", regex=False)
@@ -449,53 +464,179 @@ def fetch_afterhours_movers() -> Tuple[pd.DataFrame, pd.DataFrame]:
         else:
             out["_pct"] = np.nan
 
-        # symbol column
+        # find symbol column
         sym_col = None
         for c in out.columns:
-            if str(c).lower() in ("symbol", "sym", "ticker"):
+            if str(c).lower() in ("symbol", "ticker"):
                 sym_col = c
                 break
         if sym_col is None:
-            # sometimes "Name" column starts like "AAPL Apple..."
             sym_col = out.columns[0]
 
         out["_symbol"] = out[sym_col].astype(str).str.split().str[0]
-        return out
+        out = out.dropna(subset=["_pct"])
+        return out[["_symbol", "_pct"]]
 
+    # If we only got one combined table, split by sign
     if not gain.empty and lose.empty:
-        # if investing gave us a single table, split by sign
         ng = normalize(gain)
-        gain = ng[ng["_pct"] >= 0].copy()
-        lose = ng[ng["_pct"] < 0].copy()
-    else:
-        gain = normalize(gain)
-        lose = normalize(lose)
+        g = ng[ng["_pct"] >= 0].copy()
+        l = ng[ng["_pct"] < 0].copy()
+        return g, l
 
+    return normalize(gain), normalize(lose)
+
+
+def filter_movers(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Always returns a consistent schema: columns ['symbol','pct'].
+    Never returns a bare empty DataFrame without columns.
+    """
+    if df is None or df.empty:
+        return pd.DataFrame(columns=["symbol", "pct"])
+
+    out = df.copy()
+
+    # already normalized after-hours has _pct/_symbol
+    if "_pct" in out.columns:
+        out["pct"] = pd.to_numeric(out["_pct"], errors="coerce")
+    else:
+        pct_col = None
+        for c in out.columns:
+            s = str(c).lower()
+            if "%" in s and ("change" in s or "chg" in s):
+                pct_col = c
+                break
+        if pct_col is None:
+            for c in out.columns:
+                s = str(c).lower()
+                if "change" in s and "%" in s:
+                    pct_col = c
+                    break
+
+        if pct_col is not None:
+            out["pct"] = (
+                out[pct_col].astype(str)
+                .str.replace("%", "", regex=False)
+                .str.replace("+", "", regex=False)
+                .str.replace(",", "", regex=False)
+            )
+            out["pct"] = pd.to_numeric(out["pct"], errors="coerce")
+        else:
+            out["pct"] = np.nan
+
+    # symbol
+    if "_symbol" in out.columns:
+        out["symbol"] = out["_symbol"].astype(str)
+    else:
+        sym_col = None
+        for c in out.columns:
+            if str(c).lower() in ("symbol", "ticker"):
+                sym_col = c
+                break
+        if sym_col is None:
+            sym_col = out.columns[0]
+        out["symbol"] = out[sym_col].astype(str).str.split().str[0]
+
+    out = out.dropna(subset=["pct"])
+    out = out.loc[out["pct"].abs() >= MOVER_THRESHOLD_PCT].copy()
+
+    if out.empty:
+        return pd.DataFrame(columns=["symbol", "pct"])
+
+    out = out.sort_values("pct", ascending=False)
+    return out[["symbol", "pct"]].head(30)
+
+
+def compute_universe_movers(ohlcv: Dict[str, pd.DataFrame]) -> pd.DataFrame:
+    """
+    Fallback session movers computed from universe OHLCV.
+    """
+    rows = []
+    for t, df in ohlcv.items():
+        c = df["Close"].dropna()
+        if len(c) < 2:
+            continue
+        p = float((c.iloc[-1] / c.iloc[-2] - 1.0) * 100.0)
+        if abs(p) >= MOVER_THRESHOLD_PCT:
+            rows.append({"symbol": t, "pct": p})
+    if not rows:
+        return pd.DataFrame(columns=["symbol", "pct"])
+    d = pd.DataFrame(rows).sort_values("pct", ascending=False)
+    return d[["symbol", "pct"]].head(50)
+
+
+# ----------------------------
+# After-hours snapshot fallback (custom)
+# ----------------------------
+def after_hours_snapshot(ticker: str) -> Optional[float]:
+    """
+    Best-effort: compute after-hours % move (regular close -> latest pre/post minute bar).
+    Returns pct or None.
+    """
+    try:
+        t = yf.Ticker(ticker)
+        h = t.history(period="2d", interval="1m", prepost=True)
+        if h is None or h.empty:
+            return None
+        h = h.dropna()
+        last_px = float(h["Close"].iloc[-1])
+
+        idx = h.index
+        # try to find "regular close" bar around 16:00
+        mask = (idx.hour == 16) & (idx.minute <= 5)
+        if mask.any():
+            reg_close = float(h.loc[mask, "Close"].iloc[-1])
+        else:
+            # fallback last close of prev day
+            prev_day = idx[-1].date() - dt.timedelta(days=1)
+            prev = h[h.index.date == prev_day]
+            if prev.empty:
+                return None
+            reg_close = float(prev["Close"].iloc[-1])
+
+        if reg_close <= 0:
+            return None
+        return (last_px / reg_close - 1.0) * 100.0
+    except Exception:
+        return None
+
+
+def compute_custom_afterhours_movers(custom: List[str]) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    rows = []
+    for t in custom:
+        pctv = after_hours_snapshot(t)
+        if pctv is None:
+            continue
+        if abs(pctv) >= MOVER_THRESHOLD_PCT:
+            rows.append({"symbol": t, "pct": float(pctv)})
+    if not rows:
+        empty = pd.DataFrame(columns=["symbol", "pct"])
+        return empty, empty
+    df = pd.DataFrame(rows).sort_values("pct", ascending=False)
+    gain = df[df["pct"] >= 0].head(30)
+    lose = df[df["pct"] < 0].sort_values("pct", ascending=True).head(30)
     return gain, lose
 
 
 # ----------------------------
-# Technical patterns (heuristics, designed to be robust + fast)
+# Technical patterns (lightweight heuristics)
 # ----------------------------
 @dataclass
 class LevelSignal:
     ticker: str
-    signal: str              # EARLY_..., SOFT_..., CONFIRMED_...
-    pattern: str             # e.g., HS_TOP, IHS, TRIANGLE, RECT, WEDGE, BROADEN
-    direction: str           # BREAKOUT / BREAKDOWN
-    level: float             # trigger price
+    signal: str
+    pattern: str
+    direction: str
+    level: float
     close: float
     atr: float
-    dist_atr: float          # signed distance in ATR units (close - level)/atr
+    dist_atr: float
     pct_today: Optional[float] = None
     chart_path: Optional[str] = None
 
 
 def _swing_points(series: pd.Series, window: int = 3) -> Tuple[List[int], List[int]]:
-    """
-    Returns indices of swing highs and swing lows.
-    window=3 means local extrema over +/-3 bars.
-    """
     s = series.values
     highs, lows = [], []
     for i in range(window, len(s) - window):
@@ -510,7 +651,6 @@ def _swing_points(series: pd.Series, window: int = 3) -> Tuple[List[int], List[i
 
 
 def _line_fit(x: np.ndarray, y: np.ndarray) -> Tuple[float, float]:
-    # y = a*x + b
     if len(x) < 2:
         return (0.0, float(y[-1]) if len(y) else 0.0)
     a, b = np.polyfit(x, y, 1)
@@ -518,46 +658,30 @@ def _line_fit(x: np.ndarray, y: np.ndarray) -> Tuple[float, float]:
 
 
 def _classify_vs_level(close: float, level: float, atr_val: float, direction: str) -> Tuple[str, float]:
-    """
-    direction: BREAKOUT means we care about close vs resistance (close above)
-               BREAKDOWN means close vs support (close below)
-    returns: (prefix EARLY_/SOFT_/CONFIRMED_, dist_atr_signed)
-    dist_atr_signed = (close - level)/atr
-    """
     if atr_val is None or atr_val <= 0 or math.isnan(atr_val):
         atr_val = max(level * 0.01, 1e-6)
-
     dist_atr = (close - level) / atr_val
 
-    # For breakout:
     if direction == "BREAKOUT":
         if close >= level + ATR_CONFIRM_MULT * atr_val:
             return "CONFIRMED_", dist_atr
-        if close >= level and close < level + ATR_CONFIRM_MULT * atr_val:
+        if close >= level:
             return "SOFT_", dist_atr
-        # below level: early if within EARLY_MULT ATR
-        if level - close <= EARLY_MULT * atr_val:
+        if (level - close) <= EARLY_MULT * atr_val:
             return "EARLY_", dist_atr
         return "", dist_atr
 
-    # For breakdown:
+    # BREAKDOWN
     if close <= level - ATR_CONFIRM_MULT * atr_val:
         return "CONFIRMED_", dist_atr
-    if close <= level and close > level - ATR_CONFIRM_MULT * atr_val:
+    if close <= level:
         return "SOFT_", dist_atr
-    if close - level <= EARLY_MULT * atr_val:
+    if (close - level) <= EARLY_MULT * atr_val:
         return "EARLY_", dist_atr
     return "", dist_atr
 
 
 def detect_hs_top(df: pd.DataFrame) -> Optional[Tuple[str, str, float]]:
-    """
-    Heuristic Head & Shoulders top:
-    - find last 3 swing highs
-    - head highest, shoulders similar
-    - neckline = avg of swing lows between peaks (simple)
-    returns (pattern, direction, neckline_level) or None
-    """
     d = df.tail(LOOKBACK_DAYS).copy()
     c = d["Close"].dropna()
     if len(c) < 120:
@@ -567,26 +691,19 @@ def detect_hs_top(df: pd.DataFrame) -> Optional[Tuple[str, str, float]]:
     if len(highs_idx) < 3 or len(lows_idx) < 2:
         return None
 
-    # take last 8 highs, pick 3 most recent meaningful
-    recent_highs = highs_idx[-10:]
-    recent_vals = [(i, float(c.iloc[i])) for i in recent_highs]
-    # choose last 3 by time (not by value)
+    recent_vals = [(i, float(c.iloc[i])) for i in highs_idx[-10:]]
     last3 = recent_vals[-3:]
     if len(last3) < 3:
         return None
-    (i1, p1), (i2, p2), (i3, p3) = last3
 
-    # head should be middle and highest
+    (i1, p1), (i2, p2), (i3, p3) = last3
     if not (p2 > p1 and p2 > p3):
         return None
-
-    # shoulders similar within ~6%
     if min(p1, p3) <= 0:
         return None
     if abs(p1 - p3) / min(p1, p3) > 0.07:
         return None
 
-    # find lows between i1-i2 and i2-i3
     lows_between_1 = [i for i in lows_idx if i1 < i < i2]
     lows_between_2 = [i for i in lows_idx if i2 < i < i3]
     if not lows_between_1 or not lows_between_2:
@@ -598,13 +715,6 @@ def detect_hs_top(df: pd.DataFrame) -> Optional[Tuple[str, str, float]]:
 
 
 def detect_inverse_hs(df: pd.DataFrame) -> Optional[Tuple[str, str, float]]:
-    """
-    Heuristic Inverse H&S:
-    - last 3 swing lows
-    - head lowest in middle
-    - neckline from highs between troughs
-    returns (pattern, direction, neckline_level) or None
-    """
     d = df.tail(LOOKBACK_DAYS).copy()
     c = d["Close"].dropna()
     if len(c) < 120:
@@ -614,23 +724,19 @@ def detect_inverse_hs(df: pd.DataFrame) -> Optional[Tuple[str, str, float]]:
     if len(lows_idx) < 3 or len(highs_idx) < 2:
         return None
 
-    recent_lows = lows_idx[-10:]
-    recent_vals = [(i, float(c.iloc[i])) for i in recent_lows]
+    recent_vals = [(i, float(c.iloc[i])) for i in lows_idx[-10:]]
     last3 = recent_vals[-3:]
     if len(last3) < 3:
         return None
-    (i1, p1), (i2, p2), (i3, p3) = last3
 
+    (i1, p1), (i2, p2), (i3, p3) = last3
     if not (p2 < p1 and p2 < p3):
         return None
-
-    # shoulders similar within ~7%
     if min(p1, p3) <= 0:
         return None
     if abs(p1 - p3) / min(p1, p3) > 0.08:
         return None
 
-    # highs between i1-i2 and i2-i3
     highs_between_1 = [i for i in highs_idx if i1 < i < i2]
     highs_between_2 = [i for i in highs_idx if i2 < i < i3]
     if not highs_between_1 or not highs_between_2:
@@ -641,12 +747,10 @@ def detect_inverse_hs(df: pd.DataFrame) -> Optional[Tuple[str, str, float]]:
     return ("IHS", "BREAKOUT", neckline)
 
 
-def detect_triangle_wedge_rect_broadening(df: pd.DataFrame) -> Optional[Tuple[str, str, float]]:
+def detect_structure(df: pd.DataFrame) -> Optional[Tuple[str, float, float]]:
     """
-    Very lightweight structure detector:
-    - Fit trendlines to recent swing highs/lows; classify by slopes.
-    - Trigger level for breakout/breakdown: nearer boundary (upper for breakout, lower for breakdown)
-    returns (pattern, direction, level)
+    Returns (pattern, upper_level, lower_level) for triangle/wedge/rect/broadening.
+    Very lightweight: fit lines to recent swing highs/lows.
     """
     d = df.tail(180).copy()
     c = d["Close"].dropna()
@@ -657,7 +761,6 @@ def detect_triangle_wedge_rect_broadening(df: pd.DataFrame) -> Optional[Tuple[st
     if len(highs_idx) < 4 or len(lows_idx) < 4:
         return None
 
-    # Use last 6 swing highs/lows
     hi = np.array(highs_idx[-6:], dtype=int)
     lo = np.array(lows_idx[-6:], dtype=int)
 
@@ -666,19 +769,15 @@ def detect_triangle_wedge_rect_broadening(df: pd.DataFrame) -> Optional[Tuple[st
     xl = lo.astype(float)
     yl = np.array([float(c.iloc[i]) for i in lo])
 
-    a_u, b_u = _line_fit(xh, yh)  # upper trendline
-    a_l, b_l = _line_fit(xl, yl)  # lower trendline
+    a_u, b_u = _line_fit(xh, yh)
+    a_l, b_l = _line_fit(xl, yl)
 
-    # Evaluate at last bar
     x_last = float(len(c) - 1)
     upper_now = a_u * x_last + b_u
     lower_now = a_l * x_last + b_l
-
-    # Basic sanity:
     if not (upper_now > lower_now):
         return None
 
-    # Converging / diverging width:
     x_early = float(max(0, len(c) - 60))
     width_now = (a_u * x_last + b_u) - (a_l * x_last + b_l)
     width_then = (a_u * x_early + b_u) - (a_l * x_early + b_l)
@@ -688,26 +787,20 @@ def detect_triangle_wedge_rect_broadening(df: pd.DataFrame) -> Optional[Tuple[st
     converging = width_now < 0.75 * width_then
     diverging = width_now > 1.15 * width_then
 
-    # Rectangle: slopes near 0, stable range
     if abs(a_u) < 0.02 and abs(a_l) < 0.02 and (width_now / max(lower_now, 1e-6)) < 0.18:
-        # trigger on both sides; we will return the nearer side later
-        # Here choose both? We'll return breakout level by default.
-        return ("RECT", "BOTH", float(upper_now))
+        return ("RECT", float(upper_now), float(lower_now))
 
     if diverging:
-        # Broadening (megaphone)
-        return ("BROADEN", "BOTH", float(upper_now))
+        return ("BROADEN", float(upper_now), float(lower_now))
 
     if converging:
-        # triangle vs wedge
         if a_u < 0 and a_l > 0:
-            return ("TRIANGLE", "BOTH", float(upper_now))
+            return ("TRIANGLE", float(upper_now), float(lower_now))
         if a_u < 0 and a_l < 0:
-            return ("WEDGE_DOWN", "BOTH", float(upper_now))
+            return ("WEDGE_DOWN", float(upper_now), float(lower_now))
         if a_u > 0 and a_l > 0:
-            return ("WEDGE_UP", "BOTH", float(upper_now))
-        # fallback
-        return ("TRIANGLE", "BOTH", float(upper_now))
+            return ("WEDGE_UP", float(upper_now), float(lower_now))
+        return ("TRIANGLE", float(upper_now), float(lower_now))
 
     return None
 
@@ -717,8 +810,7 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
     if df is None or df.empty or len(df) < 80:
         return sigs
 
-    d = df.copy()
-    d = d.dropna(subset=["Close"])
+    d = df.dropna(subset=["Close"]).copy()
     if len(d) < 80:
         return sigs
 
@@ -727,80 +819,50 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
     close = float(d["Close"].iloc[-1])
     pct_today = pct_change_last(d)
 
-    # 1) H&S top
     hs = detect_hs_top(d)
     if hs:
         pattern, direction, level = hs
         prefix, dist_atr = _classify_vs_level(close, level, atr_val, direction)
         if prefix:
             sigs.append(LevelSignal(
-                ticker=ticker,
-                signal=f"{prefix}{pattern}_{direction}",
-                pattern=pattern,
-                direction=direction,
-                level=float(level),
-                close=close,
-                atr=atr_val,
-                dist_atr=float(dist_atr),
-                pct_today=pct_today
+                ticker=ticker, signal=f"{prefix}{pattern}_{direction}",
+                pattern=pattern, direction=direction,
+                level=float(level), close=close, atr=atr_val,
+                dist_atr=float(dist_atr), pct_today=pct_today
             ))
 
-    # 2) Inverse H&S
     ihs = detect_inverse_hs(d)
     if ihs:
         pattern, direction, level = ihs
         prefix, dist_atr = _classify_vs_level(close, level, atr_val, direction)
         if prefix:
             sigs.append(LevelSignal(
-                ticker=ticker,
-                signal=f"{prefix}{pattern}_{direction}",
-                pattern=pattern,
-                direction=direction,
-                level=float(level),
-                close=close,
-                atr=atr_val,
-                dist_atr=float(dist_atr),
-                pct_today=pct_today
+                ticker=ticker, signal=f"{prefix}{pattern}_{direction}",
+                pattern=pattern, direction=direction,
+                level=float(level), close=close, atr=atr_val,
+                dist_atr=float(dist_atr), pct_today=pct_today
             ))
 
-    # 3) Structure (triangle/wedge/rect/broaden)
-    st = detect_triangle_wedge_rect_broadening(d)
+    st = detect_structure(d)
     if st:
-        pattern, direction, upper_level = st
-        # For BOTH patterns, decide which side is relevant based on where price is
-        # Create two potential triggers: breakout at upper, breakdown at lower (if we can estimate)
-        # We estimate lower via recent swing lows median.
-        c = d.tail(180)["Close"].dropna()
-        _, lows_idx = _swing_points(c, window=3)
-        lower_level = float(np.median([float(c.iloc[i]) for i in lows_idx[-6:]])) if len(lows_idx) >= 6 else float(c.min())
+        pattern, upper_level, lower_level = st
 
-        # Breakout check
-        prefix_u, dist_u = _classify_vs_level(close, float(upper_level), atr_val, "BREAKOUT")
+        prefix_u, dist_u = _classify_vs_level(close, upper_level, atr_val, "BREAKOUT")
         if prefix_u:
             sigs.append(LevelSignal(
-                ticker=ticker,
-                signal=f"{prefix_u}{pattern}_BREAKOUT",
-                pattern=pattern,
-                direction="BREAKOUT",
-                level=float(upper_level),
-                close=close,
-                atr=atr_val,
-                dist_atr=float(dist_u),
-                pct_today=pct_today
+                ticker=ticker, signal=f"{prefix_u}{pattern}_BREAKOUT",
+                pattern=pattern, direction="BREAKOUT",
+                level=float(upper_level), close=close, atr=atr_val,
+                dist_atr=float(dist_u), pct_today=pct_today
             ))
-        # Breakdown check
-        prefix_l, dist_l = _classify_vs_level(close, float(lower_level), atr_val, "BREAKDOWN")
+
+        prefix_l, dist_l = _classify_vs_level(close, lower_level, atr_val, "BREAKDOWN")
         if prefix_l:
             sigs.append(LevelSignal(
-                ticker=ticker,
-                signal=f"{prefix_l}{pattern}_BREAKDOWN",
-                pattern=pattern,
-                direction="BREAKDOWN",
-                level=float(lower_level),
-                close=close,
-                atr=atr_val,
-                dist_atr=float(dist_l),
-                pct_today=pct_today
+                ticker=ticker, signal=f"{prefix_l}{pattern}_BREAKDOWN",
+                pattern=pattern, direction="BREAKDOWN",
+                level=float(lower_level), close=close, atr=atr_val,
+                dist_atr=float(dist_l), pct_today=pct_today
             ))
 
     return sigs
@@ -810,14 +872,9 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
 # Charting
 # ----------------------------
 def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal) -> Optional[str]:
-    """
-    Saves chart to docs/img and returns relative path.
-    """
     if df is None or df.empty:
         return None
-
-    d = df.tail(220).copy()
-    d = d.dropna(subset=["Close"])
+    d = df.tail(220).dropna(subset=["Close"]).copy()
     if len(d) < 60:
         return None
 
@@ -831,11 +888,10 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal) -> Option
     ax.set_xlabel("Date")
     ax.set_ylabel("Close")
 
-    # annotate last close
     ax.scatter([d.index[-1]], [d["Close"].iloc[-1]])
     ax.text(d.index[-1], d["Close"].iloc[-1], f"  {d['Close'].iloc[-1]:.2f}", va="center")
 
-    fname = f"{ticker.replace('/', '_')}_{sig.signal}.png"
+    fname = f"{ticker}_{sig.signal}.png"
     fname = re.sub(r"[^A-Za-z0-9_\-\.]+", "_", fname)
     out_path = IMG_DIR / fname
     fig.tight_layout()
@@ -846,16 +902,30 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal) -> Option
 
 
 # ----------------------------
-# Report building
+# Report formatting
 # ----------------------------
 def format_snapshot_table(rows: List[Tuple[str, float, float, float]]) -> str:
-    # rows: (Name, last, pct, prev)
     md = []
     md.append("| Instrument | Last | Day % | Prev |")
     md.append("|---|---:|---:|---:|")
-    for name, last, pct, prev in rows:
-        md.append(f"| {name} | {last:.2f} | {pct:+.2f}% | {prev:.2f} |")
+    for name, last, pctv, prev in rows:
+        md.append(f"| {name} | {last:.2f} | {pctv:+.2f}% | {prev:.2f} |")
     return "\n".join(md)
+
+
+def _extract_close_series(download_df: pd.DataFrame, sym: str) -> Optional[pd.Series]:
+    if download_df is None or download_df.empty:
+        return None
+    if not isinstance(download_df.columns, pd.MultiIndex):
+        if "Close" in download_df.columns:
+            return download_df["Close"].dropna()
+        return None
+    cols = download_df.columns
+    if ("Close", sym) in cols:
+        return download_df[("Close", sym)].dropna()
+    if (sym, "Close") in cols:
+        return download_df[(sym, "Close")].dropna()
+    return None
 
 
 def fetch_market_snapshot() -> List[Tuple[str, float, float, float]]:
@@ -885,18 +955,13 @@ def fetch_market_snapshot() -> List[Tuple[str, float, float, float]]:
 
     for label, sym in instruments.items():
         try:
-            if isinstance(data.columns, pd.MultiIndex):
-                close = data[("Close", sym)].dropna()
-            else:
-                # single column case (rare)
-                close = data["Close"].dropna()
-
-            if len(close) < 2:
+            close = _extract_close_series(data, sym)
+            if close is None or len(close) < 2:
                 continue
             last = float(close.iloc[-1])
             prev = float(close.iloc[-2])
-            pct = (last / prev - 1.0) * 100.0
-            rows.append((label, last, pct, prev))
+            pctv = (last / prev - 1.0) * 100.0
+            rows.append((label, last, pctv, prev))
         except Exception:
             continue
     return rows
@@ -904,7 +969,7 @@ def fetch_market_snapshot() -> List[Tuple[str, float, float, float]]:
 
 def signals_to_df(signals: List[LevelSignal]) -> pd.DataFrame:
     if not signals:
-        return pd.DataFrame(columns=["Ticker", "Signal", "Pattern", "Dir", "Close", "Level", "Dist(ATR)", "Day%"])
+        return pd.DataFrame(columns=["Ticker", "Signal", "Pattern", "Dir", "Close", "Level", "Dist(ATR)", "Day%", "Chart"])
     return pd.DataFrame([{
         "Ticker": s.ticker,
         "Signal": s.signal,
@@ -922,7 +987,6 @@ def md_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 30) -> s
     if df is None or df.empty:
         return "_None_"
     d = df.copy().head(max_rows)
-    # nicer formatting
     for c in ["Close", "Level"]:
         if c in d.columns:
             d[c] = pd.to_numeric(d[c], errors="coerce").map(lambda x: f"{x:.2f}" if pd.notna(x) else "")
@@ -931,27 +995,33 @@ def md_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 30) -> s
     if "Day%" in d.columns:
         d["Day%"] = pd.to_numeric(d["Day%"], errors="coerce").map(lambda x: f"{x:+.2f}%" if pd.notna(x) else "")
     if "Chart" in d.columns:
-        # convert to markdown link
         d["Chart"] = d["Chart"].apply(lambda p: f"[chart]({p})" if isinstance(p, str) and p else "")
-
     return d[cols].to_markdown(index=False)
 
 
 def diff_new_ended(prev: Dict[str, List[str]], cur: Dict[str, List[str]]) -> Tuple[List[str], List[str]]:
     prev_set = set(prev.get("signals", []))
     cur_set = set(cur.get("signals", []))
-    new = sorted(cur_set - prev_set)
-    ended = sorted(prev_set - cur_set)
-    return new, ended
+    return sorted(cur_set - prev_set), sorted(prev_set - cur_set)
 
 
+def movers_table(df: pd.DataFrame, title: str) -> str:
+    if df is None or df.empty:
+        return f"**{title}:** _None ≥ {MOVER_THRESHOLD_PCT:.0f}%_\n"
+    t = df.copy()
+    t["pct"] = pd.to_numeric(t["pct"], errors="coerce").map(lambda x: f"{x:+.2f}%")
+    return f"**{title}:**\n\n" + t[["symbol", "pct"]].to_markdown(index=False) + "\n"
+
+
+# ----------------------------
+# Main
+# ----------------------------
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--mode", choices=["full", "custom"], default=os.environ.get("MODE", "full"))
     ap.add_argument("--max-tickers", type=int, default=int(os.environ.get("MAX_TICKERS", "0")))
     args = ap.parse_args()
 
-    # Universe
     custom = get_custom_tickers()
     spx = get_sp500_tickers()
     ndx = get_nasdaq100_tickers()
@@ -965,109 +1035,71 @@ def main():
         universe = universe[:args.max_tickers]
 
     now = dt.datetime.now(dt.timezone.utc)
-    ts_local = now.astimezone()  # runner local tz
-    header_time = ts_local.strftime("%Y-%m-%d %H:%M %Z")
+    header_time = now.astimezone().strftime("%Y-%m-%d %H:%M %Z")
 
-    # Market overview
+    # 1) Market overview
     snapshot_rows = fetch_market_snapshot()
     headlines = fetch_yahoo_headlines(limit=10)
     narrative = build_market_narrative(headlines)
 
-    # Movers (>=4%)
-    session_g, session_l = fetch_session_movers_yahoo()
-    ah_g, ah_l = fetch_afterhours_movers()
-
-    def filter_movers(df: pd.DataFrame) -> pd.DataFrame:
-        if df is None or df.empty:
-            return pd.DataFrame()
-        out = df.copy()
-        # best-effort % column detection
-        pct_col = None
-        for c in out.columns:
-            if "%" in str(c) and ("change" in str(c).lower() or "chg" in str(c).lower()):
-                pct_col = c
-                break
-        if pct_col is None and "_pct" in out.columns:
-            out["pct"] = out["_pct"]
-        else:
-            if pct_col is not None:
-                out["pct"] = (
-                    out[pct_col].astype(str)
-                    .str.replace("%", "", regex=False)
-                    .str.replace("+", "", regex=False)
-                    .str.replace(",", "", regex=False)
-                )
-                out["pct"] = pd.to_numeric(out["pct"], errors="coerce")
-            else:
-                out["pct"] = np.nan
-
-        # symbol column
-        sym_col = None
-        for c in out.columns:
-            if str(c).lower() in ("symbol", "ticker"):
-                sym_col = c
-                break
-        if sym_col is None and "_symbol" in out.columns:
-            out["symbol"] = out["_symbol"]
-        else:
-            out["symbol"] = out[sym_col].astype(str) if sym_col else out.iloc[:, 0].astype(str)
-
-        out = out.dropna(subset=["pct"])
-        out = out.loc[out["pct"].abs() >= MOVER_THRESHOLD_PCT].copy()
-        out = out.sort_values("pct", ascending=False)
-        return out[["symbol", "pct"]].head(30)
-
-    session_gf = filter_movers(session_g)
-    session_lf = filter_movers(session_l).sort_values("pct", ascending=True)
-    ah_gf = filter_movers(ah_g)
-    ah_lf = filter_movers(ah_l).sort_values("pct", ascending=True)
-
-    # Download OHLCV once
+    # Download OHLCV (also used for universe mover fallback)
     ohlcv = yf_download_chunk(universe)
 
-    # Compute signals
+    # 2) Movers >=4%
+    session_g, session_l = fetch_session_movers_yahoo()
+    session_gf = filter_movers(session_g)
+    session_lf = filter_movers(session_l)
+    if not session_lf.empty:
+        session_lf = session_lf.sort_values("pct", ascending=True)
+
+    # fallback session movers from universe if Yahoo empty
+    if session_gf.empty and session_lf.empty:
+        uni_movers = compute_universe_movers(ohlcv)
+        session_gf = uni_movers[uni_movers["pct"] >= 0].head(30)
+        session_lf = uni_movers[uni_movers["pct"] < 0].sort_values("pct", ascending=True).head(30)
+
+    ah_g, ah_l = fetch_afterhours_movers()
+    ah_gf = filter_movers(ah_g)
+    ah_lf = filter_movers(ah_l)
+    if not ah_lf.empty:
+        ah_lf = ah_lf.sort_values("pct", ascending=True)
+
+    # fallback after-hours movers from custom tickers if scraping empty
+    if ah_gf.empty and ah_lf.empty and custom:
+        fg, fl = compute_custom_afterhours_movers(custom)
+        ah_gf, ah_lf = fg, fl
+
+    # 4) Technicals
     all_signals: List[LevelSignal] = []
     for t in universe:
         df = ohlcv.get(t)
         if df is None or df.empty:
             continue
-        sigs = compute_signals_for_ticker(t, df)
-        all_signals.extend(sigs)
+        all_signals.extend(compute_signals_for_ticker(t, df))
 
-    # Categorize
     early = [s for s in all_signals if s.signal.startswith("EARLY_")]
     triggered = [s for s in all_signals if s.signal.startswith("SOFT_") or s.signal.startswith("CONFIRMED_")]
 
-    # Chart only top N (prioritize confirmed, then soft, then early by |dist|)
-    def rank_key(s: LevelSignal) -> Tuple[int, float]:
-        # confirmed first
+    def rank_trigger(s: LevelSignal) -> Tuple[int, float]:
         tier = 0 if s.signal.startswith("CONFIRMED_") else (1 if s.signal.startswith("SOFT_") else 2)
         return (tier, abs(s.dist_atr))
 
-    triggered_sorted = sorted(triggered, key=rank_key)
+    triggered_sorted = sorted(triggered, key=rank_trigger)
     early_sorted = sorted(early, key=lambda s: abs(s.dist_atr))
 
-    # Create charts
+    # charts
     for s in triggered_sorted[:MAX_CHARTS_TRIGGERED]:
-        p = plot_signal_chart(s.ticker, ohlcv.get(s.ticker), s)
-        s.chart_path = p
+        s.chart_path = plot_signal_chart(s.ticker, ohlcv.get(s.ticker), s)
     for s in early_sorted[:MAX_CHARTS_EARLY]:
-        p = plot_signal_chart(s.ticker, ohlcv.get(s.ticker), s)
-        s.chart_path = p
+        s.chart_path = plot_signal_chart(s.ticker, ohlcv.get(s.ticker), s)
 
-    # Build NEW/ENDED diff
+    # state diff
     state = load_state()
     prev = {"signals": state.get("signals", [])}
     cur_ids = [f"{s.ticker}|{s.signal}" for s in all_signals]
     state["signals"] = cur_ids
     save_state(state)
     new_ids, ended_ids = diff_new_ended(prev, {"signals": cur_ids})
-
-    # Convert to dfs
-    df_early = signals_to_df(early_sorted)
-    df_trig = signals_to_df(triggered_sorted)
-
-    # Split NEW vs ONGOING for readability
     new_set = set(new_ids)
 
     def mark_new(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
@@ -1079,15 +1111,16 @@ def main():
         d_old = d[~d["_id"].isin(new_set)].drop(columns=["_id"])
         return d_new, d_old
 
+    df_early = signals_to_df(early_sorted)
+    df_trig = signals_to_df(triggered_sorted)
     df_early_new, df_early_old = mark_new(df_early)
     df_trig_new, df_trig_old = mark_new(df_trig)
 
-    # Markdown assembly
-    md = []
-    md.append(f"# Daily Report\n")
+    # assemble markdown
+    md: List[str] = []
+    md.append("# Daily Report\n")
     md.append(f"_Generated: **{header_time}**_\n")
 
-    # 1) Market narrative
     md.append("## 1) Market recap & positioning\n")
     md.append(f"{narrative}\n")
 
@@ -1099,7 +1132,6 @@ def main():
     if headlines:
         md.append("**Yahoo Finance headlines (context for the narrative):**\n")
         for h in headlines[:8]:
-            # link is optional; keep it clean
             title = h["title"]
             pub = h["publisher"]
             link = h["link"]
@@ -1109,46 +1141,35 @@ def main():
                 md.append(f"- {title} — {pub}".rstrip())
         md.append("")
 
-    # 2) Movers
     md.append("## 2) Biggest movers (≥ 4%)\n")
-
-    def movers_table(df: pd.DataFrame, title: str) -> str:
-        if df is None or df.empty:
-            return f"**{title}:** _None ≥ {MOVER_THRESHOLD_PCT:.0f}%_\n"
-        t = df.copy()
-        t["pct"] = t["pct"].map(lambda x: f"{x:+.2f}%")
-        return f"**{title}:**\n\n" + t.to_markdown(index=False) + "\n"
-
     md.append(movers_table(session_gf, "Session gainers"))
     md.append(movers_table(session_lf, "Session losers"))
     md.append(movers_table(ah_gf, "After-hours gainers"))
     md.append(movers_table(ah_lf, "After-hours losers"))
 
-    # 4) Technical triggers (split)
     md.append("## 4) Technical triggers\n")
     md.append(f"**Breakout confirmation rule:** close beyond trigger by **≥ {ATR_CONFIRM_MULT:.1f} ATR**.\n")
 
     md.append("### 4A) Early callouts (~80% complete)\n")
-    md.append("_These are close enough to the trigger that you should pre-plan the trade. “Close enough” = within 0.5 ATR of the neckline/boundary._\n")
+    md.append("_Close enough to pre-plan. “Close enough” = within 0.5 ATR of neckline/boundary._\n")
 
     md.append("**NEW (today):**\n")
-    md.append(md_table_from_df(df_early_new, cols=["Ticker", "Signal", "Close", "Level", "Dist(ATR)", "Day%", "Chart"], max_rows=30))
+    md.append(md_table_from_df(df_early_new, cols=["Ticker", "Signal", "Close", "Level", "Dist(ATR)", "Day%", "Chart"], max_rows=40))
     md.append("\n**ONGOING:**\n")
-    md.append(md_table_from_df(df_early_old, cols=["Ticker", "Signal", "Close", "Level", "Dist(ATR)", "Day%", "Chart"], max_rows=30))
+    md.append(md_table_from_df(df_early_old, cols=["Ticker", "Signal", "Close", "Level", "Dist(ATR)", "Day%", "Chart"], max_rows=60))
     md.append("")
 
     md.append("### 4B) Breakouts / breakdowns (or about to)\n")
-    md.append("_Includes **SOFT** breaks (pierced the level but <0.5 ATR) and **CONFIRMED** breaks (≥0.5 ATR)._ \n")
+    md.append("_Includes **SOFT** (pierced but <0.5 ATR) and **CONFIRMED** (≥0.5 ATR)._ \n")
 
     md.append("**NEW (today):**\n")
-    md.append(md_table_from_df(df_trig_new, cols=["Ticker", "Signal", "Close", "Level", "Dist(ATR)", "Day%", "Chart"], max_rows=40))
+    md.append(md_table_from_df(df_trig_new, cols=["Ticker", "Signal", "Close", "Level", "Dist(ATR)", "Day%", "Chart"], max_rows=60))
     md.append("\n**ONGOING:**\n")
-    md.append(md_table_from_df(df_trig_old, cols=["Ticker", "Signal", "Close", "Level", "Dist(ATR)", "Day%", "Chart"], max_rows=40))
+    md.append(md_table_from_df(df_trig_old, cols=["Ticker", "Signal", "Close", "Level", "Dist(ATR)", "Day%", "Chart"], max_rows=80))
     md.append("")
 
-    # 5) Needle-moving catalysts (Yahoo Finance)
     md.append("## 5) Needle-moving catalysts to watch (Yahoo Finance)\n")
-    md.append("_Interpretation: focus on the items most likely to move risk by 4–5%+ (rates, AI positioning, major earnings/guidance, macro prints)._ \n")
+    md.append("_Focus on items most likely to move risk by 4–5%+ (rates, AI positioning, major earnings/guidance, macro prints)._ \n")
     if headlines:
         for h in headlines[:10]:
             title = h["title"]
@@ -1162,46 +1183,49 @@ def main():
         md.append("_No Yahoo Finance headlines available._")
     md.append("")
 
-    # Ended signals
     md.append("## Changelog\n")
     if new_ids:
         md.append("**New signals:**\n")
-        for x in new_ids[:60]:
+        for x in new_ids[:80]:
             md.append(f"- {x}")
     else:
         md.append("**New signals:** _None_\n")
 
     if ended_ids:
         md.append("\n**Ended signals:**\n")
-        for x in ended_ids[:60]:
+        for x in ended_ids[:80]:
             md.append(f"- {x}")
     else:
         md.append("\n**Ended signals:** _None_\n")
 
     md_text = "\n".join(md).strip() + "\n"
 
-    # Write both report.md and index.md so Pages root shows it
+    # write both (Pages root uses index.md)
     write_text(REPORT_PATH, md_text)
     write_text(INDEX_PATH, md_text)
 
     print(f"Wrote: {REPORT_PATH}")
     print(f"Wrote: {INDEX_PATH}")
-    print(f"Signals: early={len(early_sorted)} triggered={len(triggered_sorted)} universe={len(universe)}")
+    print(f"Universe={len(universe)}  Signals: early={len(early_sorted)} triggered={len(triggered_sorted)}")
+
 
 if __name__ == "__main__":
     try:
         main()
-    except Exception as e:
-        import traceback
+        raise SystemExit(0)
+    except SystemExit:
+        raise
+    except Exception:
         err = traceback.format_exc()
-        # Always publish something so Pages updates
-        DOCS_DIR.mkdir(parents=True, exist_ok=True)
-        (DOCS_DIR / "report.md").write_text(
-            "# Daily Report\n\n## ERROR\n\n```text\n" + err[-4000:] + "\n```\n",
-            encoding="utf-8"
+        print(err)
+        fallback = (
+            "# Daily Report\n\n"
+            "## ERROR\n\n"
+            "The run crashed. Traceback:\n\n"
+            "```text\n"
+            f"{err[-4000:]}\n"
+            "```\n"
         )
-        (DOCS_DIR / "index.md").write_text(
-            "# Daily Report\n\n## ERROR\n\n```text\n" + err[-4000:] + "\n```\n",
-            encoding="utf-8"
-        )
+        write_text(REPORT_PATH, fallback)
+        write_text(INDEX_PATH, fallback)
         raise SystemExit(0)
