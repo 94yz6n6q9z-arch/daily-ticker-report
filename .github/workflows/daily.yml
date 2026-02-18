@@ -45,9 +45,8 @@ jobs:
 
           # Ensure Pages stability
           mkdir -p docs/img
-          touch docs/.nojekyll
 
-          git add docs/.nojekyll docs/report.md docs/index.md docs/state.json docs/img || true
+          git add docs/report.md docs/index.md docs/state.json docs/img || true
 
           if git diff --cached --quiet; then
             echo "No changes to commit."
