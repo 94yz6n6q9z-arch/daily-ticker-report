@@ -1,31 +1,54 @@
 #!/usr/bin/env python3
-import os, math
+"""
+Daily Technical Triggers Report
+- Universe: Nasdaq-100 + S&P 500 + config/tickers_custom.txt
+- Patterns: H&S, inverse H&S, triangles, wedges, broadening, rectangles
+- Output: docs/report.md + docs/index.md + docs/state.json + docs/img/YYYY-MM-DD/*.png
+- Reliability: "NEW triggers" computed by diffing current signals vs docs/state.json
+"""
+
+import os
+import json
+import math
+from datetime import datetime, timedelta
+
 import pytz
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import yfinance as yf
-from datetime import datetime, timedelta
 
+# -------------------- Settings --------------------
 TZ = "Europe/Berlin"
 RUN_AT_HOUR = 22
-RUN_AT_MIN  = 30
+RUN_AT_MIN = 30
 
 LOOKBACK = "3y"
 CHUNK = 25
 
-PIVOT_W = 5
-PATTERN_WINDOW = 260       # ~1 trading year
-NEAR_PCT = 3.0             # near boundary
-BREAK_PCT = 1.0            # trigger threshold (close beyond boundary)
+PIVOT_W = 6
+WINDOW = 260                 # ~1 trading year for patterns
+NEAR_PCT = 3.0               # watch threshold
+BREAK_PCT = 1.0              # trigger threshold beyond boundary
 
+MAX_CHARTS_PER_UNIVERSE = 20 # avoid producing hundreds of charts
+CUSTOM_AFTERHOURS_ONLY = True
+
+STATE_PATH = "docs/state.json"
+REPORT_MD = "docs/report.md"
+INDEX_MD = "docs/index.md"
+
+# -------------------- Time gating --------------------
 def now_local():
     return datetime.now(pytz.timezone(TZ))
 
 def should_run_now():
+    if os.getenv("FORCE_RUN") == "1":
+        return True
     t = now_local()
     return (t.hour == RUN_AT_HOUR) and (abs(t.minute - RUN_AT_MIN) <= 7)
 
+# -------------------- Ticker universes --------------------
 def get_nasdaq100_tickers():
     tables = pd.read_html("https://en.wikipedia.org/wiki/Nasdaq-100")
     for t in tables:
@@ -48,20 +71,26 @@ def read_custom_tickers(path="config/tickers_custom.txt"):
     ticks = [x for x in ticks if x and not x.startswith("#")]
     return [x.replace(".", "-") for x in ticks]
 
+# -------------------- Data download --------------------
 def download_chunked(tickers):
     parts = []
     for i in range(0, len(tickers), CHUNK):
         part = tickers[i:i+CHUNK]
         dfp = yf.download(
-            part, period=LOOKBACK, interval="1d",
-            group_by="ticker", auto_adjust=False,
-            threads=True, progress=False
+            part,
+            period=LOOKBACK,
+            interval="1d",
+            group_by="ticker",
+            auto_adjust=False,
+            threads=True,
+            progress=False,
         )
         parts.append(dfp)
     return pd.concat(parts, axis=1)
 
+# -------------------- Helpers --------------------
 def pct(a, b):
-    return (a - b) / b * 100.0 if b else np.nan
+    return (a - b) / b * 100.0 if b not in (0, None) else np.nan
 
 def pivots(series: pd.Series, w: int = PIVOT_W):
     roll_max = series.rolling(2*w+1, center=True).max()
@@ -79,7 +108,12 @@ def fit_line(x: np.ndarray, y: np.ndarray):
 def line_y(a, b, x):
     return a*x + b
 
+# -------------------- After-hours snapshot (custom only) --------------------
 def after_hours_snapshot(ticker: str):
+    """
+    Try to compute after-hours move (regular close -> latest pre/post 1m bar).
+    Returns dict: reg_close, last_px, ah_change_pct (NaN if unavailable)
+    """
     out = {"reg_close": np.nan, "last_px": np.nan, "ah_change_pct": np.nan}
     try:
         t = yf.Ticker(ticker)
@@ -88,8 +122,8 @@ def after_hours_snapshot(ticker: str):
             return out
         h = h.dropna()
         out["last_px"] = float(h["Close"].iloc[-1])
-        idx = h.index
 
+        idx = h.index
         mask = (idx.hour == 16) & (idx.minute <= 5)
         if mask.any():
             out["reg_close"] = float(h.loc[mask, "Close"].iloc[-1])
@@ -105,41 +139,53 @@ def after_hours_snapshot(ticker: str):
     except Exception:
         return out
 
-def detect_rectangle(df: pd.DataFrame, n=PATTERN_WINDOW):
-    w = df.tail(n)
-    if len(w) < 80: return None
+# -------------------- Pattern detection --------------------
+def detect_rectangle(raw: pd.DataFrame, n=WINDOW):
+    w = raw.tail(n)
+    if len(w) < 80:
+        return None
     hi = w["High"].quantile(0.95)
     lo = w["Low"].quantile(0.05)
     rng = (hi - lo) / max(1e-9, lo)
     drift = pct(w["Close"].iloc[-1], w["Close"].iloc[0])
+    # rectangle-ish: range not too wide, no strong drift
     if rng < 0.25 and abs(drift) < 20:
-        return {"pattern":"Rectangle", "support":float(lo), "resistance":float(hi)}
+        return {"support": float(lo), "resistance": float(hi)}
     return None
 
-def detect_trendlines(df: pd.DataFrame, n=PATTERN_WINDOW):
-    w = df.tail(n).copy().reset_index(drop=True)
+def detect_trendlines(raw: pd.DataFrame, n=WINDOW):
+    """
+    Fit trendlines to last 4 pivot highs and lows (on Close).
+    Returns slopes/intercepts + convergence/divergence stats.
+    """
+    w = raw.tail(n).copy().reset_index(drop=True)
     close = w["Close"]
     hi, lo = pivots(close, w=PIVOT_W)
     hi_idx = np.array(hi.index.to_list(), dtype=int)
     lo_idx = np.array(lo.index.to_list(), dtype=int)
     if len(hi_idx) < 3 or len(lo_idx) < 3:
         return None
+
     hi_idx = hi_idx[-4:]
     lo_idx = lo_idx[-4:]
     upper = fit_line(hi_idx, close.iloc[hi_idx].to_numpy())
     lower = fit_line(lo_idx, close.iloc[lo_idx].to_numpy())
     if upper is None or lower is None:
         return None
-    aU,bU = upper
-    aL,bL = lower
-    last = len(w)-1
+
+    aU, bU = upper
+    aL, bL = lower
+
+    last = len(w) - 1
     early = max(0, last - 120)
-    gap_now = line_y(aU,bU,last) - line_y(aL,bL,last)
-    gap_then = line_y(aU,bU,early) - line_y(aL,bL,early)
+
+    gap_now = line_y(aU, bU, last) - line_y(aL, bL, last)
+    gap_then = line_y(aU, bU, early) - line_y(aL, bL, early)
+
     flatU = abs(aU) < 0.02
     flatL = abs(aL) < 0.02
-    diverge  = gap_now > gap_then * 1.15
-    converge = gap_now < gap_then * 0.85
+    diverge = gap_then > 0 and (gap_now > gap_then * 1.15)
+    converge = gap_then > 0 and (gap_now < gap_then * 0.85)
 
     if diverge:
         patt = "Broadening"
@@ -155,225 +201,235 @@ def detect_trendlines(df: pd.DataFrame, n=PATTERN_WINDOW):
     else:
         patt = "Channel/Other"
 
-    return {"pattern":patt, "aU":float(aU),"bU":float(bU),"aL":float(aL),"bL":float(bL),
-            "gap_now":float(gap_now), "gap_then":float(gap_then)}
+    return {
+        "pattern": patt,
+        "aU": float(aU), "bU": float(bU),
+        "aL": float(aL), "bL": float(bL),
+        "gap_now": float(gap_now), "gap_then": float(gap_then),
+    }
 
-def boundary_now(df: pd.DataFrame, cls: dict):
-    w = df.tail(PATTERN_WINDOW).copy().reset_index(drop=True)
-    last = len(w)-1
-    upper = line_y(cls["aU"], cls["bU"], last)
-    lower = line_y(cls["aL"], cls["bL"], last)
+def boundary_now(raw: pd.DataFrame, tl: dict):
+    w = raw.tail(WINDOW).copy().reset_index(drop=True)
+    last = len(w) - 1
+    upper = line_y(tl["aU"], tl["bU"], last)
+    lower = line_y(tl["aL"], tl["bL"], last)
     return float(upper), float(lower)
 
-def detect_hs_top(df: pd.DataFrame, n=PATTERN_WINDOW):
-    w = df.tail(n).copy().reset_index(drop=True)
-    if len(w) < 120: return None
+def detect_hs_top(raw: pd.DataFrame, n=WINDOW):
+    """
+    Screening H&S top:
+    - use pivot highs for LS/Head/RS
+    - neckline from lowest lows between LS-Head and Head-RS (linear)
+    """
+    w = raw.tail(n).copy().reset_index(drop=True)
+    if len(w) < 140:
+        return None
     close = w["Close"]
     low = w["Low"]
-    dates = w["Date"]
+
     hi, _ = pivots(close, w=PIVOT_W)
     idx = hi.index.to_list()
-    if len(idx) < 6: return None
-    best=None
-    for i in range(len(idx)-2):
-        ls,hd,rs = idx[i], idx[i+1], idx[i+2]
-        span = rs-ls
-        if span < 25 or span > 220: continue
-        ls_p,hd_p,rs_p = float(close.iloc[ls]), float(close.iloc[hd]), float(close.iloc[rs])
-        if hd_p < max(ls_p, rs_p)*1.03: continue
-        if abs(ls_p-rs_p)/((ls_p+rs_p)/2) > 0.15: continue
+    if len(idx) < 6:
+        return None
+
+    best = None
+    for i in range(len(idx) - 2):
+        ls, hd, rs = idx[i], idx[i+1], idx[i+2]
+        span = rs - ls
+        if span < 25 or span > 220:
+            continue
+
+        ls_p, hd_p, rs_p = float(close.iloc[ls]), float(close.iloc[hd]), float(close.iloc[rs])
+        if hd_p < max(ls_p, rs_p) * 1.03:
+            continue
+        if abs(ls_p - rs_p) / ((ls_p + rs_p) / 2) > 0.15:
+            continue
+
         t1 = int(low.iloc[ls:hd+1].idxmin())
         t2 = int(low.iloc[hd:rs+1].idxmin())
-        t1p,t2p = float(low.loc[t1]), float(low.loc[t2])
-        last = len(w)-1
-        neck = t1p + (t2p - t1p) * ((last - t1) / max(1,(t2 - t1)))
+        t1p, t2p = float(low.loc[t1]), float(low.loc[t2])
+
+        last = len(w) - 1
+        # neckline y at last (linear)
+        neck = t1p + (t2p - t1p) * ((last - t1) / max(1, (t2 - t1)))
         last_close = float(close.iloc[last])
-        dist = pct(last_close, neck)
-        best = {"pattern":"H&S Top", "ls":str(dates.iloc[ls].date()), "head":str(dates.iloc[hd].date()), "rs":str(dates.iloc[rs].date()),
-                "neck":float(neck), "last":last_close, "dist_pct":float(dist)}
+
+        best = {
+            "ls_i": ls, "hd_i": hd, "rs_i": rs,
+            "t1_i": t1, "t2_i": t2,
+            "neck": float(neck),
+            "last_close": float(last_close),
+        }
     return best
 
-def detect_inv_hs(df: pd.DataFrame, n=PATTERN_WINDOW):
-    w = df.tail(n).copy().reset_index(drop=True)
-    if len(w) < 120: return None
+def detect_inv_hs(raw: pd.DataFrame, n=WINDOW):
+    """
+    Screening inverse H&S:
+    - use pivot lows for LS/Head/RS
+    - neckline from highest highs between LS-Head and Head-RS (linear)
+    """
+    w = raw.tail(n).copy().reset_index(drop=True)
+    if len(w) < 140:
+        return None
     close = w["Close"]
     high = w["High"]
-    dates = w["Date"]
+
     _, lo = pivots(close, w=PIVOT_W)
     idx = lo.index.to_list()
-    if len(idx) < 6: return None
-    best=None
-    for i in range(len(idx)-2):
-        ls,hd,rs = idx[i], idx[i+1], idx[i+2]
-        span = rs-ls
-        if span < 25 or span > 260: continue
-        ls_p,hd_p,rs_p = float(close.iloc[ls]), float(close.iloc[hd]), float(close.iloc[rs])
-        if hd_p > min(ls_p, rs_p)*0.97: continue
-        if abs(ls_p-rs_p)/((ls_p+rs_p)/2) > 0.22: continue
+    if len(idx) < 6:
+        return None
+
+    best = None
+    for i in range(len(idx) - 2):
+        ls, hd, rs = idx[i], idx[i+1], idx[i+2]
+        span = rs - ls
+        if span < 25 or span > 260:
+            continue
+
+        ls_p, hd_p, rs_p = float(close.iloc[ls]), float(close.iloc[hd]), float(close.iloc[rs])
+        if hd_p > min(ls_p, rs_p) * 0.97:
+            continue
+        if abs(ls_p - rs_p) / ((ls_p + rs_p) / 2) > 0.22:
+            continue
+
         p1 = int(high.iloc[ls:hd+1].idxmax())
         p2 = int(high.iloc[hd:rs+1].idxmax())
-        p1p,p2p = float(high.loc[p1]), float(high.loc[p2])
-        last = len(w)-1
-        neck = p1p + (p2p - p1p) * ((last - p1) / max(1,(p2 - p1)))
+        p1p, p2p = float(high.loc[p1]), float(high.loc[p2])
+
+        last = len(w) - 1
+        neck = p1p + (p2p - p1p) * ((last - p1) / max(1, (p2 - p1)))
         last_close = float(close.iloc[last])
-        dist = pct(neck, last_close)  # positive if below neckline
-        best = {"pattern":"Inverse H&S", "ls":str(dates.iloc[ls].date()), "head":str(dates.iloc[hd].date()), "rs":str(dates.iloc[rs].date()),
-                "neck":float(neck), "last":last_close, "dist_pct":float(dist)}
+
+        best = {
+            "ls_i": ls, "hd_i": hd, "rs_i": rs,
+            "p1_i": p1, "p2_i": p2,
+            "neck": float(neck),
+            "last_close": float(last_close),
+        }
     return best
 
-def make_chart(df: pd.DataFrame, title: str, outpath: str, overlays=None):
-    plt.figure(figsize=(10,4))
-    plt.plot(df["Date"], df["Close"])
-    if overlays:
-        for ov in overlays:
-            if ov["type"] == "hline":
-                plt.axhline(ov["y"])
-            elif ov["type"] == "line":
-                plt.plot(df["Date"], ov["y"])
+# -------------------- Signal generation (stateful) --------------------
+def compute_signals_for_ticker(raw: pd.DataFrame):
+    """
+    Returns:
+      - signals: list[str] (TRIGGER_* and WATCH_*)
+      - overlays: dict used for chart annotation
+    """
+    signals = []
+    overlays = {"hlines": [], "lines": []}
+
+    last_close = float(raw["Close"].iloc[-1])
+
+    # Trendline-based formations (triangles/wedges/broadening)
+    tl = detect_trendlines(raw)
+    if tl is not None and tl["pattern"] != "Channel/Other":
+        upper, lower = boundary_now(raw, tl)
+        d_upper = pct(last_close, upper)
+        d_lower = pct(last_close, lower)
+
+        # Trigger
+        if d_upper >= BREAK_PCT:
+            signals.append(f"TRIGGER_{tl['pattern'].upper().replace(' ', '_')}_BREAKOUT")
+        elif d_lower <= -BREAK_PCT:
+            signals.append(f"TRIGGER_{tl['pattern'].upper().replace(' ', '_')}_BREAKDOWN")
+        # Watch
+        else:
+            if abs(d_upper) <= NEAR_PCT or abs(d_lower) <= NEAR_PCT:
+                signals.append(f"WATCH_{tl['pattern'].upper().replace(' ', '_')}_NEAR_BOUNDARY")
+
+        # overlay lines on chart window
+        w = raw.tail(WINDOW).copy().reset_index(drop=True)
+        x = np.arange(len(w))
+        overlays["lines"].append(("upper", tl["aU"] * x + tl["bU"]))
+        overlays["lines"].append(("lower", tl["aL"] * x + tl["bL"]))
+
+    # Rectangle
+    rect = detect_rectangle(raw)
+    if rect is not None:
+        sup, res = rect["support"], rect["resistance"]
+        if last_close >= res * (1 + BREAK_PCT/100):
+            signals.append("TRIGGER_RECTANGLE_BREAKOUT")
+        elif last_close <= sup * (1 - BREAK_PCT/100):
+            signals.append("TRIGGER_RECTANGLE_BREAKDOWN")
+        else:
+            if abs(pct(last_close, res)) <= NEAR_PCT or abs(pct(last_close, sup)) <= NEAR_PCT:
+                signals.append("WATCH_RECTANGLE_NEAR_EDGE")
+        overlays["hlines"].extend([("support", sup), ("resistance", res)])
+
+    # H&S top / inverse H&S
+    hs = detect_hs_top(raw)
+    if hs is not None:
+        neck = hs["neck"]
+        if last_close <= neck * (1 - BREAK_PCT/100):
+            signals.append("TRIGGER_HS_TOP_BREAKDOWN")
+        elif 0 <= pct(last_close, neck) <= NEAR_PCT:
+            signals.append("WATCH_HS_TOP_NEAR_NECKLINE")
+        overlays["hlines"].append(("neckline", neck))
+
+    inv = detect_inv_hs(raw)
+    if inv is not None:
+        neck = inv["neck"]
+        if last_close >= neck * (1 + BREAK_PCT/100):
+            signals.append("TRIGGER_INV_HS_BREAKOUT")
+        elif 0 <= pct(neck, last_close) <= NEAR_PCT:
+            signals.append("WATCH_INV_HS_NEAR_NECKLINE")
+        overlays["hlines"].append(("neckline", neck))
+
+    return signals, overlays
+
+def load_state():
+    if not os.path.exists(STATE_PATH):
+        return {}
+    try:
+        with open(STATE_PATH, "r") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def save_state(state: dict):
+    os.makedirs(os.path.dirname(STATE_PATH), exist_ok=True)
+    with open(STATE_PATH, "w") as f:
+        json.dump(state, f, indent=2, sort_keys=True)
+
+# -------------------- Charts --------------------
+def make_chart(raw: pd.DataFrame, title: str, outpath: str, overlays: dict):
+    w = raw.tail(320).copy().reset_index()
+    plt.figure(figsize=(10, 4))
+    plt.plot(w["Date"], w["Close"])
+
+    # Horizontal lines
+    for _, y in overlays.get("hlines", []):
+        plt.axhline(y)
+
+    # Trendlines (computed on WINDOW bars) need mapping to chart window
+    # We'll just plot them on the last WINDOW portion if we have them.
+    if overlays.get("lines"):
+        w2 = raw.tail(WINDOW).copy().reset_index()
+        x2 = np.arange(len(w2))
+        dates2 = w2["Date"]
+        for _, yarr in overlays["lines"]:
+            plt.plot(dates2, yarr)
+
     plt.title(title)
-    plt.xlabel("Date"); plt.ylabel("Price")
+    plt.xlabel("Date")
+    plt.ylabel("Price")
     plt.tight_layout()
     plt.savefig(outpath, dpi=140)
     plt.close()
 
+# -------------------- Main --------------------
 def main():
     if not should_run_now():
-        print("Not 22:30 local; exiting.")
+        print("Not scheduled time and FORCE_RUN!=1; exiting.")
         return
 
     ndx = get_nasdaq100_tickers()
     spx = get_sp500_tickers()
     custom = read_custom_tickers()
+
+    ndx_set, spx_set, custom_set = set(ndx), set(spx), set(custom)
     tickers = sorted(set(ndx + spx + custom))
 
-    data = download_chunked(tickers)
+    print(f"Universe size: {len(tickers)} tickers (NDX={len(ndx)}, SPX={len(spx)}, CUSTOM={len(custom)})")
 
-    today = now_local().date().isoformat()
-    img_dir = os.path.join("docs", "img", today)
-    os.makedirs(img_dir, exist_ok=True)
-
-    rows = []
-    movers = []
-
-    custom_set = set(custom)
-    ndx_set = set(ndx)
-    spx_set = set(spx)
-
-    def universe(t):
-        if t in custom_set: return "CUSTOM"
-        if t in ndx_set: return "NDX"
-        if t in spx_set: return "SPX"
-        return "OTHER"
-
-    for t in tickers:
-        if t not in data.columns.get_level_values(0):
-            continue
-        raw = data[t].dropna()
-        if raw.empty:
-            continue
-
-        g = raw.reset_index().rename(columns={"Date":"Date","Open":"Open","High":"High","Low":"Low","Close":"Close","Volume":"Volume"})
-        notes = []
-        overlays = []
-
-        cons = detect_trendlines(raw)
-        if cons is not None and cons["pattern"] != "Channel/Other":
-            upper, lower = boundary_now(raw, cons)
-            last_close = float(g["Close"].iloc[-1])
-            d_upper = pct(last_close, upper)
-            d_lower = pct(last_close, lower)
-            if d_upper >= BREAK_PCT:
-                notes.append(f"{cons['pattern']} breakout ↑ ({d_upper:.1f}% above upper)")
-            elif d_lower <= -BREAK_PCT:
-                notes.append(f"{cons['pattern']} breakdown ↓ ({abs(d_lower):.1f}% below lower)")
-            elif abs(d_upper) <= NEAR_PCT or abs(d_lower) <= NEAR_PCT:
-                notes.append(f"{cons['pattern']} near boundary (upper {d_upper:.1f}%, lower {d_lower:.1f}%)")
-
-            w = raw.tail(PATTERN_WINDOW).copy().reset_index()
-            x = np.arange(len(w))
-            overlays.append({"type":"line","y":cons["aU"]*x + cons["bU"]})
-            overlays.append({"type":"line","y":cons["aL"]*x + cons["bL"]})
-
-        rect = detect_rectangle(raw)
-        if rect is not None:
-            sup, res = rect["support"], rect["resistance"]
-            last_close = float(g["Close"].iloc[-1])
-            if last_close >= res*(1+BREAK_PCT/100):
-                notes.append("Rectangle breakout ↑")
-            elif last_close <= sup*(1-BREAK_PCT/100):
-                notes.append("Rectangle breakdown ↓")
-            elif abs(pct(last_close, res)) <= NEAR_PCT or abs(pct(last_close, sup)) <= NEAR_PCT:
-                notes.append("Rectangle near edge")
-            overlays.append({"type":"hline","y":sup})
-            overlays.append({"type":"hline","y":res})
-
-        hs = detect_hs_top(g)
-        if hs is not None:
-            if hs["dist_pct"] <= -BREAK_PCT:
-                notes.append("H&S Top breakdown ↓")
-            elif 0 <= hs["dist_pct"] <= NEAR_PCT:
-                notes.append("H&S Top near neckline")
-
-        inv = detect_inv_hs(g)
-        if inv is not None:
-            if inv["dist_pct"] <= -BREAK_PCT:
-                notes.append("Inverse H&S breakout ↑")
-            elif 0 <= inv["dist_pct"] <= NEAR_PCT:
-                notes.append("Inverse H&S near neckline")
-
-        if notes:
-            chart_path = os.path.join(img_dir, f"{t}.png")
-            wchart = g.tail(320).copy()
-            make_chart(wchart, f"{t} — " + "; ".join(notes), chart_path, overlays=overlays if overlays else None)
-            rows.append({
-                "universe": universe(t),
-                "ticker": t,
-                "last_close": float(g["Close"].iloc[-1]),
-                "notes": "; ".join(notes),
-                "chart": chart_path.replace("docs/","")
-            })
-
-        # after-hours: do only for custom (reliable) to avoid rate limits
-        if t in custom_set:
-            ah = after_hours_snapshot(t)
-            if not math.isnan(ah["ah_change_pct"]):
-                movers.append({"ticker":t, **ah})
-
-    triggers = pd.DataFrame(rows)
-    movers_df = pd.DataFrame(movers)
-
-    md = []
-    md.append(f"# Daily Report — {today} (22:30 {TZ})\n")
-
-    md.append("## After-hours snapshot (custom watchlist)\n")
-    if movers_df.empty:
-        md.append("_No extended-hours data available from source._\n")
-    else:
-        movers_df = movers_df.sort_values("ah_change_pct", ascending=False)
-        md.append(movers_df[["ticker","reg_close","last_px","ah_change_pct"]].to_markdown(index=False))
-        md.append("\n")
-
-    md.append("## Technical triggers & near-completions\n")
-    if triggers.empty:
-        md.append("_No triggers found under current thresholds._\n")
-    else:
-        for uni in ["CUSTOM","NDX","SPX"]:
-            sub = triggers[triggers["universe"]==uni].copy()
-            if sub.empty:
-                continue
-            md.append(f"### {uni}\n")
-            for _, r in sub.sort_values(["ticker"]).iterrows():
-                md.append(f"#### {r['ticker']} — {r['notes']}\n")
-                md.append(f"- Last close: {r['last_close']:.2f}\n")
-                md.append(f"![{r['ticker']}]({r['chart']})\n")
-
-    os.makedirs("docs", exist_ok=True)
-    with open(os.path.join("docs","report.md"), "w") as f:
-        f.write("\n".join(md))
-    with open(os.path.join("docs","index.md"), "w") as f:
-        f.write("\n".join(md))
-
-    print("Wrote docs/report.md")
-
-if __name__ == "__main__":
-    main()
+    da
