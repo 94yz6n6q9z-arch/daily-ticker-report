@@ -1,26 +1,29 @@
 #!/usr/bin/env python3
 """
-Daily Technical Triggers Report
+Daily Technical Triggers Report (stable version)
+
 Universe:
 - Nasdaq-100 (Wikipedia)
 - S&P 500 (Wikipedia)
-- Custom watchlist: config/tickers_custom.txt  (supports international suffix tickers)
+- Custom watchlist: config/tickers_custom.txt (supports international suffix tickers)
 
-Patterns:
-- H&S Top / Inverse H&S (screening-level)
-- Triangles: Sym / Asc / Desc (trendline convergence with flat-side detection)
-- Wedges (converging non-triangle)
-- Broadening formations (diverging trendlines)
+Patterns (screening-level):
+- H&S Top / Inverse H&S (neckline proximity and breaks)
+- Triangles (sym/ascending/descending), Wedges, Broadening (trendline convergence/divergence)
 - Rectangles (range + low drift)
 
-Outputs:
+Output:
 - docs/report.md + docs/index.md
-- docs/state.json (previous signals → enables NEW/ENDED diffs)
-- docs/img/YYYY-MM-DD/*.png (annotated charts only for tickers with signals)
+- docs/state.json (previous signals -> enables NEW/ENDED diffs)
+- docs/img/YYYY-MM-DD/*.png (charts for tickers that have signals/changes)
 
-Run behavior:
-- Scheduled: around 22:30 Europe/Berlin (config below)
-- Manual testing: set FORCE_RUN=1 (recommended in workflow)
+Important reliability features:
+- Chunked yfinance download
+- Handles yfinance "single ticker returns non-MultiIndex columns" edge-case
+- After-hours snapshot computed only for CUSTOM by default to avoid rate limiting
+
+Manual run:
+- Set FORCE_RUN=1 (recommended in workflow) to run at any time
 """
 
 import os
@@ -45,11 +48,11 @@ LOOKBACK = "3y"
 CHUNK = 25
 
 PIVOT_W = 6
-WINDOW = 260                 # ~1 trading year for patterns
+WINDOW = 260                 # ~1 trading year
 NEAR_PCT = 3.0               # watch threshold
 BREAK_PCT = 1.0              # trigger threshold beyond boundary (close-based)
 
-MAX_CHARTS_PER_UNIVERSE = 25 # cap charts per universe (NDX/SPX) to keep repo light
+MAX_CHARTS_PER_UNIVERSE = 25 # cap charts per universe (NDX/SPX)
 CUSTOM_AFTERHOURS_ONLY = True
 
 STATE_PATH = "docs/state.json"
@@ -62,7 +65,6 @@ def now_local():
     return datetime.now(pytz.timezone(TZ))
 
 def should_run_now():
-    # For manual runs in Actions: set env FORCE_RUN=1
     if os.getenv("FORCE_RUN") == "1":
         return True
     t = now_local()
@@ -72,8 +74,8 @@ def should_run_now():
 # -------------------- Ticker normalization --------------------
 def normalize_ticker(sym: str) -> str:
     """
-    Keep exchange suffix tickers intact: MUV2.DE, 000660.KS, MC.PA, UCG.MI, RMS.PA
-    Convert only US class-share tickers like BRK.B or BF.B -> BRK-B / BF-B
+    Keep exchange suffix tickers intact (MUV2.DE, 000660.KS, MC.PA, UCG.MI, RMS.PA).
+    Convert only US class-share tickers like BRK.B or BF.B -> BRK-B / BF-B.
     """
     sym = str(sym).strip().upper()
     if re.match(r"^[A-Z]{1,6}\.[A-Z]$", sym):
@@ -107,9 +109,18 @@ def read_custom_tickers(path="config/tickers_custom.txt"):
 
 # -------------------- Data download --------------------
 def download_chunked(tickers):
+    """
+    Downloads OHLCV for many tickers using yfinance in chunks.
+    Ensures a MultiIndex columns structure (ticker, field).
+
+    Critical fix:
+    yfinance returns single-level columns for a single ticker download.
+    We wrap them into MultiIndex to keep downstream indexing consistent.
+    """
     parts = []
     for i in range(0, len(tickers), CHUNK):
         part = tickers[i:i+CHUNK]
+
         dfp = yf.download(
             part,
             period=LOOKBACK,
@@ -119,8 +130,28 @@ def download_chunked(tickers):
             threads=True,
             progress=False,
         )
+
+        if dfp is None or dfp.empty:
+            continue
+
+        # single ticker chunk => often not MultiIndex
+        if not isinstance(dfp.columns, pd.MultiIndex):
+            if len(part) != 1:
+                raise RuntimeError("Expected MultiIndex columns but got single-level with multiple tickers.")
+            sym = part[0]
+            dfp.columns = pd.MultiIndex.from_product([[sym], dfp.columns])
+
         parts.append(dfp)
-    return pd.concat(parts, axis=1)
+
+    if not parts:
+        return pd.DataFrame()
+
+    data = pd.concat(parts, axis=1)
+
+    if not isinstance(data.columns, pd.MultiIndex):
+        raise RuntimeError("Download result is not MultiIndex — cannot index by ticker reliably.")
+
+    return data
 
 
 # -------------------- Helpers --------------------
@@ -148,7 +179,7 @@ def line_y(a, b, x):
 def after_hours_snapshot(ticker: str):
     """
     Compute after-hours move from regular close to latest pre/post 1m bar (Yahoo).
-    Often best for US tickers; EU/KR tickers may be empty (normal).
+    Typically best for US tickers; may be empty for EU/KR tickers (normal).
     Returns dict: reg_close, last_px, ah_change_pct (NaN if unavailable)
     """
     out = {"reg_close": np.nan, "last_px": np.nan, "ah_change_pct": np.nan}
@@ -161,7 +192,6 @@ def after_hours_snapshot(ticker: str):
         out["last_px"] = float(h["Close"].iloc[-1])
 
         idx = h.index
-        # Heuristic: bar around 16:00 local exchange time
         mask = (idx.hour == 16) & (idx.minute <= 5)
         if mask.any():
             out["reg_close"] = float(h.loc[mask, "Close"].iloc[-1])
@@ -258,7 +288,7 @@ def boundary_now(raw: pd.DataFrame, tl: dict):
 
 def detect_hs_top(raw: pd.DataFrame, n=WINDOW):
     """
-    Screening H&S Top:
+    Screening H&S Top (simple):
     - pivot highs define LS/Head/RS
     - neckline from lowest lows between LS-Head and Head-RS (linear)
     """
@@ -295,15 +325,12 @@ def detect_hs_top(raw: pd.DataFrame, n=WINDOW):
         neck = t1p + (t2p - t1p) * ((last - t1) / max(1, (t2 - t1)))
         last_close = float(close.iloc[last])
 
-        best = {
-            "neck": float(neck),
-            "last_close": float(last_close),
-        }
+        best = {"neck": float(neck), "last_close": float(last_close)}
     return best
 
 def detect_inv_hs(raw: pd.DataFrame, n=WINDOW):
     """
-    Screening Inverse H&S:
+    Screening Inverse H&S (simple):
     - pivot lows define LS/Head/RS
     - neckline from highest highs between LS-Head and Head-RS (linear)
     """
@@ -340,10 +367,7 @@ def detect_inv_hs(raw: pd.DataFrame, n=WINDOW):
         neck = p1p + (p2p - p1p) * ((last - p1) / max(1, (p2 - p1)))
         last_close = float(close.iloc[last])
 
-        best = {
-            "neck": float(neck),
-            "last_close": float(last_close),
-        }
+        best = {"neck": float(neck), "last_close": float(last_close)}
     return best
 
 
@@ -351,10 +375,9 @@ def detect_inv_hs(raw: pd.DataFrame, n=WINDOW):
 def compute_signals_for_ticker(raw: pd.DataFrame):
     signals = []
     overlays = {"hlines": [], "lines": []}
-
     last_close = float(raw["Close"].iloc[-1])
 
-    # Trendline formations (triangles/wedges/broadening)
+    # Trendline formations
     tl = detect_trendlines(raw)
     if tl is not None and tl["pattern"] != "Channel/Other":
         upper, lower = boundary_now(raw, tl)
@@ -427,16 +450,13 @@ def save_state(state: dict):
 
 # -------------------- Charts --------------------
 def make_chart(raw: pd.DataFrame, title: str, outpath: str, overlays: dict):
-    # Price line
     w = raw.tail(320).copy().reset_index()
     plt.figure(figsize=(10, 4))
     plt.plot(w["Date"], w["Close"])
 
-    # Horizontal lines
     for _, y in overlays.get("hlines", []):
         plt.axhline(y)
 
-    # Trendlines: draw on last WINDOW segment
     if overlays.get("lines"):
         w2 = raw.tail(WINDOW).copy().reset_index()
         dates2 = w2["Date"]
@@ -467,6 +487,9 @@ def main():
     print(f"Universe size: {len(tickers)} tickers (NDX={len(ndx)}, SPX={len(spx)}, CUSTOM={len(custom)})")
 
     data = download_chunked(tickers)
+    if data.empty:
+        print("No data downloaded (rate limit / network). Exiting cleanly.")
+        return
 
     today = now_local().date().isoformat()
     img_dir = os.path.join("docs", "img", today)
@@ -495,12 +518,18 @@ def main():
 
     rows = []
 
-    # Scan tickers
     for t in tickers:
+        # data columns are (ticker, field)
         if t not in data.columns.get_level_values(0):
             continue
-        raw = data[t].dropna()
+
+        raw = data[t].dropna().copy()
         if raw.empty or len(raw) < 200:
+            continue
+
+        # Ensure standard OHLCV columns exist
+        needed = {"Open","High","Low","Close"}
+        if not needed.issubset(set(raw.columns)):
             continue
 
         sigs, overlays = compute_signals_for_ticker(raw)
@@ -539,8 +568,7 @@ def main():
         watchlist = df[df["signals"].apply(lambda xs: any(is_watch(x) for x in xs))].copy()
         ended = df[df["ended"].apply(lambda xs: len(xs) > 0)].copy()
 
-    # Chart generation (caps per universe)
-    charts_done = {"CUSTOM": 0, "NDX": 0, "SPX": 0, "OTHER": 0}
+    # Charts
     chart_paths = {}
 
     if not df.empty:
@@ -549,7 +577,6 @@ def main():
             if sub.empty:
                 continue
 
-            # prioritize NEW triggers, then triggers, then watches, then ended
             def prio(r):
                 score = 0
                 if any(is_trigger(x) for x in r["new"]): score += 4
@@ -558,14 +585,15 @@ def main():
                 if len(r["ended"]) > 0: score += 0.5
                 return -score, r["ticker"]
 
-            sub = sub.sort_values(by=["ticker"]).copy()
             sub["__k"] = sub.apply(prio, axis=1)
             sub = sub.sort_values(by="__k").drop(columns="__k")
 
             cap = MAX_CHARTS_PER_UNIVERSE if uni in ("NDX", "SPX") else 9999
 
             for _, r in sub.head(cap).iterrows():
-                if not (r["signals"] or r["ended"]):
+                t = r["ticker"]
+                raw = data[t].dropna().copy()
+                if raw.empty:
                     continue
 
                 parts = []
@@ -575,18 +603,16 @@ def main():
                     parts.append("NOW: " + ", ".join(r["signals"]))
                 if r["ended"]:
                     parts.append("ENDED: " + ", ".join(r["ended"]))
-                title = f"{r['ticker']} — " + " | ".join(parts)
+                title = f"{t} — " + " | ".join(parts)
 
-                outpath = os.path.join(img_dir, f"{r['ticker']}.png")
+                outpath = os.path.join(img_dir, f"{t}.png")
                 try:
-                    raw2 = data[r["ticker"]].dropna()
-                    make_chart(raw2, title, outpath, r["overlays"])
-                    chart_paths[r["ticker"]] = outpath.replace("docs/", "")
-                    charts_done[uni] += 1
+                    make_chart(raw, title, outpath, r["overlays"])
+                    chart_paths[t] = outpath.replace("docs/", "")
                 except Exception:
                     pass
 
-    # -------------------- Build report markdown --------------------
+    # Markdown report
     md = []
     md.append(f"# Daily Report — {today} (22:30 {TZ})\n")
 
