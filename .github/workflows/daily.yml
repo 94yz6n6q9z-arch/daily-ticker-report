@@ -23,7 +23,7 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -q -r requirements.txt
-      - run: python scan.py
+      - run: FORCE_RUN=1 python scan.py
       - name: Commit report
         run: |
           git config user.name "ndx-bot"
