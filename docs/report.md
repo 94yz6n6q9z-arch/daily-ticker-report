@@ -1,0 +1,3 @@
+# Daily Report
+
+Waiting for the first GitHub Actions run to generate today’s report…
