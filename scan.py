@@ -1388,7 +1388,6 @@ def main():
     # Write outputs
     write_text(REPORT_PATH, md_text)
     write_text(INDEX_PATH, md_text)
-    write_text(NOJEKYLL_PATH, "")  # stability for Pages
 
     print(f"Wrote: {REPORT_PATH}")
     print(f"Wrote: {INDEX_PATH}")
@@ -1414,5 +1413,4 @@ if __name__ == "__main__":
         )
         write_text(REPORT_PATH, fallback)
         write_text(INDEX_PATH, fallback)
-        write_text(NOJEKYLL_PATH, "")
         raise SystemExit(0)
