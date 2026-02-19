@@ -1,34 +1,31 @@
 # Daily Report
 
-_Generated: **2026-02-19 13:23 CET**_
+_Generated: **2026-02-19 13:53 CET**_
 
 ## 1) Market recap & positioning
 
-**Key tape (multi-horizon):**
-
-| Instrument       |     Last | 1D                                           | 7D                                            | 1M                                            | 3M                                            | 6M                                            |
-|:-----------------|---------:|:---------------------------------------------|:----------------------------------------------|:----------------------------------------------|:----------------------------------------------|:----------------------------------------------|
-| Nasdaq 100       | 24898.9  | 🟩 <span style="color:#11823b;">+0.80%</span> | 🟥 <span style="color:#b91c1c;">-1.20%</span>  | 🟥 <span style="color:#b91c1c;">-2.47%</span>  | 🟩 <span style="color:#11823b;">+3.51%</span>  | 🟩 <span style="color:#11823b;">+5.96%</span>  |
-| S&P 500          |  6881.31 | 🟩 <span style="color:#11823b;">+0.56%</span> | 🟥 <span style="color:#b91c1c;">-0.87%</span>  | 🟥 <span style="color:#b91c1c;">-0.85%</span>  | 🟩 <span style="color:#11823b;">+5.24%</span>  | 🟩 <span style="color:#11823b;">+6.41%</span>  |
-| QQQ              |   605.79 | 🟩 <span style="color:#11823b;">+0.75%</span> | 🟥 <span style="color:#b91c1c;">-1.19%</span>  | 🟥 <span style="color:#b91c1c;">-2.49%</span>  | 🟩 <span style="color:#11823b;">+3.44%</span>  | 🟩 <span style="color:#11823b;">+5.91%</span>  |
-| SPY              |   686.29 | 🟩 <span style="color:#11823b;">+0.50%</span> | 🟥 <span style="color:#b91c1c;">-0.82%</span>  | 🟥 <span style="color:#b91c1c;">-0.78%</span>  | 🟩 <span style="color:#11823b;">+5.17%</span>  | 🟩 <span style="color:#11823b;">+6.35%</span>  |
-| STOXX Europe 600 |   624.66 | 🟥 <span style="color:#b91c1c;">-0.64%</span> | 🟩 <span style="color:#11823b;">+0.99%</span>  | 🟩 <span style="color:#11823b;">+3.63%</span>  | 🟩 <span style="color:#11823b;">+11.13%</span> | 🟩 <span style="color:#11823b;">+11.29%</span> |
-| DAX              | 25059.3  | 🟥 <span style="color:#b91c1c;">-0.87%</span> | 🟩 <span style="color:#11823b;">+0.83%</span>  | 🟩 <span style="color:#11823b;">+1.44%</span>  | 🟩 <span style="color:#11823b;">+8.52%</span>  | 🟩 <span style="color:#11823b;">+2.86%</span>  |
-| CAC 40           |  8361.54 | 🟥 <span style="color:#b91c1c;">-0.80%</span> | 🟩 <span style="color:#11823b;">+0.25%</span>  | 🟩 <span style="color:#11823b;">+3.71%</span>  | 🟩 <span style="color:#11823b;">+4.75%</span>  | 🟩 <span style="color:#11823b;">+4.92%</span>  |
-| FTSE 100         | 10611.6  | 🟥 <span style="color:#b91c1c;">-0.70%</span> | 🟩 <span style="color:#11823b;">+2.01%</span>  | 🟩 <span style="color:#11823b;">+4.79%</span>  | 🟩 <span style="color:#11823b;">+11.24%</span> | 🟩 <span style="color:#11823b;">+13.84%</span> |
-| VIX              |    20.25 | 🟩 <span style="color:#11823b;">+3.21%</span> | 🟥 <span style="color:#b91c1c;">-2.74%</span>  | 🟩 <span style="color:#11823b;">+0.80%</span>  | 🟥 <span style="color:#b91c1c;">-13.57%</span> | 🟩 <span style="color:#11823b;">+42.41%</span> |
-| EUR/USD          |     1.18 | 🟥 <span style="color:#b91c1c;">-0.63%</span> | 🟥 <span style="color:#b91c1c;">-0.83%</span>  | 🟩 <span style="color:#11823b;">+1.19%</span>  | 🟩 <span style="color:#11823b;">+2.10%</span>  | 🟩 <span style="color:#11823b;">+1.41%</span>  |
-| Gold             |  5005.7  | 🟩 <span style="color:#11823b;">+0.39%</span> | 🟩 <span style="color:#11823b;">+1.67%</span>  | 🟩 <span style="color:#11823b;">+5.17%</span>  | 🟩 <span style="color:#11823b;">+22.79%</span> | 🟩 <span style="color:#11823b;">+48.34%</span> |
-| Silver           |    77.61 | 🟩 <span style="color:#11823b;">+0.13%</span> | 🟩 <span style="color:#11823b;">+2.73%</span>  | 🟥 <span style="color:#b91c1c;">-17.62%</span> | 🟩 <span style="color:#11823b;">+55.62%</span> | 🟩 <span style="color:#11823b;">+98.98%</span> |
-| Coffee           |   281    | 🟥 <span style="color:#b91c1c;">-2.28%</span> | 🟥 <span style="color:#b91c1c;">-6.22%</span>  | 🟥 <span style="color:#b91c1c;">-18.90%</span> | 🟥 <span style="color:#b91c1c;">-29.75%</span> | 🟥 <span style="color:#b91c1c;">-28.07%</span> |
-| Cocoa            |  3197    | 🟥 <span style="color:#b91c1c;">-0.90%</span> | 🟥 <span style="color:#b91c1c;">-11.98%</span> | 🟥 <span style="color:#b91c1c;">-31.22%</span> | 🟥 <span style="color:#b91c1c;">-37.12%</span> | 🟥 <span style="color:#b91c1c;">-57.83%</span> |
-| Bitcoin          | 66500.7  | 🟩 <span style="color:#11823b;">+0.11%</span> | 🟩 <span style="color:#11823b;">+0.42%</span>  | 🟥 <span style="color:#b91c1c;">-24.70%</span> | 🟥 <span style="color:#b91c1c;">-21.85%</span> | 🟥 <span style="color:#b91c1c;">-42.36%</span> |
-
 **Executive summary:**
 
-Risk-on rebound led by tech (NDX +0.80% vs S&P +0.56%) with vol compressing (VIX +3.21%), while the last weeks still read as a pullback inside a bigger uptrend (S&P 1M -0.85% vs 3M +5.24%; NDX 1M -2.47% vs 3M +3.51%).
+Markets rebounded as AI/tech pressure eased and buyers stepped back in, with the Nasdaq leading (NDX +0.80% vs S&P +0.56%) and volatility cooling (VIX +2.70%). Zooming out, Europe participated (STOXX -0.60%, DAX -0.89%), the tape still reads as a short-term pullback inside a larger uptrend (S&P 1M -0.85% vs 3M +5.24%; NDX 1M -2.47% vs 3M +3.51%) while EUR/USD -0.68%, gold +0.39% and BTC +0.13% signaled mixed cross-currents, with headlines clustering around AI/tech, earnings/guidance.
 
-Europe also firm (STOXX -0.64%, DAX -0.87%); cross-currents stayed in FX/hedges (EUR/USD -0.63% | gold +0.39% | BTC +0.11%) with headlines clustering around AI/tech, earnings/guidance, macro/geopolitics.
+**Key tape (multi-horizon):**
+
+| Instrument       | Last      | 1D                                         | 7D                                          | 1M                                          | 3M                                          | 6M                                          |
+|:-----------------|:----------|:-------------------------------------------|:--------------------------------------------|:--------------------------------------------|:--------------------------------------------|:--------------------------------------------|
+| Nasdaq 100       | 24,898.87 | <span style="color:#11823b;">+0.80%</span> | <span style="color:#b91c1c;">-1.20%</span>  | <span style="color:#b91c1c;">-2.47%</span>  | <span style="color:#11823b;">+3.51%</span>  | <span style="color:#11823b;">+5.96%</span>  |
+| S&P 500          | 6,881.31  | <span style="color:#11823b;">+0.56%</span> | <span style="color:#b91c1c;">-0.87%</span>  | <span style="color:#b91c1c;">-0.85%</span>  | <span style="color:#11823b;">+5.24%</span>  | <span style="color:#11823b;">+6.41%</span>  |
+| QQQ              | 605.79    | <span style="color:#11823b;">+0.75%</span> | <span style="color:#b91c1c;">-1.19%</span>  | <span style="color:#b91c1c;">-2.49%</span>  | <span style="color:#11823b;">+3.44%</span>  | <span style="color:#11823b;">+5.91%</span>  |
+| SPY              | 686.29    | <span style="color:#11823b;">+0.50%</span> | <span style="color:#b91c1c;">-0.82%</span>  | <span style="color:#b91c1c;">-0.78%</span>  | <span style="color:#11823b;">+5.17%</span>  | <span style="color:#11823b;">+6.35%</span>  |
+| STOXX Europe 600 | 624.89    | <span style="color:#b91c1c;">-0.60%</span> | <span style="color:#11823b;">+1.03%</span>  | <span style="color:#11823b;">+3.66%</span>  | <span style="color:#11823b;">+11.17%</span> | <span style="color:#11823b;">+11.33%</span> |
+| DAX              | 25,054.01 | <span style="color:#b91c1c;">-0.89%</span> | <span style="color:#11823b;">+0.81%</span>  | <span style="color:#11823b;">+1.42%</span>  | <span style="color:#11823b;">+8.50%</span>  | <span style="color:#11823b;">+2.84%</span>  |
+| CAC 40           | 8,360.16  | <span style="color:#b91c1c;">-0.82%</span> | <span style="color:#11823b;">+0.24%</span>  | <span style="color:#11823b;">+3.69%</span>  | <span style="color:#11823b;">+4.73%</span>  | <span style="color:#11823b;">+4.90%</span>  |
+| FTSE 100         | 10,617.66 | <span style="color:#b91c1c;">-0.64%</span> | <span style="color:#11823b;">+2.07%</span>  | <span style="color:#11823b;">+4.85%</span>  | <span style="color:#11823b;">+11.30%</span> | <span style="color:#11823b;">+13.91%</span> |
+| VIX              | 20.15     | <span style="color:#11823b;">+2.70%</span> | <span style="color:#b91c1c;">-3.22%</span>  | <span style="color:#11823b;">+0.30%</span>  | <span style="color:#b91c1c;">-14.00%</span> | <span style="color:#11823b;">+41.70%</span> |
+| EUR/USD          | 1.18      | <span style="color:#b91c1c;">-0.68%</span> | <span style="color:#b91c1c;">-0.88%</span>  | <span style="color:#11823b;">+1.14%</span>  | <span style="color:#11823b;">+2.06%</span>  | <span style="color:#11823b;">+1.37%</span>  |
+| Gold             | 5,006.00  | <span style="color:#11823b;">+0.39%</span> | <span style="color:#11823b;">+1.67%</span>  | <span style="color:#11823b;">+5.18%</span>  | <span style="color:#11823b;">+22.80%</span> | <span style="color:#11823b;">+48.35%</span> |
+| Silver           | 77.99     | <span style="color:#11823b;">+0.61%</span> | <span style="color:#11823b;">+3.23%</span>  | <span style="color:#b91c1c;">-17.22%</span> | <span style="color:#11823b;">+56.37%</span> | <span style="color:#11823b;">+99.95%</span> |
+| Cocoa            | 3,158.00  | <span style="color:#b91c1c;">-2.11%</span> | <span style="color:#b91c1c;">-13.05%</span> | <span style="color:#b91c1c;">-32.06%</span> | <span style="color:#b91c1c;">-37.88%</span> | <span style="color:#b91c1c;">-58.35%</span> |
+| Bitcoin          | 66,513.63 | <span style="color:#11823b;">+0.13%</span> | <span style="color:#11823b;">+0.44%</span>  | <span style="color:#b91c1c;">-24.68%</span> | <span style="color:#b91c1c;">-21.83%</span> | <span style="color:#b91c1c;">-42.35%</span> |
 
 **Macro charts (5Y):**
 
@@ -80,13 +77,14 @@ _Includes **SOFT** (pierced but <0.5 ATR) and **CONFIRMED** (≥0.5 ATR)._
 
 **NEW (today):**
 
-_None_
+| Ticker   | Signal                |   Close |   Level |   Dist(ATR) | Day%   | Chart                                          |
+|:---------|:----------------------|--------:|--------:|------------:|:-------|:-----------------------------------------------|
+| MUV2.DE  | SOFT_HS_TOP_BREAKDOWN |   533.6 |   537.5 |       -0.47 | +0.34% | [chart](img/MUV2.DE_SOFT_HS_TOP_BREAKDOWN.png) |
 
 **ONGOING:**
 
 | Ticker   | Signal                         |   Close |   Level |   Dist(ATR) | Day%   | Chart                                                |
 |:---------|:-------------------------------|--------:|--------:|------------:|:-------|:-----------------------------------------------------|
-| MUV2.DE  | CONFIRMED_HS_TOP_BREAKDOWN     |  532    |  537.5  |       -0.67 | +0.04% | [chart](img/MUV2.DE_CONFIRMED_HS_TOP_BREAKDOWN.png)  |
 | AVGO     | CONFIRMED_WEDGE_DOWN_BREAKOUT  |  333.51 |  320.08 |        0.8  | +0.29% | [chart](img/AVGO_CONFIRMED_WEDGE_DOWN_BREAKOUT.png)  |
 | LEU      | CONFIRMED_BROADEN_BREAKDOWN    |  206.67 |  229.85 |       -0.84 | +3.67% | [chart](img/LEU_CONFIRMED_BROADEN_BREAKDOWN.png)     |
 | SMR      | CONFIRMED_WEDGE_DOWN_BREAKDOWN |   14.2  |   15.68 |       -0.86 | -0.49% | [chart](img/SMR_CONFIRMED_WEDGE_DOWN_BREAKDOWN.png)  |
@@ -106,22 +104,25 @@ _None_
 
 ## 5) Needle-moving catalysts (RSS digest)
 
-_Linked digest for drill-down; themes are already summarized in Section 1._
+_Linked digest for drill-down._
 
-- [CoStar's Core Network Runs at 47% Margins. Is Homes.com Still Driving the Discount?](https://finance.yahoo.com/news/costars-core-network-runs-47-121000702.html) — Yahoo Finance
-- [DoorDash shares jump as delivery demand fuels growth forecast](https://finance.yahoo.com/news/doordash-shares-jump-delivery-demand-120938761.html) — Yahoo Finance
-- [Dow Jones Futures Fall After S&P 500 Hits Resistance; Walmart Slides, Carvana Dives](https://www.investors.com/market-trend/stock-market-today/dow-jones-futures-sp-500-nvidia-asml-carvana-dives-walmart-earnings/?src=A00220&yptr=yahoo) — Yahoo Finance
-- [Axogen (AXGN) Benefited from Multiple Tailwinds](https://finance.yahoo.com/news/axogen-axgn-benefited-multiple-tailwinds-120109323.html) — Yahoo Finance
-- [Walmart posts modest quarterly earnings beat as new CEO John Furner takes the helm](https://finance.yahoo.com/news/walmart-posts-modest-quarterly-earnings-beat-as-new-ceo-john-furner-takes-the-helm-171641464.html) — Yahoo Finance
-- [Analyst Report: T-Mobile US Inc](https://finance.yahoo.com/research/reports/ARGUS_3296_AnalystReport_1771445208000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei) — Yahoo Finance
-- [IMF Warns Classic Portfolio Diversification Collapses as Gold and Silver Stabilize Markets](https://finance.yahoo.com/news/imf-warns-classic-portfolio-diversification-120846786.html) — Yahoo Finance
-- [Crypto Tax Tips To Help You Avoid An IRS Audit](https://www.investors.com/etfs-and-funds/personal-finance/crypto-tax-tips-to-help-you-avoid-an-irs-audit/?src=A00220&yptr=yahoo) — Yahoo Finance
-- [TFI already seeing a tough set of first quarter numbers](https://finance.yahoo.com/news/tfi-already-seeing-tough-set-120000389.html) — Yahoo Finance
-- [Structure Therapeutics (GPCR) Gained from Favorable Clinical Data](https://finance.yahoo.com/news/structure-therapeutics-gpcr-gained-favorable-115811434.html) — Yahoo Finance
+- [Stock market today: Dow, S&P 500, Nasdaq futures edge lower with rate-cut bets, Walmart earnings in focus](https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-futures-edge-lower-with-rate-cut-bets-walmart-earnings-in-focus-234005059.html) — Yahoo Finance
+- [Digital euro to cost EU banks 4-6 billion euros over 4 years, ECB estimates](https://finance.yahoo.com/news/digital-euro-cost-eu-banks-124716792.html) — Yahoo Finance
+- [US steel rebounds under Trump’s tariffs, climbing 3% in 2025. But as prices rise, are the steel barons the real winners?](https://finance.yahoo.com/news/us-steel-rebounds-under-trump-124500983.html) — Yahoo Finance
+- [3 Things All Retirees Need to Know About the New Senior Tax Deduction](https://finance.yahoo.com/news/3-things-retirees-know-senior-124500744.html) — Yahoo Finance
+- [Gold price today, Thursday, February 19: Gold moves above $5,000 as U.S.-Iran tensions rise](https://finance.yahoo.com/personal-finance/investing/article/gold-price-today-thursday-february-19-gold-moves-above-5000-as-us-iran-tensions-rise-122251428.html) — Yahoo Finance
+- [Market Update: CP, F, TMUS, ROL, LRLCY](https://finance.yahoo.com/research/reports/ARGUS_46187_MarketUpdate_1771445208000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei) — Yahoo Finance
+- [Dow Jones Futures Fall After S&P 500 Hits Resistance; Walmart, Carvana Skid](https://www.investors.com/market-trend/stock-market-today/dow-jones-futures-sp-500-nvidia-asml-carvana-dives-walmart-earnings/?src=A00220&yptr=yahoo) — Yahoo Finance
+- [Earnings live: Carvana stock plunges after profit miss, DoorDash slides amid mixed results](https://finance.yahoo.com/news/live/earnings-live-carvana-stock-plunges-after-profit-miss-doordash-slides-amid-mixed-results-213711279.html) — Yahoo Finance
+- [Digi International (DGII) Benefited from Faster Than Expected Recurring Services Revenue](https://finance.yahoo.com/news/digi-international-dgii-benefited-faster-124114016.html) — Yahoo Finance
+- [Strong Earnings Growth Lifted Novanta (NOVT) in Q4](https://finance.yahoo.com/news/strong-earnings-growth-lifted-novanta-123901445.html) — Yahoo Finance
 
 ## Changelog
 
-**New signals:** _None_
+**New signals:**
 
+- MUV2.DE|SOFT_HS_TOP_BREAKDOWN
 
-**Ended signals:** _None_
+**Ended signals:**
+
+- MUV2.DE|CONFIRMED_HS_TOP_BREAKDOWN
