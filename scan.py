@@ -1325,7 +1325,7 @@ def main():
     md.append("**Key tape (multi-horizon):**\n")
     md.append(format_snapshot_table_multi(snapshot_df))
     md.append("")
-    md.append("**Executive summary (max 2 sentences):**\n")
+    md.append("**Executive summary:**\n")
     md.append(build_exec_summary(snapshot_df, rss_items))
     md.append("")
 
