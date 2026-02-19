@@ -495,9 +495,11 @@ def format_snapshot_table_multi(df: pd.DataFrame) -> str:
     for c in ["1D", "7D", "1M", "3M", "6M"]:
         d[c] = pd.to_numeric(d[c], errors="coerce").map(_color_pct_cell)
 
-    cols = ["Instrument", "Last", "1D", "7D", "1M", "3M", "6M"]
-    return d[cols].to_markdown(index=False)
-
+cols = ["Instrument", "Last", "1D", "7D", "1M", "3M", "6M"]
+return d[cols].to_markdown(
+    index=False,
+    colalign=("left", "right", "right", "right", "right", "right", "right"),
+)
 
 # ----------------------------
 # Google-Finance-like card charts (5Y): VIX and EUR/USD
@@ -891,8 +893,10 @@ def movers_table(df: pd.DataFrame, title: str) -> str:
         return f"**{title}:** _None ≥ {MOVER_THRESHOLD_PCT:.0f}%_\n"
     t = df.copy()
     t["pct"] = pd.to_numeric(t["pct"], errors="coerce").map(lambda x: f"{x:+.2f}%")
-    return f"**{title}:**\n\n" + t[["symbol", "pct"]].to_markdown(index=False) + "\n"
-
+    return f"**{title}:**\n\n" + t[["symbol", "pct"]].to_markdown(
+    index=False,
+    colalign=("left", "right"),
+) + "\n"
 
 # ----------------------------
 # Technical patterns (lightweight heuristics)
@@ -1205,8 +1209,14 @@ def md_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 30) -> s
         d["Day%"] = pd.to_numeric(d["Day%"], errors="coerce").map(lambda x: f"{x:+.2f}%" if pd.notna(x) else "")
     if "Chart" in d.columns:
         d["Chart"] = d["Chart"].apply(lambda p: f"[chart]({p})" if isinstance(p, str) and p else "")
-    return d[cols].to_markdown(index=False)
+    align = []
+for c in cols:
+    if c in ("Ticker", "Signal", "Chart"):
+        align.append("left")
+    else:
+        align.append("right")
 
+return d[cols].to_markdown(index=False, colalign=tuple(align))
 
 def diff_new_ended(prev: Dict[str, List[str]], cur: Dict[str, List[str]]) -> Tuple[List[str], List[str]]:
     prev_set = set(prev.get("signals", []))
