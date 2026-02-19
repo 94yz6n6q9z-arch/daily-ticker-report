@@ -655,7 +655,7 @@ def plot_gf_card_5y(
 
 
 # ----------------------------
-# Executive summary (MAX 2 sentences)
+# Executive summary
 # ----------------------------
 def summarize_rss_themes(items: List[Dict[str, str]]) -> str:
     if not items:
