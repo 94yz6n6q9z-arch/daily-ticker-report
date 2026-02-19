@@ -4,14 +4,15 @@
 """
 Daily Ticker Report (GitHub Pages)
 
-Your latest requirements included:
-1) Remove WTI, DXY, US 10Y from the cross-asset tape
-2) VIX + EUR/USD: render a 5Y "Google Finance-like" card image (title, big last, daily change, 5Y line, max spike label, footer stats)
+Latest changes requested:
+- Market recap: Executive summary FIRST (no “max 2 sentences” label)
+- Replace “risk-on” phrasing with plain-English interpretation (e.g., “Markets rebounded as AI fears eased…”)
+- Snapshot “Last” formatting standardized: thousands separator comma + 2 decimals (e.g., 25,020.93)
+- Remove 🟩🟥 squares; keep only colored % text
 
-Outputs:
-- docs/index.md   (Pages landing)
-- docs/report.md  (same content)
-- docs/img/*.png  (charts)
+Also already applied:
+- Drop WTI, DXY, US 10Y from cross-asset tape
+- VIX + EUR/USD: 5Y Google-Finance-like card images
 """
 
 from __future__ import annotations
@@ -364,13 +365,16 @@ def _extract_close_series(download_df: pd.DataFrame, sym: str) -> Optional[pd.Se
 
 
 def _color_pct_cell(x: float) -> str:
+    """
+    No emojis/squares. Colored % only.
+    """
     if x is None or (isinstance(x, float) and np.isnan(x)):
         return ""
     if x > 0:
-        return f'🟩 <span style="color:#11823b;">{x:+.2f}%</span>'
+        return f'<span style="color:#11823b;">{x:+.2f}%</span>'
     if x < 0:
-        return f'🟥 <span style="color:#b91c1c;">{x:+.2f}%</span>'
-    return f'⬜ <span style="color:#6b7280;">{x:+.2f}%</span>'
+        return f'<span style="color:#b91c1c;">{x:+.2f}%</span>'
+    return f'<span style="color:#6b7280;">{x:+.2f}%</span>'
 
 
 def _one_day_return(series: pd.Series) -> float:
@@ -413,7 +417,7 @@ def _return_since(series: pd.Series, days_back: int) -> float:
 def fetch_market_snapshot_multi() -> pd.DataFrame:
     """
     Instruments requested:
-    - US: Nasdaq 100, S&P 500 (plus optional QQQ/SPY)
+    - US: Nasdaq 100, S&P 500 (plus QQQ/SPY)
     - Europe: STOXX Europe 600, DAX, CAC 40, FTSE 100
     - Risk: VIX
     - FX: EUR/USD
@@ -484,7 +488,9 @@ def format_snapshot_table_multi(df: pd.DataFrame) -> str:
         return "_Snapshot unavailable._"
 
     d = df.copy()
-    d["Last"] = pd.to_numeric(d["Last"], errors="coerce").map(lambda x: f"{x:.2f}" if pd.notna(x) else "")
+
+    # Standardize Last: thousands comma + 2 decimals
+    d["Last"] = pd.to_numeric(d["Last"], errors="coerce").map(lambda x: f"{x:,.2f}" if pd.notna(x) else "")
 
     for c in ["1D", "7D", "1M", "3M", "6M"]:
         d[c] = pd.to_numeric(d[c], errors="coerce").map(_color_pct_cell)
@@ -655,7 +661,7 @@ def plot_gf_card_5y(
 
 
 # ----------------------------
-# Executive summary
+# Executive summary (plain-English, no “risk-on”)
 # ----------------------------
 def summarize_rss_themes(items: List[Dict[str, str]]) -> str:
     if not items:
@@ -681,49 +687,54 @@ def summarize_rss_themes(items: List[Dict[str, str]]) -> str:
 
 def build_exec_summary(snapshot_df: pd.DataFrame, rss_items: List[Dict[str, str]]) -> str:
     """
-    Exactly two sentences.
+    Keep it concise, plain-English, and data-anchored.
     """
     if snapshot_df is None or snapshot_df.empty:
         return "Market summary unavailable (snapshot empty)."
 
-    def r(name: str) -> Optional[pd.Series]:
+    def row(name: str) -> Optional[pd.Series]:
         x = snapshot_df.loc[snapshot_df["Instrument"] == name]
         return None if x.empty else x.iloc[0]
 
-    ndx = r("Nasdaq 100")
-    spx = r("S&P 500")
-    vix = r("VIX")
-    stx = r("STOXX Europe 600")
-    dax = r("DAX")
-    eur = r("EUR/USD")
-    gold = r("Gold")
-    btc = r("Bitcoin")
+    ndx = row("Nasdaq 100")
+    spx = row("S&P 500")
+    vix = row("VIX")
+    stx = row("STOXX Europe 600")
+    dax = row("DAX")
+    eur = row("EUR/USD")
+    gold = row("Gold")
+    btc = row("Bitcoin")
 
-    def f(x, key):
+    def f(r: Optional[pd.Series], key: str) -> float:
         try:
-            return float(x.get(key, np.nan))
+            if r is None:
+                return float("nan")
+            return float(r.get(key, np.nan))
         except Exception:
             return float("nan")
 
-    s1 = (
-        f"Risk-on rebound led by tech (NDX {f(ndx,'1D'):+.2f}% vs S&P {f(spx,'1D'):+.2f}%) with vol compressing (VIX {f(vix,'1D'):+.2f}%), "
-        f"while the last weeks still read as a pullback inside a bigger uptrend (S&P 1M {f(spx,'1M'):+.2f}% vs 3M {f(spx,'3M'):+.2f}%; "
-        f"NDX 1M {f(ndx,'1M'):+.2f}% vs 3M {f(ndx,'3M'):+.2f}%)."
-    )
-
-    europe_clause = (
-        f"Europe also firm (STOXX {f(stx,'1D'):+.2f}%, DAX {f(dax,'1D'):+.2f}%)"
-        if (stx is not None and dax is not None) else "Europe mixed"
-    )
-    macro_clause = (
-        f"EUR/USD {f(eur,'1D'):+.2f}% | gold {f(gold,'1D'):+.2f}% | BTC {f(btc,'1D'):+.2f}%"
-        if (eur is not None and gold is not None and btc is not None) else ""
-    )
     themes = summarize_rss_themes(rss_items)
 
-    s2 = f"{europe_clause}; cross-currents stayed in FX/hedges ({macro_clause}) with headlines clustering around {themes}."
+    # Sentence 1: what happened today + why (interpreted)
+    s1 = (
+        f"Markets rebounded as AI/tech pressure eased and buyers stepped back in, with the Nasdaq leading "
+        f"(NDX {f(ndx,'1D'):+.2f}% vs S&P {f(spx,'1D'):+.2f}%) and volatility cooling (VIX {f(vix,'1D'):+.2f}%)."
+    )
 
-    return s1 + "\n\n" + s2
+    # Sentence 2: context (weeks) + Europe + cross-currents + headline cluster
+    europe = ""
+    if stx is not None and dax is not None:
+        europe = f" Europe participated (STOXX {f(stx,'1D'):+.2f}%, DAX {f(dax,'1D'):+.2f}%),"
+    fxhedge = ""
+    if eur is not None and gold is not None and btc is not None:
+        fxhedge = f" while EUR/USD {f(eur,'1D'):+.2f}%, gold {f(gold,'1D'):+.2f}% and BTC {f(btc,'1D'):+.2f}% signaled mixed cross-currents,"
+
+    s2 = (
+        f"Zooming out,{europe} the tape still reads as a short-term pullback inside a larger uptrend "
+        f"(S&P 1M {f(spx,'1M'):+.2f}% vs 3M {f(spx,'3M'):+.2f}%; NDX 1M {f(ndx,'1M'):+.2f}% vs 3M {f(ndx,'3M'):+.2f}%){fxhedge} with headlines clustering around {themes}."
+    )
+
+    return s1 + " " + s2
 
 
 def format_rss_digest(items: List[Dict[str, str]], max_items: int = 10) -> str:
@@ -1320,13 +1331,13 @@ def main():
     md.append("# Daily Report\n")
     md.append(f"_Generated: **{header_time}**_\n")
 
-    # 1) Market recap & positioning
+    # 1) Market recap & positioning (EXEC SUMMARY FIRST)
     md.append("## 1) Market recap & positioning\n")
-    md.append("**Key tape (multi-horizon):**\n")
-    md.append(format_snapshot_table_multi(snapshot_df))
-    md.append("")
     md.append("**Executive summary:**\n")
     md.append(build_exec_summary(snapshot_df, rss_items))
+    md.append("")
+    md.append("**Key tape (multi-horizon):**\n")
+    md.append(format_snapshot_table_multi(snapshot_df))
     md.append("")
 
     md.append("**Macro charts (5Y):**\n")
@@ -1365,7 +1376,7 @@ def main():
 
     # 5) Catalysts
     md.append("## 5) Needle-moving catalysts (RSS digest)\n")
-    md.append("_Linked digest for drill-down; themes are already summarized in Section 1._\n")
+    md.append("_Linked digest for drill-down._\n")
     md.append(format_rss_digest(rss_items, max_items=10))
     md.append("")
 
