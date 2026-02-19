@@ -4,24 +4,14 @@
 """
 Daily Ticker Report (GitHub Pages)
 
-Section 1 (your spec):
-- Cross-asset table (US + Europe + Commodities + FX + BTC) with:
-  Last, 1D, 7D, 1M, 3M, 6M returns (trend read)
-- EXEC SUMMARY: max 2 sentences (contextual: day + last weeks via 1M/3M)
-- Two 5-year charts: VIX and EUR/USD (like your screenshot style)
+Your latest requirements included:
+1) Remove WTI, DXY, US 10Y from the cross-asset tape
+2) VIX + EUR/USD: render a 5Y "Google Finance-like" card image (title, big last, daily change, 5Y line, max spike label, footer stats)
 
-Other sections:
-2) Biggest movers (>=4%): session + after-hours (gainers/losers)
-4) Technical triggers: early (~80%) + triggered (soft/confirmed via 0.5 ATR rule)
-5) Catalysts: RSS digest (Yahoo Finance + CNBC) + themes
-
-Notes:
-- Default scan mode = "custom" (fast, reliable for your 30+ tickers).
-  To scan huge universes set MODE=full (not recommended unless you accept long runs).
-- Outputs:
-  docs/index.md  (Pages landing)
-  docs/report.md (same)
-  docs/img/*.png (charts)
+Outputs:
+- docs/index.md   (Pages landing)
+- docs/report.md  (same content)
+- docs/img/*.png  (charts)
 """
 
 from __future__ import annotations
@@ -142,7 +132,7 @@ def read_html_tables(url: str) -> List[pd.DataFrame]:
 
 def parse_rss(url: str, source_name: str, limit: int = 10) -> List[Dict[str, str]]:
     """
-    Minimal RSS parser returning dict(title, link, pubDate, source).
+    Minimal RSS/Atom parser returning dict(title, link, pubDate, source).
     """
     try:
         xml_text = fetch_url_text(url, timeout=30)
@@ -173,12 +163,6 @@ def parse_rss(url: str, source_name: str, limit: int = 10) -> List[Dict[str, str
 
 
 def fetch_rss_headlines(limit_total: int = 14) -> List[Dict[str, str]]:
-    """
-    RSS sources (reliable vs yfinance.news):
-    - Yahoo Finance Top Stories RSS
-    - CNBC Top News
-    - CNBC Markets
-    """
     feeds = [
         ("Yahoo Finance", "https://finance.yahoo.com/rss/topstories"),
         ("CNBC Top News", "https://www.cnbc.com/id/100003114/device/rss/rss.html"),
@@ -243,7 +227,6 @@ def get_nasdaq100_tickers() -> List[str]:
                 df = t
                 break
         if df is None:
-            # fall back: first table with plausible ticker column
             df = tables[0]
 
         col = None
@@ -274,7 +257,7 @@ def extract_ohlcv_from_download(data: pd.DataFrame, ticker: str) -> Optional[pd.
 
     # Single ticker: flat columns
     if not isinstance(data.columns, pd.MultiIndex):
-        if not set(["Open", "High", "Low", "Close"]).issubset(set(data.columns)):
+        if not {"Open", "High", "Low", "Close"}.issubset(set(data.columns)):
             return None
         df = data.copy()
         keep = [c for c in FIELDS if c in df.columns]
@@ -364,15 +347,14 @@ def atr(df: pd.DataFrame, n: int = ATR_N) -> pd.Series:
 
 
 # ----------------------------
-# Snapshot: cross-asset + multi-horizon (no WTI / DXY / 10Y)
+# Snapshot: cross-asset + multi-horizon (NO WTI / DXY / 10Y)
 # ----------------------------
 def _extract_close_series(download_df: pd.DataFrame, sym: str) -> Optional[pd.Series]:
     if download_df is None or download_df.empty:
         return None
     if not isinstance(download_df.columns, pd.MultiIndex):
-        if "Close" in download_df.columns:
-            return download_df["Close"].dropna()
-        return None
+        return download_df["Close"].dropna() if "Close" in download_df.columns else None
+
     cols = download_df.columns
     if ("Close", sym) in cols:
         return download_df[("Close", sym)].dropna()
@@ -382,7 +364,6 @@ def _extract_close_series(download_df: pd.DataFrame, sym: str) -> Optional[pd.Se
 
 
 def _color_pct_cell(x: float) -> str:
-    # emoji always visible; HTML color often works on Pages/Jekyll
     if x is None or (isinstance(x, float) and np.isnan(x)):
         return ""
     if x > 0:
@@ -411,6 +392,7 @@ def _return_since(series: pd.Series, days_back: int) -> float:
     idx = pd.to_datetime(s.index)
     if getattr(idx, "tz", None) is not None:
         idx = idx.tz_convert(None)
+
     s2 = s.copy()
     s2.index = idx
 
@@ -431,8 +413,8 @@ def _return_since(series: pd.Series, days_back: int) -> float:
 def fetch_market_snapshot_multi() -> pd.DataFrame:
     """
     Instruments requested:
-    - US: Nasdaq 100, S&P 500 (and optional QQQ/SPY)
-    - Europe: STOXX 600, DAX, CAC 40, FTSE 100
+    - US: Nasdaq 100, S&P 500 (plus optional QQQ/SPY)
+    - Europe: STOXX Europe 600, DAX, CAC 40, FTSE 100
     - Risk: VIX
     - FX: EUR/USD
     - Commodities: Gold, Silver, Coffee, Cocoa
@@ -512,11 +494,47 @@ def format_snapshot_table_multi(df: pd.DataFrame) -> str:
 
 
 # ----------------------------
-# Macro charts (5Y): VIX and EUR/USD
+# Google-Finance-like card charts (5Y): VIX and EUR/USD
 # ----------------------------
-def plot_5y_chart(symbol: str, title: str, out_name: str) -> Optional[str]:
+def _fmt_de(x: float, decimals: int = 2) -> str:
+    if x is None or (isinstance(x, float) and np.isnan(x)):
+        return "–"
+    s = f"{x:,.{decimals}f}"
+    # 1,234.56 -> 1.234,56
+    s = s.replace(",", "X").replace(".", ",").replace("X", ".")
+    return s
+
+
+def _fmt_de_signed(x: float, decimals: int = 2) -> str:
+    if x is None or (isinstance(x, float) and np.isnan(x)):
+        return "–"
+    sign = "+" if x > 0 else ""
+    return f"{sign}{_fmt_de(x, decimals)}"
+
+
+def _fmt_de_date(ts: pd.Timestamp) -> str:
+    months = {
+        1: "Jan.", 2: "Feb.", 3: "Mär.", 4: "Apr.", 5: "Mai", 6: "Jun.",
+        7: "Jul.", 8: "Aug.", 9: "Sep.", 10: "Okt.", 11: "Nov.", 12: "Dez."
+    }
+    ts = pd.Timestamp(ts)
+    return f"{ts.day}. {months.get(ts.month, ts.strftime('%b'))} {ts.year}"
+
+
+def plot_gf_card_5y(
+    symbol: str,
+    title: str,
+    subtitle: str,
+    out_name: str,
+    decimals_last: int = 2,
+    line_color: str = "#d93025",
+) -> Optional[str]:
     """
-    Simple 5-year line chart with last value annotated, similar in spirit to your screenshot.
+    Static image that mimics the Google Finance card:
+    - Title + subtitle
+    - Big last value + daily change (red/green)
+    - 5Y line chart + max spike marker + label box
+    - Footer: Open/High/Low/Prev + 52W high/low
     """
     try:
         data = yf.download(
@@ -528,34 +546,110 @@ def plot_5y_chart(symbol: str, title: str, out_name: str) -> Optional[str]:
             progress=False,
             threads=True,
         )
-        close = _extract_close_series(data, symbol)
-        if close is None or close.dropna().empty:
+        df = extract_ohlcv_from_download(data, symbol)
+        if df is None or df.empty or df["Close"].dropna().empty:
             return None
-        s = close.dropna()
 
-        fig = plt.figure(figsize=(10, 4.8))
-        ax = fig.add_subplot(111)
-        ax.plot(s.index, s.values)
+        df = df.dropna(subset=["Close"]).copy()
+        df.index = pd.to_datetime(df.index).tz_localize(None)
 
-        # annotate last
-        last_val = float(s.iloc[-1])
-        ax.scatter([s.index[-1]], [last_val])
-        ax.text(s.index[-1], last_val, f"  {last_val:.2f}", va="center")
+        last = float(df["Close"].iloc[-1])
+        prev = float(df["Close"].iloc[-2]) if len(df) >= 2 else last
+        chg = last - prev
+        chg_pct = (chg / prev * 100.0) if prev != 0 else float("nan")
 
-        # mark 5y max point lightly (helps “spike” feel)
+        o = float(df["Open"].iloc[-1]) if "Open" in df.columns and pd.notna(df["Open"].iloc[-1]) else float("nan")
+        h = float(df["High"].iloc[-1]) if "High" in df.columns and pd.notna(df["High"].iloc[-1]) else float("nan")
+        l = float(df["Low"].iloc[-1]) if "Low" in df.columns and pd.notna(df["Low"].iloc[-1]) else float("nan")
+
+        df_52w = df.tail(252)
+        hi_52 = float(df_52w["High"].max()) if "High" in df_52w.columns else float(df_52w["Close"].max())
+        lo_52 = float(df_52w["Low"].min()) if "Low" in df_52w.columns else float(df_52w["Close"].min())
+
+        s = df["Close"].dropna()
         max_idx = int(np.nanargmax(s.values))
-        ax.scatter([s.index[max_idx]], [float(s.iloc[max_idx])])
+        max_dt = s.index[max_idx]
+        max_val = float(s.iloc[max_idx])
 
-        ax.set_title(title)
-        ax.set_xlabel("Date")
-        ax.set_ylabel("Value")
+        change_color = "#188038" if chg >= 0 else "#d93025"
+
+        fig = plt.figure(figsize=(12.5, 7.0))
+        gs = fig.add_gridspec(nrows=3, ncols=1, height_ratios=[1.2, 4.2, 1.1], hspace=0.18)
+
+        ax_head = fig.add_subplot(gs[0, 0]); ax_head.axis("off")
+        ax = fig.add_subplot(gs[1, 0])
+        ax_foot = fig.add_subplot(gs[2, 0]); ax_foot.axis("off")
+
+        # Header
+        ax_head.text(0.00, 0.78, title, fontsize=24, fontweight="bold", ha="left", va="center")
+        ax_head.text(0.00, 0.38, subtitle, fontsize=12.5, color="#5f6368", ha="left", va="center")
+
+        ax_head.text(0.00, -0.05, _fmt_de(last, decimals_last), fontsize=44, fontweight="bold",
+                     ha="left", va="center")
+        ax_head.text(0.00, -0.55,
+                     f"{_fmt_de_signed(chg, decimals_last)} ({_fmt_de_signed(chg_pct, 2)}%)",
+                     fontsize=16, color=change_color, ha="left", va="center")
+        ax_head.text(0.00, -0.92, f"{_fmt_de_date(df.index[-1])}",
+                     fontsize=11.5, color="#5f6368", ha="left", va="center")
+
+        # Chart
+        ax.plot(s.index, s.values, color=line_color, linewidth=2.2)
+        ax.grid(True, axis="y", alpha=0.18)
+        ax.grid(False, axis="x")
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.spines["left"].set_color("#dadce0")
+        ax.spines["bottom"].set_color("#dadce0")
+        ax.tick_params(axis="x", colors="#5f6368")
+        ax.tick_params(axis="y", colors="#5f6368")
+
+        ax.scatter([max_dt], [max_val], s=60, color=line_color, zorder=4)
+        label = f"{_fmt_de(max_val, decimals_last)}  {_fmt_de_date(max_dt)}"
+        ax.annotate(
+            label,
+            xy=(max_dt, max_val),
+            xytext=(10, -30),
+            textcoords="offset points",
+            bbox=dict(boxstyle="round,pad=0.35", fc="white", ec="#dadce0"),
+            fontsize=10.5,
+            color="#202124",
+        )
+
+        y_min = float(np.nanmin(s.values))
+        y_max = float(np.nanmax(s.values))
+        pad = (y_max - y_min) * 0.10 if y_max > y_min else max(1.0, y_max * 0.05)
+        ax.set_ylim(y_min - pad, y_max + pad)
+
+        # Footer stats
+        stats_left = [
+            ("Eröffnung", _fmt_de(o, decimals_last)),
+            ("Hoch", _fmt_de(h, decimals_last)),
+            ("Tief", _fmt_de(l, decimals_last)),
+            ("Vort.Schl.", _fmt_de(prev, decimals_last)),
+        ]
+        stats_right = [
+            ("52-Wo-Hoch", _fmt_de(hi_52, decimals_last)),
+            ("52-Wo-Tief", _fmt_de(lo_52, decimals_last)),
+        ]
+
+        x0, y0 = 0.00, 0.75
+        dx, dy = 0.24, 0.38
+        for i, (k, v) in enumerate(stats_left):
+            ax_foot.text(x0 + (i % 2) * dx, y0 - (i // 2) * dy, k, fontsize=11.5, color="#5f6368", ha="left")
+            ax_foot.text(x0 + (i % 2) * dx + 0.12, y0 - (i // 2) * dy, v, fontsize=12.5, color="#202124", ha="left")
+
+        x1 = 0.62
+        for i, (k, v) in enumerate(stats_right):
+            ax_foot.text(x1, y0 - i * dy, k, fontsize=11.5, color="#5f6368", ha="left")
+            ax_foot.text(x1 + 0.18, y0 - i * dy, v, fontsize=12.5, color="#202124", ha="left")
 
         fig.tight_layout()
         out_path = IMG_DIR / out_name
-        fig.savefig(out_path, dpi=170)
+        fig.savefig(out_path, dpi=175)
         plt.close(fig)
 
         return f"img/{out_name}"
+
     except Exception:
         return None
 
@@ -564,34 +658,30 @@ def plot_5y_chart(symbol: str, title: str, out_name: str) -> Optional[str]:
 # Executive summary (MAX 2 sentences)
 # ----------------------------
 def summarize_rss_themes(items: List[Dict[str, str]]) -> str:
-    """
-    Theme extraction (not headline copy/paste). Returns a short phrase.
-    """
     if not items:
-        return "No reliable RSS headline feed at runtime."
+        return "no reliable RSS feed at runtime"
 
     text = " ".join([it.get("title", "") for it in items]).lower()
     themes = []
 
     if any(k in text for k in ["fed", "fomc", "minutes", "powell", "rates", "yield", "treasury", "inflation"]):
-        themes.append("Fed/rates in focus")
+        themes.append("Fed/rates")
     if any(k in text for k in ["ai", "chip", "semiconductor", "nvidia", "software", "cloud"]):
-        themes.append("AI/tech narrative")
+        themes.append("AI/tech")
     if any(k in text for k in ["earnings", "guidance", "forecast", "results"]):
-        themes.append("earnings/guidance dispersion")
+        themes.append("earnings/guidance")
     if any(k in text for k in ["oil", "energy", "geopolitic", "war"]):
         themes.append("macro/geopolitics")
 
     if not themes:
-        themes.append("mixed macro tape")
+        themes.append("mixed macro")
 
-    # concise
     return ", ".join(themes[:3])
 
 
 def build_exec_summary(snapshot_df: pd.DataFrame, rss_items: List[Dict[str, str]]) -> str:
     """
-    Exactly two sentences. Uses day move + 1M/3M to contextualize last weeks.
+    Exactly two sentences.
     """
     if snapshot_df is None or snapshot_df.empty:
         return "Market summary unavailable (snapshot empty)."
@@ -615,20 +705,23 @@ def build_exec_summary(snapshot_df: pd.DataFrame, rss_items: List[Dict[str, str]
         except Exception:
             return float("nan")
 
-    # sentence 1: regime + leadership + recent context
     s1 = (
         f"Risk-on rebound led by tech (NDX {f(ndx,'1D'):+.2f}% vs S&P {f(spx,'1D'):+.2f}%) with vol compressing (VIX {f(vix,'1D'):+.2f}%), "
-        f"while the last weeks still read as a pullback inside a bigger uptrend (S&P 1M {f(spx,'1M'):+.2f}% vs 3M {f(spx,'3M'):+.2f}%; NDX 1M {f(ndx,'1M'):+.2f}% vs 3M {f(ndx,'3M'):+.2f}%)."
+        f"while the last weeks still read as a pullback inside a bigger uptrend (S&P 1M {f(spx,'1M'):+.2f}% vs 3M {f(spx,'3M'):+.2f}%; "
+        f"NDX 1M {f(ndx,'1M'):+.2f}% vs 3M {f(ndx,'3M'):+.2f}%)."
     )
 
-    # sentence 2: Europe + macro/hedge + themes
-    europe_clause = f"Europe also firm (STOXX {f(stx,'1D'):+.2f}%, DAX {f(dax,'1D'):+.2f}%)" if (stx is not None and dax is not None) else "Europe mixed"
-    macro_clause = f"EUR/USD {f(eur,'1D'):+.2f}% | gold {f(gold,'1D'):+.2f}% | BTC {f(btc,'1D'):+.2f}%" if (eur is not None and gold is not None and btc is not None) else ""
+    europe_clause = (
+        f"Europe also firm (STOXX {f(stx,'1D'):+.2f}%, DAX {f(dax,'1D'):+.2f}%)"
+        if (stx is not None and dax is not None) else "Europe mixed"
+    )
+    macro_clause = (
+        f"EUR/USD {f(eur,'1D'):+.2f}% | gold {f(gold,'1D'):+.2f}% | BTC {f(btc,'1D'):+.2f}%"
+        if (eur is not None and gold is not None and btc is not None) else ""
+    )
     themes = summarize_rss_themes(rss_items)
 
-    s2 = (
-        f"{europe_clause}; cross-currents remained in macro hedges/FX ({macro_clause}) with headlines pointing to {themes}."
-    )
+    s2 = f"{europe_clause}; cross-currents stayed in FX/hedges ({macro_clause}) with headlines clustering around {themes}."
 
     return s1 + "\n\n" + s2
 
@@ -679,7 +772,6 @@ def fetch_afterhours_movers() -> Tuple[pd.DataFrame, pd.DataFrame]:
     gain = pd.DataFrame()
     lose = pd.DataFrame()
 
-    # Primary: StockAnalysis afterhours (usually stable)
     try:
         tables = read_html_tables("https://stockanalysis.com/markets/afterhours/")
         if len(tables) >= 2:
@@ -751,13 +843,8 @@ def filter_movers(df: pd.DataFrame) -> pd.DataFrame:
                 pct_col = c
                 break
         if pct_col is None:
-            for c in out.columns:
-                s = str(c).lower()
-                if "change" in s and "%" in s:
-                    pct_col = c
-                    break
-
-        if pct_col is not None:
+            out["pct"] = np.nan
+        else:
             out["pct"] = (
                 out[pct_col].astype(str)
                 .str.replace("%", "", regex=False)
@@ -765,8 +852,6 @@ def filter_movers(df: pd.DataFrame) -> pd.DataFrame:
                 .str.replace(",", "", regex=False)
             )
             out["pct"] = pd.to_numeric(out["pct"], errors="coerce")
-        else:
-            out["pct"] = np.nan
 
     if "_symbol" in out.columns:
         out["symbol"] = out["_symbol"].astype(str)
@@ -1131,12 +1216,10 @@ def main():
 
     # Universe for technical scan
     if args.mode == "full":
-        # ⚠️ This can be slow; keep if you truly want it.
         spx = get_sp500_tickers()
         ndx = get_nasdaq100_tickers()
         universe = sorted(set(custom + spx + ndx))
     else:
-        # Recommended default: only your curated list (fast + reliable)
         universe = custom
 
     if args.max_tickers and args.max_tickers > 0:
@@ -1151,9 +1234,23 @@ def main():
     # 1) Snapshot table + exec summary
     snapshot_df = fetch_market_snapshot_multi()
 
-    # 1) Macro charts (5Y)
-    vix_chart = plot_5y_chart("^VIX", "CBOE Volatility Index (VIX) — 5Y", "macro_vix_5y.png")
-    eur_chart = plot_5y_chart("EURUSD=X", "EUR/USD — 5Y", "macro_eurusd_5y.png")
+    # 1) Macro "card" charts (5Y)
+    vix_card = plot_gf_card_5y(
+        "^VIX",
+        "CBOE Volatility Index",
+        "INDEXCBOE: VIX",
+        "macro_vix_5y.png",
+        decimals_last=2,
+        line_color="#d93025",
+    )
+    eur_card = plot_gf_card_5y(
+        "EURUSD=X",
+        "Euro / US Dollar",
+        "CCY: EURUSD",
+        "macro_eurusd_5y.png",
+        decimals_last=4,
+        line_color="#d93025",
+    )
 
     # Download OHLCV once (for technicals)
     ohlcv = yf_download_chunk(universe)
@@ -1233,10 +1330,10 @@ def main():
     md.append("")
 
     md.append("**Macro charts (5Y):**\n")
-    if vix_chart:
-        md.append(f"![VIX 5Y]({vix_chart})\n")
-    if eur_chart:
-        md.append(f"![EURUSD 5Y]({eur_chart})\n")
+    if vix_card:
+        md.append(f"![VIX 5Y]({vix_card})\n")
+    if eur_card:
+        md.append(f"![EURUSD 5Y]({eur_card})\n")
     md.append("")
 
     # 2) Movers
@@ -1290,7 +1387,6 @@ def main():
 
     md_text = "\n".join(md).strip() + "\n"
 
-    # Write outputs
     write_text(REPORT_PATH, md_text)
     write_text(INDEX_PATH, md_text)
 
