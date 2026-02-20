@@ -1,9 +1,15 @@
 {
   "timezone": "Europe/Vienna",
-  "generated_at": "2026-02-20T22:26:39.708190+01:00",
-  "head_commit": "988b2f4e4c281bdab51f646700cc107e9b473064",
-  "latest_tag": "rpt-20260220-2226",
+  "generated_at": "2026-02-20T22:57:01.526109+01:00",
+  "head_commit": "d0c5bfd20c6f8da0da70a563be22dba03ab01904",
+  "latest_tag": "rpt-20260220-2257",
   "recent": [
+    {
+      "key": "20260220-2257",
+      "tag": "rpt-20260220-2257",
+      "pages_path_md": "reports/report_20260220-2257.md",
+      "repo_path_md": "reports/report_20260220-2257.md"
+    },
     {
       "key": "20260220-2226",
       "tag": "rpt-20260220-2226",

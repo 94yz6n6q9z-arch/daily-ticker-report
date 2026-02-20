@@ -1,12 +1,12 @@
 # Daily Report
 
-_Generated: **2026-02-20 22:26 CET**_
+_Generated: **2026-02-20 22:56 CET**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Markets rebounded as AI/tech pressure eased and buyers stepped back in, with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and volatility cooling (VIX -5.83%). Zooming out, Europe participated (STOXX +0.84%, DAX +0.87%), the tape still reads as a short-term pullback inside a larger uptrend (S&P 1M +0.49% vs 3M +4.64%; NDX 1M -1.24% vs 3M +3.19%) while EUR/USD +0.03%, gold +2.82% and BTC +1.09% signaled mixed cross-currents, with headlines clustering around Fed/rates, AI/tech, earnings/guidance.
+Markets rebounded as AI/tech pressure eased and buyers stepped back in, with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and volatility cooling (VIX -5.64%). Zooming out, Europe participated (STOXX +0.84%, DAX +0.87%), the tape still reads as a short-term pullback inside a larger uptrend (S&P 1M +0.49% vs 3M +4.64%; NDX 1M -1.24% vs 3M +3.19%) while EUR/USD -0.03%, gold +2.96% and BTC +1.21% signaled mixed cross-currents, with headlines clustering around AI/tech, earnings/guidance, macro/geopolitics.
 
 **Key tape (multi-horizon):**
 
@@ -15,18 +15,18 @@ Markets rebounded as AI/tech pressure eased and buyers stepped back in, with the
 | Nasdaq 100       | 25,012.62 | <span style="color:#11823b;">+0.87%</span> | <span style="color:#11823b;">+1.13%</span>  | <span style="color:#b91c1c;">-1.24%</span>  | <span style="color:#11823b;">+3.19%</span>  | <span style="color:#11823b;">+6.45%</span>   |
 | S&P 500          | 6,909.51  | <span style="color:#11823b;">+0.69%</span> | <span style="color:#11823b;">+1.07%</span>  | <span style="color:#11823b;">+0.49%</span>  | <span style="color:#11823b;">+4.64%</span>  | <span style="color:#11823b;">+6.84%</span>   |
 | QQQ              | 608.81    | <span style="color:#11823b;">+0.88%</span> | <span style="color:#11823b;">+1.14%</span>  | <span style="color:#b91c1c;">-1.21%</span>  | <span style="color:#11823b;">+3.18%</span>  | <span style="color:#11823b;">+6.44%</span>   |
-| SPY              | 689.42    | <span style="color:#11823b;">+0.72%</span> | <span style="color:#11823b;">+1.13%</span>  | <span style="color:#11823b;">+0.59%</span>  | <span style="color:#11823b;">+4.61%</span>  | <span style="color:#11823b;">+6.84%</span>   |
+| SPY              | 689.43    | <span style="color:#11823b;">+0.72%</span> | <span style="color:#11823b;">+1.13%</span>  | <span style="color:#11823b;">+0.59%</span>  | <span style="color:#11823b;">+4.61%</span>  | <span style="color:#11823b;">+6.84%</span>   |
 | STOXX Europe 600 | 630.56    | <span style="color:#11823b;">+0.84%</span> | <span style="color:#11823b;">+2.08%</span>  | <span style="color:#11823b;">+4.63%</span>  | <span style="color:#11823b;">+12.18%</span> | <span style="color:#11823b;">+12.34%</span>  |
 | DAX              | 25,260.69 | <span style="color:#11823b;">+0.87%</span> | <span style="color:#11823b;">+1.39%</span>  | <span style="color:#11823b;">+2.85%</span>  | <span style="color:#11823b;">+9.39%</span>  | <span style="color:#11823b;">+3.68%</span>   |
 | CAC 40           | 8,515.49  | <span style="color:#11823b;">+1.39%</span> | <span style="color:#11823b;">+2.45%</span>  | <span style="color:#11823b;">+5.53%</span>  | <span style="color:#11823b;">+6.67%</span>  | <span style="color:#11823b;">+6.85%</span>   |
 | FTSE 100         | 10,686.89 | <span style="color:#11823b;">+0.56%</span> | <span style="color:#11823b;">+2.30%</span>  | <span style="color:#11823b;">+5.41%</span>  | <span style="color:#11823b;">+12.03%</span> | <span style="color:#11823b;">+14.65%</span>  |
-| VIX              | 19.05     | <span style="color:#b91c1c;">-5.83%</span> | <span style="color:#b91c1c;">-7.52%</span>  | <span style="color:#11823b;">+12.72%</span> | <span style="color:#b91c1c;">-18.69%</span> | <span style="color:#11823b;">+33.97%</span>  |
-| EUR/USD          | 1.18      | <span style="color:#11823b;">+0.03%</span> | <span style="color:#b91c1c;">-0.64%</span>  | <span style="color:#11823b;">+0.55%</span>  | <span style="color:#11823b;">+2.24%</span>  | <span style="color:#11823b;">+1.54%</span>   |
-| Gold             | 5,116.00  | <span style="color:#11823b;">+2.82%</span> | <span style="color:#11823b;">+1.87%</span>  | <span style="color:#11823b;">+5.88%</span>  | <span style="color:#11823b;">+25.49%</span> | <span style="color:#11823b;">+51.61%</span>  |
-| Silver           | 83.87     | <span style="color:#11823b;">+8.13%</span> | <span style="color:#11823b;">+7.73%</span>  | <span style="color:#b91c1c;">-9.04%</span>  | <span style="color:#11823b;">+68.17%</span> | <span style="color:#11823b;">+115.03%</span> |
+| VIX              | 19.09     | <span style="color:#b91c1c;">-5.64%</span> | <span style="color:#b91c1c;">-7.33%</span>  | <span style="color:#11823b;">+12.96%</span> | <span style="color:#b91c1c;">-18.52%</span> | <span style="color:#11823b;">+34.25%</span>  |
+| EUR/USD          | 1.18      | <span style="color:#b91c1c;">-0.03%</span> | <span style="color:#b91c1c;">-0.70%</span>  | <span style="color:#11823b;">+0.49%</span>  | <span style="color:#11823b;">+2.18%</span>  | <span style="color:#11823b;">+1.48%</span>   |
+| Gold             | 5,123.00  | <span style="color:#11823b;">+2.96%</span> | <span style="color:#11823b;">+2.01%</span>  | <span style="color:#11823b;">+6.03%</span>  | <span style="color:#11823b;">+25.67%</span> | <span style="color:#11823b;">+51.82%</span>  |
+| Silver           | 84.33     | <span style="color:#11823b;">+8.72%</span> | <span style="color:#11823b;">+8.32%</span>  | <span style="color:#b91c1c;">-8.55%</span>  | <span style="color:#11823b;">+69.09%</span> | <span style="color:#11823b;">+116.21%</span> |
 | Coffee           | 285.35    | <span style="color:#b91c1c;">-0.71%</span> | <span style="color:#b91c1c;">-4.90%</span>  | <span style="color:#b91c1c;">-17.88%</span> | <span style="color:#b91c1c;">-28.66%</span> | <span style="color:#b91c1c;">-26.96%</span>  |
 | Cocoa            | 3,184.00  | <span style="color:#11823b;">+7.28%</span> | <span style="color:#b91c1c;">-11.09%</span> | <span style="color:#b91c1c;">-28.42%</span> | <span style="color:#b91c1c;">-37.37%</span> | <span style="color:#b91c1c;">-58.01%</span>  |
-| Bitcoin          | 67,688.16 | <span style="color:#11823b;">+1.09%</span> | <span style="color:#b91c1c;">-1.70%</span>  | <span style="color:#b91c1c;">-24.27%</span> | <span style="color:#b91c1c;">-20.04%</span> | <span style="color:#b91c1c;">-40.34%</span>  |
+| Bitcoin          | 67,765.67 | <span style="color:#11823b;">+1.21%</span> | <span style="color:#b91c1c;">-1.59%</span>  | <span style="color:#b91c1c;">-24.18%</span> | <span style="color:#b91c1c;">-19.94%</span> | <span style="color:#b91c1c;">-40.27%</span>  |
 
 **Macro charts (5Y):**
 
@@ -110,16 +110,16 @@ _None_
 
 _Linked digest for drill-down._
 
-- [Here’s How Ramit Sethi Would Invest $1K — Should You Follow His Advice?](https://finance.yahoo.com/news/ramit-sethi-invest-1k-advice-140605250.html) — Yahoo Finance
-- [Ignore the Panic and Keep Buying Apple Stock, According to Wedbush](https://finance.yahoo.com/news/ignore-panic-keep-buying-apple-140002575.html) — Yahoo Finance
-- [COIN Stock Warning: Why 1 Analyst Is Warning Coinbase Will Fall 27% from Here](https://finance.yahoo.com/news/coin-stock-warning-why-1-140002608.html) — Yahoo Finance
-- [Strength for the Dollar Ahead of GDP](https://finance.yahoo.com/news/strength-dollar-ahead-gdp-140019810.html) — Yahoo Finance
-- [This REIT Seeks To Entertain Investors With A 6.2% Yield](https://www.investors.com/research/the-income-investor/reit-stock-epr-movie-theaters-leisure-dividend-yield-investing-markets/?src=A00220&yptr=yahoo) — Yahoo Finance
-- [Tom Lee’s BitMine Adds 35,000 ETH, But BMNR Stock Breaks Down](https://finance.yahoo.com/news/tom-lee-bitmine-adds-35-140551970.html) — Yahoo Finance
-- [Do Wall Street Analysts Like Cincinnati Financial Stock?](https://finance.yahoo.com/news/wall-street-analysts-cincinnati-financial-140650134.html) — Yahoo Finance
-- [American families often hold too much cash in their checking accounts. Here’s a better way to manage your bank balance](https://finance.yahoo.com/news/american-families-often-hold-too-140000595.html) — Yahoo Finance
-- [AI Jobs Disruption Is Here. What It Means For The S&P 500 And You.](https://www.investors.com/news/economy/ai-jobs-inflection-what-it-means-for-sp-500-fed-you/?src=A00220&yptr=yahoo) — Yahoo Finance
-- [Deere Stock Surges On Earnings As Ag Cycle Bottoms](https://www.investors.com/news/deere-stock-q1-earnings-as-ag-cycle-hits-bottom/?src=A00220&yptr=yahoo) — Yahoo Finance
+- [What’s Next for ETHzilla Stock price, Another Crash Or Recovery?](https://finance.yahoo.com/news/next-ethzilla-stock-price-another-143513376.html) — Yahoo Finance
+- [Down More Than 45%, Is PayPal Stock a Buy Now?](https://finance.yahoo.com/news/down-more-45-paypal-stock-143002547.html) — Yahoo Finance
+- [SolarEdge (SEDG) Dips 5.5% as Strong Earnings Priced In](https://finance.yahoo.com/news/solaredge-sedg-dips-5-5-142505942.html) — Yahoo Finance
+- [Dear Snowflake Stock Fans, Mark Your Calendars for February 25](https://finance.yahoo.com/news/dear-snowflake-stock-fans-mark-143003360.html) — Yahoo Finance
+- [Flagstar (FLG) Sheds 4% on Profit-Taking](https://finance.yahoo.com/news/flagstar-flg-sheds-4-profit-142434420.html) — Yahoo Finance
+- [Crypto Is Crashing — 4 Investments to Try Instead for the First Half of 2026](https://finance.yahoo.com/news/crypto-crashing-4-investments-try-143804963.html) — Yahoo Finance
+- [Palo Alto (PANW) Loses 6.8% as Impressive Earnings Priced In](https://finance.yahoo.com/news/palo-alto-panw-loses-6-142513314.html) — Yahoo Finance
+- [HF Sinclair (DINO) Loses 10.9% as CEO Takes Leave](https://finance.yahoo.com/news/hf-sinclair-dino-loses-10-142627667.html) — Yahoo Finance
+- [Applied Digital (APLD) Loses 4.9% as Nvidia Disposes of Shares](https://finance.yahoo.com/news/applied-digital-apld-loses-4-142449970.html) — Yahoo Finance
+- [Halozyme (HALO) Loses 9% on Weak Earnings](https://finance.yahoo.com/news/halozyme-halo-loses-9-weak-142531552.html) — Yahoo Finance
 
 ## Changelog
 
