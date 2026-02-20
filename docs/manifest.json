@@ -1,0 +1,20 @@
+{
+  "timezone": "Europe/Vienna",
+  "generated_at": "2026-02-20T20:46:06.889489+01:00",
+  "head_commit": "1b6ca51bf06217e2e164dbe3ba05b93eff6e6da3",
+  "latest_tag": "rpt-20260220-2046",
+  "recent": [
+    {
+      "key": "20260220-2046",
+      "tag": "rpt-20260220-2046",
+      "pages_path_md": "reports/report_20260220-2046.md",
+      "repo_path_md": "reports/report_20260220-2046.md"
+    }
+  ],
+  "fetch_hints": {
+    "jsdelivr_tagged_latest": "https://cdn.jsdelivr.net/gh/94yz6n6q9z-arch/daily-ticker-report@{TAG}/docs/report.md",
+    "jsdelivr_tagged_archive": "https://cdn.jsdelivr.net/gh/94yz6n6q9z-arch/daily-ticker-report@{TAG}/reports/report_{KEY}.md",
+    "github_pages_latest": "https://94yz6n6q9z-arch.github.io/daily-ticker-report/report.md",
+    "github_pages_manifest": "https://94yz6n6q9z-arch.github.io/daily-ticker-report/manifest.json"
+  }
+}
