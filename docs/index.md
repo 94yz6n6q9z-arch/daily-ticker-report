@@ -1,12 +1,12 @@
 # Daily Report
 
-_Generated: **2026-02-21 13:07 CET**_
+_Generated: **2026-02-21 13:20 CET**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and volatility at VIX -5.64%, with headlines clustering around AI/tech, earnings/guidance. Over the past month vs ~3 months, S&P +0.49% vs +4.64% and NDX -1.24% vs +3.19% frame today’s move in context; No watchlist names moved >4% incl. after-hours.
+Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and volatility at VIX -5.64%, with headlines clustering around Fed/rates, AI/tech. Over the past month vs ~3 months, S&P +0.49% vs +4.64% and NDX -1.24% vs +3.19% frame today’s move in context; No watchlist names moved >4% incl. after-hours.
 
 **Key tape (multi-horizon):**
 
@@ -26,7 +26,7 @@ Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and 
 | Silver           | 82.28     | <span style="color:#11823b;">+6.08%</span> | <span style="color:#11823b;">+5.69%</span>  | <span style="color:#b91c1c;">-10.77%</span> | <span style="color:#11823b;">+64.99%</span> | <span style="color:#11823b;">+110.97%</span> |
 | Coffee           | 288.30    | <span style="color:#11823b;">+0.31%</span> | <span style="color:#b91c1c;">-3.92%</span>  | <span style="color:#b91c1c;">-17.04%</span> | <span style="color:#b91c1c;">-27.93%</span> | <span style="color:#b91c1c;">-26.20%</span>  |
 | Cocoa            | 3,080.00  | <span style="color:#11823b;">+3.77%</span> | <span style="color:#b91c1c;">-13.99%</span> | <span style="color:#b91c1c;">-30.76%</span> | <span style="color:#b91c1c;">-39.42%</span> | <span style="color:#b91c1c;">-59.38%</span>  |
-| Bitcoin          | 68,103.16 | <span style="color:#11823b;">+0.14%</span> | <span style="color:#b91c1c;">-2.39%</span>  | <span style="color:#b91c1c;">-23.88%</span> | <span style="color:#b91c1c;">-21.54%</span> | <span style="color:#b91c1c;">-38.16%</span>  |
+| Bitcoin          | 67,962.78 | <span style="color:#b91c1c;">-0.06%</span> | <span style="color:#b91c1c;">-2.59%</span>  | <span style="color:#b91c1c;">-24.03%</span> | <span style="color:#b91c1c;">-21.71%</span> | <span style="color:#b91c1c;">-38.29%</span>  |
 
 **Macro charts (5Y):**
 
@@ -112,16 +112,16 @@ _None_
 
 _Linked digest for drill-down._
 
-- [At Long Last, Being Underweight Tech Is a Winning Stock Strategy](https://finance.yahoo.com/news/long-last-being-underweight-tech-103000620.html) — Yahoo Finance
-- [3 Steps to a Simple Trading System](https://finance.yahoo.com/news/3-steps-simple-trading-system-100252788.html) — Yahoo Finance
+- [How the Average Retirement Account Compares to the Top 10% of Savers](https://finance.yahoo.com/news/average-retirement-account-compares-top-120204740.html) — Yahoo Finance
+- [72% of US workers say they rely on a second income, while 26% say they need the side job just to cover the bills](https://finance.yahoo.com/news/72-us-workers-rely-second-120000468.html) — Yahoo Finance
+- [Survey says 80% of Gen Xers and boomers regret not saving sooner. Here’s how to maximize your retirement savings now](https://finance.yahoo.com/news/survey-says-80-gen-xers-120000964.html) — Yahoo Finance
 - [US equity funds see largest weekly inflow in five weeks](https://finance.yahoo.com/news/us-equity-funds-see-largest-105315132.html) — Yahoo Finance
-- [Remitly Global (RELY) Soars 25.9% on Leadership Changes, Strong Earnings](https://finance.yahoo.com/news/remitly-global-rely-soars-25-093353034.html) — Yahoo Finance
-- [Herbalife (HLF) Climbs to 3-Year High on Net Sales Beat](https://finance.yahoo.com/news/herbalife-hlf-climbs-3-high-093345893.html) — Yahoo Finance
-- [Cost-per-hire and cost-per-application rose sharply in 2025, report says](https://finance.yahoo.com/news/cost-per-hire-cost-per-103000711.html) — Yahoo Finance
-- [Americold (COLD) Soars 15.7% on Upbeat 2026 Outlook, CFO Appointment](https://finance.yahoo.com/news/americold-cold-soars-15-7-093339166.html) — Yahoo Finance
-- [First Majestic Silver (AG) Climbs 9.6% on Return to Profitability](https://finance.yahoo.com/news/first-majestic-silver-ag-climbs-093308250.html) — Yahoo Finance
-- [Omnicom (OMC) Climbs 15% on Dividend, $5-Billion Buyback](https://finance.yahoo.com/news/omnicom-omc-climbs-15-dividend-093331859.html) — Yahoo Finance
-- [SSR Mining (SSRM) Hits 15-Year High as Earnings Impress](https://finance.yahoo.com/news/ssr-mining-ssrm-hits-15-093301899.html) — Yahoo Finance
+- [3 Steps to a Simple Trading System](https://finance.yahoo.com/news/3-steps-simple-trading-system-100252788.html) — Yahoo Finance
+- [Blue Owl Halts Redemptions Amid Private Credit Stress: Will Crypto Feel the Impact?](https://finance.yahoo.com/news/blue-owl-halts-redemptions-amid-103905795.html) — Yahoo Finance
+- [Best high-yield savings interest rates today, February 20, 2026 (up to 4% APY return)](https://finance.yahoo.com/personal-finance/banking/article/best-high-yield-savings-interest-rates-today-friday-february-20-2026-110001016.html) — Yahoo Finance
+- [Best money market account rates today, February 20, 2026 (up to 4.01% APY return)](https://finance.yahoo.com/personal-finance/banking/article/best-money-market-account-rates-today-friday-february-20-2026-110020476.html) — Yahoo Finance
+- [Best CD rates today, February 20, 2026 (up to 4% APY return)](https://finance.yahoo.com/personal-finance/banking/article/best-cd-rates-today-friday-february-20-2026-110015294.html) — Yahoo Finance
+- [HELOC and home equity loan rates today, February 20, 2026: Lowest rates since late 2022](https://finance.yahoo.com/personal-finance/mortgages/article/heloc-home-equity-loan-interest-rates-today-friday-february-20-2026-110035737.html) — Yahoo Finance
 
 ## Changelog
 
