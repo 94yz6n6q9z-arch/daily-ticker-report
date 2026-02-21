@@ -204,81 +204,56 @@ def read_html_tables(url: str) -> List[pd.DataFrame]:
     return pd.read_html(html)
 
 
-
 def parse_rss(url: str, source_name: str, limit: int = 10) -> List[Dict[str, str]]:
     """
     Minimal RSS/Atom parser returning dict(title, link, pubDate, source).
-
-    Supports:
-      - RSS <item>
-      - Atom <entry>
     """
     try:
         xml_text = fetch_url_text(url, timeout=30)
         root = ET.fromstring(xml_text)
 
-        def norm(s: Optional[str]) -> str:
-            return (s or "").strip()
-
-        items: List[Dict[str, str]] = []
-
-        # RSS
+        items = []
         for item in root.findall(".//item"):
-            title = norm(item.findtext("title"))
-            link = norm(item.findtext("link"))
-            pub = norm(item.findtext("pubDate"))
+            title = (item.findtext("title") or "").strip()
+            link = (item.findtext("link") or "").strip()
+            pub = (item.findtext("pubDate") or "").strip()
             if title:
                 items.append({"title": title, "link": link, "pubDate": pub, "source": source_name})
+        if items:
+            return items[:limit]
 
-        # Atom
-        if not items:
-            for entry in root.findall(".//{*}entry"):
-                title = norm(entry.findtext("{*}title"))
-                pub = norm(entry.findtext("{*}updated")) or norm(entry.findtext("{*}published"))
-                link = ""
-                # Atom links are usually attributes
-                for l in entry.findall("{*}link"):
-                    href = (l.attrib.get("href") or "").strip()
-                    rel = (l.attrib.get("rel") or "alternate").strip()
-                    if href and (rel == "alternate" or not link):
-                        link = href
-                # Some Atom feeds use <link>text</link>
-                if not link:
-                    link = norm(entry.findtext("{*}link"))
-                if title:
-                    items.append({"title": title, "link": link, "pubDate": pub, "source": source_name})
-
-        return items[:limit] if items else []
+        # Atom fallback
+        ns = {"atom": "http://www.w3.org/2005/Atom"}
+        for entry in root.findall(".//atom:entry", ns):
+            title = (entry.findtext("atom:title", default="", namespaces=ns) or "").strip()
+            link_el = entry.find("atom:link", ns)
+            link = (link_el.get("href") if link_el is not None else "").strip()
+            pub = (entry.findtext("atom:updated", default="", namespaces=ns) or "").strip()
+            if title:
+                items.append({"title": title, "link": link, "pubDate": pub, "source": source_name})
+        return items[:limit]
     except Exception:
         return []
 
 
-
-def fetch_rss_headlines(limit_total: int = 16) -> List[Dict[str, str]]:
-    # A diversified set of free-to-read headline feeds (some articles may still have partial paywalls,
-    # but headlines + links remain useful for daily context).
+def fetch_rss_headlines(limit_total: int = 14) -> List[Dict[str, str]]:
     feeds = [
         ("Yahoo Finance", "https://finance.yahoo.com/rss/topstories"),
         ("CNBC Top News", "https://www.cnbc.com/id/100003114/device/rss/rss.html"),
         ("CNBC Markets", "https://www.cnbc.com/id/15839069/device/rss/rss.html"),
-        ("Reuters Top News", "https://feeds.reuters.com/reuters/topNews"),
-        ("Reuters Business", "https://feeds.reuters.com/reuters/businessNews"),
-        ("MarketWatch Top Stories", "https://feeds.marketwatch.com/marketwatch/topstories"),
-        ("Financial Times", "https://www.ft.com/?format=rss"),
     ]
     all_items: List[Dict[str, str]] = []
     for name, url in feeds:
-        all_items.extend(parse_rss(url, name, limit=10))
+        all_items.extend(parse_rss(url, name, limit=12))
 
-    # De-dupe by title (case-insensitive)
+    # De-dupe by title
     seen = set()
-    uniq: List[Dict[str, str]] = []
+    uniq = []
     for it in all_items:
-        t = (it.get("title", "") or "").strip()
-        key = t.lower()
-        if not t or key in seen:
+        t = it.get("title", "")
+        if not t or t in seen:
             continue
-        seen.add(key)
+        seen.add(t)
         uniq.append(it)
 
     return uniq[:limit_total]
@@ -1176,110 +1151,6 @@ def movers_table(df: pd.DataFrame, title: str) -> str:
     md = df_to_markdown_aligned(out, aligns=("left", "right"), index=False)
     return f"**{title}:**\n\n" + md + "\n"
 
-# ----------------------------
-# Earnings calendar (watchlist)
-# ----------------------------
-def _to_date(x) -> Optional[dt.date]:
-    if x is None:
-        return None
-    if isinstance(x, dt.date) and not isinstance(x, dt.datetime):
-        return x
-    if isinstance(x, dt.datetime):
-        return x.date()
-    # pandas Timestamp, numpy datetime64
-    try:
-        import pandas as pd  # type: ignore
-        if isinstance(x, pd.Timestamp):
-            return x.to_pydatetime().date()
-    except Exception:
-        pass
-    try:
-        # last resort: parse string
-        return dt.datetime.fromisoformat(str(x)[:19]).date()
-    except Exception:
-        return None
-
-
-def get_watchlist_earnings_next_days(tickers: List[str], days: int = 14) -> "pd.DataFrame":
-    """
-    Returns a dataframe of upcoming earnings dates for the supplied tickers within the next `days`.
-    Best-effort using yfinance; if a ticker has no upcoming date, it is omitted.
-    """
-    import pandas as pd  # local import for faster CLI startup
-    import yfinance as yf  # type: ignore
-
-    today = dt.date.today()
-    end_date = today + dt.timedelta(days=days)
-
-    rows = []
-    for tkr in tickers:
-        try:
-            yt = yf.Ticker(tkr)
-            next_date: Optional[dt.date] = None
-
-            # Preferred: earnings dates dataframe
-            if hasattr(yt, "get_earnings_dates"):
-                try:
-                    df = yt.get_earnings_dates(limit=8)
-                    if df is not None and len(df) > 0:
-                        # index is Timestamp; pick first future one
-                        for idx in df.index:
-                            d = _to_date(idx)
-                            if d and d >= today:
-                                next_date = d
-                                break
-                except Exception:
-                    pass
-
-            # Fallback: calendar
-            if next_date is None:
-                try:
-                    cal = getattr(yt, "calendar", None)
-                    if isinstance(cal, dict):
-                        ed = cal.get("Earnings Date")
-                        if isinstance(ed, (list, tuple)) and ed:
-                            next_date = _to_date(ed[0])
-                        else:
-                            next_date = _to_date(ed)
-                except Exception:
-                    pass
-
-            if next_date and (today <= next_date <= end_date):
-                rows.append({
-                    "Ticker": tkr,
-                    "Earnings Date": next_date.isoformat(),
-                    "Days": (next_date - today).days,
-                })
-        except Exception:
-            continue
-
-    df_out = pd.DataFrame(rows)
-    if df_out.empty:
-        return df_out
-    df_out = df_out.sort_values(["Days", "Ticker"]).reset_index(drop=True)
-    return df_out
-
-
-def earnings_section_md(watchlist: List[str], days: int = 14) -> str:
-    """
-    Markdown section for upcoming earnings for watchlist tickers.
-    """
-    try:
-        import pandas as pd  # type: ignore
-        df = get_watchlist_earnings_next_days(watchlist, days=days)
-        if df is None or df.empty:
-            return f"## 3) Earnings next {days} days (watchlist)\n\n_None from watchlist in the next {days} days._\n"
-
-        # Render as markdown table (right-align numeric)
-        md = []
-        md.append(f"## 3) Earnings next {days} days (watchlist)\n")
-        md.append("_Upcoming earnings dates for your 44-ticker watchlist._\n")
-        md.append(md_table_from_df(df, cols=["Ticker", "Earnings Date", "Days"]))
-        return "\n".join(md) + "\n"
-    except Exception:
-        return f"## 3) Earnings next {days} days (watchlist)\n\n_(Failed to fetch earnings calendar.)_\n"
-
-
 
 # ----------------------------
 # Technical patterns (lightweight heuristics)
@@ -1701,11 +1572,7 @@ def main():
     if not ah_lf.empty:
         ah_lf = ah_lf.sort_values("pct", ascending=True)
 
-    
-    # 3) Earnings (watchlist)
-    md.append(earnings_section_md(WATCHLIST_44, days=14))
-
-# 4) Technical triggers
+    # 4) Technical triggers
     all_signals: List[LevelSignal] = []
     for t in universe:
         df = ohlcv.get(t)
