@@ -1767,13 +1767,10 @@ def main():
     md.append("")
 
     md.append("**Macro charts (5Y):**\n")
-    cells = []
     if vix_card:
-        cells.append(f'<td><img src="{vix_card}" width="360" style="width:360px;max-width:360px;height:auto;"></td>')
+        md.append(f"![VIX 5Y]({vix_card})\n")
     if eur_card:
-        cells.append(f'<td><img src="{eur_card}" width="360" style="width:360px;max-width:360px;height:auto;"></td>')
-    if cells:
-        md.append("<table><tr>" + "".join(cells) + "</tr></table>\n")
+        md.append(f"![EURUSD 5Y]({eur_card})\n")
     md.append("")
 
     # 2) Movers
