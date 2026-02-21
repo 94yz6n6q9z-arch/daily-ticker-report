@@ -35,10 +35,8 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          # Needed for Markdown -> HTML for email body
           pip install markdown
 
-      # DST-safe guard: only proceed when local time is exactly 22:30
       - name: Time guard (scheduled runs only)
         if: ${{ github.event_name == 'schedule' }}
         run: |
@@ -50,7 +48,6 @@ jobs:
 
       - name: Run scan
         env:
-          # OpenAI (exec summary prose)
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_MODEL: gpt-5.2-pro
           OPENAI_REASONING_EFFORT: medium
@@ -61,7 +58,6 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          import re
           import markdown as md
 
           report = Path("docs/report.md")
@@ -73,42 +69,11 @@ jobs:
           # Keep a markdown copy for debugging / consistency
           Path("docs/email.md").write_text(txt, encoding="utf-8")
 
-          # Render HTML (tables enabled)
+          # Render HTML (tables enabled). Raw HTML in markdown (e.g., the Macro charts table) passes through.
           body_html = md.markdown(
               txt,
               extensions=["tables", "sane_lists", "fenced_code"]
           )
-
-          # --- Make "Macro charts (5Y)" images display side-by-side ---
-          # Find the Macro charts header and wrap the first two <img> tags after it.
-          macro_pat = re.compile(r'(<p><strong>Macro charts \(5Y\):</strong></p>)(.*)', re.S)
-          m = macro_pat.search(body_html)
-          if m:
-            head = m.group(1)
-            tail = m.group(2)
-
-            imgs = list(re.finditer(r'<img[^>]*>', tail))
-            if len(imgs) >= 2:
-              a = imgs[0].span()
-              b = imgs[1].span()
-              before = tail[:a[0]]
-              img1 = tail[a[0]:a[1]]
-              mid = tail[a[1]:b[0]]
-              img2 = tail[b[0]:b[1]]
-              after = tail[b[1]:]
-
-              def strip_p(s: str) -> str:
-                s = re.sub(r'^\s*<p>\s*', '', s)
-                s = re.sub(r'\s*</p>\s*$', '', s)
-                return s
-
-              body_html = (
-                body_html[:m.start()]
-                + head
-                + before
-                + f'<div class="two-col">{strip_p(img1)}{strip_p(img2)}</div>'
-                + after
-              )
 
           html = f"""<!doctype html>
           <html>
@@ -122,31 +87,6 @@ jobs:
               th, td {{ border: 1px solid #ddd; padding: 8px; vertical-align: top; }}
               th {{ background: #f6f8fa; }}
               img {{ max-width: 100%; height: auto; }}
-
-              /* Two-column image row for Macro charts */
-              .two-col {{
-                display: flex;
-                gap: 12px;
-                align-items: flex-start;
-                margin: 10px 0 18px;
-              }}
-              .two-col img {{
-                width: 100%;
-                max-width: 180px;   /* cap size in email */
-                height: auto;
-                border: 1px solid #eee;
-              }}
-
-              /* Mobile: stack */
-              @media (max-width: 620px) {{
-                .two-col {{
-                  display: block;
-                }}
-                .two-col img {{
-                  max-width: 100%;
-                  margin-bottom: 10px;
-                }}
-              }}
             </style>
           </head>
           <body>
