@@ -531,6 +531,7 @@ def fetch_market_snapshot_multi() -> pd.DataFrame:
     - Europe: STOXX Europe 600, DAX, CAC 40, FTSE 100
     - Risk: VIX
     - FX: EUR/USD
+    - Energy: WTI Crude (WTI)
     - Commodities: Gold, Silver, Coffee, Cocoa
     - Crypto: Bitcoin
     """
@@ -547,6 +548,7 @@ def fetch_market_snapshot_multi() -> pd.DataFrame:
 
         ("VIX", "^VIX"),
         ("EUR/USD", "EURUSD=X"),
+        ("WTI Crude", "CL=F"),
 
         ("Gold", "GC=F"),
         ("Silver", "SI=F"),
@@ -969,6 +971,7 @@ def build_exec_summary(
     stx = row("STOXX Europe 600")
     dax = row("DAX")
     eur = row("EUR/USD")
+    wti = row("WTI Crude")
     gold = row("Gold")
     btc = row("Bitcoin")
 
@@ -990,6 +993,7 @@ def build_exec_summary(
             "STOXX": {"1D": f(stx,"1D")} if stx is not None else None,
             "DAX": {"1D": f(dax,"1D")} if dax is not None else None,
             "EURUSD": {"1D": f(eur,"1D")} if eur is not None else None,
+            "WTI": {"1D": f(wti,"1D")} if wti is not None else None,
             "Gold": {"1D": f(gold,"1D")} if gold is not None else None,
             "BTC": {"1D": f(btc,"1D")} if btc is not None else None,
         },
