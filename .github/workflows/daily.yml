@@ -2,16 +2,8 @@ name: Daily Report
 
 on:
   workflow_dispatch:
-    inputs:
-      force_tag:
-        description: "Optional: force a tag like rpt-YYYYMMDD-HHMM (e.g., rpt-20260219-2230). Leave empty normally."
-        required: false
-        default: ""
   schedule:
-    # We schedule BOTH possible UTC slots so 22:30 local works year-round:
-    # - CET (winter): 22:30 local = 21:30 UTC
-    # - CEST (summer): 22:30 local = 20:30 UTC
-    # Weekdays only (Mon-Fri).
+    # Run both UTC slots so this lands at 22:30 local in CET and CEST.
     - cron: "30 20 * * 1-5"
     - cron: "30 21 * * 1-5"
 
@@ -27,13 +19,15 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TZ: Europe/Vienna
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }} # optional (leave secret empty to use scan.py default)
+      OPENAI_TIMEOUT: "25"
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # IMPORTANT for tags/history
-          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -58,191 +52,35 @@ jobs:
         run: |
           python scan.py
 
-      - name: Ensure expected output files exist
+      - name: Commit and push report
         run: |
-          test -f docs/report.md
-          # Keep Pages stability
-          mkdir -p docs/img
-
-      - name: Compute tag (Vienna time)
-        id: meta
-        run: |
-          FORCE_TAG="${{ github.event.inputs.force_tag }}"
-          if [ -n "$FORCE_TAG" ]; then
-            TAG="$FORCE_TAG"
-          else
-            TAG="rpt-$(date +'%Y%m%d-%H%M')"
-          fi
-          KEY="${TAG#rpt-}"
-
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "key=$KEY" >> $GITHUB_OUTPUT
-
-      - name: Create 2-day archive copies (repo + Pages) and prune old ones
-        run: |
-          KEY="${{ steps.meta.outputs.key }}"
-
-          # Repo archive (good for jsDelivr + Git history)
-          mkdir -p reports
-          cp -f docs/report.md "reports/report_${KEY}.md"
-          if [ -f docs/index.md ]; then cp -f docs/index.md "reports/index_${KEY}.md"; fi
-          if [ -f docs/state.json ]; then cp -f docs/state.json "reports/state_${KEY}.json"; fi
-
-          # Pages-visible archive (served under GitHub Pages if Pages source is /docs)
-          mkdir -p docs/reports
-          cp -f docs/report.md "docs/reports/report_${KEY}.md"
-          if [ -f docs/index.md ]; then cp -f docs/index.md "docs/reports/index_${KEY}.md"; fi
-          if [ -f docs/state.json ]; then cp -f docs/state.json "docs/reports/state_${KEY}.json"; fi
-
-          # Prune older than 2 days by parsing YYYYMMDD-HHMM in filename (not mtime)
-          python - <<'PY'
-          import os, re
-          import datetime as dt
-          from zoneinfo import ZoneInfo
-
-          tz = ZoneInfo("Europe/Vienna")
-          cutoff = dt.datetime.now(tz) - dt.timedelta(days=2)
-
-          def prune(folder: str):
-            pat = re.compile(r".*_(\d{8})-(\d{4})\.(md|json)$")
-            removed = 0
-            if not os.path.isdir(folder):
-              return 0
-            for fn in os.listdir(folder):
-              m = pat.match(fn)
-              if not m:
-                continue
-              ts = dt.datetime.strptime(m.group(1) + m.group(2), "%Y%m%d%H%M").replace(tzinfo=tz)
-              if ts < cutoff:
-                os.remove(os.path.join(folder, fn))
-                removed += 1
-            return removed
-
-          r1 = prune("reports")
-          r2 = prune("docs/reports")
-          print(f"Pruned {r1} files in reports/ and {r2} files in docs/reports/ older than 2 days.")
-          PY
-
-      - name: Generate docs/manifest.json (latest + last 2 days + commit SHA)
-        run: |
-          python - <<'PY'
-          import json, os, re, subprocess
-          import datetime as dt
-          from zoneinfo import ZoneInfo
-
-          tz = ZoneInfo("Europe/Vienna")
-          now = dt.datetime.now(tz)
-          cutoff = now - dt.timedelta(days=2)
-
-          head = subprocess.check_output(["git","rev-parse","HEAD"], text=True).strip()
-
-          # Collect recent keys from docs/reports (Pages-visible)
-          pat = re.compile(r"^report_(\d{8})-(\d{4})\.md$")
-          recent = []
-          if os.path.isdir("docs/reports"):
-            for fn in os.listdir("docs/reports"):
-              m = pat.match(fn)
-              if not m:
-                continue
-              key = f"{m.group(1)}-{m.group(2)}"
-              ts = dt.datetime.strptime(m.group(1)+m.group(2), "%Y%m%d%H%M").replace(tzinfo=tz)
-              if ts < cutoff:
-                continue
-              recent.append((ts, key))
-
-          recent.sort(reverse=True)
-          recent_entries = []
-          for ts, key in recent:
-            recent_entries.append({
-              "key": key,
-              "tag": f"rpt-{key}",
-              "pages_path_md": f"reports/report_{key}.md",   # relative to Pages root (docs/)
-              "repo_path_md": f"reports/report_{key}.md"      # repo root archive path (jsDelivr)
-            })
-
-          latest_tag = recent_entries[0]["tag"] if recent_entries else f"rpt-{now.strftime('%Y%m%d-%H%M')}"
-
-          manifest = {
-            "timezone": "Europe/Vienna",
-            "generated_at": now.isoformat(),
-            "head_commit": head,
-            "latest_tag": latest_tag,
-            "recent": recent_entries,
-            "fetch_hints": {
-              "jsdelivr_tagged_latest": "https://cdn.jsdelivr.net/gh/94yz6n6q9z-arch/daily-ticker-report@{TAG}/docs/report.md",
-              "jsdelivr_tagged_archive": "https://cdn.jsdelivr.net/gh/94yz6n6q9z-arch/daily-ticker-report@{TAG}/reports/report_{KEY}.md",
-              "github_pages_latest": "https://94yz6n6q9z-arch.github.io/daily-ticker-report/report.md",
-              "github_pages_manifest": "https://94yz6n6q9z-arch.github.io/daily-ticker-report/manifest.json"
-            }
-          }
-
-          os.makedirs("docs", exist_ok=True)
-          with open("docs/manifest.json","w",encoding="utf-8") as f:
-            json.dump(manifest, f, indent=2, ensure_ascii=False)
-
-          print("Wrote docs/manifest.json")
-          PY
-
-      - name: Commit and push report (docs + archive + manifest)
-        run: |
-          TAG="${{ steps.meta.outputs.tag }}"
-
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Keep your existing tracked files
+          mkdir -p docs/img
           git add docs/report.md docs/index.md docs/state.json docs/img || true
-
-          # New files for reliability
-          git add docs/manifest.json reports/ docs/reports/ || true
 
           if git diff --cached --quiet; then
             echo "No changes to commit."
-            exit 0
-          fi
-
-          git commit -m "Daily report ${TAG} [skip ci]"
-          git push origin HEAD:main
-
-      - name: Create + push immutable tag for this run
-        run: |
-          TAG="${{ steps.meta.outputs.tag }}"
-          git fetch --tags origin
-
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "Tag already exists: $TAG"
           else
-            git tag "$TAG"
-            git push origin "$TAG"
+            git commit -m "Daily report update"
+            git push
           fi
 
-      - name: Prune tags older than 2 days
-        run: |
-          python - <<'PY'
-          import re, subprocess
-          import datetime as dt
-          from zoneinfo import ZoneInfo
-
-          tz = ZoneInfo("Europe/Vienna")
-          cutoff = dt.datetime.now(tz) - dt.timedelta(days=2)
-
-          subprocess.run(["git","fetch","--tags","origin"], check=False)
-          tags = subprocess.check_output(["git","tag","-l","rpt-*"], text=True).splitlines()
-
-          pat = re.compile(r"^rpt-(\d{8})-(\d{4})$")
-          old = []
-          for t in tags:
-            m = pat.match(t.strip())
-            if not m:
-              continue
-            ts = dt.datetime.strptime(m.group(1)+m.group(2), "%Y%m%d%H%M").replace(tzinfo=tz)
-            if ts < cutoff:
-              old.append(t.strip())
-
-          for t in old:
-            print("Deleting old tag:", t)
-            subprocess.run(["git","push","origin",f":refs/tags/{t}"], check=False)
-            subprocess.run(["git","tag","-d",t], check=False)
-
-          print(f"Pruned {len(old)} old tags.")
-          PY
+      - name: Email the report (Gmail)
+        uses: dawidd6/action-send-mail@v6
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          to: ${{ secrets.MAIL_TO }}
+          from: Daily Ticker Report <${{ secrets.MAIL_USERNAME }}>
+          subject: "Daily Ticker Report — ${{ github.run_id }} — ${{ github.sha }}"
+          # Send as HTML by converting the markdown report
+          content_type: text/html
+          convert_markdown: true
+          html_body: file://docs/report.md
+          # Attach raw markdown too (easy to save/search)
+          attachments: docs/report.md
