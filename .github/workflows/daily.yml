@@ -3,8 +3,7 @@ name: Daily Report
 on:
   workflow_dispatch:
   schedule:
-    # Run both UTC slots so this lands at 22:30 local in CET and CEST.
-    - cron: "30 20 * * 1-5"
+    # Cron is UTC. 21:30 UTC = 22:30 CET (winter). In summer (CEST), this will run at 23:30 local.
     - cron: "30 21 * * 1-5"
 
 permissions:
@@ -19,9 +18,11 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TZ: Europe/Vienna
+      # Used by scan.py to convert relative image links into absolute URLs in docs/email.md
+      PUBLIC_BASE_URL: https://daily-ticker-report.pages.dev
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }} # optional (leave secret empty to use scan.py default)
-      OPENAI_TIMEOUT: "25"
+      OPENAI_MODEL: gpt-5.2-pro
+      OPENAI_REASONING_EFFORT: medium
 
     steps:
       - name: Checkout
@@ -39,15 +40,6 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: Time guard (scheduled runs only; proceed only at 22:30 local)
-        if: ${{ github.event_name == 'schedule' }}
-        run: |
-          NOW="$(date +'%H:%M')"
-          if [ "$NOW" != "22:30" ]; then
-            echo "Not 22:30 local (now $NOW). Exiting."
-            exit 0
-          fi
-
       - name: Run scan
         run: |
           python scan.py
@@ -57,8 +49,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+          # Ensure Pages stability
           mkdir -p docs/img
-          git add docs/report.md docs/index.md docs/state.json docs/img || true
+
+          git add docs/report.md docs/index.md docs/state.json docs/email.md docs/email.txt docs/img || true
 
           if git diff --cached --quiet; then
             echo "No changes to commit."
@@ -66,6 +60,11 @@ jobs:
             git commit -m "Daily report update"
             git push
           fi
+
+      - name: Compute subject timestamp
+        id: ts
+        run: |
+          echo "STAMP=$(date -u +'%Y-%m-%d %H:%M UTC')" >> $GITHUB_OUTPUT
 
       - name: Email the report (Gmail)
         uses: dawidd6/action-send-mail@v6
@@ -75,12 +74,18 @@ jobs:
           secure: true
           username: ${{ secrets.MAIL_USERNAME }}
           password: ${{ secrets.MAIL_PASSWORD }}
+
           to: ${{ secrets.MAIL_TO }}
           from: Daily Ticker Report <${{ secrets.MAIL_USERNAME }}>
-          subject: "Daily Ticker Report — ${{ github.run_id }} — ${{ github.sha }}"
-          # Send as HTML by converting the markdown report
-          content_type: text/html
+          subject: "Daily Ticker Report — ${{ steps.ts.outputs.STAMP }}"
+
+          # Plain-text body
+          body: file://docs/email.txt
+
+          # HTML body (convert Markdown -> HTML)
+          html_body: file://docs/email.md
           convert_markdown: true
-          html_body: file://docs/report.md
-          # Attach raw markdown too (easy to save/search)
-          attachments: docs/report.md
+          content_type: text/html
+
+          # Attach the raw markdown + state file
+          attachments: docs/report.md,docs/state.json
