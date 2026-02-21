@@ -69,6 +69,13 @@ NDX_LOCAL = CONFIG_DIR / "universe_nasdaq100.txt"
 # ----------------------------
 MOVER_THRESHOLD_PCT = 4.0
 
+# User watchlist (44 tickers) — always included in MODE=custom
+WATCHLIST_44 = [
+    "MELI","ARM","QBTS","IONQ","HOOD","PLTR","SNPS","AVGO","CDNS","AMAT","NFLX","LRCX","TSM","DASH","ISRG",
+    "MUV2.DE","PGR","CMG","ANF","DECK","NU","UCG.MI","MC.PA","RMS.PA","VST","OKLO","SMR","CEG","LEU","CCJ",
+    "000660.KS","NVDA","NVO","LLY","AMZN","GOOGL","AAPL","META","MSFT","ASML","WMT","BYDDY","RRTL","ARR",
+]
+
 ATR_N = 14
 ATR_CONFIRM_MULT = 0.5     # confirmed breakout/breakdown threshold
 EARLY_MULT = 0.5           # early callout threshold (within 0.5 ATR)
@@ -304,7 +311,18 @@ def get_nasdaq100_tickers() -> List[str]:
 
 
 def get_custom_tickers() -> List[str]:
-    return sorted({_clean_ticker(x) for x in read_lines(CUSTOM_TICKERS_PATH)})
+    """Custom universe = tickers_custom.txt + WATCHLIST_44 (+ optional env EXTRA_TICKERS)."""
+    file_ticks = {_clean_ticker(x) for x in read_lines(CUSTOM_TICKERS_PATH)}
+    extra = os.environ.get("EXTRA_TICKERS", "").strip()
+    extra_ticks = set()
+    if extra:
+        for t in extra.replace(";", ",").split(","):
+            t = _clean_ticker(t)
+            if t:
+                extra_ticks.add(t)
+    merged = set(WATCHLIST_44) | file_ticks | extra_ticks
+    merged = {t for t in merged if t}  # drop empties
+    return sorted(merged)
 
 
 # ----------------------------
@@ -747,25 +765,29 @@ def summarize_rss_themes(items: List[Dict[str, str]]) -> str:
     return ", ".join(themes[:3])
 
 
-def build_exec_summary(snapshot_df: pd.DataFrame, rss_items: List[Dict[str, str]]) -> str:
+def build_exec_summary(
+    snapshot_df: pd.DataFrame,
+    rss_items: List[Dict[str, str]],
+    new_ids: Optional[List[str]] = None,
+    ended_ids: Optional[List[str]] = None,
+) -> str:
     """
-    Keep it concise, plain-English, and data-anchored.
+    Returns a 2–3 sentence, plain-English executive summary.
+
+    If OPENAI_API_KEY is set, we ask an OpenAI model to write the prose
+    (anchored to the numbers and today's signal changes). If the API call
+    fails for any reason, we fall back to a deterministic summary.
     """
     if snapshot_df is None or snapshot_df.empty:
         return "Market summary unavailable (snapshot empty)."
 
+    new_ids = new_ids or []
+    ended_ids = ended_ids or []
+
+    # ---- helpers ----
     def row(name: str) -> Optional[pd.Series]:
         x = snapshot_df.loc[snapshot_df["Instrument"] == name]
         return None if x.empty else x.iloc[0]
-
-    ndx = row("Nasdaq 100")
-    spx = row("S&P 500")
-    vix = row("VIX")
-    stx = row("STOXX Europe 600")
-    dax = row("DAX")
-    eur = row("EUR/USD")
-    gold = row("Gold")
-    btc = row("Bitcoin")
 
     def f(r: Optional[pd.Series], key: str) -> float:
         try:
@@ -775,28 +797,172 @@ def build_exec_summary(snapshot_df: pd.DataFrame, rss_items: List[Dict[str, str]
         except Exception:
             return float("nan")
 
+    def _top_tickers(ids: List[str], n: int = 3) -> List[str]:
+        out: List[str] = []
+        seen = set()
+        for s in ids:
+            t = s.split("|", 1)[0].strip()
+            if not t or t in seen:
+                continue
+            seen.add(t)
+            out.append(t)
+            if len(out) >= n:
+                break
+        return out
+
+    # ---- numbers we feed to the LLM (and use for fallback) ----
+    ndx = row("Nasdaq 100")
+    spx = row("S&P 500")
+    vix = row("VIX")
+    stx = row("STOXX Europe 600")
+    dax = row("DAX")
+    eur = row("EUR/USD")
+    gold = row("Gold")
+    btc = row("Bitcoin")
+
     themes = summarize_rss_themes(rss_items)
+    new_ticks = _top_tickers(new_ids, n=3)
+    ended_ticks = _top_tickers(ended_ids, n=3)
 
-    # Sentence 1: what happened today + why (interpreted)
+    payload = {
+        "today": {
+            "NDX_1D": f(ndx, "1D"),
+            "SPX_1D": f(spx, "1D"),
+            "VIX_1D": f(vix, "1D"),
+            "STOXX_1D": f(stx, "1D"),
+            "DAX_1D": f(dax, "1D"),
+            "EURUSD_1D": f(eur, "1D"),
+            "GOLD_1D": f(gold, "1D"),
+            "BTC_1D": f(btc, "1D"),
+        },
+        "context": {
+            "NDX_1M": f(ndx, "1M"),
+            "NDX_3M": f(ndx, "3M"),
+            "SPX_1M": f(spx, "1M"),
+            "SPX_3M": f(spx, "3M"),
+            "VIX_1M": f(vix, "1M"),
+            "VIX_3M": f(vix, "3M"),
+        },
+        "signals": {
+            "new_count": len(new_ids),
+            "ended_count": len(ended_ids),
+            "new_tickers": new_ticks,
+            "ended_tickers": ended_ticks,
+        },
+        "headlines_theme": themes,
+    }
+
+    # ---- LLM summary (optional) ----
+    if os.environ.get("OPENAI_API_KEY", "").strip():
+        summary = _openai_exec_summary(payload)
+        if summary:
+            return summary
+
+    # ---- deterministic fallback ----
     s1 = (
-        f"Markets rebounded as AI/tech pressure eased and buyers stepped back in, with the Nasdaq leading "
-        f"(NDX {f(ndx,'1D'):+.2f}% vs S&P {f(spx,'1D'):+.2f}%) and volatility cooling (VIX {f(vix,'1D'):+.2f}%)."
+        f"Markets moved with the Nasdaq leading (NDX {payload['today']['NDX_1D']:+.2f}% vs "
+        f"S&P {payload['today']['SPX_1D']:+.2f}%), while volatility shifted (VIX {payload['today']['VIX_1D']:+.2f}%)."
     )
-
-    # Sentence 2: context (weeks) + Europe + cross-currents + headline cluster
-    europe = ""
-    if stx is not None and dax is not None:
-        europe = f" Europe participated (STOXX {f(stx,'1D'):+.2f}%, DAX {f(dax,'1D'):+.2f}%),"
-    fxhedge = ""
-    if eur is not None and gold is not None and btc is not None:
-        fxhedge = f" while EUR/USD {f(eur,'1D'):+.2f}%, gold {f(gold,'1D'):+.2f}% and BTC {f(btc,'1D'):+.2f}% signaled mixed cross-currents,"
-
     s2 = (
-        f"Zooming out,{europe} the tape still reads as a short-term pullback inside a larger uptrend "
-        f"(S&P 1M {f(spx,'1M'):+.2f}% vs 3M {f(spx,'3M'):+.2f}%; NDX 1M {f(ndx,'1M'):+.2f}% vs 3M {f(ndx,'3M'):+.2f}%){fxhedge} with headlines clustering around {themes}."
+        f"Over the last month (≈4 weeks), performance stays anchored to the broader trend "
+        f"(S&P 1M {payload['context']['SPX_1M']:+.2f}% vs 3M {payload['context']['SPX_3M']:+.2f}%; "
+        f"NDX 1M {payload['context']['NDX_1M']:+.2f}% vs 3M {payload['context']['NDX_3M']:+.2f}%), "
+        f"with headlines clustering around {themes}."
+    )
+    s3 = ""
+    if new_ticks or ended_ticks:
+        parts = []
+        if new_ticks:
+            parts.append("new signals in " + ", ".join(new_ticks[:2]))
+        if ended_ticks:
+            parts.append("signals ended in " + ", ".join(ended_ticks[:2]))
+        s3 = " Technically, " + " and ".join(parts) + "."
+
+    out = (s1 + " " + s2 + s3).strip()
+
+    # Enforce 2–3 sentences in fallback
+    sentences = re.split(r"(?<=[.!?])\s+", out)
+    sentences = [s.strip() for s in sentences if s.strip()]
+    out = " ".join(sentences[:3]).strip()
+
+    return out
+
+
+def _openai_exec_summary(payload: Dict) -> Optional[str]:
+    """Generate 2–3 sentence exec summary via OpenAI Chat Completions."""
+    api_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    if not api_key:
+        return None
+
+    model = (os.environ.get("OPENAI_MODEL", "").strip() or "gpt-4.1-mini")
+    timeout_s = int(os.environ.get("OPENAI_TIMEOUT", "25"))
+
+    system = (
+        "You write an investing daily report executive summary. "
+        "Constraints: 2–3 sentences max, plain English, no buzzwords like 'risk-on/risk-off'. "
+        "Sentence 1: what happened today (mention NDX, S&P, VIX with the given %). "
+        "Sentence 2: contextualize against the last 3–4 weeks using 1M vs 3M returns (S&P + Nasdaq). "
+        "Optional sentence 3: mention the most important signal changes (max 2 tickers) and the headline theme. "
+        "Do not invent numbers or events; only use the provided data. Output only the prose (no bullets, no title)."
     )
 
-    return s1 + " " + s2
+    user = (
+        "DATA (all returns are percent):\n"
+        f"{json.dumps(payload, ensure_ascii=False)}\n\n"
+        "Write the executive summary now."
+    )
+
+    body = {
+        "model": model,
+        "messages": [
+            {"role": "developer", "content": system},
+            {"role": "user", "content": user},
+        ],
+        "temperature": 0.4,
+        "max_tokens": 220,
+    }
+
+    data = json.dumps(body).encode("utf-8")
+    req = Request(
+        "https://api.openai.com/v1/chat/completions",
+        data=data,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+        },
+        method="POST",
+    )
+
+    try:
+        with urlopen(req, timeout=timeout_s) as resp:
+            raw = resp.read().decode("utf-8", errors="ignore")
+    except Exception:
+        return None
+
+    try:
+        j = json.loads(raw)
+    except Exception:
+        return None
+
+    content = (j.get("choices") or [{}])[0].get("message", {}).get("content", "")
+    if not content:
+        return None
+
+    # Post-process: single line, 2–3 sentences max
+    s = " ".join(content.strip().split())
+    sentences = re.split(r"(?<=[.!?])\s+", s)
+    sentences = [x.strip() for x in sentences if x.strip()]
+    if not sentences:
+        return None
+    s = " ".join(sentences[:3]).strip()
+
+    # Guardrail: keep it reasonably short
+    if len(s) < 80:
+        return None
+    if len(s) > 1400:
+        s = s[:1400].rsplit(" ", 1)[0].rstrip(".") + "."
+
+    return s
 
 
 def format_rss_digest(items: List[Dict[str, str]], max_items: int = 10) -> str:
@@ -1405,7 +1571,7 @@ def main():
     # 1) Market recap & positioning (EXEC SUMMARY FIRST)
     md.append("## 1) Market recap & positioning\n")
     md.append("**Executive summary:**\n")
-    md.append(build_exec_summary(snapshot_df, rss_items))
+    md.append(build_exec_summary(snapshot_df, rss_items, new_ids=new_ids, ended_ids=ended_ids))
     md.append("")
     md.append("**Key tape (multi-horizon):**\n")
     md.append(format_snapshot_table_multi(snapshot_df))
