@@ -1,12 +1,12 @@
 # Daily Report
 
-_Generated: **2026-02-21 17:14 CET**_
+_Generated: **2026-02-21 17:27 CET**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and volatility at VIX -5.64%, with headlines clustering around AI/tech. Over the past month vs ~3 months, S&P +0.49% vs +4.64% and NDX -1.24% vs +3.19% frame today’s move in context; No watchlist names moved >4% incl. after-hours.
+Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and volatility at VIX -5.64%, with headlines clustering around AI/tech, earnings/guidance. Over the past month vs ~3 months, S&P +0.49% vs +4.64% and NDX -1.24% vs +3.19% frame today’s move in context; No watchlist names moved >4% incl. after-hours.
 
 **Key tape (multi-horizon):**
 
@@ -27,13 +27,11 @@ Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and 
 | Silver           | 82.28     | <span style="color:#11823b;">+6.08%</span> | <span style="color:#11823b;">+5.69%</span>  | <span style="color:#b91c1c;">-10.77%</span> | <span style="color:#11823b;">+64.99%</span> | <span style="color:#11823b;">+110.97%</span> |
 | Coffee           | 288.30    | <span style="color:#11823b;">+0.31%</span> | <span style="color:#b91c1c;">-3.92%</span>  | <span style="color:#b91c1c;">-17.04%</span> | <span style="color:#b91c1c;">-27.93%</span> | <span style="color:#b91c1c;">-26.20%</span>  |
 | Cocoa            | 3,080.00  | <span style="color:#11823b;">+3.77%</span> | <span style="color:#b91c1c;">-13.99%</span> | <span style="color:#b91c1c;">-30.76%</span> | <span style="color:#b91c1c;">-39.42%</span> | <span style="color:#b91c1c;">-59.38%</span>  |
-| Bitcoin          | 68,394.80 | <span style="color:#11823b;">+0.57%</span> | <span style="color:#b91c1c;">-1.97%</span>  | <span style="color:#b91c1c;">-23.55%</span> | <span style="color:#b91c1c;">-21.21%</span> | <span style="color:#b91c1c;">-37.89%</span>  |
+| Bitcoin          | 68,127.20 | <span style="color:#11823b;">+0.18%</span> | <span style="color:#b91c1c;">-2.35%</span>  | <span style="color:#b91c1c;">-23.85%</span> | <span style="color:#b91c1c;">-21.52%</span> | <span style="color:#b91c1c;">-38.14%</span>  |
 
 **Macro charts (5Y):**
 
-![VIX 5Y](img/macro_vix_5y.png)
-
-![EURUSD 5Y](img/macro_eurusd_5y.png)
+<table><tr><td><img src="img/macro_vix_5y.png" width="360" style="width:360px;max-width:360px;height:auto;"></td><td><img src="img/macro_eurusd_5y.png" width="360" style="width:360px;max-width:360px;height:auto;"></td></tr></table>
 
 
 ## 2) Biggest movers (≥ 4%)
@@ -132,6 +130,5 @@ _None_
 
 _Linked digest for drill-down._
 
-- [Forget AI Stocks: This Stablecoin Provider Is the Utility Stock of Digital Assets](https://finance.yahoo.com/news/forget-ai-stocks-stablecoin-provider-154100821.html) — Yahoo Finance
-- [Bernstein Upgraded Zscaler, Inc. (ZS) to Outperform with a Price Target of $228](https://finance.yahoo.com/news/bernstein-upgraded-zscaler-inc-zs-154009015.html) — Yahoo Finance
-- [Goldman Sachs Initiates Coverage of Samsara Inc
+- [RingCentral (RNG) Climbs to 52-Week High on Swing to Profit, Dividends](https://finance.yahoo.com/news/ringcentral-rng-climbs-52-week-161445953.html) — Yahoo Finance
+- [Fortuna Mining (FSM) Climbs 12.6% on Higher Gold Resource](https:

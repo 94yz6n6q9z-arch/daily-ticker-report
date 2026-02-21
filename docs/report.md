@@ -1,12 +1,12 @@
 # Daily Report
 
-_Generated: **2026-02-21 17:14 CET**_
+_Generated: **2026-02-21 17:27 CET**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and volatility at VIX -5.64%, with headlines clustering around AI/tech. Over the past month vs ~3 months, S&P +0.49% vs +4.64% and NDX -1.24% vs +3.19% frame today’s move in context; No watchlist names moved >4% incl. after-hours.
+Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and volatility at VIX -5.64%, with headlines clustering around AI/tech, earnings/guidance. Over the past month vs ~3 months, S&P +0.49% vs +4.64% and NDX -1.24% vs +3.19% frame today’s move in context; No watchlist names moved >4% incl. after-hours.
 
 **Key tape (multi-horizon):**
 
@@ -27,13 +27,11 @@ Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and 
 | Silver           | 82.28     | <span style="color:#11823b;">+6.08%</span> | <span style="color:#11823b;">+5.69%</span>  | <span style="color:#b91c1c;">-10.77%</span> | <span style="color:#11823b;">+64.99%</span> | <span style="color:#11823b;">+110.97%</span> |
 | Coffee           | 288.30    | <span style="color:#11823b;">+0.31%</span> | <span style="color:#b91c1c;">-3.92%</span>  | <span style="color:#b91c1c;">-17.04%</span> | <span style="color:#b91c1c;">-27.93%</span> | <span style="color:#b91c1c;">-26.20%</span>  |
 | Cocoa            | 3,080.00  | <span style="color:#11823b;">+3.77%</span> | <span style="color:#b91c1c;">-13.99%</span> | <span style="color:#b91c1c;">-30.76%</span> | <span style="color:#b91c1c;">-39.42%</span> | <span style="color:#b91c1c;">-59.38%</span>  |
-| Bitcoin          | 68,394.80 | <span style="color:#11823b;">+0.57%</span> | <span style="color:#b91c1c;">-1.97%</span>  | <span style="color:#b91c1c;">-23.55%</span> | <span style="color:#b91c1c;">-21.21%</span> | <span style="color:#b91c1c;">-37.89%</span>  |
+| Bitcoin          | 68,127.20 | <span style="color:#11823b;">+0.18%</span> | <span style="color:#b91c1c;">-2.35%</span>  | <span style="color:#b91c1c;">-23.85%</span> | <span style="color:#b91c1c;">-21.52%</span> | <span style="color:#b91c1c;">-38.14%</span>  |
 
 **Macro charts (5Y):**
 
-![VIX 5Y](img/macro_vix_5y.png)
-
-![EURUSD 5Y](img/macro_eurusd_5y.png)
+<table><tr><td><img src="img/macro_vix_5y.png" width="360" style="width:360px;max-width:360px;height:auto;"></td><td><img src="img/macro_eurusd_5y.png" width="360" style="width:360px;max-width:360px;height:auto;"></td></tr></table>
 
 
 ## 2) Biggest movers (≥ 4%)
@@ -132,16 +130,16 @@ _None_
 
 _Linked digest for drill-down._
 
-- [Forget AI Stocks: This Stablecoin Provider Is the Utility Stock of Digital Assets](https://finance.yahoo.com/news/forget-ai-stocks-stablecoin-provider-154100821.html) — Yahoo Finance
-- [Bernstein Upgraded Zscaler, Inc. (ZS) to Outperform with a Price Target of $228](https://finance.yahoo.com/news/bernstein-upgraded-zscaler-inc-zs-154009015.html) — Yahoo Finance
-- [Goldman Sachs Initiates Coverage of Samsara Inc. (IOT) with a Buy Rating and a $36 Price Target](https://finance.yahoo.com/news/goldman-sachs-initiates-coverage-samsara-154000892.html) — Yahoo Finance
-- [RBC Capital Lowers its Price Target on Autodesk, Inc. (ADSK) to $340 and Maintains an Outperform Rating](https://finance.yahoo.com/news/rbc-capital-lowers-price-target-153950473.html) — Yahoo Finance
-- [Goldman Sachs Lowers its Price Target on Snowflake Inc. (SNOW) to $246 but Maintains a Buy Rating](https://finance.yahoo.com/news/goldman-sachs-lowers-price-target-153933486.html) — Yahoo Finance
-- [Truist Increases its Price Target on AECOM (ACM) to $132 and Maintains a Buy Rating](https://finance.yahoo.com/news/truist-increases-price-target-aecom-153923497.html) — Yahoo Finance
-- [Morgan Stanley Lowers its Price Target on IQVIA Holdings Inc. (IQV) to $240 but Maintains an Overweight Rating](https://finance.yahoo.com/news/morgan-stanley-lowers-price-target-153909553.html) — Yahoo Finance
-- [Baird Lowers its Price Target on Trimble Inc. (TRMB) to $90 but Maintains an Outperform Rating](https://finance.yahoo.com/news/baird-lowers-price-target-trimble-153859209.html) — Yahoo Finance
-- [Citi Raises its Price Target on HubSpot (HUBS) to $640 and Maintains a Buy Rating](https://finance.yahoo.com/news/citi-raises-price-target-hubspot-153842862.html) — Yahoo Finance
-- [JPMorgan Raises its Price Target on Vistra Corp. (VST) to $239 and Maintains an Overweight Rating](https://finance.yahoo.com/news/jpmorgan-raises-price-target-vistra-153602452.html) — Yahoo Finance
+- [RingCentral (RNG) Climbs to 52-Week High on Swing to Profit, Dividends](https://finance.yahoo.com/news/ringcentral-rng-climbs-52-week-161445953.html) — Yahoo Finance
+- [Fortuna Mining (FSM) Climbs 12.6% on Higher Gold Resource](https://finance.yahoo.com/news/fortuna-mining-fsm-climbs-12-161436998.html) — Yahoo Finance
+- [First Majestic (AG) Skyrockets by Double-Digits on 22% PT Hike](https://finance.yahoo.com/news/first-majestic-ag-skyrockets-double-161425841.html) — Yahoo Finance
+- [Applied Optoelectronics (AAOI) Hits 9-Year High Ahead of Earnings](https://finance.yahoo.com/news/applied-optoelectronics-aaoi-hits-9-161418900.html) — Yahoo Finance
+- [Celsius Holdings (CELH) Climbs 9.5% Ahead of Earnings](https://finance.yahoo.com/news/celsius-holdings-celh-climbs-9-161411694.html) — Yahoo Finance
+- [Opendoor Technologies (OPEN) Climbs 7.5% on Upbeat Outlook](https://finance.yahoo.com/news/opendoor-technologies-open-climbs-7-161356733.html) — Yahoo Finance
+- [Corning (GLW) Hits All-Time High as Analyst Hikes PT by 28%](https://finance.yahoo.com/news/corning-glw-hits-time-high-161350533.html) — Yahoo Finance
+- [Pinterest (PINS) Surges 5.96% on Bargain-Hunting as Firm Falls to Record Low](https://finance.yahoo.com/news/pinterest-pins-surges-5-96-161303750.html) — Yahoo Finance
+- [B2Gold (BTG) Climbs 5.27% on Return to Profitability](https://finance.yahoo.com/news/b2gold-btg-climbs-5-27-161252632.html) — Yahoo Finance
+- [Alphabet (GOOG) Jumps 4% as Dividend Looms](https://finance.yahoo.com/news/alphabet-goog-jumps-4-dividend-161243721.html) — Yahoo Finance
 
 ## Changelog
 
