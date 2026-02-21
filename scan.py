@@ -531,8 +531,7 @@ def fetch_market_snapshot_multi() -> pd.DataFrame:
     - Europe: STOXX Europe 600, DAX, CAC 40, FTSE 100
     - Risk: VIX
     - FX: EUR/USD
-    - Energy: WTI Crude (WTI)
-    - Commodities: Gold, Silver, Coffee, Cocoa
+    - Commodities: WTI Crude, Gold, Silver, Coffee, Cocoa
     - Crypto: Bitcoin
     """
     instruments = [
@@ -548,6 +547,7 @@ def fetch_market_snapshot_multi() -> pd.DataFrame:
 
         ("VIX", "^VIX"),
         ("EUR/USD", "EURUSD=X"),
+
         ("WTI Crude", "CL=F"),
 
         ("Gold", "GC=F"),
@@ -971,7 +971,6 @@ def build_exec_summary(
     stx = row("STOXX Europe 600")
     dax = row("DAX")
     eur = row("EUR/USD")
-    wti = row("WTI Crude")
     gold = row("Gold")
     btc = row("Bitcoin")
 
@@ -993,7 +992,6 @@ def build_exec_summary(
             "STOXX": {"1D": f(stx,"1D")} if stx is not None else None,
             "DAX": {"1D": f(dax,"1D")} if dax is not None else None,
             "EURUSD": {"1D": f(eur,"1D")} if eur is not None else None,
-            "WTI": {"1D": f(wti,"1D")} if wti is not None else None,
             "Gold": {"1D": f(gold,"1D")} if gold is not None else None,
             "BTC": {"1D": f(btc,"1D")} if btc is not None else None,
         },
@@ -1767,10 +1765,19 @@ def main():
     md.append("")
 
     md.append("**Macro charts (5Y):**\n")
-    if vix_card:
-        md.append(f"![VIX 5Y]({vix_card})\n")
-    if eur_card:
-        md.append(f"![EURUSD 5Y]({eur_card})\n")
+    # Render as HTML with explicit sizing so dashboard + email match
+    W = 414
+    if vix_card and eur_card:
+        md.append(
+            f"<table><tr>"
+            f"<td style='padding-right:12px;'><img src='{vix_card}' width='{W}' style='width:{W}px;max-width:{W}px;height:auto;'></td>"
+            f"<td><img src='{eur_card}' width='{W}' style='width:{W}px;max-width:{W}px;height:auto;'></td>"
+            f"</tr></table>\n"
+        )
+    elif vix_card:
+        md.append(f"<img src='{vix_card}' width='{W}' style='width:{W}px;max-width:{W}px;height:auto;'>\n")
+    elif eur_card:
+        md.append(f"<img src='{eur_card}' width='{W}' style='width:{W}px;max-width:{W}px;height:auto;'>\n")
     md.append("")
 
     # 2) Movers
