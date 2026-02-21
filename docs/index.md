@@ -1,6 +1,6 @@
 # Daily Report
 
-_Generated: **2026-02-21 17:10 CET**_
+_Generated: **2026-02-21 17:14 CET**_
 
 ## 1) Market recap & positioning
 
@@ -22,11 +22,12 @@ Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and 
 | FTSE 100         | 10,686.90 | <span style="color:#11823b;">+0.56%</span> | <span style="color:#11823b;">+2.30%</span>  | <span style="color:#11823b;">+5.41%</span>  | <span style="color:#11823b;">+12.03%</span> | <span style="color:#11823b;">+14.65%</span>  |
 | VIX              | 19.09     | <span style="color:#b91c1c;">-5.64%</span> | <span style="color:#b91c1c;">-7.33%</span>  | <span style="color:#11823b;">+12.96%</span> | <span style="color:#b91c1c;">-18.52%</span> | <span style="color:#11823b;">+34.25%</span>  |
 | EUR/USD          | 1.18      | <span style="color:#b91c1c;">-0.17%</span> | <span style="color:#b91c1c;">-0.84%</span>  | <span style="color:#11823b;">+0.35%</span>  | <span style="color:#11823b;">+2.03%</span>  | <span style="color:#11823b;">+1.34%</span>   |
+| WTI Crude        | 66.39     | <span style="color:#b91c1c;">-0.06%</span> | <span style="color:#11823b;">+5.57%</span>  | <span style="color:#11823b;">+9.52%</span>  | <span style="color:#11823b;">+14.35%</span> | <span style="color:#11823b;">+4.29%</span>   |
 | Gold             | 5,059.30  | <span style="color:#11823b;">+1.68%</span> | <span style="color:#11823b;">+0.74%</span>  | <span style="color:#11823b;">+4.71%</span>  | <span style="color:#11823b;">+24.10%</span> | <span style="color:#11823b;">+49.93%</span>  |
 | Silver           | 82.28     | <span style="color:#11823b;">+6.08%</span> | <span style="color:#11823b;">+5.69%</span>  | <span style="color:#b91c1c;">-10.77%</span> | <span style="color:#11823b;">+64.99%</span> | <span style="color:#11823b;">+110.97%</span> |
 | Coffee           | 288.30    | <span style="color:#11823b;">+0.31%</span> | <span style="color:#b91c1c;">-3.92%</span>  | <span style="color:#b91c1c;">-17.04%</span> | <span style="color:#b91c1c;">-27.93%</span> | <span style="color:#b91c1c;">-26.20%</span>  |
 | Cocoa            | 3,080.00  | <span style="color:#11823b;">+3.77%</span> | <span style="color:#b91c1c;">-13.99%</span> | <span style="color:#b91c1c;">-30.76%</span> | <span style="color:#b91c1c;">-39.42%</span> | <span style="color:#b91c1c;">-59.38%</span>  |
-| Bitcoin          | 68,346.66 | <span style="color:#11823b;">+0.50%</span> | <span style="color:#b91c1c;">-2.04%</span>  | <span style="color:#b91c1c;">-23.60%</span> | <span style="color:#b91c1c;">-21.26%</span> | <span style="color:#b91c1c;">-37.94%</span>  |
+| Bitcoin          | 68,394.80 | <span style="color:#11823b;">+0.57%</span> | <span style="color:#b91c1c;">-1.97%</span>  | <span style="color:#b91c1c;">-23.55%</span> | <span style="color:#b91c1c;">-21.21%</span> | <span style="color:#b91c1c;">-37.89%</span>  |
 
 **Macro charts (5Y):**
 
