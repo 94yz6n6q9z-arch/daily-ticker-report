@@ -43,8 +43,6 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-
-
 # ----------------------------
 # Default watchlist (user-defined)
 # ----------------------------
@@ -57,6 +55,7 @@ WATCHLIST_44: List[str] = [
     "000660.KS","NVDA","NVO","LLY","AMZN","GOOGL","AAPL","META","MSFT","ASML",
     "WMT","BYDDY","RRTL","ARR",
 ]
+
 
 # ----------------------------
 # Paths
@@ -72,6 +71,8 @@ IMG_DIR.mkdir(parents=True, exist_ok=True)
 STATE_PATH = DOCS_DIR / "state.json"
 REPORT_PATH = DOCS_DIR / "report.md"
 INDEX_PATH = DOCS_DIR / "index.md"
+EMAIL_MD_PATH = DOCS_DIR / "email.md"
+EMAIL_TXT_PATH = DOCS_DIR / "email.txt"
 
 CUSTOM_TICKERS_PATH = CONFIG_DIR / "tickers_custom.txt"
 SP500_LOCAL = CONFIG_DIR / "universe_sp500.txt"
@@ -318,22 +319,19 @@ def get_nasdaq100_tickers() -> List[str]:
 
 
 def get_custom_tickers() -> List[str]:
-    """Custom universe.
-
-    Always includes WATCHLIST_44 (unless USE_DEFAULT_WATCHLIST=0), plus any tickers
-    in config/tickers_custom.txt, plus optional EXTRA_TICKERS env var (comma-separated).
-    """
-    raw: List[str] = []
-    if os.environ.get("USE_DEFAULT_WATCHLIST", "1").strip() not in ("0", "false", "False"):
-        raw.extend(WATCHLIST_44)
-
-    raw.extend(read_lines(CUSTOM_TICKERS_PATH))
+    tickers = {_clean_ticker(x) for x in read_lines(CUSTOM_TICKERS_PATH)}
+    # Always include the default 44-ticker watchlist unless explicitly disabled.
+    if os.environ.get("USE_DEFAULT_WATCHLIST", "1").strip().lower() not in ("0", "false", "no"):
+        tickers.update(WATCHLIST_44)
 
     extra = os.environ.get("EXTRA_TICKERS", "").strip()
     if extra:
-        raw.extend([x.strip() for x in extra.split(",") if x.strip()])
+        for x in re.split(r"[,\s]+", extra):
+            x = x.strip()
+            if x:
+                tickers.add(_clean_ticker(x))
 
-    return sorted({_clean_ticker(x) for x in raw if _clean_ticker(x)})
+    return sorted(tickers)
 
 
 # ----------------------------
@@ -776,12 +774,14 @@ def summarize_rss_themes(items: List[Dict[str, str]]) -> str:
     return ", ".join(themes[:3])
 
 
+
+
 def _openai_responses_exec_summary(payload_text: str) -> Optional[str]:
-    \"\"\"Call OpenAI Responses API to generate a 2–3 sentence executive summary.
+    """Call OpenAI Responses API to generate a 2–3 sentence executive summary.
 
     Uses GPT-5.2 pro by default (set OPENAI_MODEL to override).
     Set OPENAI_API_KEY in the environment (GitHub Actions secret).
-    \"\"\"
+    """
     api_key = os.environ.get("OPENAI_API_KEY", "").strip()
     if not api_key:
         return None
@@ -790,15 +790,15 @@ def _openai_responses_exec_summary(payload_text: str) -> Optional[str]:
     effort = os.environ.get("OPENAI_REASONING_EFFORT", "medium").strip() or "medium"
 
     instructions = (
-        "You are writing the Executive summary section for a daily market report. "
-        "Write EXACTLY 2 or 3 sentences (no bullets, no headings). "
+        "Write the Executive summary for a daily market report. "
+        "Output EXACTLY 2 or 3 sentences (no bullets, no headings).\n"
         "Requirements:\n"
-        "1) Sentence 1: summarize the key market happening(s) today using the provided headlines as evidence. "
-        "If no clear catalyst is present, say so without inventing one.\n"
-        "2) Include the concrete figures that back the claim (at least NDX 1D, S&P 1D, VIX 1D; add 1 more relevant metric if it strengthens the point).\n"
-        "3) Provide 3–4 week context using the provided 1M vs 3M returns (frame as 'past month' vs 'last ~3 months').\n"
-        "4) Mention any watchlist mover(s) >4% (including after-hours). If none, explicitly say: 'No watchlist names moved >4% incl. after-hours.'\n"
-        "Style: plain English, compact, no jargon like 'risk-on', no hype, no disclaimers."
+        "1) Sentence 1: summarize what drove markets today using ONLY the provided headlines as evidence. "
+        "If no clear catalyst is present, say so; do not invent events.\n"
+        "2) Include the concrete figures that back it (at least NDX 1D, S&P 1D, VIX 1D; add one more relevant metric if helpful).\n"
+        "3) Add 3–4 week context using the provided 1M vs 3M returns.\n"
+        "4) Mention any watchlist mover(s) >4% incl. after-hours; if none: 'No watchlist names moved >4% incl. after-hours.'\n"
+        "Style: plain English, compact, no jargon like 'risk-on', no hype."
     )
 
     body = {
@@ -806,30 +806,29 @@ def _openai_responses_exec_summary(payload_text: str) -> Optional[str]:
         "instructions": instructions,
         "input": payload_text,
         "temperature": 0.3,
-        "max_output_tokens": 180,
+        "max_output_tokens": 220,
         "reasoning": {"effort": effort},
         "text": {"verbosity": "low"},
     }
 
     try:
-        import urllib.request
-        req = urllib.request.Request(
+        req = Request(
             "https://api.openai.com/v1/responses",
             data=json.dumps(body).encode("utf-8"),
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
+                "User-Agent": USER_AGENT,
             },
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=90) as resp:
+        with urlopen(req, timeout=90) as resp:
             raw = resp.read().decode("utf-8", errors="ignore")
         data = json.loads(raw)
 
-        # Extract text from response object (robust to schema variations)
         out_text = ""
         if isinstance(data, dict):
-            if isinstance(data.get("output_text"), str) and data.get("output_text").strip():
+            if isinstance(data.get("output_text"), str) and data["output_text"].strip():
                 out_text = data["output_text"].strip()
             else:
                 outs = data.get("output", [])
@@ -849,33 +848,89 @@ def _openai_responses_exec_summary(payload_text: str) -> Optional[str]:
                     out_text = " ".join(parts).strip()
 
         out_text = re.sub(r"\s+", " ", out_text).strip()
-
         if not out_text:
             return None
 
-        # Hard cap: keep only first 3 sentences if model over-produces.
-        # Simple sentence splitter on ., ?, ! followed by space/capital.
+        # Hard cap to 3 sentences
         sentences = re.split(r"(?<=[\.\!\?])\s+", out_text)
         sentences = [s.strip() for s in sentences if s.strip()]
         if len(sentences) > 3:
             out_text = " ".join(sentences[:3]).strip()
+        return out_text
 
-        return out_text or None
     except Exception:
         return None
+
+
+def _absolutize_md_links(md: str, base_url: str) -> str:
+    """Rewrite relative links (img/...) to absolute URLs for email rendering."""
+    base_url = (base_url or "").strip()
+    if not base_url:
+        return md
+    base = base_url.rstrip("/")
+    md = re.sub(r"\]\(img/", f"]({base}/img/", md)
+    return md
+
+
+def write_email_assets(
+    header_time: str,
+    exec_summary: str,
+    report_md: str,
+    base_url: str,
+    watchlist_movers: Dict[str, List[Tuple[str, float]]],
+    new_ids: List[str],
+    ended_ids: List[str],
+) -> None:
+    """Create docs/email.md and docs/email.txt for the workflow email step."""
+    email_md = _absolutize_md_links(report_md, base_url)
+    write_text(EMAIL_MD_PATH, email_md)
+
+    def fmt_movers(items: List[Tuple[str, float]]) -> str:
+        if not items:
+            return "None"
+        return ", ".join([f"{t} ({p:+.2f}%)" for t, p in items])
+
+    link = f"{base_url.rstrip('/')}/report.md" if base_url else ""
+    lines = []
+    lines.append(f"Daily Ticker Report — {header_time}")
+    lines.append("")
+    lines.append("Executive summary:")
+    lines.append(exec_summary.strip())
+    lines.append("")
+    if link:
+        lines.append(f"Full report: {link}")
+        lines.append("")
+    lines.append("Watchlist movers (>|4%|, incl. after-hours):")
+    lines.append(f"Session: {fmt_movers(watchlist_movers.get('session', []))}")
+    lines.append(f"After-hours: {fmt_movers(watchlist_movers.get('after_hours', []))}")
+    lines.append("")
+    lines.append("New signals (today):")
+    if new_ids:
+        for s in new_ids[:25]:
+            lines.append(f"- {s}")
+    else:
+        lines.append("None")
+    lines.append("")
+    lines.append("Ended signals (today):")
+    if ended_ids:
+        for s in ended_ids[:25]:
+            lines.append(f"- {s}")
+    else:
+        lines.append("None")
+    lines.append("")
+    lines.append("Note: Full report.md is attached.")
+    write_text(EMAIL_TXT_PATH, "\n".join(lines).strip() + "\n")
 
 
 def build_exec_summary(
     snapshot_df: pd.DataFrame,
     rss_items: List[Dict[str, str]],
     watchlist_movers: Dict[str, List[Tuple[str, float]]],
-    new_ids: List[str],
-    ended_ids: List[str],
 ) -> str:
-    \"\"\"Executive summary (2–3 sentences).
+    """Executive summary (2–3 sentences).
 
     Prefer GPT-5.2 pro prose via OpenAI API; fall back to deterministic text if API missing/fails.
-    \"\"\"
+    """
     if snapshot_df is None or snapshot_df.empty:
         return "Market summary unavailable (snapshot empty)."
 
@@ -900,74 +955,41 @@ def build_exec_summary(
         except Exception:
             return float("nan")
 
-    # Build a compact payload for the model (keep tokens low)
-    top_heads = []
-    for it in (rss_items or [])[:8]:
-        title = (it.get("title") or "").strip()
-        source = (it.get("source") or "").strip()
-        if title:
-            top_heads.append(f"- {title}" + (f" — {source}" if source else ""))
+    # Build compact payload for the model (keeps cost low)
+    top_headlines = [it.get("title","").strip() for it in (rss_items or [])][:10]
+    payload = {
+        "today": {
+            "NDX": {"1D": f(ndx,"1D"), "1M": f(ndx,"1M"), "3M": f(ndx,"3M")},
+            "S&P": {"1D": f(spx,"1D"), "1M": f(spx,"1M"), "3M": f(spx,"3M")},
+            "VIX": {"1D": f(vix,"1D"), "1M": f(vix,"1M"), "3M": f(vix,"3M")},
+            "STOXX": {"1D": f(stx,"1D")} if stx is not None else None,
+            "DAX": {"1D": f(dax,"1D")} if dax is not None else None,
+            "EURUSD": {"1D": f(eur,"1D")} if eur is not None else None,
+            "Gold": {"1D": f(gold,"1D")} if gold is not None else None,
+            "BTC": {"1D": f(btc,"1D")} if btc is not None else None,
+        },
+        "watchlist_movers_over_4pct": {
+            "session": watchlist_movers.get("session", []),
+            "after_hours": watchlist_movers.get("after_hours", []),
+        },
+        "headlines": top_headlines,
+    }
 
-    def fmt_movers(label: str) -> str:
-        rows = watchlist_movers.get(label, []) or []
-        if not rows:
-            return f"{label}: none"
-        # show up to 4
-        return f\"{label}: \" + \", \".join([f\"{sym} {pct:+.2f}%\" for sym, pct in rows[:4]])
+    payload_text = json.dumps(payload, ensure_ascii=False)
 
-    payload = []
-    payload.append("KEY TAPE (1D, 1M, 3M):")
-    payload.append(f"NDX 1D {f(ndx,'1D'):+.2f}%, 1M {f(ndx,'1M'):+.2f}%, 3M {f(ndx,'3M'):+.2f}%")
-    payload.append(f"S&P 1D {f(spx,'1D'):+.2f}%, 1M {f(spx,'1M'):+.2f}%, 3M {f(spx,'3M'):+.2f}%")
-    payload.append(f"VIX 1D {f(vix,'1D'):+.2f}%, 1M {f(vix,'1M'):+.2f}%, 3M {f(vix,'3M'):+.2f}%")
-    if stx is not None and dax is not None:
-        payload.append(f"Europe: STOXX 1D {f(stx,'1D'):+.2f}%, DAX 1D {f(dax,'1D'):+.2f}%")
-    if eur is not None:
-        payload.append(f"EUR/USD 1D {f(eur,'1D'):+.2f}%")
-    if gold is not None:
-        payload.append(f"Gold 1D {f(gold,'1D'):+.2f}%")
-    if btc is not None:
-        payload.append(f"Bitcoin 1D {f(btc,'1D'):+.2f}%")
-
-    payload.append("")
-    payload.append("WATCHLIST MOVERS >= 4% (session + after-hours):")
-    payload.append(fmt_movers("session"))
-    payload.append(fmt_movers("after_hours"))
-
-    payload.append("")
-    payload.append("SIGNALS (context):")
-    payload.append("New signals: " + (", ".join(new_ids[:8]) if new_ids else "none"))
-    payload.append("Ended signals: " + (", ".join(ended_ids[:8]) if ended_ids else "none"))
-
-    payload.append("")
-    payload.append("HEADLINES (use ONLY if supported; do not invent):")
-    payload.extend(top_heads if top_heads else ["- (no headlines available)"])
-
-    payload_text = "\n".join(payload).strip()
-
-    # Try OpenAI prose
     llm = _openai_responses_exec_summary(payload_text)
     if llm:
         return llm
 
-    # Deterministic fallback (2 sentences, data-anchored)
+    # Deterministic fallback (still 2 sentences + movers mention)
     themes = summarize_rss_themes(rss_items)
-
     s1 = (
-        f"Markets moved with the Nasdaq leading (NDX {f(ndx,'1D'):+.2f}% vs S&P {f(spx,'1D'):+.2f}%) "
-        f"as volatility shifted (VIX {f(vix,'1D'):+.2f}%)."
+        f"Markets moved on the day with the Nasdaq leading (NDX {f(ndx,'1D'):+.2f}% vs S&P {f(spx,'1D'):+.2f}%) and volatility at VIX {f(vix,'1D'):+.2f}%, with headlines clustering around {themes}."
     )
-    europe = ""
-    if stx is not None and dax is not None:
-        europe = f" Europe: STOXX {f(stx,'1D'):+.2f}%, DAX {f(dax,'1D'):+.2f}%."
-
     s2 = (
-        f"Over the past month versus the last ~3 months, momentum is "
-        f"(S&P 1M {f(spx,'1M'):+.2f}% vs 3M {f(spx,'3M'):+.2f}%; "
-        f"NDX 1M {f(ndx,'1M'):+.2f}% vs 3M {f(ndx,'3M'):+.2f}%).{europe} "
-        f"Headlines clustered around {themes}."
+        f"Over the past month vs ~3 months, S&P {f(spx,'1M'):+.2f}% vs {f(spx,'3M'):+.2f}% and NDX {f(ndx,'1M'):+.2f}% vs {f(ndx,'3M'):+.2f}% frame today’s move in context; "
+        f"{'No watchlist names moved >4% incl. after-hours.' if (not watchlist_movers.get('session') and not watchlist_movers.get('after_hours')) else 'Watchlist movers >4%: ' + ', '.join([t for t,_ in (watchlist_movers.get('session', []) + watchlist_movers.get('after_hours', []))][:6]) + '.'}"
     )
-
     return s1 + " " + s2
 
 
@@ -1519,32 +1541,36 @@ def main():
     ah_g, ah_l = fetch_afterhours_movers()
     ah_gf = filter_movers(ah_g)
     ah_lf = filter_movers(ah_l)
-    if not ah_lf.empty:
-        ah_lf = ah_lf.sort_values("pct", ascending=True)
 
-
-    # Watchlist movers (>= threshold) for executive summary
+    # Watchlist movers (>|4%|, incl. after-hours) for executive summary
     wl_set = set(universe)
-    def _wl_filter(df: pd.DataFrame) -> List[Tuple[str, float]]:
+    def _wl_extract(df: pd.DataFrame) -> List[Tuple[str, float]]:
         if df is None or df.empty:
             return []
         d = df.copy()
         d = d[d["symbol"].astype(str).isin(wl_set)]
         if d.empty:
             return []
-        d = d.reindex(d["pct"].abs().sort_values(ascending=False).index)
-        rows = []
+        d = d.assign(abs_pct=d["pct"].abs()).sort_values("abs_pct", ascending=False)
+        out = []
         for _, r in d.head(6).iterrows():
             try:
-                rows.append((str(r["symbol"]), float(r["pct"])))
+                out.append((str(r["symbol"]), float(r["pct"])))
             except Exception:
                 continue
-        return rows
+        return out
+
+    # session_gf/session_lf already filtered to >= 4% absolute movers
+    session_combined = pd.concat([session_gf, session_lf], ignore_index=True) if (session_gf is not None and session_lf is not None) else pd.DataFrame(columns=["symbol","pct"])
+    ah_combined = pd.concat([ah_gf, ah_lf], ignore_index=True) if (ah_gf is not None and ah_lf is not None) else pd.DataFrame(columns=["symbol","pct"])
 
     watchlist_movers = {
-        "session": _wl_filter(pd.concat([session_gf, session_lf], ignore_index=True) if (session_gf is not None and session_lf is not None) else pd.DataFrame()),
-        "after_hours": _wl_filter(pd.concat([ah_gf, ah_lf], ignore_index=True) if (ah_gf is not None and ah_lf is not None) else pd.DataFrame()),
+        "session": _wl_extract(session_combined),
+        "after_hours": _wl_extract(ah_combined),
     }
+
+    if not ah_lf.empty:
+        ah_lf = ah_lf.sort_values("pct", ascending=True)
 
     # 4) Technical triggers
     all_signals: List[LevelSignal] = []
@@ -1601,7 +1627,8 @@ def main():
     # 1) Market recap & positioning (EXEC SUMMARY FIRST)
     md.append("## 1) Market recap & positioning\n")
     md.append("**Executive summary:**\n")
-    md.append(build_exec_summary(snapshot_df, rss_items, watchlist_movers, new_ids, ended_ids))
+    exec_summary = build_exec_summary(snapshot_df, rss_items, watchlist_movers)
+    md.append(exec_summary)
     md.append("")
     md.append("**Key tape (multi-horizon):**\n")
     md.append(format_snapshot_table_multi(snapshot_df))
@@ -1692,4 +1719,9 @@ if __name__ == "__main__":
         )
         write_text(REPORT_PATH, fallback)
         write_text(INDEX_PATH, fallback)
+        try:
+            base_url = os.environ.get('PUBLIC_BASE_URL', '').strip()
+            write_email_assets(dt.datetime.now(dt.timezone.utc).astimezone().strftime('%Y-%m-%d %H:%M %Z'), 'Run crashed; see traceback in report.', fallback, base_url, {'session': [], 'after_hours': []}, [], [])
+        except Exception:
+            pass
         raise SystemExit(0)
