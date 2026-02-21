@@ -1,6 +1,6 @@
 # Daily Report
 
-_Generated: **2026-02-21 16:55 CET**_
+_Generated: **2026-02-21 17:06 CET**_
 
 ## 1) Market recap & positioning
 
@@ -26,7 +26,7 @@ Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and 
 | Silver           | 82.28     | <span style="color:#11823b;">+6.08%</span> | <span style="color:#11823b;">+5.69%</span>  | <span style="color:#b91c1c;">-10.77%</span> | <span style="color:#11823b;">+64.99%</span> | <span style="color:#11823b;">+110.97%</span> |
 | Coffee           | 288.30    | <span style="color:#11823b;">+0.31%</span> | <span style="color:#b91c1c;">-3.92%</span>  | <span style="color:#b91c1c;">-17.04%</span> | <span style="color:#b91c1c;">-27.93%</span> | <span style="color:#b91c1c;">-26.20%</span>  |
 | Cocoa            | 3,080.00  | <span style="color:#11823b;">+3.77%</span> | <span style="color:#b91c1c;">-13.99%</span> | <span style="color:#b91c1c;">-30.76%</span> | <span style="color:#b91c1c;">-39.42%</span> | <span style="color:#b91c1c;">-59.38%</span>  |
-| Bitcoin          | 68,625.97 | <span style="color:#11823b;">+0.91%</span> | <span style="color:#b91c1c;">-1.64%</span>  | <span style="color:#b91c1c;">-23.29%</span> | <span style="color:#b91c1c;">-20.94%</span> | <span style="color:#b91c1c;">-37.68%</span>  |
+| Bitcoin          | 68,420.39 | <span style="color:#11823b;">+0.61%</span> | <span style="color:#b91c1c;">-1.93%</span>  | <span style="color:#b91c1c;">-23.52%</span> | <span style="color:#b91c1c;">-21.18%</span> | <span style="color:#b91c1c;">-37.87%</span>  |
 
 **Macro charts (5Y):**
 
