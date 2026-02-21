@@ -1,6 +1,6 @@
 # Daily Report
 
-_Generated: **2026-02-21 17:36 CET**_
+_Generated: **2026-02-21 20:02 CET**_
 
 ## 1) Market recap & positioning
 
@@ -27,7 +27,7 @@ Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and 
 | Silver           | 82.28     | <span style="color:#11823b;">+6.08%</span> | <span style="color:#11823b;">+5.69%</span>  | <span style="color:#b91c1c;">-10.77%</span> | <span style="color:#11823b;">+64.99%</span> | <span style="color:#11823b;">+110.97%</span> |
 | Coffee           | 288.30    | <span style="color:#11823b;">+0.31%</span> | <span style="color:#b91c1c;">-3.92%</span>  | <span style="color:#b91c1c;">-17.04%</span> | <span style="color:#b91c1c;">-27.93%</span> | <span style="color:#b91c1c;">-26.20%</span>  |
 | Cocoa            | 3,080.00  | <span style="color:#11823b;">+3.77%</span> | <span style="color:#b91c1c;">-13.99%</span> | <span style="color:#b91c1c;">-30.76%</span> | <span style="color:#b91c1c;">-39.42%</span> | <span style="color:#b91c1c;">-59.38%</span>  |
-| Bitcoin          | 68,168.42 | <span style="color:#11823b;">+0.24%</span> | <span style="color:#b91c1c;">-2.29%</span>  | <span style="color:#b91c1c;">-23.80%</span> | <span style="color:#b91c1c;">-21.47%</span> | <span style="color:#b91c1c;">-38.10%</span>  |
+| Bitcoin          | 68,551.16 | <span style="color:#11823b;">+0.80%</span> | <span style="color:#b91c1c;">-1.74%</span>  | <span style="color:#b91c1c;">-23.37%</span> | <span style="color:#b91c1c;">-21.03%</span> | <span style="color:#b91c1c;">-37.75%</span>  |
 
 **Macro charts (5Y):**
 
@@ -132,16 +132,16 @@ _None_
 
 _Linked digest for drill-down._
 
+- [Trump-backed Ohio gas plant could become biggest US power polluter](https://finance.yahoo.com/news/trump-backed-gas-plant-could-160000729.html) — Yahoo Finance
+- [Dow Jones Futures: Trump Hikes Global Tariff To 15%; Nvidia Earnings Loom](https://www.investors.com/market-trend/stock-market-today/dow-jones-futures-trump-tariff-ruling-iran-news-nvidia-earnings/?src=A00220&yptr=yahoo) — Yahoo Finance
 - [RingCentral (RNG) Climbs to 52-Week High on Swing to Profit, Dividends](https://finance.yahoo.com/news/ringcentral-rng-climbs-52-week-161445953.html) — Yahoo Finance
 - [Fortuna Mining (FSM) Climbs 12.6% on Higher Gold Resource](https://finance.yahoo.com/news/fortuna-mining-fsm-climbs-12-161436998.html) — Yahoo Finance
 - [First Majestic (AG) Skyrockets by Double-Digits on 22% PT Hike](https://finance.yahoo.com/news/first-majestic-ag-skyrockets-double-161425841.html) — Yahoo Finance
+- [Bitcoin’s $1 trillion identity crisis hits from every direction](https://finance.yahoo.com/news/bitcoin-1-trillion-identity-crisis-150000517.html) — Yahoo Finance
 - [Applied Optoelectronics (AAOI) Hits 9-Year High Ahead of Earnings](https://finance.yahoo.com/news/applied-optoelectronics-aaoi-hits-9-161418900.html) — Yahoo Finance
 - [Celsius Holdings (CELH) Climbs 9.5% Ahead of Earnings](https://finance.yahoo.com/news/celsius-holdings-celh-climbs-9-161411694.html) — Yahoo Finance
 - [Opendoor Technologies (OPEN) Climbs 7.5% on Upbeat Outlook](https://finance.yahoo.com/news/opendoor-technologies-open-climbs-7-161356733.html) — Yahoo Finance
 - [Corning (GLW) Hits All-Time High as Analyst Hikes PT by 28%](https://finance.yahoo.com/news/corning-glw-hits-time-high-161350533.html) — Yahoo Finance
-- [Pinterest (PINS) Surges 5.96% on Bargain-Hunting as Firm Falls to Record Low](https://finance.yahoo.com/news/pinterest-pins-surges-5-96-161303750.html) — Yahoo Finance
-- [B2Gold (BTG) Climbs 5.27% on Return to Profitability](https://finance.yahoo.com/news/b2gold-btg-climbs-5-27-161252632.html) — Yahoo Finance
-- [Alphabet (GOOG) Jumps 4% as Dividend Looms](https://finance.yahoo.com/news/alphabet-goog-jumps-4-dividend-161243721.html) — Yahoo Finance
 
 ## Changelog
 
