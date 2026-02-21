@@ -1,6 +1,6 @@
 # Daily Report
 
-_Generated: **2026-02-21 16:30 CET**_
+_Generated: **2026-02-21 16:33 CET**_
 
 ## 1) Market recap & positioning
 
@@ -26,7 +26,7 @@ Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and 
 | Silver           | 82.28     | <span style="color:#11823b;">+6.08%</span> | <span style="color:#11823b;">+5.69%</span>  | <span style="color:#b91c1c;">-10.77%</span> | <span style="color:#11823b;">+64.99%</span> | <span style="color:#11823b;">+110.97%</span> |
 | Coffee           | 288.30    | <span style="color:#11823b;">+0.31%</span> | <span style="color:#b91c1c;">-3.92%</span>  | <span style="color:#b91c1c;">-17.04%</span> | <span style="color:#b91c1c;">-27.93%</span> | <span style="color:#b91c1c;">-26.20%</span>  |
 | Cocoa            | 3,080.00  | <span style="color:#11823b;">+3.77%</span> | <span style="color:#b91c1c;">-13.99%</span> | <span style="color:#b91c1c;">-30.76%</span> | <span style="color:#b91c1c;">-39.42%</span> | <span style="color:#b91c1c;">-59.38%</span>  |
-| Bitcoin          | 68,489.88 | <span style="color:#11823b;">+0.71%</span> | <span style="color:#b91c1c;">-1.83%</span>  | <span style="color:#b91c1c;">-23.44%</span> | <span style="color:#b91c1c;">-21.10%</span> | <span style="color:#b91c1c;">-37.81%</span>  |
+| Bitcoin          | 68,432.09 | <span style="color:#11823b;">+0.63%</span> | <span style="color:#b91c1c;">-1.91%</span>  | <span style="color:#b91c1c;">-23.51%</span> | <span style="color:#b91c1c;">-21.17%</span> | <span style="color:#b91c1c;">-37.86%</span>  |
 
 **Macro charts (5Y):**
 
@@ -44,6 +44,25 @@ Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and 
 **After-hours gainers:** _None ≥ 4%_
 
 **After-hours losers:** _None ≥ 4%_
+
+## 3) Earnings next 14 days (watchlist)
+
+_Upcoming earnings dates for your 44-ticker watchlist._
+
+| Ticker   | Earnings Date   |   Days |
+| :--- | ---: | ---: |
+| CEG      | 2026-02-24      |      3 |
+| MELI     | 2026-02-24      |      3 |
+| IONQ     | 2026-02-25      |      4 |
+| NU       | 2026-02-25      |      4 |
+| NVDA     | 2026-02-25      |      4 |
+| SNPS     | 2026-02-25      |      4 |
+| MUV2.DE  | 2026-02-26      |      5 |
+| QBTS     | 2026-02-26      |      5 |
+| SMR      | 2026-02-26      |      5 |
+| VST      | 2026-02-26      |      5 |
+| ANF      | 2026-03-04      |     11 |
+| AVGO     | 2026-03-04      |     11 |
 
 ## 4) Technical triggers
 
