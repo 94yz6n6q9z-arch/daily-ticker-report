@@ -19,8 +19,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TZ: Europe/Vienna
-      # Change this if you want images to load from GitHub Pages instead
-      PUBLIC_BASE_URL: https://raw.githubusercontent.com/94yz6n6q9z-arch/daily-ticker-report/main/docs
 
     steps:
       - name: Checkout
@@ -37,9 +35,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          # Needed to render Markdown -> HTML with tables
+          # Needed for Markdown -> HTML for email body
           pip install markdown
 
+      # DST-safe guard: only proceed when local time is exactly 22:30
       - name: Time guard (scheduled runs only)
         if: ${{ github.event_name == 'schedule' }}
         run: |
@@ -50,20 +49,19 @@ jobs:
           fi
 
       - name: Run scan
+        env:
+          # OpenAI (exec summary prose)
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: gpt-5.2-pro
+          OPENAI_REASONING_EFFORT: medium
         run: |
           python scan.py
 
       - name: Prepare email bodies (HTML + text)
-        env:
-          BASE: ${{ env.PUBLIC_BASE_URL }}
         run: |
           python - <<'PY'
           from pathlib import Path
-          import re
           import markdown as md
-
-          base = (Path().cwd() / "").as_posix()
-          public_base = "${BASE}".rstrip("/")
 
           report = Path("docs/report.md")
           if not report.exists():
@@ -71,20 +69,15 @@ jobs:
 
           txt = report.read_text(encoding="utf-8", errors="ignore")
 
-          # 1) Make relative image/chart links absolute so Gmail can fetch them
-          #    e.g. (img/foo.png) -> (https://.../img/foo.png)
-          txt = txt.replace("(img/", f"({public_base}/img/")
-
-          # 2) Write email markdown
+          # Write email markdown (same content as report)
           Path("docs/email.md").write_text(txt, encoding="utf-8")
 
-          # 3) Build HTML from markdown (tables enabled)
+          # Render HTML (tables enabled)
           body_html = md.markdown(
               txt,
               extensions=["tables", "sane_lists", "fenced_code"]
           )
 
-          # 4) Wrap with minimal styling for email clients
           html = f"""<!doctype html>
           <html>
           <head>
@@ -96,7 +89,6 @@ jobs:
               table {{ border-collapse: collapse; width: 100%; margin: 10px 0 18px; }}
               th, td {{ border: 1px solid #ddd; padding: 8px; vertical-align: top; }}
               th {{ background: #f6f8fa; }}
-              code, pre {{ font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; }}
               img {{ max-width: 100%; height: auto; }}
             </style>
           </head>
@@ -107,7 +99,7 @@ jobs:
 
           Path("docs/email.html").write_text(html, encoding="utf-8")
 
-          # 5) Plain-text fallback (first ~12k chars)
+          # Plain-text fallback
           Path("docs/email.txt").write_text(txt[:12000], encoding="utf-8")
           print("Prepared docs/email.md, docs/email.html, docs/email.txt")
           PY
@@ -142,23 +134,11 @@ jobs:
           test -n "$MAIL_USERNAME" || (echo "MAIL_USERNAME secret missing/empty" && exit 1)
           test -n "$MAIL_PASSWORD" || (echo "MAIL_PASSWORD secret missing/empty" && exit 1)
 
-      - name: Email the report (Gmail)
-        uses: dawidd6/action-send-mail@v6
-        with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          secure: true
-          username: ${{ secrets.MAIL_USERNAME }}
-          password: ${{ secrets.MAIL_PASSWORD }}
-
-          to: ${{ secrets.MAIL_TO }}
-          from: Daily Ticker Report <${{ secrets.MAIL_USERNAME }}>
-          subject: ${{ steps.subject.outputs.subject }}
-
-          # ✅ Send real HTML so Gmail looks like the website
-          html_body: file://docs/email.html
-
-          # Optional plain text (some clients show this)
-          body: file://docs/email.txt
-
-          attachments: docs/report.md,docs/state.json
+      - name: Send email (inline macro charts)
+        env:
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          MAIL_SUBJECT: ${{ steps.subject.outputs.subject }}
+        run: |
+          python tools/send_gmail_inline.py
