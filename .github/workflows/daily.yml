@@ -53,18 +53,15 @@ jobs:
       - name: Ensure email bodies exist (failsafe)
         run: |
           mkdir -p docs
-          # If your scan.py generates docs/email.md and docs/email.txt, great.
-          # If not, fall back to report.md so email step never fails.
+
+          # If scan.py generated these, keep them. Otherwise create safe fallbacks.
           if [ ! -f docs/email.md ]; then
             cp -f docs/report.md docs/email.md
           fi
+
           if [ ! -f docs/email.txt ]; then
-            # very simple text body fallback
-            python - <<'PY'
-            from pathlib import Path
-            txt = Path("docs/report.md").read_text(encoding="utf-8", errors="ignore")
-            Path("docs/email.txt").write_text(txt[:8000], encoding="utf-8")
-            PY
+            # Simple text body fallback (first ~8000 bytes)
+            head -c 8000 docs/report.md > docs/email.txt || true
           fi
 
       - name: Commit and push report
@@ -112,7 +109,6 @@ jobs:
           from: Daily Ticker Report <${{ secrets.MAIL_USERNAME }}>
           subject: ${{ steps.subject.outputs.subject }}
 
-          # Markdown body -> converted to HTML by the action
           body: file://docs/email.md
           convert_markdown: true
 
