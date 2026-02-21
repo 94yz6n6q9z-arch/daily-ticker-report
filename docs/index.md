@@ -1,12 +1,12 @@
 # Daily Report
 
-_Generated: **2026-02-21 16:36 CET**_
+_Generated: **2026-02-21 16:55 CET**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and volatility at VIX -5.64%, with headlines clustering around Fed/rates, AI/tech, earnings/guidance. Over the past month vs ~3 months, S&P +0.49% vs +4.64% and NDX -1.24% vs +3.19% frame today’s move in context; No watchlist names moved >4% incl. after-hours.
+Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and volatility at VIX -5.64%, with headlines clustering around AI/tech. Over the past month vs ~3 months, S&P +0.49% vs +4.64% and NDX -1.24% vs +3.19% frame today’s move in context; No watchlist names moved >4% incl. after-hours.
 
 **Key tape (multi-horizon):**
 
@@ -26,7 +26,7 @@ Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and 
 | Silver           | 82.28     | <span style="color:#11823b;">+6.08%</span> | <span style="color:#11823b;">+5.69%</span>  | <span style="color:#b91c1c;">-10.77%</span> | <span style="color:#11823b;">+64.99%</span> | <span style="color:#11823b;">+110.97%</span> |
 | Coffee           | 288.30    | <span style="color:#11823b;">+0.31%</span> | <span style="color:#b91c1c;">-3.92%</span>  | <span style="color:#b91c1c;">-17.04%</span> | <span style="color:#b91c1c;">-27.93%</span> | <span style="color:#b91c1c;">-26.20%</span>  |
 | Cocoa            | 3,080.00  | <span style="color:#11823b;">+3.77%</span> | <span style="color:#b91c1c;">-13.99%</span> | <span style="color:#b91c1c;">-30.76%</span> | <span style="color:#b91c1c;">-39.42%</span> | <span style="color:#b91c1c;">-59.38%</span>  |
-| Bitcoin          | 68,471.64 | <span style="color:#11823b;">+0.69%</span> | <span style="color:#b91c1c;">-1.86%</span>  | <span style="color:#b91c1c;">-23.46%</span> | <span style="color:#b91c1c;">-21.12%</span> | <span style="color:#b91c1c;">-37.82%</span>  |
+| Bitcoin          | 68,625.97 | <span style="color:#11823b;">+0.91%</span> | <span style="color:#b91c1c;">-1.64%</span>  | <span style="color:#b91c1c;">-23.29%</span> | <span style="color:#b91c1c;">-20.94%</span> | <span style="color:#b91c1c;">-37.68%</span>  |
 
 **Macro charts (5Y):**
 
@@ -131,16 +131,16 @@ _None_
 
 _Linked digest for drill-down._
 
-- [Iconic Waldorf Hotel New York Hits Market After $2B Renovation](https://finance.yahoo.com/news/iconic-waldorf-hotel-york-hits-151530348.html) — Yahoo Finance
-- [Oil analysts say there is a supply glut — why that hasn't translated to lower prices this year](https://finance.yahoo.com/news/oil-analysts-say-there-is-a-supply-glut--why-that-hasnt-translated-to-lower-prices-this-year-150108444.html) — Yahoo Finance
-- [Stock Market Week: Nvidia Earnings, Apple And Strategy Events](https://www.investors.com/research/investing-action-plan/stock-market-week-nvidia-earnings-apple-and-strategy-events/?src=A00220&yptr=yahoo) — Yahoo Finance
-- [DA Davidson Raises its Price Target on Diebold Nixdorf, Incorporated (DBD) to $100 and Maintains a Buy Rating](https://finance.yahoo.com/news/da-davidson-raises-price-target-144127057.html) — Yahoo Finance
-- [The Chefs’ Warehouse, Inc. (CHEF) Reports Q4 revenue of $1.14B Versus Consensus of $1.1B](https://finance.yahoo.com/news/chefs-warehouse-inc-chef-reports-144120498.html) — Yahoo Finance
-- [The Only Healthcare Stock I Would Buy and Never Sell Is Medtronic](https://finance.yahoo.com/news/only-healthcare-stock-buy-never-150500561.html) — Yahoo Finance
-- [Oppenheimer Raises its Price Target on SharkNinja, Inc. (SN) to $145 from $140 and Maintains an Outperform Rating](https://finance.yahoo.com/news/oppenheimer-raises-price-target-sharkninja-144112163.html) — Yahoo Finance
-- [Jefferies Raises its Price Target on The Williams Companies, Inc. (WMB) to $81 and Maintains a Buy Rating](https://finance.yahoo.com/news/jefferies-raises-price-target-williams-144042213.html) — Yahoo Finance
-- [Stifel Raises its Price Target on FedEx Corporation (FDX) to $412 and Maintains a Buy Rating](https://finance.yahoo.com/news/stifel-raises-price-target-fedex-144031917.html) — Yahoo Finance
-- [RBC Raises Prologis (PLD) Target as Industrial Real Estate Outlook Improves](https://finance.yahoo.com/news/rbc-raises-prologis-pld-target-142358497.html) — Yahoo Finance
+- [Forget AI Stocks: This Stablecoin Provider Is the Utility Stock of Digital Assets](https://finance.yahoo.com/news/forget-ai-stocks-stablecoin-provider-154100821.html) — Yahoo Finance
+- [Bernstein Upgraded Zscaler, Inc. (ZS) to Outperform with a Price Target of $228](https://finance.yahoo.com/news/bernstein-upgraded-zscaler-inc-zs-154009015.html) — Yahoo Finance
+- [Goldman Sachs Initiates Coverage of Samsara Inc. (IOT) with a Buy Rating and a $36 Price Target](https://finance.yahoo.com/news/goldman-sachs-initiates-coverage-samsara-154000892.html) — Yahoo Finance
+- [RBC Capital Lowers its Price Target on Autodesk, Inc. (ADSK) to $340 and Maintains an Outperform Rating](https://finance.yahoo.com/news/rbc-capital-lowers-price-target-153950473.html) — Yahoo Finance
+- [Goldman Sachs Lowers its Price Target on Snowflake Inc. (SNOW) to $246 but Maintains a Buy Rating](https://finance.yahoo.com/news/goldman-sachs-lowers-price-target-153933486.html) — Yahoo Finance
+- [Truist Increases its Price Target on AECOM (ACM) to $132 and Maintains a Buy Rating](https://finance.yahoo.com/news/truist-increases-price-target-aecom-153923497.html) — Yahoo Finance
+- [Morgan Stanley Lowers its Price Target on IQVIA Holdings Inc. (IQV) to $240 but Maintains an Overweight Rating](https://finance.yahoo.com/news/morgan-stanley-lowers-price-target-153909553.html) — Yahoo Finance
+- [Baird Lowers its Price Target on Trimble Inc. (TRMB) to $90 but Maintains an Outperform Rating](https://finance.yahoo.com/news/baird-lowers-price-target-trimble-153859209.html) — Yahoo Finance
+- [Citi Raises its Price Target on HubSpot (HUBS) to $640 and Maintains a Buy Rating](https://finance.yahoo.com/news/citi-raises-price-target-hubspot-153842862.html) — Yahoo Finance
+- [JPMorgan Raises its Price Target on Vistra Corp. (VST) to $239 and Maintains an Overweight Rating](https://finance.yahoo.com/news/jpmorgan-raises-price-target-vistra-153602452.html) — Yahoo Finance
 
 ## Changelog
 
