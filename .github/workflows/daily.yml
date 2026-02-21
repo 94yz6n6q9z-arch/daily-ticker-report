@@ -3,7 +3,8 @@ name: Daily Report
 on:
   workflow_dispatch:
   schedule:
-    # Cron is UTC. 21:30 UTC = 22:30 CET (winter). In summer (CEST), this will run at 23:30 local.
+    # Run at 20:30 UTC (22:30 CEST) and 21:30 UTC (22:30 CET)
+    - cron: "30 20 * * 1-5"
     - cron: "30 21 * * 1-5"
 
 permissions:
@@ -18,11 +19,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TZ: Europe/Vienna
-      # Used by scan.py to convert relative image links into absolute URLs in docs/email.md
-      PUBLIC_BASE_URL: https://daily-ticker-report.pages.dev
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      OPENAI_MODEL: gpt-5.2-pro
-      OPENAI_REASONING_EFFORT: medium
 
     steps:
       - name: Checkout
@@ -40,18 +36,35 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
+      # DST-safe guard: only proceed when local time is exactly 22:30
+      - name: Time guard (scheduled runs only)
+        if: ${{ github.event_name == 'schedule' }}
+        run: |
+          NOW="$(date +'%H:%M')"
+          if [ "$NOW" != "22:30" ]; then
+            echo "Not 22:30 local (now $NOW). Exiting."
+            exit 0
+          fi
+
       - name: Run scan
         run: |
           python scan.py
 
       - name: Ensure email bodies exist (failsafe)
         run: |
-          # If scan.py didn't create email bodies, fall back to report.md so the email step never breaks.
-          if [ ! -f docs/email.txt ]; then
-            cp docs/report.md docs/email.txt || true
-          fi
+          mkdir -p docs
+          # If your scan.py generates docs/email.md and docs/email.txt, great.
+          # If not, fall back to report.md so email step never fails.
           if [ ! -f docs/email.md ]; then
-            cp docs/report.md docs/email.md || true
+            cp -f docs/report.md docs/email.md
+          fi
+          if [ ! -f docs/email.txt ]; then
+            # very simple text body fallback
+            python - <<'PY'
+            from pathlib import Path
+            txt = Path("docs/report.md").read_text(encoding="utf-8", errors="ignore")
+            Path("docs/email.txt").write_text(txt[:8000], encoding="utf-8")
+            PY
           fi
 
       - name: Commit and push report
@@ -59,9 +72,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+          # Ensure Pages stability
           mkdir -p docs/img
 
-          git add docs/report.md docs/index.md docs/state.json docs/email.md docs/email.txt docs/img || true
+          git add docs/report.md docs/index.md docs/state.json docs/img docs/email.md docs/email.txt || true
 
           if git diff --cached --quiet; then
             echo "No changes to commit."
@@ -71,9 +85,19 @@ jobs:
           fi
 
       - name: Compute subject timestamp
-        id: ts
+        id: subject
         run: |
-          echo "STAMP=$(date -u +'%Y-%m-%d %H:%M UTC')" >> $GITHUB_OUTPUT
+          echo "subject=Daily Ticker Report — $(date +'%Y-%m-%d %H:%M %Z')" >> $GITHUB_OUTPUT
+
+      - name: Verify mail secrets (fail early with clear error)
+        env:
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+        run: |
+          test -n "$MAIL_TO" || (echo "MAIL_TO secret missing/empty" && exit 1)
+          test -n "$MAIL_USERNAME" || (echo "MAIL_USERNAME secret missing/empty" && exit 1)
+          test -n "$MAIL_PASSWORD" || (echo "MAIL_PASSWORD secret missing/empty" && exit 1)
 
       - name: Email the report (Gmail)
         uses: dawidd6/action-send-mail@v6
@@ -86,13 +110,10 @@ jobs:
 
           to: ${{ secrets.MAIL_TO }}
           from: Daily Ticker Report <${{ secrets.MAIL_USERNAME }}>
-          subject: "Daily Ticker Report — ${{ steps.ts.outputs.STAMP }}"
+          subject: ${{ steps.subject.outputs.subject }}
 
-          body: file://docs/email.txt
-
-          # HTML body (convert Markdown -> HTML)
-          html_body: file://docs/email.md
+          # Markdown body -> converted to HTML by the action
+          body: file://docs/email.md
           convert_markdown: true
-          content_type: text/html
 
           attachments: docs/report.md,docs/state.json
