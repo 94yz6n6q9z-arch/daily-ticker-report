@@ -132,7 +132,7 @@ jobs:
               }}
               .two-col img {{
                 width: 100%;
-                max-width: 340px;   /* cap size in email */
+                max-width: 180px;   /* cap size in email */
                 height: auto;
                 border: 1px solid #eee;
               }}
