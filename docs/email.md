@@ -1,131 +1,16 @@
 # Daily Report
 
-_Generated: **2026-02-21 14:05 CET**_
+## ERROR
 
-## 1) Market recap & positioning
+The run crashed. Traceback:
 
-**Executive summary:**
+```text
+Traceback (most recent call last):
+  File "/home/runner/work/daily-ticker-report/daily-ticker-report/scan.py", line 1838, in <module>
+    main()
+  File "/home/runner/work/daily-ticker-report/daily-ticker-report/scan.py", line 1706, in main
+    md.append(earnings_section_md(WATCHLIST_44, days=14))
+    ^^
+UnboundLocalError: cannot access local variable 'md' where it is not associated with a value
 
-Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and volatility at VIX -5.64%, with headlines clustering around AI/tech, earnings/guidance, macro/geopolitics. Over the past month vs ~3 months, S&P +0.49% vs +4.64% and NDX -1.24% vs +3.19% frame today’s move in context; No watchlist names moved >4% incl. after-hours.
-
-**Key tape (multi-horizon):**
-
-| Instrument       | Last      | 1D                                         | 7D                                          | 1M                                          | 3M                                          | 6M                                           |
-| :--- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Nasdaq 100       | 25,012.62 | <span style="color:#11823b;">+0.87%</span> | <span style="color:#11823b;">+1.13%</span>  | <span style="color:#b91c1c;">-1.24%</span>  | <span style="color:#11823b;">+3.19%</span>  | <span style="color:#11823b;">+6.45%</span>   |
-| S&P 500          | 6,909.51  | <span style="color:#11823b;">+0.69%</span> | <span style="color:#11823b;">+1.07%</span>  | <span style="color:#11823b;">+0.49%</span>  | <span style="color:#11823b;">+4.64%</span>  | <span style="color:#11823b;">+6.84%</span>   |
-| QQQ              | 608.81    | <span style="color:#11823b;">+0.88%</span> | <span style="color:#11823b;">+1.14%</span>  | <span style="color:#b91c1c;">-1.21%</span>  | <span style="color:#11823b;">+3.18%</span>  | <span style="color:#11823b;">+6.44%</span>   |
-| SPY              | 689.43    | <span style="color:#11823b;">+0.72%</span> | <span style="color:#11823b;">+1.13%</span>  | <span style="color:#11823b;">+0.59%</span>  | <span style="color:#11823b;">+4.61%</span>  | <span style="color:#11823b;">+6.84%</span>   |
-| STOXX Europe 600 | 630.56    | <span style="color:#11823b;">+0.84%</span> | <span style="color:#11823b;">+2.08%</span>  | <span style="color:#11823b;">+4.63%</span>  | <span style="color:#11823b;">+12.18%</span> | <span style="color:#11823b;">+12.34%</span>  |
-| DAX              | 25,260.69 | <span style="color:#11823b;">+0.87%</span> | <span style="color:#11823b;">+1.39%</span>  | <span style="color:#11823b;">+2.85%</span>  | <span style="color:#11823b;">+9.39%</span>  | <span style="color:#11823b;">+3.68%</span>   |
-| CAC 40           | 8,515.49  | <span style="color:#11823b;">+1.39%</span> | <span style="color:#11823b;">+2.45%</span>  | <span style="color:#11823b;">+5.53%</span>  | <span style="color:#11823b;">+6.67%</span>  | <span style="color:#11823b;">+6.85%</span>   |
-| FTSE 100         | 10,686.90 | <span style="color:#11823b;">+0.56%</span> | <span style="color:#11823b;">+2.30%</span>  | <span style="color:#11823b;">+5.41%</span>  | <span style="color:#11823b;">+12.03%</span> | <span style="color:#11823b;">+14.65%</span>  |
-| VIX              | 19.09     | <span style="color:#b91c1c;">-5.64%</span> | <span style="color:#b91c1c;">-7.33%</span>  | <span style="color:#11823b;">+12.96%</span> | <span style="color:#b91c1c;">-18.52%</span> | <span style="color:#11823b;">+34.25%</span>  |
-| EUR/USD          | 1.18      | <span style="color:#b91c1c;">-0.17%</span> | <span style="color:#b91c1c;">-0.84%</span>  | <span style="color:#11823b;">+0.35%</span>  | <span style="color:#11823b;">+2.03%</span>  | <span style="color:#11823b;">+1.34%</span>   |
-| Gold             | 5,059.30  | <span style="color:#11823b;">+1.68%</span> | <span style="color:#11823b;">+0.74%</span>  | <span style="color:#11823b;">+4.71%</span>  | <span style="color:#11823b;">+24.10%</span> | <span style="color:#11823b;">+49.93%</span>  |
-| Silver           | 82.28     | <span style="color:#11823b;">+6.08%</span> | <span style="color:#11823b;">+5.69%</span>  | <span style="color:#b91c1c;">-10.77%</span> | <span style="color:#11823b;">+64.99%</span> | <span style="color:#11823b;">+110.97%</span> |
-| Coffee           | 288.30    | <span style="color:#11823b;">+0.31%</span> | <span style="color:#b91c1c;">-3.92%</span>  | <span style="color:#b91c1c;">-17.04%</span> | <span style="color:#b91c1c;">-27.93%</span> | <span style="color:#b91c1c;">-26.20%</span>  |
-| Cocoa            | 3,080.00  | <span style="color:#11823b;">+3.77%</span> | <span style="color:#b91c1c;">-13.99%</span> | <span style="color:#b91c1c;">-30.76%</span> | <span style="color:#b91c1c;">-39.42%</span> | <span style="color:#b91c1c;">-59.38%</span>  |
-| Bitcoin          | 68,158.59 | <span style="color:#11823b;">+0.23%</span> | <span style="color:#b91c1c;">-2.31%</span>  | <span style="color:#b91c1c;">-23.81%</span> | <span style="color:#b91c1c;">-21.48%</span> | <span style="color:#b91c1c;">-38.11%</span>  |
-
-**Macro charts (5Y):**
-
-![VIX 5Y](${BASE}/img/macro_vix_5y.png)
-
-![EURUSD 5Y](${BASE}/img/macro_eurusd_5y.png)
-
-
-## 2) Biggest movers (≥ 4%)
-
-**Session gainers:** _None ≥ 4%_
-
-**Session losers:** _None ≥ 4%_
-
-**After-hours gainers:** _None ≥ 4%_
-
-**After-hours losers:** _None ≥ 4%_
-
-## 4) Technical triggers
-
-**Breakout confirmation rule:** close beyond trigger by **≥ 0.5 ATR**.
-
-### 4A) Early callouts (~80% complete)
-
-_Close enough to pre-plan. “Close enough” = within 0.5 ATR of neckline/boundary._
-
-**NEW (today):**
-
-_None_
-
-**ONGOING:**
-
-| Ticker   | Signal                   |   Close |   Level |   Dist(ATR) | Day%   | Chart                                          |
-| :--- | :--- | ---: | ---: | ---: | ---: | :--- |
-| ISRG     | EARLY_BROADEN_BREAKOUT   |  504.05 |  505.95 |       -0.14 | +0.90% | [chart](${BASE}/img/ISRG_EARLY_BROADEN_BREAKOUT.png)   |
-| SNPS     | EARLY_BROADEN_BREAKDOWN  |  439.94 |  436.79 |        0.15 | -0.57% | [chart](${BASE}/img/SNPS_EARLY_BROADEN_BREAKDOWN.png)  |
-| CCJ      | EARLY_BROADEN_BREAKDOWN  |  121.35 |  120.01 |        0.2  | +1.95% | [chart](${BASE}/img/CCJ_EARLY_BROADEN_BREAKDOWN.png)   |
-| NVDA     | EARLY_IHS_BREAKOUT       |  189.82 |  191.28 |       -0.21 | +1.02% | [chart](${BASE}/img/NVDA_EARLY_IHS_BREAKOUT.png)       |
-| NVDA     | EARLY_BROADEN_BREAKOUT   |  189.82 |  191.81 |       -0.28 | +1.02% | [chart](${BASE}/img/NVDA_EARLY_BROADEN_BREAKOUT.png)   |
-| LLY      | EARLY_BROADEN_BREAKDOWN  | 1009.52 |  996.1  |        0.3  | -1.34% | [chart](${BASE}/img/LLY_EARLY_BROADEN_BREAKDOWN.png)   |
-| AVGO     | EARLY_IHS_BREAKOUT       |  332.65 |  338.59 |       -0.36 | -0.40% | [chart](${BASE}/img/AVGO_EARLY_IHS_BREAKOUT.png)       |
-| META     | EARLY_BROADEN_BREAKDOWN  |  655.66 |  646.29 |        0.44 | +1.69% | [chart](${BASE}/img/META_EARLY_BROADEN_BREAKDOWN.png)  |
-| LRCX     | EARLY_WEDGE_UP_BREAKDOWN |  244.92 |  238.92 |        0.48 | +3.17% | [chart](${BASE}/img/LRCX_EARLY_WEDGE_UP_BREAKDOWN.png) |
-
-### 4B) Breakouts / breakdowns (or about to)
-
-_Includes **SOFT** (pierced but <0.5 ATR) and **CONFIRMED** (≥0.5 ATR)._ 
-
-**NEW (today):**
-
-_None_
-
-**ONGOING:**
-
-| Ticker    | Signal                         |     Close |     Level |   Dist(ATR) | Day%   | Chart                                                  |
-| :--- | :--- | ---: | ---: | ---: | ---: | :--- |
-| IONQ      | CONFIRMED_WEDGE_DOWN_BREAKDOWN |     31.9  |     33.61 |       -0.54 | -4.58% | [chart](${BASE}/img/IONQ_CONFIRMED_WEDGE_DOWN_BREAKDOWN.png)   |
-| CDNS      | CONFIRMED_HS_TOP_BREAKDOWN     |    296.28 |    304.11 |       -0.55 | -0.10% | [chart](${BASE}/img/CDNS_CONFIRMED_HS_TOP_BREAKDOWN.png)       |
-| PGR       | CONFIRMED_BROADEN_BREAKOUT     |    204.08 |    200.92 |        0.55 | +1.14% | [chart](${BASE}/img/PGR_CONFIRMED_BROADEN_BREAKOUT.png)        |
-| 000660.KS | CONFIRMED_WEDGE_UP_BREAKOUT    | 949000    | 913236    |        0.69 | +6.15% | [chart](${BASE}/img/000660.KS_CONFIRMED_WEDGE_UP_BREAKOUT.png) |
-| NVO       | CONFIRMED_TRIANGLE_BREAKDOWN   |     47.42 |     49.46 |       -0.79 | -2.13% | [chart](${BASE}/img/NVO_CONFIRMED_TRIANGLE_BREAKDOWN.png)      |
-| WMT       | CONFIRMED_BROADEN_BREAKDOWN    |    122.99 |    126.4  |       -0.83 | -1.51% | [chart](${BASE}/img/WMT_CONFIRMED_BROADEN_BREAKDOWN.png)       |
-| AVGO      | CONFIRMED_WEDGE_DOWN_BREAKOUT  |    332.65 |    316.96 |        0.96 | -0.40% | [chart](${BASE}/img/AVGO_CONFIRMED_WEDGE_DOWN_BREAKOUT.png)    |
-| LEU       | CONFIRMED_BROADEN_BREAKDOWN    |    203.73 |    228.59 |       -1.02 | -2.47% | [chart](${BASE}/img/LEU_CONFIRMED_BROADEN_BREAKDOWN.png)       |
-| CMG       | CONFIRMED_BROADEN_BREAKDOWN    |     37.54 |     39.36 |       -1.18 | -1.13% | [chart](${BASE}/img/CMG_CONFIRMED_BROADEN_BREAKDOWN.png)       |
-| SMR       | CONFIRMED_WEDGE_DOWN_BREAKDOWN |     13.44 |     15.65 |       -1.39 | -8.20% | [chart](${BASE}/img/SMR_CONFIRMED_WEDGE_DOWN_BREAKDOWN.png)    |
-| QBTS      | CONFIRMED_WEDGE_DOWN_BREAKDOWN |     18.06 |     21.95 |       -2.1  | -6.81% | [chart](${BASE}/img/QBTS_CONFIRMED_WEDGE_DOWN_BREAKDOWN.png)   |
-| AMZN      | CONFIRMED_HS_TOP_BREAKDOWN     |    210.11 |    228.75 |       -2.28 | +2.56% | [chart](${BASE}/img/AMZN_CONFIRMED_HS_TOP_BREAKDOWN.png)       |
-| ARM       | CONFIRMED_WEDGE_DOWN_BREAKOUT  |    125.58 |    106.39 |        2.71 | -1.06% | [chart](${BASE}/img/ARM_CONFIRMED_WEDGE_DOWN_BREAKOUT.png)     |
-| OKLO      | SOFT_WEDGE_DOWN_BREAKDOWN      |     63.83 |     63.97 |       -0.02 | -5.63% | [chart](${BASE}/img/OKLO_SOFT_WEDGE_DOWN_BREAKDOWN.png)        |
-| VST       | SOFT_BROADEN_BREAKOUT          |    171.4  |    171.03 |        0.05 | -0.64% | [chart](${BASE}/img/VST_SOFT_BROADEN_BREAKOUT.png)             |
-| TSM       | SOFT_BROADEN_BREAKOUT          |    370.54 |    369.2  |        0.08 | +2.82% | [chart](${BASE}/img/TSM_SOFT_BROADEN_BREAKOUT.png)             |
-| PLTR      | SOFT_WEDGE_DOWN_BREAKDOWN      |    135.24 |    136.01 |       -0.08 | +0.26% | [chart](${BASE}/img/PLTR_SOFT_WEDGE_DOWN_BREAKDOWN.png)        |
-| ARR       | SOFT_RECT_BREAKDOWN            |     17.89 |     17.93 |       -0.1  | +1.30% | [chart](${BASE}/img/ARR_SOFT_RECT_BREAKDOWN.png)               |
-| AMZN      | SOFT_BROADEN_BREAKDOWN         |    210.11 |    211.13 |       -0.12 | +2.56% |                                                        |
-| MELI      | SOFT_TRIANGLE_BREAKDOWN        |   1996.87 |   2008.36 |       -0.14 | +0.02% |                                                        |
-| GOOGL     | SOFT_BROADEN_BREAKDOWN         |    314.98 |    316.58 |       -0.15 | +4.01% |                                                        |
-| AMAT      | SOFT_BROADEN_BREAKOUT          |    375.38 |    369.69 |        0.3  | +1.50% |                                                        |
-| NFLX      | SOFT_WEDGE_DOWN_BREAKOUT       |     78.67 |     77.8  |        0.33 | +2.17% |                                                        |
-| MUV2.DE   | SOFT_BROADEN_BREAKOUT          |    542    |    538.73 |        0.4  | +1.16% |                                                        |
-
-## 5) Needle-moving catalysts (RSS digest)
-
-_Linked digest for drill-down._
-
-- [2 Top Stocks to Buy and Hold for the Long Term](https://finance.yahoo.com/news/2-top-stocks-buy-hold-125800175.html) — Yahoo Finance
-- [Dow Jones Futures: Stock Market Rallies On Trump Tariff Decision; Iran, Nvidia In Focus](https://www.investors.com/market-trend/stock-market-today/dow-jones-futures-trump-tariff-ruling-iran-news-nvidia-earnings/?src=A00220&yptr=yahoo) — Yahoo Finance
-- ['Buyer beware': Legal expert says private equity funds could pose big risk to your 401(k). Here's what you need to know](https://finance.yahoo.com/news/buyer-beware-legal-expert-says-124500760.html) — Yahoo Finance
-- [United Airlines escalates the credit card perk wars](https://finance.yahoo.com/news/united-airlines-escalates-the-credit-card-perk-wars-110050612.html) — Yahoo Finance
-- [50% of US parents financially support their adult kids, with average payments of $1,474/month. What they're doing wrong](https://finance.yahoo.com/news/50-us-parents-financially-support-123000232.html) — Yahoo Finance
-- [OpenAI forecasts its revenue will top $280 billion in 2030](https://finance.yahoo.com/news/openai-forecasts-revenue-top-280-230738108.html) — Yahoo Finance
-- [One man used his Costco membership to save over $11K on a new car. How shoppers are finding alternatives to high prices](https://finance.yahoo.com/news/one-man-used-costco-membership-121500026.html) — Yahoo Finance
-- [72% of US workers say they rely on a second income, while 26% say they need the side job just to cover the bills](https://finance.yahoo.com/news/72-us-workers-rely-second-120000468.html) — Yahoo Finance
-- [Survey says 80% of Gen Xers and boomers regret not saving sooner. Here’s how to maximize your retirement savings now](https://finance.yahoo.com/news/survey-says-80-gen-xers-120000964.html) — Yahoo Finance
-- [US stock market volatility is ‘really nothing’ says Warren Buffett. How to invest like the Oracle when others want out](https://finance.yahoo.com/news/us-stock-market-volatility-really-114700636.html) — Yahoo Finance
-
-## Changelog
-
-**New signals:** _None_
-
-
-**Ended signals:** _None_
+```
