@@ -20,7 +20,7 @@ jobs:
     env:
       TZ: Europe/Vienna
       # Change this if you want images to load from GitHub Pages instead
-      PUBLIC_BASE_URL: https://94yz6n6q9z-arch.github.io/daily-ticker-report
+      PUBLIC_BASE_URL: https://raw.githubusercontent.com/94yz6n6q9z-arch/daily-ticker-report/main/docs
 
     steps:
       - name: Checkout
