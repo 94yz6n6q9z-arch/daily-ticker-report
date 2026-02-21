@@ -44,12 +44,21 @@ jobs:
         run: |
           python scan.py
 
+      - name: Ensure email bodies exist (failsafe)
+        run: |
+          # If scan.py didn't create email bodies, fall back to report.md so the email step never breaks.
+          if [ ! -f docs/email.txt ]; then
+            cp docs/report.md docs/email.txt || true
+          fi
+          if [ ! -f docs/email.md ]; then
+            cp docs/report.md docs/email.md || true
+          fi
+
       - name: Commit and push report
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Ensure Pages stability
           mkdir -p docs/img
 
           git add docs/report.md docs/index.md docs/state.json docs/email.md docs/email.txt docs/img || true
@@ -79,7 +88,6 @@ jobs:
           from: Daily Ticker Report <${{ secrets.MAIL_USERNAME }}>
           subject: "Daily Ticker Report — ${{ steps.ts.outputs.STAMP }}"
 
-          # Plain-text body
           body: file://docs/email.txt
 
           # HTML body (convert Markdown -> HTML)
@@ -87,5 +95,4 @@ jobs:
           convert_markdown: true
           content_type: text/html
 
-          # Attach the raw markdown + state file
           attachments: docs/report.md,docs/state.json
