@@ -1,6 +1,6 @@
 # Daily Report
 
-_Generated: **2026-02-21 12:30 CET**_
+_Generated: **2026-02-21 13:07 CET**_
 
 ## 1) Market recap & positioning
 
@@ -26,7 +26,7 @@ Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and 
 | Silver           | 82.28     | <span style="color:#11823b;">+6.08%</span> | <span style="color:#11823b;">+5.69%</span>  | <span style="color:#b91c1c;">-10.77%</span> | <span style="color:#11823b;">+64.99%</span> | <span style="color:#11823b;">+110.97%</span> |
 | Coffee           | 288.30    | <span style="color:#11823b;">+0.31%</span> | <span style="color:#b91c1c;">-3.92%</span>  | <span style="color:#b91c1c;">-17.04%</span> | <span style="color:#b91c1c;">-27.93%</span> | <span style="color:#b91c1c;">-26.20%</span>  |
 | Cocoa            | 3,080.00  | <span style="color:#11823b;">+3.77%</span> | <span style="color:#b91c1c;">-13.99%</span> | <span style="color:#b91c1c;">-30.76%</span> | <span style="color:#b91c1c;">-39.42%</span> | <span style="color:#b91c1c;">-59.38%</span>  |
-| Bitcoin          | 68,181.49 | <span style="color:#11823b;">+0.26%</span> | <span style="color:#b91c1c;">-2.27%</span>  | <span style="color:#b91c1c;">-23.79%</span> | <span style="color:#b91c1c;">-21.45%</span> | <span style="color:#b91c1c;">-38.09%</span>  |
+| Bitcoin          | 68,103.16 | <span style="color:#11823b;">+0.14%</span> | <span style="color:#b91c1c;">-2.39%</span>  | <span style="color:#b91c1c;">-23.88%</span> | <span style="color:#b91c1c;">-21.54%</span> | <span style="color:#b91c1c;">-38.16%</span>  |
 
 **Macro charts (5Y):**
 
@@ -77,10 +77,7 @@ _Includes **SOFT** (pierced but <0.5 ATR) and **CONFIRMED** (≥0.5 ATR)._
 
 **NEW (today):**
 
-| Ticker   | Signal                       |   Close |   Level |   Dist(ATR) | Day%   | Chart                                             |
-| :--- | :--- | ---: | ---: | ---: | ---: | :--- |
-| NVO      | CONFIRMED_TRIANGLE_BREAKDOWN |   47.42 |   49.46 |       -0.79 | -2.13% | [chart](img/NVO_CONFIRMED_TRIANGLE_BREAKDOWN.png) |
-| ARR      | SOFT_RECT_BREAKDOWN          |   17.89 |   17.93 |       -0.1  | +1.30% | [chart](img/ARR_SOFT_RECT_BREAKDOWN.png)          |
+_None_
 
 **ONGOING:**
 
@@ -90,6 +87,7 @@ _Includes **SOFT** (pierced but <0.5 ATR) and **CONFIRMED** (≥0.5 ATR)._
 | CDNS      | CONFIRMED_HS_TOP_BREAKDOWN     |    296.28 |    304.11 |       -0.55 | -0.10% | [chart](img/CDNS_CONFIRMED_HS_TOP_BREAKDOWN.png)       |
 | PGR       | CONFIRMED_BROADEN_BREAKOUT     |    204.08 |    200.92 |        0.55 | +1.14% | [chart](img/PGR_CONFIRMED_BROADEN_BREAKOUT.png)        |
 | 000660.KS | CONFIRMED_WEDGE_UP_BREAKOUT    | 949000    | 913236    |        0.69 | +6.15% | [chart](img/000660.KS_CONFIRMED_WEDGE_UP_BREAKOUT.png) |
+| NVO       | CONFIRMED_TRIANGLE_BREAKDOWN   |     47.42 |     49.46 |       -0.79 | -2.13% | [chart](img/NVO_CONFIRMED_TRIANGLE_BREAKDOWN.png)      |
 | WMT       | CONFIRMED_BROADEN_BREAKDOWN    |    122.99 |    126.4  |       -0.83 | -1.51% | [chart](img/WMT_CONFIRMED_BROADEN_BREAKDOWN.png)       |
 | AVGO      | CONFIRMED_WEDGE_DOWN_BREAKOUT  |    332.65 |    316.96 |        0.96 | -0.40% | [chart](img/AVGO_CONFIRMED_WEDGE_DOWN_BREAKOUT.png)    |
 | LEU       | CONFIRMED_BROADEN_BREAKDOWN    |    203.73 |    228.59 |       -1.02 | -2.47% | [chart](img/LEU_CONFIRMED_BROADEN_BREAKDOWN.png)       |
@@ -102,6 +100,7 @@ _Includes **SOFT** (pierced but <0.5 ATR) and **CONFIRMED** (≥0.5 ATR)._
 | VST       | SOFT_BROADEN_BREAKOUT          |    171.4  |    171.03 |        0.05 | -0.64% | [chart](img/VST_SOFT_BROADEN_BREAKOUT.png)             |
 | TSM       | SOFT_BROADEN_BREAKOUT          |    370.54 |    369.2  |        0.08 | +2.82% | [chart](img/TSM_SOFT_BROADEN_BREAKOUT.png)             |
 | PLTR      | SOFT_WEDGE_DOWN_BREAKDOWN      |    135.24 |    136.01 |       -0.08 | +0.26% | [chart](img/PLTR_SOFT_WEDGE_DOWN_BREAKDOWN.png)        |
+| ARR       | SOFT_RECT_BREAKDOWN            |     17.89 |     17.93 |       -0.1  | +1.30% | [chart](img/ARR_SOFT_RECT_BREAKDOWN.png)               |
 | AMZN      | SOFT_BROADEN_BREAKDOWN         |    210.11 |    211.13 |       -0.12 | +2.56% |                                                        |
 | MELI      | SOFT_TRIANGLE_BREAKDOWN        |   1996.87 |   2008.36 |       -0.14 | +0.02% |                                                        |
 | GOOGL     | SOFT_BROADEN_BREAKDOWN         |    314.98 |    316.58 |       -0.15 | +4.01% |                                                        |
@@ -113,22 +112,20 @@ _Includes **SOFT** (pierced but <0.5 ATR) and **CONFIRMED** (≥0.5 ATR)._
 
 _Linked digest for drill-down._
 
-- [Up 24% Already This Year, Is It Too Late to Buy This Dividend Stock?](https://finance.yahoo.com/news/24-already-too-buy-dividend-100100892.html) — Yahoo Finance
+- [At Long Last, Being Underweight Tech Is a Winning Stock Strategy](https://finance.yahoo.com/news/long-last-being-underweight-tech-103000620.html) — Yahoo Finance
 - [3 Steps to a Simple Trading System](https://finance.yahoo.com/news/3-steps-simple-trading-system-100252788.html) — Yahoo Finance
+- [US equity funds see largest weekly inflow in five weeks](https://finance.yahoo.com/news/us-equity-funds-see-largest-105315132.html) — Yahoo Finance
 - [Remitly Global (RELY) Soars 25.9% on Leadership Changes, Strong Earnings](https://finance.yahoo.com/news/remitly-global-rely-soars-25-093353034.html) — Yahoo Finance
-- [Americold (COLD) Soars 15.7% on Upbeat 2026 Outlook, CFO Appointment](https://finance.yahoo.com/news/americold-cold-soars-15-7-093339166.html) — Yahoo Finance
-- [Omnicom (OMC) Climbs 15% on Dividend, $5-Billion Buyback](https://finance.yahoo.com/news/omnicom-omc-climbs-15-dividend-093331859.html) — Yahoo Finance
-- [Billionaire Philippe Laffont Sells Nvidia Stock and Buys a Stock-Split Stock Up 20,000% in 20 Years](https://finance.yahoo.com/news/billionaire-philippe-laffont-sells-nvidia-100000389.html) — Yahoo Finance
 - [Herbalife (HLF) Climbs to 3-Year High on Net Sales Beat](https://finance.yahoo.com/news/herbalife-hlf-climbs-3-high-093345893.html) — Yahoo Finance
-- [Medical Properties (MPT) Skyrockets on 88% Narrower Loss](https://finance.yahoo.com/news/medical-properties-mpt-skyrockets-88-093324800.html) — Yahoo Finance
+- [Cost-per-hire and cost-per-application rose sharply in 2025, report says](https://finance.yahoo.com/news/cost-per-hire-cost-per-103000711.html) — Yahoo Finance
+- [Americold (COLD) Soars 15.7% on Upbeat 2026 Outlook, CFO Appointment](https://finance.yahoo.com/news/americold-cold-soars-15-7-093339166.html) — Yahoo Finance
 - [First Majestic Silver (AG) Climbs 9.6% on Return to Profitability](https://finance.yahoo.com/news/first-majestic-silver-ag-climbs-093308250.html) — Yahoo Finance
+- [Omnicom (OMC) Climbs 15% on Dividend, $5-Billion Buyback](https://finance.yahoo.com/news/omnicom-omc-climbs-15-dividend-093331859.html) — Yahoo Finance
 - [SSR Mining (SSRM) Hits 15-Year High as Earnings Impress](https://finance.yahoo.com/news/ssr-mining-ssrm-hits-15-093301899.html) — Yahoo Finance
 
 ## Changelog
 
-**New signals:**
+**New signals:** _None_
 
-- ARR|SOFT_RECT_BREAKDOWN
-- NVO|CONFIRMED_TRIANGLE_BREAKDOWN
 
 **Ended signals:** _None_
