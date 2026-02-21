@@ -1,12 +1,12 @@
 # Daily Report
 
-_Generated: **2026-02-21 13:20 CET**_
+_Generated: **2026-02-21 14:05 CET**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and volatility at VIX -5.64%, with headlines clustering around Fed/rates, AI/tech. Over the past month vs ~3 months, S&P +0.49% vs +4.64% and NDX -1.24% vs +3.19% frame today’s move in context; No watchlist names moved >4% incl. after-hours.
+Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and volatility at VIX -5.64%, with headlines clustering around AI/tech, earnings/guidance, macro/geopolitics. Over the past month vs ~3 months, S&P +0.49% vs +4.64% and NDX -1.24% vs +3.19% frame today’s move in context; No watchlist names moved >4% incl. after-hours.
 
 **Key tape (multi-horizon):**
 
@@ -26,7 +26,7 @@ Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and 
 | Silver           | 82.28     | <span style="color:#11823b;">+6.08%</span> | <span style="color:#11823b;">+5.69%</span>  | <span style="color:#b91c1c;">-10.77%</span> | <span style="color:#11823b;">+64.99%</span> | <span style="color:#11823b;">+110.97%</span> |
 | Coffee           | 288.30    | <span style="color:#11823b;">+0.31%</span> | <span style="color:#b91c1c;">-3.92%</span>  | <span style="color:#b91c1c;">-17.04%</span> | <span style="color:#b91c1c;">-27.93%</span> | <span style="color:#b91c1c;">-26.20%</span>  |
 | Cocoa            | 3,080.00  | <span style="color:#11823b;">+3.77%</span> | <span style="color:#b91c1c;">-13.99%</span> | <span style="color:#b91c1c;">-30.76%</span> | <span style="color:#b91c1c;">-39.42%</span> | <span style="color:#b91c1c;">-59.38%</span>  |
-| Bitcoin          | 67,962.78 | <span style="color:#b91c1c;">-0.06%</span> | <span style="color:#b91c1c;">-2.59%</span>  | <span style="color:#b91c1c;">-24.03%</span> | <span style="color:#b91c1c;">-21.71%</span> | <span style="color:#b91c1c;">-38.29%</span>  |
+| Bitcoin          | 68,158.59 | <span style="color:#11823b;">+0.23%</span> | <span style="color:#b91c1c;">-2.31%</span>  | <span style="color:#b91c1c;">-23.81%</span> | <span style="color:#b91c1c;">-21.48%</span> | <span style="color:#b91c1c;">-38.11%</span>  |
 
 **Macro charts (5Y):**
 
@@ -112,16 +112,16 @@ _None_
 
 _Linked digest for drill-down._
 
-- [How the Average Retirement Account Compares to the Top 10% of Savers](https://finance.yahoo.com/news/average-retirement-account-compares-top-120204740.html) — Yahoo Finance
+- [2 Top Stocks to Buy and Hold for the Long Term](https://finance.yahoo.com/news/2-top-stocks-buy-hold-125800175.html) — Yahoo Finance
+- [Dow Jones Futures: Stock Market Rallies On Trump Tariff Decision; Iran, Nvidia In Focus](https://www.investors.com/market-trend/stock-market-today/dow-jones-futures-trump-tariff-ruling-iran-news-nvidia-earnings/?src=A00220&yptr=yahoo) — Yahoo Finance
+- ['Buyer beware': Legal expert says private equity funds could pose big risk to your 401(k). Here's what you need to know](https://finance.yahoo.com/news/buyer-beware-legal-expert-says-124500760.html) — Yahoo Finance
+- [United Airlines escalates the credit card perk wars](https://finance.yahoo.com/news/united-airlines-escalates-the-credit-card-perk-wars-110050612.html) — Yahoo Finance
+- [50% of US parents financially support their adult kids, with average payments of $1,474/month. What they're doing wrong](https://finance.yahoo.com/news/50-us-parents-financially-support-123000232.html) — Yahoo Finance
+- [OpenAI forecasts its revenue will top $280 billion in 2030](https://finance.yahoo.com/news/openai-forecasts-revenue-top-280-230738108.html) — Yahoo Finance
+- [One man used his Costco membership to save over $11K on a new car. How shoppers are finding alternatives to high prices](https://finance.yahoo.com/news/one-man-used-costco-membership-121500026.html) — Yahoo Finance
 - [72% of US workers say they rely on a second income, while 26% say they need the side job just to cover the bills](https://finance.yahoo.com/news/72-us-workers-rely-second-120000468.html) — Yahoo Finance
 - [Survey says 80% of Gen Xers and boomers regret not saving sooner. Here’s how to maximize your retirement savings now](https://finance.yahoo.com/news/survey-says-80-gen-xers-120000964.html) — Yahoo Finance
-- [US equity funds see largest weekly inflow in five weeks](https://finance.yahoo.com/news/us-equity-funds-see-largest-105315132.html) — Yahoo Finance
-- [3 Steps to a Simple Trading System](https://finance.yahoo.com/news/3-steps-simple-trading-system-100252788.html) — Yahoo Finance
-- [Blue Owl Halts Redemptions Amid Private Credit Stress: Will Crypto Feel the Impact?](https://finance.yahoo.com/news/blue-owl-halts-redemptions-amid-103905795.html) — Yahoo Finance
-- [Best high-yield savings interest rates today, February 20, 2026 (up to 4% APY return)](https://finance.yahoo.com/personal-finance/banking/article/best-high-yield-savings-interest-rates-today-friday-february-20-2026-110001016.html) — Yahoo Finance
-- [Best money market account rates today, February 20, 2026 (up to 4.01% APY return)](https://finance.yahoo.com/personal-finance/banking/article/best-money-market-account-rates-today-friday-february-20-2026-110020476.html) — Yahoo Finance
-- [Best CD rates today, February 20, 2026 (up to 4% APY return)](https://finance.yahoo.com/personal-finance/banking/article/best-cd-rates-today-friday-february-20-2026-110015294.html) — Yahoo Finance
-- [HELOC and home equity loan rates today, February 20, 2026: Lowest rates since late 2022](https://finance.yahoo.com/personal-finance/mortgages/article/heloc-home-equity-loan-interest-rates-today-friday-february-20-2026-110035737.html) — Yahoo Finance
+- [US stock market volatility is ‘really nothing’ says Warren Buffett. How to invest like the Oracle when others want out](https://finance.yahoo.com/news/us-stock-market-volatility-really-114700636.html) — Yahoo Finance
 
 ## Changelog
 
