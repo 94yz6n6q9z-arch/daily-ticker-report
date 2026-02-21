@@ -1,12 +1,12 @@
 # Daily Report
 
-_Generated: **2026-02-20 22:56 CET**_
+_Generated: **2026-02-21 12:30 CET**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Markets rebounded as AI/tech pressure eased and buyers stepped back in, with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and volatility cooling (VIX -5.64%). Zooming out, Europe participated (STOXX +0.84%, DAX +0.87%), the tape still reads as a short-term pullback inside a larger uptrend (S&P 1M +0.49% vs 3M +4.64%; NDX 1M -1.24% vs 3M +3.19%) while EUR/USD -0.03%, gold +2.96% and BTC +1.21% signaled mixed cross-currents, with headlines clustering around AI/tech, earnings/guidance, macro/geopolitics.
+Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and volatility at VIX -5.64%, with headlines clustering around AI/tech, earnings/guidance. Over the past month vs ~3 months, S&P +0.49% vs +4.64% and NDX -1.24% vs +3.19% frame today’s move in context; No watchlist names moved >4% incl. after-hours.
 
 **Key tape (multi-horizon):**
 
@@ -19,14 +19,14 @@ Markets rebounded as AI/tech pressure eased and buyers stepped back in, with the
 | STOXX Europe 600 | 630.56    | <span style="color:#11823b;">+0.84%</span> | <span style="color:#11823b;">+2.08%</span>  | <span style="color:#11823b;">+4.63%</span>  | <span style="color:#11823b;">+12.18%</span> | <span style="color:#11823b;">+12.34%</span>  |
 | DAX              | 25,260.69 | <span style="color:#11823b;">+0.87%</span> | <span style="color:#11823b;">+1.39%</span>  | <span style="color:#11823b;">+2.85%</span>  | <span style="color:#11823b;">+9.39%</span>  | <span style="color:#11823b;">+3.68%</span>   |
 | CAC 40           | 8,515.49  | <span style="color:#11823b;">+1.39%</span> | <span style="color:#11823b;">+2.45%</span>  | <span style="color:#11823b;">+5.53%</span>  | <span style="color:#11823b;">+6.67%</span>  | <span style="color:#11823b;">+6.85%</span>   |
-| FTSE 100         | 10,686.89 | <span style="color:#11823b;">+0.56%</span> | <span style="color:#11823b;">+2.30%</span>  | <span style="color:#11823b;">+5.41%</span>  | <span style="color:#11823b;">+12.03%</span> | <span style="color:#11823b;">+14.65%</span>  |
+| FTSE 100         | 10,686.90 | <span style="color:#11823b;">+0.56%</span> | <span style="color:#11823b;">+2.30%</span>  | <span style="color:#11823b;">+5.41%</span>  | <span style="color:#11823b;">+12.03%</span> | <span style="color:#11823b;">+14.65%</span>  |
 | VIX              | 19.09     | <span style="color:#b91c1c;">-5.64%</span> | <span style="color:#b91c1c;">-7.33%</span>  | <span style="color:#11823b;">+12.96%</span> | <span style="color:#b91c1c;">-18.52%</span> | <span style="color:#11823b;">+34.25%</span>  |
-| EUR/USD          | 1.18      | <span style="color:#b91c1c;">-0.03%</span> | <span style="color:#b91c1c;">-0.70%</span>  | <span style="color:#11823b;">+0.49%</span>  | <span style="color:#11823b;">+2.18%</span>  | <span style="color:#11823b;">+1.48%</span>   |
-| Gold             | 5,123.00  | <span style="color:#11823b;">+2.96%</span> | <span style="color:#11823b;">+2.01%</span>  | <span style="color:#11823b;">+6.03%</span>  | <span style="color:#11823b;">+25.67%</span> | <span style="color:#11823b;">+51.82%</span>  |
-| Silver           | 84.33     | <span style="color:#11823b;">+8.72%</span> | <span style="color:#11823b;">+8.32%</span>  | <span style="color:#b91c1c;">-8.55%</span>  | <span style="color:#11823b;">+69.09%</span> | <span style="color:#11823b;">+116.21%</span> |
-| Coffee           | 285.35    | <span style="color:#b91c1c;">-0.71%</span> | <span style="color:#b91c1c;">-4.90%</span>  | <span style="color:#b91c1c;">-17.88%</span> | <span style="color:#b91c1c;">-28.66%</span> | <span style="color:#b91c1c;">-26.96%</span>  |
-| Cocoa            | 3,184.00  | <span style="color:#11823b;">+7.28%</span> | <span style="color:#b91c1c;">-11.09%</span> | <span style="color:#b91c1c;">-28.42%</span> | <span style="color:#b91c1c;">-37.37%</span> | <span style="color:#b91c1c;">-58.01%</span>  |
-| Bitcoin          | 67,765.67 | <span style="color:#11823b;">+1.21%</span> | <span style="color:#b91c1c;">-1.59%</span>  | <span style="color:#b91c1c;">-24.18%</span> | <span style="color:#b91c1c;">-19.94%</span> | <span style="color:#b91c1c;">-40.27%</span>  |
+| EUR/USD          | 1.18      | <span style="color:#b91c1c;">-0.17%</span> | <span style="color:#b91c1c;">-0.84%</span>  | <span style="color:#11823b;">+0.35%</span>  | <span style="color:#11823b;">+2.03%</span>  | <span style="color:#11823b;">+1.34%</span>   |
+| Gold             | 5,059.30  | <span style="color:#11823b;">+1.68%</span> | <span style="color:#11823b;">+0.74%</span>  | <span style="color:#11823b;">+4.71%</span>  | <span style="color:#11823b;">+24.10%</span> | <span style="color:#11823b;">+49.93%</span>  |
+| Silver           | 82.28     | <span style="color:#11823b;">+6.08%</span> | <span style="color:#11823b;">+5.69%</span>  | <span style="color:#b91c1c;">-10.77%</span> | <span style="color:#11823b;">+64.99%</span> | <span style="color:#11823b;">+110.97%</span> |
+| Coffee           | 288.30    | <span style="color:#11823b;">+0.31%</span> | <span style="color:#b91c1c;">-3.92%</span>  | <span style="color:#b91c1c;">-17.04%</span> | <span style="color:#b91c1c;">-27.93%</span> | <span style="color:#b91c1c;">-26.20%</span>  |
+| Cocoa            | 3,080.00  | <span style="color:#11823b;">+3.77%</span> | <span style="color:#b91c1c;">-13.99%</span> | <span style="color:#b91c1c;">-30.76%</span> | <span style="color:#b91c1c;">-39.42%</span> | <span style="color:#b91c1c;">-59.38%</span>  |
+| Bitcoin          | 68,181.49 | <span style="color:#11823b;">+0.26%</span> | <span style="color:#b91c1c;">-2.27%</span>  | <span style="color:#b91c1c;">-23.79%</span> | <span style="color:#b91c1c;">-21.45%</span> | <span style="color:#b91c1c;">-38.09%</span>  |
 
 **Macro charts (5Y):**
 
@@ -77,7 +77,10 @@ _Includes **SOFT** (pierced but <0.5 ATR) and **CONFIRMED** (≥0.5 ATR)._
 
 **NEW (today):**
 
-_None_
+| Ticker   | Signal                       |   Close |   Level |   Dist(ATR) | Day%   | Chart                                             |
+| :--- | :--- | ---: | ---: | ---: | ---: | :--- |
+| NVO      | CONFIRMED_TRIANGLE_BREAKDOWN |   47.42 |   49.46 |       -0.79 | -2.13% | [chart](img/NVO_CONFIRMED_TRIANGLE_BREAKDOWN.png) |
+| ARR      | SOFT_RECT_BREAKDOWN          |   17.89 |   17.93 |       -0.1  | +1.30% | [chart](img/ARR_SOFT_RECT_BREAKDOWN.png)          |
 
 **ONGOING:**
 
@@ -99,8 +102,8 @@ _None_
 | VST       | SOFT_BROADEN_BREAKOUT          |    171.4  |    171.03 |        0.05 | -0.64% | [chart](img/VST_SOFT_BROADEN_BREAKOUT.png)             |
 | TSM       | SOFT_BROADEN_BREAKOUT          |    370.54 |    369.2  |        0.08 | +2.82% | [chart](img/TSM_SOFT_BROADEN_BREAKOUT.png)             |
 | PLTR      | SOFT_WEDGE_DOWN_BREAKDOWN      |    135.24 |    136.01 |       -0.08 | +0.26% | [chart](img/PLTR_SOFT_WEDGE_DOWN_BREAKDOWN.png)        |
-| AMZN      | SOFT_BROADEN_BREAKDOWN         |    210.11 |    211.13 |       -0.12 | +2.56% | [chart](img/AMZN_SOFT_BROADEN_BREAKDOWN.png)           |
-| MELI      | SOFT_TRIANGLE_BREAKDOWN        |   1996.87 |   2008.36 |       -0.14 | +0.02% | [chart](img/MELI_SOFT_TRIANGLE_BREAKDOWN.png)          |
+| AMZN      | SOFT_BROADEN_BREAKDOWN         |    210.11 |    211.13 |       -0.12 | +2.56% |                                                        |
+| MELI      | SOFT_TRIANGLE_BREAKDOWN        |   1996.87 |   2008.36 |       -0.14 | +0.02% |                                                        |
 | GOOGL     | SOFT_BROADEN_BREAKDOWN         |    314.98 |    316.58 |       -0.15 | +4.01% |                                                        |
 | AMAT      | SOFT_BROADEN_BREAKOUT          |    375.38 |    369.69 |        0.3  | +1.50% |                                                        |
 | NFLX      | SOFT_WEDGE_DOWN_BREAKOUT       |     78.67 |     77.8  |        0.33 | +2.17% |                                                        |
@@ -110,20 +113,22 @@ _None_
 
 _Linked digest for drill-down._
 
-- [What’s Next for ETHzilla Stock price, Another Crash Or Recovery?](https://finance.yahoo.com/news/next-ethzilla-stock-price-another-143513376.html) — Yahoo Finance
-- [Down More Than 45%, Is PayPal Stock a Buy Now?](https://finance.yahoo.com/news/down-more-45-paypal-stock-143002547.html) — Yahoo Finance
-- [SolarEdge (SEDG) Dips 5.5% as Strong Earnings Priced In](https://finance.yahoo.com/news/solaredge-sedg-dips-5-5-142505942.html) — Yahoo Finance
-- [Dear Snowflake Stock Fans, Mark Your Calendars for February 25](https://finance.yahoo.com/news/dear-snowflake-stock-fans-mark-143003360.html) — Yahoo Finance
-- [Flagstar (FLG) Sheds 4% on Profit-Taking](https://finance.yahoo.com/news/flagstar-flg-sheds-4-profit-142434420.html) — Yahoo Finance
-- [Crypto Is Crashing — 4 Investments to Try Instead for the First Half of 2026](https://finance.yahoo.com/news/crypto-crashing-4-investments-try-143804963.html) — Yahoo Finance
-- [Palo Alto (PANW) Loses 6.8% as Impressive Earnings Priced In](https://finance.yahoo.com/news/palo-alto-panw-loses-6-142513314.html) — Yahoo Finance
-- [HF Sinclair (DINO) Loses 10.9% as CEO Takes Leave](https://finance.yahoo.com/news/hf-sinclair-dino-loses-10-142627667.html) — Yahoo Finance
-- [Applied Digital (APLD) Loses 4.9% as Nvidia Disposes of Shares](https://finance.yahoo.com/news/applied-digital-apld-loses-4-142449970.html) — Yahoo Finance
-- [Halozyme (HALO) Loses 9% on Weak Earnings](https://finance.yahoo.com/news/halozyme-halo-loses-9-weak-142531552.html) — Yahoo Finance
+- [Up 24% Already This Year, Is It Too Late to Buy This Dividend Stock?](https://finance.yahoo.com/news/24-already-too-buy-dividend-100100892.html) — Yahoo Finance
+- [3 Steps to a Simple Trading System](https://finance.yahoo.com/news/3-steps-simple-trading-system-100252788.html) — Yahoo Finance
+- [Remitly Global (RELY) Soars 25.9% on Leadership Changes, Strong Earnings](https://finance.yahoo.com/news/remitly-global-rely-soars-25-093353034.html) — Yahoo Finance
+- [Americold (COLD) Soars 15.7% on Upbeat 2026 Outlook, CFO Appointment](https://finance.yahoo.com/news/americold-cold-soars-15-7-093339166.html) — Yahoo Finance
+- [Omnicom (OMC) Climbs 15% on Dividend, $5-Billion Buyback](https://finance.yahoo.com/news/omnicom-omc-climbs-15-dividend-093331859.html) — Yahoo Finance
+- [Billionaire Philippe Laffont Sells Nvidia Stock and Buys a Stock-Split Stock Up 20,000% in 20 Years](https://finance.yahoo.com/news/billionaire-philippe-laffont-sells-nvidia-100000389.html) — Yahoo Finance
+- [Herbalife (HLF) Climbs to 3-Year High on Net Sales Beat](https://finance.yahoo.com/news/herbalife-hlf-climbs-3-high-093345893.html) — Yahoo Finance
+- [Medical Properties (MPT) Skyrockets on 88% Narrower Loss](https://finance.yahoo.com/news/medical-properties-mpt-skyrockets-88-093324800.html) — Yahoo Finance
+- [First Majestic Silver (AG) Climbs 9.6% on Return to Profitability](https://finance.yahoo.com/news/first-majestic-silver-ag-climbs-093308250.html) — Yahoo Finance
+- [SSR Mining (SSRM) Hits 15-Year High as Earnings Impress](https://finance.yahoo.com/news/ssr-mining-ssrm-hits-15-093301899.html) — Yahoo Finance
 
 ## Changelog
 
-**New signals:** _None_
+**New signals:**
 
+- ARR|SOFT_RECT_BREAKDOWN
+- NVO|CONFIRMED_TRIANGLE_BREAKDOWN
 
 **Ended signals:** _None_
