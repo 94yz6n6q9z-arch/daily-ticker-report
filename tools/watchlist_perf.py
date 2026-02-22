@@ -171,14 +171,29 @@ def build_watchlist_performance_section_md(
                 key = cols.get(name)
                 return df[key] if key else pd.Series(dtype=float)
 
-            close = col("close")
-            high = col("high")
-            low = col("low")
-            vol = col("volume")
+            # Use last VALID OHLC row (yfinance sometimes appends a trailing NaN row intraday)
+            close_all = col("close")
+            high_all = col("high")
+            low_all = col("low")
+            vol_all = col("volume")
 
-            last_close = float(close.iloc[-1]) if len(close) else None
-            day_pct = _calc_return_pct(close, 1)          # Day%
-            clv_pct = _calc_clv_pct(high, low, close)     # CLV%
+            ohlc = pd.DataFrame({"Close": close_all, "High": high_all, "Low": low_all})
+            ohlc = ohlc.dropna()
+            if ohlc.empty or len(ohlc) < 20:
+                rows.append((t, None, None, None, None, None, None, None, None, None, None))
+                continue
+
+            close = ohlc["Close"]
+            high = ohlc["High"]
+            low = ohlc["Low"]
+
+            # Align volume to the same index (best-effort)
+            vol = vol_all.reindex(ohlc.index).dropna()
+
+            last_close = float(close.iloc[-1])
+
+            day_pct = _calc_return_pct(close, 1)  # same as 1D
+            clv_pct = _calc_clv_pct(high, low, close)
 
             atr_series = _wilder_atr(high, low, close, n=atr_period)
             atr_now = float(atr_series.iloc[-1]) if len(atr_series) else None
