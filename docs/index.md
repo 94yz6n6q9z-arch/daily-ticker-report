@@ -1,12 +1,12 @@
 # Daily Report
 
-_Generated: **2026-02-22 15:46 CET**_
+_Generated: **2026-02-22 16:12 CET**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and volatility at VIX -5.64%, with headlines clustering around AI/tech, macro/geopolitics. Over the past month vs ~3 months, S&P +0.49% vs +4.64% and NDX -1.24% vs +3.19% frame today’s move in context; No watchlist names moved >4% incl. after-hours.
+Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and volatility at VIX -5.64%, with headlines clustering around Fed/rates, AI/tech, macro/geopolitics. Over the past month vs ~3 months, S&P +0.49% vs +4.64% and NDX -1.24% vs +3.19% frame today’s move in context; No watchlist names moved >4% incl. after-hours.
 
 **Key tape (multi-horizon):**
 
@@ -27,7 +27,7 @@ Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and 
 | Silver           | 82.34     | <span style="color:#11823b;">+6.16%</span> | <span style="color:#11823b;">+5.77%</span>  | <span style="color:#b91c1c;">-10.70%</span> | <span style="color:#11823b;">+65.11%</span> | <span style="color:#11823b;">+111.12%</span> |
 | Coffee           | 287.65    | <span style="color:#11823b;">+0.09%</span> | <span style="color:#b91c1c;">-4.13%</span>  | <span style="color:#b91c1c;">-17.22%</span> | <span style="color:#b91c1c;">-28.09%</span> | <span style="color:#b91c1c;">-26.37%</span>  |
 | Cocoa            | 3,072.00  | <span style="color:#11823b;">+3.50%</span> | <span style="color:#b91c1c;">-14.21%</span> | <span style="color:#b91c1c;">-30.94%</span> | <span style="color:#b91c1c;">-39.58%</span> | <span style="color:#b91c1c;">-59.48%</span>  |
-| Bitcoin          | 67,441.14 | <span style="color:#b91c1c;">-0.83%</span> | <span style="color:#b91c1c;">-1.96%</span>  | <span style="color:#b91c1c;">-24.65%</span> | <span style="color:#b91c1c;">-23.60%</span> | <span style="color:#b91c1c;">-39.68%</span>  |
+| Bitcoin          | 67,345.16 | <span style="color:#b91c1c;">-0.97%</span> | <span style="color:#b91c1c;">-2.10%</span>  | <span style="color:#b91c1c;">-24.76%</span> | <span style="color:#b91c1c;">-23.71%</span> | <span style="color:#b91c1c;">-39.76%</span>  |
 
 **Macro charts (5Y):**
 
@@ -98,15 +98,7 @@ _Includes **SOFT** (pierced but <0.5 ATR) and **CONFIRMED** (≥0.5 ATR)._
 
 **NEW (today):**
 
-| Ticker   | Signal                      |   Close |   Level |   Dist(ATR) | Day%   | Chart                                             |
-| :--- | :--- | ---: | ---: | ---: | ---: | :--- |
-| REP.MC   | CONFIRMED_RECT_BREAKOUT     |   18.3  |   16.9  |        3    | +0.88% | [chart](img/REP.MC_CONFIRMED_RECT_BREAKOUT.png)   |
-| NAT      | CONFIRMED_RECT_BREAKOUT     |    4.93 |    4.44 |        3.52 | +2.07% | [chart](img/NAT_CONFIRMED_RECT_BREAKOUT.png)      |
-| REP.MC   | CONFIRMED_IHS_BREAKOUT      |   18.3  |   16.35 |        4.18 | +0.88% | [chart](img/REP.MC_CONFIRMED_IHS_BREAKOUT.png)    |
-| TNK      | CONFIRMED_BROADEN_BREAKOUT  |   72.88 |   62.62 |        4.34 | -1.37% | [chart](img/TNK_CONFIRMED_BROADEN_BREAKOUT.png)   |
-| INSW     | CONFIRMED_WEDGE_UP_BREAKOUT |   67.47 |   55.65 |        6    | +0.66% | [chart](img/INSW_CONFIRMED_WEDGE_UP_BREAKOUT.png) |
-| CVX      | SOFT_WEDGE_UP_BREAKOUT      |  183.93 |  183.26 |        0.18 | -0.46% |                                                   |
-| PSX      | SOFT_WEDGE_UP_BREAKOUT      |  155.75 |  154.88 |        0.19 | +0.22% |                                                   |
+_None_
 
 **ONGOING:**
 
@@ -125,6 +117,11 @@ _Includes **SOFT** (pierced but <0.5 ATR) and **CONFIRMED** (≥0.5 ATR)._
 | QBTS      | CONFIRMED_WEDGE_DOWN_BREAKDOWN |     18.06 |     21.95 |       -2.1  | -6.81% | [chart](img/QBTS_CONFIRMED_WEDGE_DOWN_BREAKDOWN.png)   |
 | AMZN      | CONFIRMED_HS_TOP_BREAKDOWN     |    210.11 |    228.75 |       -2.28 | +2.56% | [chart](img/AMZN_CONFIRMED_HS_TOP_BREAKDOWN.png)       |
 | ARM       | CONFIRMED_WEDGE_DOWN_BREAKOUT  |    125.58 |    106.39 |        2.71 | -1.06% | [chart](img/ARM_CONFIRMED_WEDGE_DOWN_BREAKOUT.png)     |
+| REP.MC    | CONFIRMED_RECT_BREAKOUT        |     18.3  |     16.9  |        3    | +0.88% | [chart](img/REP.MC_CONFIRMED_RECT_BREAKOUT.png)        |
+| NAT       | CONFIRMED_RECT_BREAKOUT        |      4.93 |      4.44 |        3.52 | +2.07% | [chart](img/NAT_CONFIRMED_RECT_BREAKOUT.png)           |
+| REP.MC    | CONFIRMED_IHS_BREAKOUT         |     18.3  |     16.35 |        4.18 | +0.88% | [chart](img/REP.MC_CONFIRMED_IHS_BREAKOUT.png)         |
+| TNK       | CONFIRMED_BROADEN_BREAKOUT     |     72.88 |     62.62 |        4.34 | -1.37% | [chart](img/TNK_CONFIRMED_BROADEN_BREAKOUT.png)        |
+| INSW      | CONFIRMED_WEDGE_UP_BREAKOUT    |     67.47 |     55.65 |        6    | +0.66% | [chart](img/INSW_CONFIRMED_WEDGE_UP_BREAKOUT.png)      |
 | OKLO      | SOFT_WEDGE_DOWN_BREAKDOWN      |     63.83 |     63.97 |       -0.02 | -5.63% |                                                        |
 | VST       | SOFT_BROADEN_BREAKOUT          |    171.4  |    171.03 |        0.05 | -0.64% |                                                        |
 | TSM       | SOFT_BROADEN_BREAKOUT          |    370.54 |    369.2  |        0.08 | +2.82% |                                                        |
@@ -133,6 +130,8 @@ _Includes **SOFT** (pierced but <0.5 ATR) and **CONFIRMED** (≥0.5 ATR)._
 | AMZN      | SOFT_BROADEN_BREAKDOWN         |    210.11 |    211.13 |       -0.12 | +2.56% |                                                        |
 | MELI      | SOFT_TRIANGLE_BREAKDOWN        |   1996.87 |   2008.36 |       -0.14 | +0.02% |                                                        |
 | GOOGL     | SOFT_BROADEN_BREAKDOWN         |    314.98 |    316.58 |       -0.15 | +4.01% |                                                        |
+| CVX       | SOFT_WEDGE_UP_BREAKOUT         |    183.93 |    183.26 |        0.18 | -0.46% |                                                        |
+| PSX       | SOFT_WEDGE_UP_BREAKOUT         |    155.75 |    154.88 |        0.19 | +0.22% |                                                        |
 | AMAT      | SOFT_BROADEN_BREAKOUT          |    375.38 |    369.69 |        0.3  | +1.50% |                                                        |
 | NFLX      | SOFT_WEDGE_DOWN_BREAKOUT       |     78.67 |     77.8  |        0.33 | +2.17% |                                                        |
 | MUV2.DE   | SOFT_BROADEN_BREAKOUT          |    542    |    538.73 |        0.4  | +1.16% |                                                        |
@@ -141,28 +140,21 @@ _Includes **SOFT** (pierced but <0.5 ATR) and **CONFIRMED** (≥0.5 ATR)._
 
 _Linked digest for drill-down._
 
-- [Two AI Stocks, Ralph Lauren Lead Five Stocks To Watch Near Buy Points](https://www.investors.com/news/ai-stocks-ralph-lauren-rl-stocks-to-watch/?src=A00220&yptr=yahoo) — Yahoo Finance
-- [RGTI or QBTS: Top Analyst Selects the Top Quantum Computing Stock to Buy](https://finance.yahoo.com/news/rgti-qbts-top-analyst-selects-130000704.html) — Yahoo Finance
-- [Charlie Munger said saving $100K creates the fast track to wealth, but here’s why just 20K can set you up for success](https://finance.yahoo.com/news/charlie-munger-said-saving-100k-130000914.html) — Yahoo Finance
-- ['Buyer beware': Legal expert says private equity funds could pose big risk to your 401(k). Here's what you need to know](https://finance.yahoo.com/news/buyer-beware-legal-expert-says-124500760.html) — Yahoo Finance
-- [United Airlines escalates the credit card perk wars](https://finance.yahoo.com/news/united-airlines-escalates-the-credit-card-perk-wars-110050612.html) — Yahoo Finance
-- [50% of US parents financially support their adult kids, with average payments of $1,474/month. What they're doing wrong](https://finance.yahoo.com/news/50-us-parents-financially-support-123000232.html) — Yahoo Finance
-- [VivoPower secures $30M for AI data centers - ICYMI](https://finance.yahoo.com/news/vivopower-secures-30m-ai-data-130004444.html) — Yahoo Finance
-- [Couple was on track for early retirement until kids blew up the budget. Can they still achieve their goal on one income?](https://finance.yahoo.com/news/couple-track-early-retirement-until-133000895.html) — Yahoo Finance
-- [One man used his Costco membership to save over $11K on a new car. How shoppers are finding alternatives to high prices](https://finance.yahoo.com/news/one-man-used-costco-membership-121500026.html) — Yahoo Finance
-- [Cushman & Wakefield (CWK) Delivers Record Revenue as Commercial Real Estate Demand Holds Firm](https://finance.yahoo.com/news/cushman-wakefield-cwk-delivers-record-134319753.html) — Yahoo Finance
+- [$955 saved for retirement? Millions are in that boat.](https://finance.yahoo.com/news/955-saved-for-retirement-millions-are-in-that-boat-150003868.html) — Yahoo Finance
+- [4 Top Dividend Stocks Yielding More Than 4% to Buy for Passive Income Right Now](https://finance.yahoo.com/news/4-top-dividend-stocks-yielding-145200299.html) — Yahoo Finance
+- [PowerFleet (AIOT) Poised to Deliver Strong Returns After an Impressive Quarter](https://finance.yahoo.com/news/powerfleet-aiot-poised-deliver-strong-143903101.html) — Yahoo Finance
+- [Federal Segment Strength Fuels Optimism Towards Appian (APPN)](https://finance.yahoo.com/news/federal-segment-strength-fuels-optimism-143901842.html) — Yahoo Finance
+- [Pagaya Technologies (PGY) to Exhibit Growth Amid Credit Tightening](https://finance.yahoo.com/news/pagaya-technologies-pgy-exhibit-growth-143904449.html) — Yahoo Finance
+- [Favorable Application SaaS Outlook Bodes Well for Five9 (FIVN)](https://finance.yahoo.com/news/favorable-application-saas-outlook-bodes-143900990.html) — Yahoo Finance
+- [President and CEO Sells UWMC 1.9M Shares for $9.0 Million](https://finance.yahoo.com/news/president-ceo-sells-uwmc-1-144109666.html) — Yahoo Finance
+- [Progress Software (PRGS) Remains Resilient Against AI-Linked Threats](https://finance.yahoo.com/news/progress-software-prgs-remains-resilient-143858434.html) — Yahoo Finance
+- [Here is Why Flywire Corporation (FLYW) Appears so Attractive](https://finance.yahoo.com/news/why-flywire-corporation-flyw-appears-143856640.html) — Yahoo Finance
+- [Payoneer (PAYO) Strikes Strategic Partnership With Bridge](https://finance.yahoo.com/news/payoneer-payo-strikes-strategic-partnership-143855988.html) — Yahoo Finance
 
 ## Changelog
 
-**New signals:**
+**New signals:** _None_
 
-- CVX|SOFT_WEDGE_UP_BREAKOUT
-- INSW|CONFIRMED_WEDGE_UP_BREAKOUT
-- NAT|CONFIRMED_RECT_BREAKOUT
-- PSX|SOFT_WEDGE_UP_BREAKOUT
-- REP.MC|CONFIRMED_IHS_BREAKOUT
-- REP.MC|CONFIRMED_RECT_BREAKOUT
-- TNK|CONFIRMED_BROADEN_BREAKOUT
 
 **Ended signals:** _None_
 
@@ -199,6 +191,7 @@ Columns: **Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) |
 | NFLX | 78.7 | +2.2% | +85.3% |  |  | 0.8x | <span style="color:#11823b;">+2.2%</span> | <span style="color:#b91c1c;">-1.2%</span> | <span style="color:#b91c1c;">-5.8%</span> | <span style="color:#b91c1c;">-24.6%</span> |
 | META | 655.7 | +1.7% | +37.4% |  |  | 0.8x | <span style="color:#11823b;">+1.7%</span> | <span style="color:#b91c1c;">-1.9%</span> | <span style="color:#11823b;">+1.2%</span> | <span style="color:#11823b;">+10.3%</span> |
 | AAPL | 264.6 | +1.5% | +94.8% |  |  | 0.7x | <span style="color:#11823b;">+1.5%</span> | <span style="color:#b91c1c;">-4.0%</span> | <span style="color:#11823b;">+6.5%</span> | <span style="color:#b91c1c;">-2.5%</span> |
+| MELI | 1,996.9 | +0.0% | +14.9% |  |  | 0.7x | <span style="color:#11823b;">+0.0%</span> | <span style="color:#b91c1c;">-1.1%</span> | <span style="color:#b91c1c;">-7.3%</span> | <span style="color:#11823b;">+2.3%</span> |
 | MSFT | 397.2 | -0.3% | -16.5% |  |  | 0.7x | <span style="color:#b91c1c;">-0.3%</span> | <span style="color:#b91c1c;">-1.8%</span> | <span style="color:#b91c1c;">-11.9%</span> | <span style="color:#b91c1c;">-15.9%</span> |
 
 ### Consumer & retail
@@ -222,6 +215,7 @@ Columns: **Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) |
 | UCG.MI | 73.9 | +1.5% | +12.0% |  |  | 0.9x | <span style="color:#11823b;">+1.5%</span> | <span style="color:#b91c1c;">-0.9%</span> | <span style="color:#11823b;">+2.0%</span> | <span style="color:#11823b;">+17.6%</span> |
 | ARR | 17.9 | +1.3% | +85.4% |  |  | 0.9x | <span style="color:#11823b;">+1.3%</span> | <span style="color:#11823b;">+1.3%</span> | <span style="color:#b91c1c;">-3.0%</span> | <span style="color:#11823b;">+7.7%</span> |
 | NU | 17.5 | +1.2% | +71.4% |  |  | 0.8x | <span style="color:#11823b;">+1.2%</span> | <span style="color:#11823b;">+0.7%</span> | <span style="color:#b91c1c;">-2.6%</span> | <span style="color:#11823b;">+10.3%</span> |
+| MUV2.DE | 542.0 | +1.2% | +100.0% |  |  | 1.1x | <span style="color:#11823b;">+1.2%</span> | <span style="color:#11823b;">+1.6%</span> | <span style="color:#11823b;">+6.1%</span> | <span style="color:#11823b;">+1.8%</span> |
 | PGR | 204.1 | +1.1% | +96.3% |  |  | 0.7x | <span style="color:#11823b;">+1.1%</span> | <span style="color:#b91c1c;">-2.1%</span> | <span style="color:#b91c1c;">-1.4%</span> | <span style="color:#b91c1c;">-10.1%</span> |
 | HOOD | 76.1 | +0.6% | -33.6% |  |  | 0.8x | <span style="color:#11823b;">+0.6%</span> | <span style="color:#b91c1c;">-2.4%</span> | <span style="color:#b91c1c;">-28.4%</span> | <span style="color:#b91c1c;">-29.1%</span> |
 
@@ -265,10 +259,3 @@ Columns: **Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) |
 | MPC | 196.8 | +0.1% | +12.7% |  |  | 0.7x | <span style="color:#11823b;">+0.1%</span> | <span style="color:#b91c1c;">-5.7%</span> | <span style="color:#11823b;">+11.9%</span> | <span style="color:#11823b;">+3.2%</span> |
 | CVX | 183.9 | -0.5% | +25.3% |  |  | 0.8x | <span style="color:#b91c1c;">-0.5%</span> | <span style="color:#b91c1c;">-1.0%</span> | <span style="color:#11823b;">+10.4%</span> | <span style="color:#11823b;">+22.6%</span> |
 | TNK | 72.9 | -1.4% | +3.4% |  |  | 1.7x | <span style="color:#b91c1c;">-1.4%</span> | <span style="color:#11823b;">+4.8%</span> | <span style="color:#11823b;">+20.5%</span> | <span style="color:#11823b;">+17.1%</span> |
-
-### Other
-
-| Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M |
-| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| MUV2.DE | 542.0 | +1.2% | +100.0% |  |  | 1.1x | <span style="color:#11823b;">+1.2%</span> | <span style="color:#11823b;">+1.6%</span> | <span style="color:#11823b;">+6.1%</span> | <span style="color:#11823b;">+1.8%</span> |
-| MELI | 1,996.9 | +0.0% | +14.9% |  |  | 0.7x | <span style="color:#11823b;">+0.0%</span> | <span style="color:#b91c1c;">-1.1%</span> | <span style="color:#b91c1c;">-7.3%</span> | <span style="color:#11823b;">+2.3%</span> |
