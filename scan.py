@@ -23,7 +23,7 @@ NEW (this update):
 from __future__ import annotations
 
 import argparse
-import datetime as dt
+ datetime as dt
 import json
 import math
 import os
@@ -39,7 +39,7 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 
-from watchlist_perf import build_watchlist_performance_section_md
+from tools.watchlist_perf import build_watchlist_performance_section_md
 
 import matplotlib
 matplotlib.use("Agg")
