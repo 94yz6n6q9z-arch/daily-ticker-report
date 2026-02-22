@@ -1655,7 +1655,7 @@ def main():
         "Euro / US Dollar",
         "CCY: EURUSD",
         "macro_eurusd_5y.png",
-        decimals_last=4,
+        decimals_last=2,
         line_color="#d93025",
     )
 
@@ -1770,14 +1770,14 @@ def main():
     if vix_card and eur_card:
         md.append(
             f"<table><tr>"
-            f"<td style='padding-right:12px;'><img src='{vix_card}' width='{W}' style='width:{W}px;max-width:{W}px;height:auto;'></td>"
-            f"<td><img src='{eur_card}' width='{W}' style='width:{W}px;max-width:{W}px;height:auto;'></td>"
+            f"<td style=\"padding-right:12px;\"><img src=\"{vix_card}\" width=\"{W}\" style=\"width:{W}px;max-width:{W}px;height:auto;\"></td>"
+            f"<td><img src=\"{eur_card}\" width=\"{W}\" style=\"width:{W}px;max-width:{W}px;height:auto;\"></td>"
             f"</tr></table>\n"
         )
     elif vix_card:
-        md.append(f"<img src='{vix_card}' width='{W}' style='width:{W}px;max-width:{W}px;height:auto;'>\n")
+        md.append(f"<img src=\"{vix_card}\" width=\"{W}\" style=\"width:{W}px;max-width:{W}px;height:auto;\">\n")
     elif eur_card:
-        md.append(f"<img src='{eur_card}' width='{W}' style='width:{W}px;max-width:{W}px;height:auto;'>\n")
+        md.append(f"<img src=\"{eur_card}\" width=\"{W}\" style=\"width:{W}px;max-width:{W}px;height:auto;\">\n")
     md.append("")
 
     # 2) Movers
