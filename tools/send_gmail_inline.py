@@ -13,6 +13,7 @@ from email.mime.image import MIMEImage
 from email.mime.base import MIMEBase
 from email import encoders
 
+
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / "docs"
 IMG = DOCS / "img"
@@ -35,13 +36,25 @@ def _attach_file(msg: MIMEMultipart, path: Path, mimetype=("application", "octet
     msg.attach(part)
 
 
+def _replace_src_with_cid(html: str, filename: str, cid: str) -> str:
+    """
+    Replace any src attribute pointing to `filename` with cid reference.
+    Handles src="..." and src='...'.
+    """
+    # matches: src="...macro_vix_5y.png" OR src='...macro_vix_5y.png'
+    pat = re.compile(rf'src=(["\'])([^"\']*{re.escape(filename)})\1', flags=re.IGNORECASE)
+    return pat.sub(f'src="cid:{cid}"', html)
+
+
 def main() -> None:
     mail_to = _must_env("MAIL_TO")
     mail_username = _must_env("MAIL_USERNAME")
     mail_password = _must_env("MAIL_PASSWORD")
-    subject = os.environ.get("MAIL_SUBJECT", "Daily Ticker Report")
+    subject = os.environ.get("MAIL_SUBJECT", "Daily Ticker Report").strip() or "Daily Ticker Report"
 
     to_list = [x.strip() for x in mail_to.split(",") if x.strip()]
+    if not to_list:
+        raise SystemExit("MAIL_TO is empty after parsing (expected comma-separated emails)")
 
     html_path = DOCS / "email.html"
     txt_path = DOCS / "email.txt"
@@ -60,14 +73,10 @@ def main() -> None:
         "macro_eurusd_5y": IMG / "macro_eurusd_5y.png",
     }
 
+    # Only rewrite to cid if the file exists (prevents broken placeholders)
     for cid, p in cid_map.items():
-        # Replace any src="...macro_vix_5y.png" with src="cid:macro_vix_5y"
-        html = re.sub(
-            rf'src="[^"]*{re.escape(p.name)}"',
-            f'src="cid:{cid}"',
-            html,
-            flags=re.IGNORECASE,
-        )
+        if p.exists():
+            html = _replace_src_with_cid(html, p.name, cid)
 
     msg = MIMEMultipart("related")
     msg["From"] = mail_username
@@ -86,10 +95,12 @@ def main() -> None:
     for cid, p in cid_map.items():
         if not p.exists():
             continue
-        img = MIMEImage(p.read_bytes())
-        img.add_header("Content-ID", f"<{cid}>")
-        img.add_header("Content-Disposition", "inline", filename=p.name)
-        msg.attach(img)
+        img_part = MIMEImage(p.read_bytes(), _subtype="png")
+        img_part.add_header("Content-ID", f"<{cid}>")
+        img_part.add_header("Content-Disposition", "inline", filename=p.name)
+        # Helps some clients
+        img_part.add_header("X-Attachment-Id", cid)
+        msg.attach(img_part)
 
     # Attach report + state
     _attach_file(msg, DOCS / "report.md", ("text", "markdown"))
@@ -100,7 +111,7 @@ def main() -> None:
         server.login(mail_username, mail_password)
         server.sendmail(mail_username, to_list, msg.as_string())
 
-    print("Email sent with inline macro charts.")
+    print("Email sent (inline macro charts if available).")
 
 
 if __name__ == "__main__":
