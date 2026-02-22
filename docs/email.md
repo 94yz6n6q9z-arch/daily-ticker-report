@@ -1,6 +1,6 @@
 # Daily Report
 
-_Generated: **2026-02-22 11:21 CET**_
+_Generated: **2026-02-22 11:39 CET**_
 
 ## 1) Market recap & positioning
 
@@ -27,11 +27,11 @@ Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and 
 | Silver           | 82.34     | <span style="color:#11823b;">+6.16%</span> | <span style="color:#11823b;">+5.77%</span>  | <span style="color:#b91c1c;">-10.70%</span> | <span style="color:#11823b;">+65.11%</span> | <span style="color:#11823b;">+111.12%</span> |
 | Coffee           | 287.65    | <span style="color:#11823b;">+0.09%</span> | <span style="color:#b91c1c;">-4.13%</span>  | <span style="color:#b91c1c;">-17.22%</span> | <span style="color:#b91c1c;">-28.09%</span> | <span style="color:#b91c1c;">-26.37%</span>  |
 | Cocoa            | 3,072.00  | <span style="color:#11823b;">+3.50%</span> | <span style="color:#b91c1c;">-14.21%</span> | <span style="color:#b91c1c;">-30.94%</span> | <span style="color:#b91c1c;">-39.58%</span> | <span style="color:#b91c1c;">-59.48%</span>  |
-| Bitcoin          | 68,038.16 | <span style="color:#11823b;">+0.05%</span> | <span style="color:#b91c1c;">-1.09%</span>  | <span style="color:#b91c1c;">-23.98%</span> | <span style="color:#b91c1c;">-22.92%</span> | <span style="color:#b91c1c;">-39.14%</span>  |
+| Bitcoin          | 68,075.29 | <span style="color:#11823b;">+0.11%</span> | <span style="color:#b91c1c;">-1.04%</span>  | <span style="color:#b91c1c;">-23.94%</span> | <span style="color:#b91c1c;">-22.88%</span> | <span style="color:#b91c1c;">-39.11%</span>  |
 
 **Macro charts (5Y):**
 
-<table><tr><td style='padding-right:12px;'><img src='img/macro_vix_5y.png' width='414' style='width:414px;max-width:414px;height:auto;'></td><td><img src='img/macro_eurusd_5y.png' width='414' style='width:414px;max-width:414px;height:auto;'></td></tr></table>
+<table><tr><td style="padding-right:12px;"><img src="img/macro_vix_5y.png" width="414" style="width:414px;max-width:414px;height:auto;"></td><td><img src="img/macro_eurusd_5y.png" width="414" style="width:414px;max-width:414px;height:auto;"></td></tr></table>
 
 
 ## 2) Biggest movers (≥ 4%)
@@ -132,10 +132,10 @@ _Linked digest for drill-down._
 
 - [AI nerds think this British company is massively undervalued](https://finance.yahoo.com/news/ai-nerds-think-british-company-080000949.html) — Yahoo Finance
 - [Plug Power (PLUG) Confronts Legal Challenge Amid Hydrogen Expansion Plans](https://finance.yahoo.com/news/plug-power-plug-confronts-legal-105001462.html) — Yahoo Finance
-- [HELOC and home equity loan rates Saturday, February 21, 2026: Introductory rates tumble (as low as 1.99% to 3.99%)](https://finance.yahoo.com/personal-finance/mortgages/article/heloc-home-equity-loan-interest-rates-today-saturday-february-21-2026-110009891.html) — Yahoo Finance
 - [Best money market account rates today, February 21, 2026 (best account provides 4.01% APY)](https://finance.yahoo.com/personal-finance/banking/article/best-money-market-account-rates-today-saturday-february-21-2026-110019404.html) — Yahoo Finance
+- [HELOC and home equity loan rates Saturday, February 21, 2026: Introductory rates tumble (as low as 1.99% to 3.99%)](https://finance.yahoo.com/personal-finance/mortgages/article/heloc-home-equity-loan-interest-rates-today-saturday-february-21-2026-110009891.html) — Yahoo Finance
 - [Mortgage and refinance interest rates today, February 21, 2026: Slightly higher but still below 6%](https://finance.yahoo.com/personal-finance/mortgages/article/mortgage-refinance-interest-rates-today-saturday-february-21-2026-110034591.html) — Yahoo Finance
-- [Connecting Excellence OTCQB debut & 1,000 Bitcoin target explained - ICYMI](https://finance.yahoo.com/news/connecting-excellence-otcqb-debut-1-074503367.html) — Yahoo Finance
+- [Famed "Big Short" Investor Michael Burry Made a Dire Prediction About Palantir Stock. I Think He's Dead Wrong](https://finance.yahoo.com/news/famed-big-short-investor-michael-082200189.html) — Yahoo Finance
 - [Best CD rates today, February 21, 2026 (best account provides 4% APY)](https://finance.yahoo.com/personal-finance/banking/article/best-cd-rates-today-saturday-february-21-2026-110037681.html) — Yahoo Finance
 - [Best high-yield savings interest rates today, February 21, 2026 (Earn up to 4% APY)](https://finance.yahoo.com/personal-finance/article/best-high-yield-savings-interest-rates-today-saturday-february-21-2026-110039281.html) — Yahoo Finance
 - [TD Cowen is Bullish on Adaptive Biotechnologies Corporation (ADPT)](https://finance.yahoo.com/news/td-cowen-bullish-adaptive-biotechnologies-110153992.html) — Yahoo Finance
