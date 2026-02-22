@@ -23,7 +23,7 @@ NEW (this update):
 from __future__ import annotations
 
 import argparse
- datetime as dt
+import datetime as dt
 import json
 import math
 import os
@@ -39,33 +39,42 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 
-from tools.watchlist_perf import build_watchlist_performance_section_md
-
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+
+# Watchlist performance table (grouped)
+from tools.watchlist_perf import build_watchlist_performance_section_md
 
 # ----------------------------
 # Default watchlist (user-defined)
 # ----------------------------
 # Ensures your full 44-ticker watchlist is ALWAYS included when MODE=custom.
 # You can disable this by setting USE_DEFAULT_WATCHLIST=0 in the environment.
-WATCHLIST_44: List[str] = [
-    "MELI","ARM","QBTS","IONQ","HOOD","PLTR","SNPS","AVGO","CDNS","AMAT",
+WATCHLIST_44: List[str] = ["MELI","ARM","QBTS","IONQ","HOOD","PLTR","SNPS","AVGO","CDNS","AMAT",
     "NFLX","LRCX","TSM","DASH","ISRG","MUV2.DE","PGR","CMG","ANF","DECK",
     "NU","UCG.MI","MC.PA","RMS.PA","VST","OKLO","SMR","CEG","LEU","CCJ",
     "000660.KS","NVDA","NVO","LLY","AMZN","GOOGL","AAPL","META","MSFT","ASML",
     "WMT","BYDDY","RRTL","ARR",
+    "NAT","INSW","TNK","FRO","MPC","PSX","VLO","MAU.PA","REP.MC","CVX"
 ]
 
-# Additional oil names (Venezuela Oil basket)
-VENEZUELA_OIL: List[str] = [
-    "NAT","INSW","TNK","FRO","MPC","PSX","VLO","MAU.PA","REP.MC","CVX",
-]
 
-# Full watchlist used throughout the report
-WATCHLIST_ALL: List[str] = WATCHLIST_44 + VENEZUELA_OIL
-
+# ----------------------------
+# Watchlist categories (for Section 6)
+# ----------------------------
+WATCHLIST_GROUPS: Dict[str, List[str]] = {
+    "AI compute & semis": ["NVDA","TSM","ASML","AMAT","LRCX","AVGO","ARM","000660.KS"],
+    "EDA & design software": ["SNPS","CDNS"],
+    "Big Tech platforms": ["AMZN","GOOGL","AAPL","META","MSFT","NFLX"],
+    "Consumer & retail": ["WMT","CMG","ANF","DECK","DASH","RRTL","BYDDY","MC.PA","RMS.PA"],
+    "Fintech & financials": ["HOOD","NU","UCG.MI","PGR","ARR"],
+    "Healthcare": ["ISRG","LLY","NVO"],
+    "Energy & Nuclear": ["VST","CEG","OKLO","SMR","LEU","CCJ"],
+    "Quantum": ["IONQ","QBTS"],
+    "Venezuela Oil": ["NAT","INSW","TNK","FRO","MPC","PSX","VLO","MAU.PA","REP.MC","CVX"],
+    "Other": ["MELI","MUV2.DE"],
+}
 
 # ----------------------------
 # Paths
@@ -1798,7 +1807,7 @@ def main():
     md.append(movers_table(ah_lf, "After-hours losers"))
 
     # 3) Earnings (watchlist)
-    md.append(earnings_section_md(WATCHLIST_ALL, days=14))
+    md.append(earnings_section_md(WATCHLIST_44, days=14))
 
     # 4) Technical triggers
     md.append("## 4) Technical triggers\n")
@@ -1841,23 +1850,10 @@ def main():
             md.append(f"- {x}")
     else:
         md.append("\n**Ended signals:** _None_\n")
+    # Section 6: Full watchlist performance (grouped)
+    md.append(build_watchlist_performance_section_md(WATCHLIST_GROUPS))
 
 
-    # 6) Watchlist performance (all tickers) — grouped
-    watchlist_groups = {
-        "AI compute & semis": ["NVDA","TSM","ASML","AMAT","LRCX","AVGO","ARM","000660.KS"],
-        "EDA & design software": ["SNPS","CDNS"],
-        "Big Tech platforms": ["AMZN","GOOGL","AAPL","META","MSFT","NFLX"],
-        "Consumer & retail": ["WMT","CMG","ANF","DECK","DASH","RRTL","BYDDY","MC.PA","RMS.PA"],
-        "Fintech & financials": ["HOOD","NU","UCG.MI","PGR","ARR"],
-        "Healthcare": ["ISRG","LLY","NVO"],
-        "Energy & Nuclear": ["VST","CEG","OKLO","SMR","LEU","CCJ"],
-        "Quantum": ["IONQ","QBTS"],
-        "Venezuela Oil": ["NAT","INSW","TNK","FRO","MPC","PSX","VLO","MAU.PA","REP.MC","CVX"],
-        "Other": ["MELI","MUV2.DE"],
-    }
-    md.append(build_watchlist_performance_section_md(watchlist_groups))
-    md.append("")
     md_text = "\n".join(md).strip() + "\n"
 
     write_text(REPORT_PATH, md_text)
