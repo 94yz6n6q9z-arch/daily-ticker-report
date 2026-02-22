@@ -39,6 +39,8 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 
+from watchlist_perf import build_watchlist_performance_section_md
+
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -55,6 +57,14 @@ WATCHLIST_44: List[str] = [
     "000660.KS","NVDA","NVO","LLY","AMZN","GOOGL","AAPL","META","MSFT","ASML",
     "WMT","BYDDY","RRTL","ARR",
 ]
+
+# Additional oil names (Venezuela Oil basket)
+VENEZUELA_OIL: List[str] = [
+    "NAT","INSW","TNK","FRO","MPC","PSX","VLO","MAU.PA","REP.MC","CVX",
+]
+
+# Full watchlist used throughout the report
+WATCHLIST_ALL: List[str] = WATCHLIST_44 + VENEZUELA_OIL
 
 
 # ----------------------------
@@ -1770,14 +1780,14 @@ def main():
     if vix_card and eur_card:
         md.append(
             f"<table><tr>"
-            f"<td style=\"padding-right:12px;\"><img src=\"{vix_card}\" width=\"{W}\" style=\"width:{W}px;max-width:{W}px;height:auto;\"></td>"
-            f"<td><img src=\"{eur_card}\" width=\"{W}\" style=\"width:{W}px;max-width:{W}px;height:auto;\"></td>"
+            f"<td style='padding-right:12px;'><img src='{vix_card}' width='{W}' style='width:{W}px;max-width:{W}px;height:auto;'></td>"
+            f"<td><img src='{eur_card}' width='{W}' style='width:{W}px;max-width:{W}px;height:auto;'></td>"
             f"</tr></table>\n"
         )
     elif vix_card:
-        md.append(f"<img src=\"{vix_card}\" width=\"{W}\" style=\"width:{W}px;max-width:{W}px;height:auto;\">\n")
+        md.append(f"<img src='{vix_card}' width='{W}' style='width:{W}px;max-width:{W}px;height:auto;'>\n")
     elif eur_card:
-        md.append(f"<img src=\"{eur_card}\" width=\"{W}\" style=\"width:{W}px;max-width:{W}px;height:auto;\">\n")
+        md.append(f"<img src='{eur_card}' width='{W}' style='width:{W}px;max-width:{W}px;height:auto;'>\n")
     md.append("")
 
     # 2) Movers
@@ -1788,7 +1798,7 @@ def main():
     md.append(movers_table(ah_lf, "After-hours losers"))
 
     # 3) Earnings (watchlist)
-    md.append(earnings_section_md(WATCHLIST_44, days=14))
+    md.append(earnings_section_md(WATCHLIST_ALL, days=14))
 
     # 4) Technical triggers
     md.append("## 4) Technical triggers\n")
@@ -1832,6 +1842,22 @@ def main():
     else:
         md.append("\n**Ended signals:** _None_\n")
 
+
+    # 6) Watchlist performance (all tickers) — grouped
+    watchlist_groups = {
+        "AI compute & semis": ["NVDA","TSM","ASML","AMAT","LRCX","AVGO","ARM","000660.KS"],
+        "EDA & design software": ["SNPS","CDNS"],
+        "Big Tech platforms": ["AMZN","GOOGL","AAPL","META","MSFT","NFLX"],
+        "Consumer & retail": ["WMT","CMG","ANF","DECK","DASH","RRTL","BYDDY","MC.PA","RMS.PA"],
+        "Fintech & financials": ["HOOD","NU","UCG.MI","PGR","ARR"],
+        "Healthcare": ["ISRG","LLY","NVO"],
+        "Energy & Nuclear": ["VST","CEG","OKLO","SMR","LEU","CCJ"],
+        "Quantum": ["IONQ","QBTS"],
+        "Venezuela Oil": ["NAT","INSW","TNK","FRO","MPC","PSX","VLO","MAU.PA","REP.MC","CVX"],
+        "Other": ["MELI","MUV2.DE"],
+    }
+    md.append(build_watchlist_performance_section_md(watchlist_groups))
+    md.append("")
     md_text = "\n".join(md).strip() + "\n"
 
     write_text(REPORT_PATH, md_text)
