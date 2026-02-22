@@ -1,6 +1,6 @@
 # Daily Report
 
-_Generated: **2026-02-22 16:12 CET**_
+_Generated: **2026-02-22 16:51 CET**_
 
 ## 1) Market recap & positioning
 
@@ -27,7 +27,7 @@ Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and 
 | Silver           | 82.34     | <span style="color:#11823b;">+6.16%</span> | <span style="color:#11823b;">+5.77%</span>  | <span style="color:#b91c1c;">-10.70%</span> | <span style="color:#11823b;">+65.11%</span> | <span style="color:#11823b;">+111.12%</span> |
 | Coffee           | 287.65    | <span style="color:#11823b;">+0.09%</span> | <span style="color:#b91c1c;">-4.13%</span>  | <span style="color:#b91c1c;">-17.22%</span> | <span style="color:#b91c1c;">-28.09%</span> | <span style="color:#b91c1c;">-26.37%</span>  |
 | Cocoa            | 3,072.00  | <span style="color:#11823b;">+3.50%</span> | <span style="color:#b91c1c;">-14.21%</span> | <span style="color:#b91c1c;">-30.94%</span> | <span style="color:#b91c1c;">-39.58%</span> | <span style="color:#b91c1c;">-59.48%</span>  |
-| Bitcoin          | 67,345.16 | <span style="color:#b91c1c;">-0.97%</span> | <span style="color:#b91c1c;">-2.10%</span>  | <span style="color:#b91c1c;">-24.76%</span> | <span style="color:#b91c1c;">-23.71%</span> | <span style="color:#b91c1c;">-39.76%</span>  |
+| Bitcoin          | 67,773.92 | <span style="color:#b91c1c;">-0.34%</span> | <span style="color:#b91c1c;">-1.47%</span>  | <span style="color:#b91c1c;">-24.28%</span> | <span style="color:#b91c1c;">-23.22%</span> | <span style="color:#b91c1c;">-39.38%</span>  |
 
 **Macro charts (5Y):**
 
@@ -140,16 +140,16 @@ _None_
 
 _Linked digest for drill-down._
 
-- [$955 saved for retirement? Millions are in that boat.](https://finance.yahoo.com/news/955-saved-for-retirement-millions-are-in-that-boat-150003868.html) — Yahoo Finance
-- [4 Top Dividend Stocks Yielding More Than 4% to Buy for Passive Income Right Now](https://finance.yahoo.com/news/4-top-dividend-stocks-yielding-145200299.html) — Yahoo Finance
-- [PowerFleet (AIOT) Poised to Deliver Strong Returns After an Impressive Quarter](https://finance.yahoo.com/news/powerfleet-aiot-poised-deliver-strong-143903101.html) — Yahoo Finance
-- [Federal Segment Strength Fuels Optimism Towards Appian (APPN)](https://finance.yahoo.com/news/federal-segment-strength-fuels-optimism-143901842.html) — Yahoo Finance
-- [Pagaya Technologies (PGY) to Exhibit Growth Amid Credit Tightening](https://finance.yahoo.com/news/pagaya-technologies-pgy-exhibit-growth-143904449.html) — Yahoo Finance
-- [Favorable Application SaaS Outlook Bodes Well for Five9 (FIVN)](https://finance.yahoo.com/news/favorable-application-saas-outlook-bodes-143900990.html) — Yahoo Finance
-- [President and CEO Sells UWMC 1.9M Shares for $9.0 Million](https://finance.yahoo.com/news/president-ceo-sells-uwmc-1-144109666.html) — Yahoo Finance
-- [Progress Software (PRGS) Remains Resilient Against AI-Linked Threats](https://finance.yahoo.com/news/progress-software-prgs-remains-resilient-143858434.html) — Yahoo Finance
-- [Here is Why Flywire Corporation (FLYW) Appears so Attractive](https://finance.yahoo.com/news/why-flywire-corporation-flyw-appears-143856640.html) — Yahoo Finance
-- [Payoneer (PAYO) Strikes Strategic Partnership With Bridge](https://finance.yahoo.com/news/payoneer-payo-strikes-strategic-partnership-143855988.html) — Yahoo Finance
+- [A big change at Walmart and Sam’s Club will save you money](https://finance.yahoo.com/news/big-change-walmart-sam-club-153700356.html) — Yahoo Finance
+- [IREN (IREN) Added to MSCI USA Index, Boosting Exposure to Institutional Investors](https://finance.yahoo.com/news/iren-iren-added-msci-usa-152454878.html) — Yahoo Finance
+- [Rocket Lab (RKLB) Launches Cassowary Vex Hypersonic Mission for the U.S. Department of War](https://finance.yahoo.com/news/rocket-lab-rklb-launches-cassowary-152456696.html) — Yahoo Finance
+- [AST SpaceMobile (ASTS) Completes $1 Billion Convertible Notes Offering Private](https://finance.yahoo.com/news/ast-spacemobile-asts-completes-1-152457135.html) — Yahoo Finance
+- [Reddit (RDDT) Director Buys 50,500 Shares in Major Insider Purchase](https://finance.yahoo.com/news/reddit-rddt-director-buys-50-152451037.html) — Yahoo Finance
+- [This Is What I'll Be Looking for When Nvidia Reports on Feb. 25](https://finance.yahoo.com/news/ill-looking-nvidia-reports-feb-153500747.html) — Yahoo Finance
+- [BWS Reiterates Buy on Nebius Group (NBIS) With $130 Target](https://finance.yahoo.com/news/bws-reiterates-buy-nebius-group-152452082.html) — Yahoo Finance
+- [Phillip Securities Cuts Palantir (PLTR) Target, Reiterates Buy Rating Again](https://finance.yahoo.com/news/phillip-securities-cuts-palantir-pltr-152449934.html) — Yahoo Finance
+- [Needham Raises Micron (MU) Target to $450, Maintains Buy Rating](https://finance.yahoo.com/news/needham-raises-micron-mu-target-152447491.html) — Yahoo Finance
+- [Mixed Analyst Sentiment on Tesla (TSLA) Post 5 New Collisions in the “Robotaxi” Fleet](https://finance.yahoo.com/news/mixed-analyst-sentiment-tesla-tsla-152446849.html) — Yahoo Finance
 
 ## Changelog
 
@@ -166,96 +166,96 @@ Columns: **Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) |
 
 | Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 000660.KS | 949,000.0 | +6.2% | +83.8% |  |  | 1.0x | <span style="color:#11823b;">+6.2%</span> | <span style="color:#11823b;">+10.3%</span> | <span style="color:#11823b;">+25.7%</span> | <span style="color:#11823b;">+82.1%</span> |
-| LRCX | 244.9 | +3.2% | +80.9% |  |  | 0.7x | <span style="color:#11823b;">+3.2%</span> | <span style="color:#11823b;">+4.2%</span> | <span style="color:#11823b;">+11.0%</span> | <span style="color:#11823b;">+71.7%</span> |
-| TSM | 370.5 | +2.8% | +74.7% |  |  | 0.7x | <span style="color:#11823b;">+2.8%</span> | <span style="color:#b91c1c;">-0.9%</span> | <span style="color:#11823b;">+13.2%</span> | <span style="color:#11823b;">+34.7%</span> |
-| AMAT | 375.4 | +1.5% | +68.1% |  |  | 0.9x | <span style="color:#11823b;">+1.5%</span> | <span style="color:#11823b;">+10.4%</span> | <span style="color:#11823b;">+17.8%</span> | <span style="color:#11823b;">+67.6%</span> |
-| NVDA | 189.8 | +1.0% | +76.8% |  |  | 1.0x | <span style="color:#11823b;">+1.0%</span> | <span style="color:#b91c1c;">-0.1%</span> | <span style="color:#11823b;">+2.7%</span> | <span style="color:#11823b;">+6.1%</span> |
-| ASML | 1,469.6 | +0.7% | +10.0% |  |  | 0.6x | <span style="color:#11823b;">+0.7%</span> | <span style="color:#11823b;">+2.4%</span> | <span style="color:#11823b;">+5.3%</span> | <span style="color:#11823b;">+52.0%</span> |
-| AVGO | 332.6 | -0.4% | -41.7% |  |  | 0.7x | <span style="color:#b91c1c;">-0.4%</span> | <span style="color:#b91c1c;">-2.9%</span> | <span style="color:#11823b;">+2.2%</span> | <span style="color:#b91c1c;">-2.2%</span> |
-| ARM | 125.6 | -1.1% | -75.4% |  |  | 0.6x | <span style="color:#b91c1c;">-1.1%</span> | <span style="color:#11823b;">+0.2%</span> | <span style="color:#11823b;">+5.4%</span> | <span style="color:#b91c1c;">-4.6%</span> |
+| 000660.KS | 949,000.0 | +6.2% | +83.8% | 43,340.5 | +31.2% | 1.0x | <span style="color:#11823b;">+6.2%</span> | <span style="color:#11823b;">+13.1%</span> | <span style="color:#11823b;">+24.2%</span> | <span style="color:#11823b;">+56.6%</span> |
+| LRCX | 244.9 | +3.2% | +80.9% | 11.5 | +4.7% | 0.7x | <span style="color:#11823b;">+3.2%</span> | <span style="color:#11823b;">+8.1%</span> | <span style="color:#11823b;">+7.2%</span> | <span style="color:#11823b;">+71.0%</span> |
+| TSM | 370.5 | +2.8% | +74.7% | 13.7 | +40.3% | 0.7x | <span style="color:#11823b;">+2.8%</span> | <span style="color:#11823b;">+2.4%</span> | <span style="color:#11823b;">+13.6%</span> | <span style="color:#11823b;">+33.3%</span> |
+| AMAT | 375.4 | +1.5% | +68.1% | 16.2 | +30.7% | 0.9x | <span style="color:#11823b;">+1.5%</span> | <span style="color:#11823b;">+14.1%</span> | <span style="color:#11823b;">+15.4%</span> | <span style="color:#11823b;">+66.7%</span> |
+| NVDA | 189.8 | +1.0% | +76.8% | 6.1 | +16.9% | 1.1x | <span style="color:#11823b;">+1.0%</span> | <span style="color:#11823b;">+0.7%</span> | <span style="color:#11823b;">+3.5%</span> | <span style="color:#11823b;">+4.7%</span> |
+| ASML | 1,469.6 | +0.7% | +10.0% | 47.1 | +2.1% | 0.6x | <span style="color:#11823b;">+0.7%</span> | <span style="color:#11823b;">+4.0%</span> | <span style="color:#11823b;">+8.1%</span> | <span style="color:#11823b;">+46.4%</span> |
+| AVGO | 332.6 | -0.4% | -41.7% | 14.4 | +11.2% | 0.7x | <span style="color:#b91c1c;">-0.4%</span> | <span style="color:#b91c1c;">-2.3%</span> | <span style="color:#11823b;">+1.2%</span> | <span style="color:#b91c1c;">-2.3%</span> |
+| ARM | 125.6 | -1.1% | -75.4% | 6.2 | +19.4% | 0.6x | <span style="color:#b91c1c;">-1.1%</span> | <span style="color:#b91c1c;">-0.3%</span> | <span style="color:#11823b;">+10.2%</span> | <span style="color:#b91c1c;">-7.7%</span> |
 
 ### EDA & design software
 
 | Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| CDNS | 296.3 | -0.1% | -29.8% |  |  | 0.8x | <span style="color:#b91c1c;">-0.1%</span> | <span style="color:#b91c1c;">-1.1%</span> | <span style="color:#b91c1c;">-6.6%</span> | <span style="color:#b91c1c;">-1.4%</span> |
-| SNPS | 439.9 | -0.6% | -58.5% |  |  | 0.7x | <span style="color:#b91c1c;">-0.6%</span> | <span style="color:#11823b;">+0.4%</span> | <span style="color:#b91c1c;">-13.6%</span> | <span style="color:#11823b;">+13.3%</span> |
+| CDNS | 296.3 | -0.1% | -29.8% | 13.1 | +27.2% | 0.8x | <span style="color:#b91c1c;">-0.1%</span> | <span style="color:#b91c1c;">-0.9%</span> | <span style="color:#b91c1c;">-5.6%</span> | <span style="color:#b91c1c;">-2.3%</span> |
+| SNPS | 439.9 | -0.6% | -58.5% | 18.9 | +11.1% | 0.7x | <span style="color:#b91c1c;">-0.6%</span> | <span style="color:#11823b;">+0.6%</span> | <span style="color:#b91c1c;">-15.7%</span> | <span style="color:#11823b;">+14.6%</span> |
 
 ### Big Tech platforms
 
 | Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| GOOGL | 315.0 | +4.0% | +75.9% |  |  | 1.3x | <span style="color:#11823b;">+4.0%</span> | <span style="color:#11823b;">+1.3%</span> | <span style="color:#b91c1c;">-4.7%</span> | <span style="color:#11823b;">+5.1%</span> |
-| AMZN | 210.1 | +2.6% | +71.4% |  |  | 1.0x | <span style="color:#11823b;">+2.6%</span> | <span style="color:#11823b;">+3.0%</span> | <span style="color:#b91c1c;">-10.3%</span> | <span style="color:#b91c1c;">-4.8%</span> |
-| NFLX | 78.7 | +2.2% | +85.3% |  |  | 0.8x | <span style="color:#11823b;">+2.2%</span> | <span style="color:#b91c1c;">-1.2%</span> | <span style="color:#b91c1c;">-5.8%</span> | <span style="color:#b91c1c;">-24.6%</span> |
-| META | 655.7 | +1.7% | +37.4% |  |  | 0.8x | <span style="color:#11823b;">+1.7%</span> | <span style="color:#b91c1c;">-1.9%</span> | <span style="color:#11823b;">+1.2%</span> | <span style="color:#11823b;">+10.3%</span> |
-| AAPL | 264.6 | +1.5% | +94.8% |  |  | 0.7x | <span style="color:#11823b;">+1.5%</span> | <span style="color:#b91c1c;">-4.0%</span> | <span style="color:#11823b;">+6.5%</span> | <span style="color:#b91c1c;">-2.5%</span> |
-| MELI | 1,996.9 | +0.0% | +14.9% |  |  | 0.7x | <span style="color:#11823b;">+0.0%</span> | <span style="color:#b91c1c;">-1.1%</span> | <span style="color:#b91c1c;">-7.3%</span> | <span style="color:#11823b;">+2.3%</span> |
-| MSFT | 397.2 | -0.3% | -16.5% |  |  | 0.7x | <span style="color:#b91c1c;">-0.3%</span> | <span style="color:#b91c1c;">-1.8%</span> | <span style="color:#b91c1c;">-11.9%</span> | <span style="color:#b91c1c;">-15.9%</span> |
+| GOOGL | 315.0 | +4.0% | +75.9% | 9.4 | +17.2% | 1.3x | <span style="color:#11823b;">+4.0%</span> | <span style="color:#b91c1c;">-1.1%</span> | <span style="color:#b91c1c;">-4.1%</span> | <span style="color:#11823b;">+10.8%</span> |
+| AMZN | 210.1 | +2.6% | +71.4% | 6.8 | +22.7% | 1.0x | <span style="color:#11823b;">+2.6%</span> | <span style="color:#11823b;">+1.5%</span> | <span style="color:#b91c1c;">-9.2%</span> | <span style="color:#b91c1c;">-5.6%</span> |
+| NFLX | 78.7 | +2.2% | +85.3% | 2.5 | +8.0% | 0.7x | <span style="color:#11823b;">+2.2%</span> | <span style="color:#b91c1c;">-4.3%</span> | <span style="color:#b91c1c;">-7.8%</span> | <span style="color:#b91c1c;">-31.0%</span> |
+| META | 655.7 | +1.7% | +37.4% | 20.7 | -2.9% | 0.8x | <span style="color:#11823b;">+1.7%</span> | <span style="color:#b91c1c;">-2.2%</span> | <span style="color:#11823b;">+7.0%</span> | <span style="color:#11823b;">+9.7%</span> |
+| AAPL | 264.6 | +1.5% | +94.8% | 6.5 | +18.4% | 0.8x | <span style="color:#11823b;">+1.5%</span> | <span style="color:#b91c1c;">-3.3%</span> | <span style="color:#11823b;">+6.8%</span> | <span style="color:#b91c1c;">-1.1%</span> |
+| MELI | 1,996.9 | +0.0% | +14.9% | 75.9 | -1.1% | 0.7x | <span style="color:#11823b;">+0.0%</span> | <span style="color:#b91c1c;">-1.4%</span> | <span style="color:#b91c1c;">-3.0%</span> | <span style="color:#b91c1c;">-3.0%</span> |
+| MSFT | 397.2 | -0.3% | -16.5% | 11.0 | -18.1% | 0.7x | <span style="color:#b91c1c;">-0.3%</span> | <span style="color:#b91c1c;">-3.9%</span> | <span style="color:#b91c1c;">-10.6%</span> | <span style="color:#b91c1c;">-19.6%</span> |
 
 ### Consumer & retail
 
 | Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| MC.PA | 554.7 | +4.4% | +52.9% |  |  | 1.8x | <span style="color:#11823b;">+4.4%</span> | <span style="color:#11823b;">+5.6%</span> | <span style="color:#b91c1c;">-6.9%</span> | <span style="color:#b91c1c;">-11.0%</span> |
-| RMS.PA | 2,112.0 | +3.6% | +51.5% |  |  | 1.2x | <span style="color:#11823b;">+3.6%</span> | <span style="color:#b91c1c;">-0.4%</span> | <span style="color:#b91c1c;">-0.9%</span> | <span style="color:#b91c1c;">-0.6%</span> |
-| ANF | 96.4 | +0.5% | -41.8% |  |  | 1.3x | <span style="color:#11823b;">+0.5%</span> | <span style="color:#11823b;">+5.4%</span> | <span style="color:#b91c1c;">-1.1%</span> | <span style="color:#11823b;">+38.0%</span> |
-| DECK | 118.7 | +0.5% | -24.8% |  |  | 0.9x | <span style="color:#11823b;">+0.5%</span> | <span style="color:#11823b;">+2.9%</span> | <span style="color:#11823b;">+16.8%</span> | <span style="color:#11823b;">+39.4%</span> |
-| DASH | 176.3 | +0.1% | +35.7% |  |  | 1.2x | <span style="color:#11823b;">+0.1%</span> | <span style="color:#11823b;">+0.5%</span> | <span style="color:#b91c1c;">-15.1%</span> | <span style="color:#b91c1c;">-7.0%</span> |
-| BYDDY | 12.4 | -0.6% | +86.7% |  |  | 0.5x | <span style="color:#b91c1c;">-0.6%</span> | <span style="color:#b91c1c;">-1.8%</span> | <span style="color:#b91c1c;">-3.3%</span> | <span style="color:#11823b;">+3.4%</span> |
-| CMG | 37.5 | -1.1% | -45.6% |  |  | 0.7x | <span style="color:#b91c1c;">-1.1%</span> | <span style="color:#11823b;">+0.9%</span> | <span style="color:#b91c1c;">-7.4%</span> | <span style="color:#11823b;">+18.7%</span> |
-| WMT | 123.0 | -1.5% | +59.7% |  |  | 1.3x | <span style="color:#b91c1c;">-1.5%</span> | <span style="color:#b91c1c;">-4.5%</span> | <span style="color:#11823b;">+4.4%</span> | <span style="color:#11823b;">+16.8%</span> |
+| MC.PA | 554.7 | +4.4% | +52.9% | 14.6 | -7.5% | 1.8x | <span style="color:#11823b;">+4.4%</span> | <span style="color:#11823b;">+5.6%</span> | <span style="color:#b91c1c;">-6.9%</span> | <span style="color:#b91c1c;">-10.5%</span> |
+| RMS.PA | 2,112.0 | +3.6% | +51.5% | 55.3 | +14.2% | 1.2x | <span style="color:#11823b;">+3.6%</span> | <span style="color:#b91c1c;">-0.4%</span> | <span style="color:#b91c1c;">-0.9%</span> | <span style="color:#11823b;">+0.2%</span> |
+| ANF | 96.4 | +0.5% | -41.8% | 5.0 | -4.4% | 1.3x | <span style="color:#11823b;">+0.5%</span> | <span style="color:#11823b;">+4.8%</span> | <span style="color:#b91c1c;">-2.6%</span> | <span style="color:#11823b;">+38.7%</span> |
+| DECK | 118.7 | +0.5% | -24.8% | 4.1 | -11.7% | 0.9x | <span style="color:#11823b;">+0.5%</span> | <span style="color:#11823b;">+2.8%</span> | <span style="color:#11823b;">+16.4%</span> | <span style="color:#11823b;">+41.7%</span> |
+| DASH | 176.3 | +0.1% | +35.7% | 9.1 | +24.8% | 1.2x | <span style="color:#11823b;">+0.1%</span> | <span style="color:#b91c1c;">-5.0%</span> | <span style="color:#b91c1c;">-14.6%</span> | <span style="color:#b91c1c;">-16.9%</span> |
+| BYDDY | 12.4 | -0.6% | +86.7% | 0.3 | +0.5% | 0.5x | <span style="color:#b91c1c;">-0.6%</span> | <span style="color:#11823b;">+1.0%</span> | <span style="color:#b91c1c;">-2.7%</span> | <span style="color:#11823b;">+0.2%</span> |
+| CMG | 37.5 | -1.1% | -45.6% | 1.4 | +23.6% | 0.7x | <span style="color:#b91c1c;">-1.1%</span> | <span style="color:#b91c1c;">-2.3%</span> | <span style="color:#b91c1c;">-7.8%</span> | <span style="color:#11823b;">+22.0%</span> |
+| WMT | 123.0 | -1.5% | +59.7% | 3.5 | +54.1% | 1.3x | <span style="color:#b91c1c;">-1.5%</span> | <span style="color:#b91c1c;">-2.9%</span> | <span style="color:#11823b;">+3.0%</span> | <span style="color:#11823b;">+21.3%</span> |
 | RRTL |  |  |  |  |  |  |  |  |  |  |
 
 ### Fintech & financials
 
 | Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| UCG.MI | 73.9 | +1.5% | +12.0% |  |  | 0.9x | <span style="color:#11823b;">+1.5%</span> | <span style="color:#b91c1c;">-0.9%</span> | <span style="color:#11823b;">+2.0%</span> | <span style="color:#11823b;">+17.6%</span> |
-| ARR | 17.9 | +1.3% | +85.4% |  |  | 0.9x | <span style="color:#11823b;">+1.3%</span> | <span style="color:#11823b;">+1.3%</span> | <span style="color:#b91c1c;">-3.0%</span> | <span style="color:#11823b;">+7.7%</span> |
-| NU | 17.5 | +1.2% | +71.4% |  |  | 0.8x | <span style="color:#11823b;">+1.2%</span> | <span style="color:#11823b;">+0.7%</span> | <span style="color:#b91c1c;">-2.6%</span> | <span style="color:#11823b;">+10.3%</span> |
-| MUV2.DE | 542.0 | +1.2% | +100.0% |  |  | 1.1x | <span style="color:#11823b;">+1.2%</span> | <span style="color:#11823b;">+1.6%</span> | <span style="color:#11823b;">+6.1%</span> | <span style="color:#11823b;">+1.8%</span> |
-| PGR | 204.1 | +1.1% | +96.3% |  |  | 0.7x | <span style="color:#11823b;">+1.1%</span> | <span style="color:#b91c1c;">-2.1%</span> | <span style="color:#b91c1c;">-1.4%</span> | <span style="color:#b91c1c;">-10.1%</span> |
-| HOOD | 76.1 | +0.6% | -33.6% |  |  | 0.8x | <span style="color:#11823b;">+0.6%</span> | <span style="color:#b91c1c;">-2.4%</span> | <span style="color:#b91c1c;">-28.4%</span> | <span style="color:#b91c1c;">-29.1%</span> |
+| UCG.MI | 73.9 | +1.5% | +12.0% | 2.2 | +48.5% | 0.9x | <span style="color:#11823b;">+1.5%</span> | <span style="color:#b91c1c;">-0.9%</span> | <span style="color:#11823b;">+2.0%</span> | <span style="color:#11823b;">+17.8%</span> |
+| ARR | 17.9 | +1.3% | +85.4% | 0.4 | +4.9% | 0.9x | <span style="color:#11823b;">+1.3%</span> | <span style="color:#11823b;">+1.6%</span> | <span style="color:#b91c1c;">-3.0%</span> | <span style="color:#11823b;">+7.5%</span> |
+| NU | 17.5 | +1.2% | +71.4% | 0.6 | +12.8% | 0.8x | <span style="color:#11823b;">+1.2%</span> | <span style="color:#b91c1c;">-0.2%</span> | <span style="color:#11823b;">+1.7%</span> | <span style="color:#11823b;">+14.4%</span> |
+| MUV2.DE | 542.0 | +1.2% | +100.0% | 8.2 | -0.0% | 1.1x | <span style="color:#11823b;">+1.2%</span> | <span style="color:#11823b;">+1.6%</span> | <span style="color:#11823b;">+6.1%</span> | <span style="color:#11823b;">+1.4%</span> |
+| PGR | 204.1 | +1.1% | +96.3% | 5.5 | +1.3% | 0.7x | <span style="color:#11823b;">+1.1%</span> | <span style="color:#11823b;">+0.7%</span> | <span style="color:#11823b;">+0.5%</span> | <span style="color:#b91c1c;">-9.2%</span> |
+| HOOD | 76.1 | +0.6% | -33.6% | 5.7 | +13.5% | 0.8x | <span style="color:#11823b;">+0.6%</span> | <span style="color:#b91c1c;">-11.1%</span> | <span style="color:#b91c1c;">-28.1%</span> | <span style="color:#b91c1c;">-33.4%</span> |
 
 ### Healthcare
 
 | Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| ISRG | 504.0 | +0.9% | +85.3% |  |  | 0.7x | <span style="color:#11823b;">+0.9%</span> | <span style="color:#11823b;">+1.6%</span> | <span style="color:#b91c1c;">-4.1%</span> | <span style="color:#b91c1c;">-10.2%</span> |
-| LLY | 1,009.5 | -1.3% | -46.1% |  |  | 0.9x | <span style="color:#b91c1c;">-1.3%</span> | <span style="color:#b91c1c;">-0.6%</span> | <span style="color:#b91c1c;">-7.2%</span> | <span style="color:#b91c1c;">-4.7%</span> |
-| NVO | 47.4 | -2.1% | +8.3% |  |  | 0.5x | <span style="color:#b91c1c;">-2.1%</span> | <span style="color:#b91c1c;">-2.7%</span> | <span style="color:#b91c1c;">-23.8%</span> | <span style="color:#b91c1c;">-0.4%</span> |
+| ISRG | 504.0 | +0.9% | +85.3% | 13.1 | -2.1% | 0.7x | <span style="color:#11823b;">+0.9%</span> | <span style="color:#11823b;">+1.8%</span> | <span style="color:#b91c1c;">-3.8%</span> | <span style="color:#b91c1c;">-7.8%</span> |
+| LLY | 1,009.5 | -1.3% | -46.1% | 36.6 | +19.3% | 0.9x | <span style="color:#b91c1c;">-1.3%</span> | <span style="color:#b91c1c;">-1.5%</span> | <span style="color:#b91c1c;">-6.4%</span> | <span style="color:#b91c1c;">-2.0%</span> |
+| NVO | 47.4 | -2.1% | +8.3% | 2.1 | +3.0% | 0.5x | <span style="color:#b91c1c;">-2.1%</span> | <span style="color:#b91c1c;">-3.5%</span> | <span style="color:#b91c1c;">-20.1%</span> | <span style="color:#b91c1c;">-0.3%</span> |
 
 ### Energy & Nuclear
 
 | Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| CCJ | 121.3 | +1.9% | +27.3% |  |  | 1.0x | <span style="color:#11823b;">+1.9%</span> | <span style="color:#11823b;">+1.8%</span> | <span style="color:#b91c1c;">-0.4%</span> | <span style="color:#11823b;">+52.8%</span> |
-| CEG | 294.8 | +1.1% | +35.0% |  |  | 0.7x | <span style="color:#11823b;">+1.1%</span> | <span style="color:#11823b;">+6.5%</span> | <span style="color:#11823b;">+2.6%</span> | <span style="color:#b91c1c;">-12.8%</span> |
-| VST | 171.4 | -0.6% | +6.7% |  |  | 0.7x | <span style="color:#b91c1c;">-0.6%</span> | <span style="color:#11823b;">+7.0%</span> | <span style="color:#11823b;">+6.9%</span> | <span style="color:#11823b;">+1.7%</span> |
-| LEU | 203.7 | -2.5% | -21.2% |  |  | 0.5x | <span style="color:#b91c1c;">-2.5%</span> | <span style="color:#b91c1c;">-3.1%</span> | <span style="color:#b91c1c;">-32.6%</span> | <span style="color:#b91c1c;">-15.7%</span> |
-| OKLO | 63.8 | -5.6% | -54.8% |  |  | 0.7x | <span style="color:#b91c1c;">-5.6%</span> | <span style="color:#b91c1c;">-3.6%</span> | <span style="color:#b91c1c;">-29.8%</span> | <span style="color:#b91c1c;">-27.6%</span> |
-| SMR | 13.4 | -8.2% | -82.1% |  |  | 1.0x | <span style="color:#b91c1c;">-8.2%</span> | <span style="color:#b91c1c;">-13.7%</span> | <span style="color:#b91c1c;">-34.9%</span> | <span style="color:#b91c1c;">-27.7%</span> |
+| CCJ | 121.3 | +1.9% | +27.3% | 6.2 | +4.6% | 1.0x | <span style="color:#11823b;">+1.9%</span> | <span style="color:#11823b;">+2.8%</span> | <span style="color:#b91c1c;">-0.8%</span> | <span style="color:#11823b;">+45.7%</span> |
+| CEG | 294.8 | +1.1% | +35.0% | 13.9 | +3.0% | 0.7x | <span style="color:#11823b;">+1.1%</span> | <span style="color:#11823b;">+8.7%</span> | <span style="color:#11823b;">+0.2%</span> | <span style="color:#b91c1c;">-13.1%</span> |
+| VST | 171.4 | -0.6% | +6.7% | 7.5 | -10.9% | 0.7x | <span style="color:#b91c1c;">-0.6%</span> | <span style="color:#11823b;">+7.4%</span> | <span style="color:#11823b;">+7.1%</span> | <span style="color:#b91c1c;">-1.7%</span> |
+| LEU | 203.7 | -2.5% | -21.2% | 25.2 | -15.9% | 0.5x | <span style="color:#b91c1c;">-2.5%</span> | <span style="color:#b91c1c;">-23.1%</span> | <span style="color:#b91c1c;">-33.0%</span> | <span style="color:#b91c1c;">-17.2%</span> |
+| OKLO | 63.8 | -5.6% | -54.8% | 6.9 | -15.3% | 0.7x | <span style="color:#b91c1c;">-5.6%</span> | <span style="color:#b91c1c;">-8.1%</span> | <span style="color:#b91c1c;">-29.7%</span> | <span style="color:#b91c1c;">-33.9%</span> |
+| SMR | 13.4 | -8.2% | -82.1% | 1.6 | -8.3% | 1.0x | <span style="color:#b91c1c;">-8.2%</span> | <span style="color:#b91c1c;">-19.7%</span> | <span style="color:#b91c1c;">-31.9%</span> | <span style="color:#b91c1c;">-37.6%</span> |
 
 ### Quantum
 
 | Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| IONQ | 31.9 | -4.6% | -58.4% |  |  | 0.7x | <span style="color:#b91c1c;">-4.6%</span> | <span style="color:#b91c1c;">-5.1%</span> | <span style="color:#b91c1c;">-35.3%</span> | <span style="color:#b91c1c;">-23.5%</span> |
-| QBTS | 18.1 | -6.8% | -69.4% |  |  | 0.9x | <span style="color:#b91c1c;">-6.8%</span> | <span style="color:#b91c1c;">-8.0%</span> | <span style="color:#b91c1c;">-34.2%</span> | <span style="color:#b91c1c;">-11.5%</span> |
+| IONQ | 31.9 | -4.6% | -58.4% | 3.3 | -15.9% | 0.7x | <span style="color:#b91c1c;">-4.6%</span> | <span style="color:#b91c1c;">-9.3%</span> | <span style="color:#b91c1c;">-34.0%</span> | <span style="color:#b91c1c;">-35.1%</span> |
+| QBTS | 18.1 | -6.8% | -69.4% | 2.0 | -15.4% | 0.9x | <span style="color:#b91c1c;">-6.8%</span> | <span style="color:#b91c1c;">-11.6%</span> | <span style="color:#b91c1c;">-30.6%</span> | <span style="color:#b91c1c;">-21.2%</span> |
 
 ### Venezuela Oil
 
 | Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| FRO | 34.7 | +2.7% | +93.8% |  |  | 1.0x | <span style="color:#11823b;">+2.7%</span> | <span style="color:#11823b;">+15.3%</span> | <span style="color:#11823b;">+37.2%</span> | <span style="color:#11823b;">+34.1%</span> |
-| NAT | 4.9 | +2.1% | +100.0% |  |  | 1.3x | <span style="color:#11823b;">+2.1%</span> | <span style="color:#11823b;">+9.6%</span> | <span style="color:#11823b;">+22.9%</span> | <span style="color:#11823b;">+28.1%</span> |
-| REP.MC | 18.3 | +0.9% | +66.7% |  |  | 1.4x | <span style="color:#11823b;">+0.9%</span> | <span style="color:#11823b;">+6.9%</span> | <span style="color:#11823b;">+16.7%</span> | <span style="color:#11823b;">+16.6%</span> |
-| VLO | 200.8 | +0.8% | +45.6% |  |  | 0.7x | <span style="color:#11823b;">+0.8%</span> | <span style="color:#b91c1c;">-1.5%</span> | <span style="color:#11823b;">+7.4%</span> | <span style="color:#11823b;">+15.7%</span> |
-| INSW | 67.5 | +0.7% | +97.5% |  |  | 1.1x | <span style="color:#11823b;">+0.7%</span> | <span style="color:#11823b;">+7.3%</span> | <span style="color:#11823b;">+19.8%</span> | <span style="color:#11823b;">+23.8%</span> |
-| MAU.PA | 8.6 | +0.2% | +3.0% |  |  | 1.2x | <span style="color:#11823b;">+0.2%</span> | <span style="color:#11823b;">+16.4%</span> | <span style="color:#11823b;">+38.2%</span> | <span style="color:#11823b;">+79.3%</span> |
-| PSX | 155.8 | +0.2% | +14.8% |  |  | 1.1x | <span style="color:#11823b;">+0.2%</span> | <span style="color:#b91c1c;">-3.6%</span> | <span style="color:#11823b;">+9.7%</span> | <span style="color:#11823b;">+16.5%</span> |
-| MPC | 196.8 | +0.1% | +12.7% |  |  | 0.7x | <span style="color:#11823b;">+0.1%</span> | <span style="color:#b91c1c;">-5.7%</span> | <span style="color:#11823b;">+11.9%</span> | <span style="color:#11823b;">+3.2%</span> |
-| CVX | 183.9 | -0.5% | +25.3% |  |  | 0.8x | <span style="color:#b91c1c;">-0.5%</span> | <span style="color:#b91c1c;">-1.0%</span> | <span style="color:#11823b;">+10.4%</span> | <span style="color:#11823b;">+22.6%</span> |
-| TNK | 72.9 | -1.4% | +3.4% |  |  | 1.7x | <span style="color:#b91c1c;">-1.4%</span> | <span style="color:#11823b;">+4.8%</span> | <span style="color:#11823b;">+20.5%</span> | <span style="color:#11823b;">+17.1%</span> |
+| FRO | 34.7 | +2.7% | +93.8% | 1.0 | +16.0% | 1.0x | <span style="color:#11823b;">+2.7%</span> | <span style="color:#11823b;">+19.5%</span> | <span style="color:#11823b;">+31.7%</span> | <span style="color:#11823b;">+34.7%</span> |
+| NAT | 4.9 | +2.1% | +100.0% | 0.1 | +7.0% | 1.3x | <span style="color:#11823b;">+2.1%</span> | <span style="color:#11823b;">+14.1%</span> | <span style="color:#11823b;">+20.5%</span> | <span style="color:#11823b;">+26.4%</span> |
+| REP.MC | 18.3 | +0.9% | +66.7% | 0.5 | +4.4% | 1.4x | <span style="color:#11823b;">+0.9%</span> | <span style="color:#11823b;">+6.9%</span> | <span style="color:#11823b;">+16.7%</span> | <span style="color:#11823b;">+12.0%</span> |
+| VLO | 200.8 | +0.8% | +45.6% | 6.2 | -2.2% | 0.7x | <span style="color:#11823b;">+0.8%</span> | <span style="color:#11823b;">+0.6%</span> | <span style="color:#11823b;">+6.7%</span> | <span style="color:#11823b;">+8.3%</span> |
+| INSW | 67.5 | +0.7% | +97.5% | 1.9 | +1.3% | 1.1x | <span style="color:#11823b;">+0.7%</span> | <span style="color:#11823b;">+11.3%</span> | <span style="color:#11823b;">+16.2%</span> | <span style="color:#11823b;">+23.4%</span> |
+| MAU.PA | 8.6 | +0.2% | +3.0% | 0.4 | +42.9% | 1.2x | <span style="color:#11823b;">+0.2%</span> | <span style="color:#11823b;">+16.4%</span> | <span style="color:#11823b;">+38.2%</span> | <span style="color:#11823b;">+71.2%</span> |
+| PSX | 155.8 | +0.2% | +14.8% | 4.3 | +9.5% | 1.1x | <span style="color:#11823b;">+0.2%</span> | <span style="color:#b91c1c;">-1.0%</span> | <span style="color:#11823b;">+10.0%</span> | <span style="color:#11823b;">+12.5%</span> |
+| MPC | 196.8 | +0.1% | +12.7% | 6.3 | +21.4% | 0.8x | <span style="color:#11823b;">+0.1%</span> | <span style="color:#b91c1c;">-3.6%</span> | <span style="color:#11823b;">+10.9%</span> | <span style="color:#b91c1c;">-1.4%</span> |
+| CVX | 183.9 | -0.5% | +25.3% | 3.5 | +7.2% | 0.8x | <span style="color:#b91c1c;">-0.5%</span> | <span style="color:#11823b;">+0.9%</span> | <span style="color:#11823b;">+10.3%</span> | <span style="color:#11823b;">+19.7%</span> |
+| TNK | 72.9 | -1.4% | +3.4% | 2.3 | +8.3% | 1.7x | <span style="color:#b91c1c;">-1.4%</span> | <span style="color:#11823b;">+8.8%</span> | <span style="color:#11823b;">+17.5%</span> | <span style="color:#11823b;">+15.6%</span> |
