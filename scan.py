@@ -66,15 +66,15 @@ WATCHLIST_44: List[str] = ["MELI","ARM","QBTS","IONQ","HOOD","PLTR","SNPS","AVGO
 WATCHLIST_GROUPS: Dict[str, List[str]] = {
     "AI compute & semis": ["NVDA","TSM","ASML","AMAT","LRCX","AVGO","ARM","000660.KS"],
     "EDA & design software": ["SNPS","CDNS"],
-    "Big Tech platforms": ["AMZN","GOOGL","AAPL","META","MSFT","NFLX"],
+    "Big Tech platforms": ["AMZN","GOOGL","AAPL","META","MSFT","NFLX","MELI"],
     "Consumer & retail": ["WMT","CMG","ANF","DECK","DASH","RRTL","BYDDY","MC.PA","RMS.PA"],
-    "Fintech & financials": ["HOOD","NU","UCG.MI","PGR","ARR"],
+    "Fintech & financials": ["HOOD","NU","UCG.MI","PGR","ARR","MUV2.DE"],
     "Healthcare": ["ISRG","LLY","NVO"],
     "Energy & Nuclear": ["VST","CEG","OKLO","SMR","LEU","CCJ"],
     "Quantum": ["IONQ","QBTS"],
     "Venezuela Oil": ["NAT","INSW","TNK","FRO","MPC","PSX","VLO","MAU.PA","REP.MC","CVX"],
-    "Other": ["MELI","MUV2.DE"],
 }
+
 
 # ----------------------------
 # Paths
