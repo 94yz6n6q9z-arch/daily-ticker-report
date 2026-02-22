@@ -1,12 +1,12 @@
 # Daily Report
 
-_Generated: **2026-02-21 20:02 CET**_
+_Generated: **2026-02-22 11:21 CET**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and volatility at VIX -5.64%, with headlines clustering around AI/tech, earnings/guidance. Over the past month vs ~3 months, S&P +0.49% vs +4.64% and NDX -1.24% vs +3.19% frame today’s move in context; No watchlist names moved >4% incl. after-hours.
+Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and volatility at VIX -5.64%, with headlines clustering around Fed/rates, AI/tech. Over the past month vs ~3 months, S&P +0.49% vs +4.64% and NDX -1.24% vs +3.19% frame today’s move in context; No watchlist names moved >4% incl. after-hours.
 
 **Key tape (multi-horizon):**
 
@@ -22,18 +22,16 @@ Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and 
 | FTSE 100         | 10,686.90 | <span style="color:#11823b;">+0.56%</span> | <span style="color:#11823b;">+2.30%</span>  | <span style="color:#11823b;">+5.41%</span>  | <span style="color:#11823b;">+12.03%</span> | <span style="color:#11823b;">+14.65%</span>  |
 | VIX              | 19.09     | <span style="color:#b91c1c;">-5.64%</span> | <span style="color:#b91c1c;">-7.33%</span>  | <span style="color:#11823b;">+12.96%</span> | <span style="color:#b91c1c;">-18.52%</span> | <span style="color:#11823b;">+34.25%</span>  |
 | EUR/USD          | 1.18      | <span style="color:#b91c1c;">-0.17%</span> | <span style="color:#b91c1c;">-0.84%</span>  | <span style="color:#11823b;">+0.35%</span>  | <span style="color:#11823b;">+2.03%</span>  | <span style="color:#11823b;">+1.34%</span>   |
-| WTI Crude        | 66.39     | <span style="color:#b91c1c;">-0.06%</span> | <span style="color:#11823b;">+5.57%</span>  | <span style="color:#11823b;">+9.52%</span>  | <span style="color:#11823b;">+14.35%</span> | <span style="color:#11823b;">+4.29%</span>   |
-| Gold             | 5,059.30  | <span style="color:#11823b;">+1.68%</span> | <span style="color:#11823b;">+0.74%</span>  | <span style="color:#11823b;">+4.71%</span>  | <span style="color:#11823b;">+24.10%</span> | <span style="color:#11823b;">+49.93%</span>  |
-| Silver           | 82.28     | <span style="color:#11823b;">+6.08%</span> | <span style="color:#11823b;">+5.69%</span>  | <span style="color:#b91c1c;">-10.77%</span> | <span style="color:#11823b;">+64.99%</span> | <span style="color:#11823b;">+110.97%</span> |
-| Coffee           | 288.30    | <span style="color:#11823b;">+0.31%</span> | <span style="color:#b91c1c;">-3.92%</span>  | <span style="color:#b91c1c;">-17.04%</span> | <span style="color:#b91c1c;">-27.93%</span> | <span style="color:#b91c1c;">-26.20%</span>  |
-| Cocoa            | 3,080.00  | <span style="color:#11823b;">+3.77%</span> | <span style="color:#b91c1c;">-13.99%</span> | <span style="color:#b91c1c;">-30.76%</span> | <span style="color:#b91c1c;">-39.42%</span> | <span style="color:#b91c1c;">-59.38%</span>  |
-| Bitcoin          | 68,551.16 | <span style="color:#11823b;">+0.80%</span> | <span style="color:#b91c1c;">-1.74%</span>  | <span style="color:#b91c1c;">-23.37%</span> | <span style="color:#b91c1c;">-21.03%</span> | <span style="color:#b91c1c;">-37.75%</span>  |
+| WTI Crude        | 66.48     | <span style="color:#11823b;">+0.08%</span> | <span style="color:#11823b;">+5.71%</span>  | <span style="color:#11823b;">+9.67%</span>  | <span style="color:#11823b;">+14.50%</span> | <span style="color:#11823b;">+4.43%</span>   |
+| Gold             | 5,080.90  | <span style="color:#11823b;">+2.11%</span> | <span style="color:#11823b;">+1.17%</span>  | <span style="color:#11823b;">+5.16%</span>  | <span style="color:#11823b;">+24.63%</span> | <span style="color:#11823b;">+50.57%</span>  |
+| Silver           | 82.34     | <span style="color:#11823b;">+6.16%</span> | <span style="color:#11823b;">+5.77%</span>  | <span style="color:#b91c1c;">-10.70%</span> | <span style="color:#11823b;">+65.11%</span> | <span style="color:#11823b;">+111.12%</span> |
+| Coffee           | 287.65    | <span style="color:#11823b;">+0.09%</span> | <span style="color:#b91c1c;">-4.13%</span>  | <span style="color:#b91c1c;">-17.22%</span> | <span style="color:#b91c1c;">-28.09%</span> | <span style="color:#b91c1c;">-26.37%</span>  |
+| Cocoa            | 3,072.00  | <span style="color:#11823b;">+3.50%</span> | <span style="color:#b91c1c;">-14.21%</span> | <span style="color:#b91c1c;">-30.94%</span> | <span style="color:#b91c1c;">-39.58%</span> | <span style="color:#b91c1c;">-59.48%</span>  |
+| Bitcoin          | 68,038.16 | <span style="color:#11823b;">+0.05%</span> | <span style="color:#b91c1c;">-1.09%</span>  | <span style="color:#b91c1c;">-23.98%</span> | <span style="color:#b91c1c;">-22.92%</span> | <span style="color:#b91c1c;">-39.14%</span>  |
 
 **Macro charts (5Y):**
 
-![VIX 5Y](img/macro_vix_5y.png)
-
-![EURUSD 5Y](img/macro_eurusd_5y.png)
+<table><tr><td style='padding-right:12px;'><img src='img/macro_vix_5y.png' width='414' style='width:414px;max-width:414px;height:auto;'></td><td><img src='img/macro_eurusd_5y.png' width='414' style='width:414px;max-width:414px;height:auto;'></td></tr></table>
 
 
 ## 2) Biggest movers (≥ 4%)
@@ -52,18 +50,18 @@ _Upcoming earnings dates for your 44-ticker watchlist._
 
 | Ticker   | Earnings Date   |   Days |
 | :--- | ---: | ---: |
-| CEG      | 2026-02-24      |      3 |
-| MELI     | 2026-02-24      |      3 |
-| IONQ     | 2026-02-25      |      4 |
-| NU       | 2026-02-25      |      4 |
-| NVDA     | 2026-02-25      |      4 |
-| SNPS     | 2026-02-25      |      4 |
-| MUV2.DE  | 2026-02-26      |      5 |
-| QBTS     | 2026-02-26      |      5 |
-| SMR      | 2026-02-26      |      5 |
-| VST      | 2026-02-26      |      5 |
-| ANF      | 2026-03-04      |     11 |
-| AVGO     | 2026-03-04      |     11 |
+| CEG      | 2026-02-24      |      2 |
+| MELI     | 2026-02-24      |      2 |
+| IONQ     | 2026-02-25      |      3 |
+| NU       | 2026-02-25      |      3 |
+| NVDA     | 2026-02-25      |      3 |
+| SNPS     | 2026-02-25      |      3 |
+| MUV2.DE  | 2026-02-26      |      4 |
+| QBTS     | 2026-02-26      |      4 |
+| SMR      | 2026-02-26      |      4 |
+| VST      | 2026-02-26      |      4 |
+| ANF      | 2026-03-04      |     10 |
+| AVGO     | 2026-03-04      |     10 |
 
 ## 4) Technical triggers
 
@@ -132,16 +130,16 @@ _None_
 
 _Linked digest for drill-down._
 
-- [Trump-backed Ohio gas plant could become biggest US power polluter](https://finance.yahoo.com/news/trump-backed-gas-plant-could-160000729.html) — Yahoo Finance
-- [Dow Jones Futures: Trump Hikes Global Tariff To 15%; Nvidia Earnings Loom](https://www.investors.com/market-trend/stock-market-today/dow-jones-futures-trump-tariff-ruling-iran-news-nvidia-earnings/?src=A00220&yptr=yahoo) — Yahoo Finance
-- [RingCentral (RNG) Climbs to 52-Week High on Swing to Profit, Dividends](https://finance.yahoo.com/news/ringcentral-rng-climbs-52-week-161445953.html) — Yahoo Finance
-- [Fortuna Mining (FSM) Climbs 12.6% on Higher Gold Resource](https://finance.yahoo.com/news/fortuna-mining-fsm-climbs-12-161436998.html) — Yahoo Finance
-- [First Majestic (AG) Skyrockets by Double-Digits on 22% PT Hike](https://finance.yahoo.com/news/first-majestic-ag-skyrockets-double-161425841.html) — Yahoo Finance
-- [Bitcoin’s $1 trillion identity crisis hits from every direction](https://finance.yahoo.com/news/bitcoin-1-trillion-identity-crisis-150000517.html) — Yahoo Finance
-- [Applied Optoelectronics (AAOI) Hits 9-Year High Ahead of Earnings](https://finance.yahoo.com/news/applied-optoelectronics-aaoi-hits-9-161418900.html) — Yahoo Finance
-- [Celsius Holdings (CELH) Climbs 9.5% Ahead of Earnings](https://finance.yahoo.com/news/celsius-holdings-celh-climbs-9-161411694.html) — Yahoo Finance
-- [Opendoor Technologies (OPEN) Climbs 7.5% on Upbeat Outlook](https://finance.yahoo.com/news/opendoor-technologies-open-climbs-7-161356733.html) — Yahoo Finance
-- [Corning (GLW) Hits All-Time High as Analyst Hikes PT by 28%](https://finance.yahoo.com/news/corning-glw-hits-time-high-161350533.html) — Yahoo Finance
+- [AI nerds think this British company is massively undervalued](https://finance.yahoo.com/news/ai-nerds-think-british-company-080000949.html) — Yahoo Finance
+- [Plug Power (PLUG) Confronts Legal Challenge Amid Hydrogen Expansion Plans](https://finance.yahoo.com/news/plug-power-plug-confronts-legal-105001462.html) — Yahoo Finance
+- [HELOC and home equity loan rates Saturday, February 21, 2026: Introductory rates tumble (as low as 1.99% to 3.99%)](https://finance.yahoo.com/personal-finance/mortgages/article/heloc-home-equity-loan-interest-rates-today-saturday-february-21-2026-110009891.html) — Yahoo Finance
+- [Best money market account rates today, February 21, 2026 (best account provides 4.01% APY)](https://finance.yahoo.com/personal-finance/banking/article/best-money-market-account-rates-today-saturday-february-21-2026-110019404.html) — Yahoo Finance
+- [Mortgage and refinance interest rates today, February 21, 2026: Slightly higher but still below 6%](https://finance.yahoo.com/personal-finance/mortgages/article/mortgage-refinance-interest-rates-today-saturday-february-21-2026-110034591.html) — Yahoo Finance
+- [Connecting Excellence OTCQB debut & 1,000 Bitcoin target explained - ICYMI](https://finance.yahoo.com/news/connecting-excellence-otcqb-debut-1-074503367.html) — Yahoo Finance
+- [Best CD rates today, February 21, 2026 (best account provides 4% APY)](https://finance.yahoo.com/personal-finance/banking/article/best-cd-rates-today-saturday-february-21-2026-110037681.html) — Yahoo Finance
+- [Best high-yield savings interest rates today, February 21, 2026 (Earn up to 4% APY)](https://finance.yahoo.com/personal-finance/article/best-high-yield-savings-interest-rates-today-saturday-february-21-2026-110039281.html) — Yahoo Finance
+- [TD Cowen is Bullish on Adaptive Biotechnologies Corporation (ADPT)](https://finance.yahoo.com/news/td-cowen-bullish-adaptive-biotechnologies-110153992.html) — Yahoo Finance
+- [B. Riley is Bullish on Century Aluminum Company (CENX)](https://finance.yahoo.com/news/b-riley-bullish-century-aluminum-110254224.html) — Yahoo Finance
 
 ## Changelog
 
