@@ -19,6 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TZ: Europe/Vienna
+      # Used to make email links (chart hyperlinks) clickable in Gmail.
+      # Should point to your public site root where /img/... exists.
+      PUBLIC_LINK_BASE: https://94yz6n6q9z-arch.github.io/daily-ticker-report
 
     steps:
       - name: Checkout
@@ -55,23 +58,36 @@ jobs:
           python scan.py
 
       - name: Prepare email bodies (HTML + text)
+        env:
+          BASE: ${{ env.PUBLIC_LINK_BASE }}
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
+          import os
           import markdown as md
 
+          base = os.environ.get("BASE", "").rstrip("/")
           report = Path("docs/report.md")
           if not report.exists():
             raise SystemExit("docs/report.md missing; scan.py did not generate it")
 
           txt = report.read_text(encoding="utf-8", errors="ignore")
 
-          # Keep a markdown copy for debugging / consistency
-          Path("docs/email.md").write_text(txt, encoding="utf-8")
+          # Make relative chart/image links absolute for EMAIL ONLY (Gmail can't open relative links).
+          # Markdown links: (img/...) -> (https://.../img/...)
+          if base:
+            txt_email = txt.replace("(img/", f"({base}/img/")
+            # HTML img src in macro block: src="img/..." or src='img/...'
+            txt_email = txt_email.replace('src="img/', f'src="{base}/img/')
+            txt_email = txt_email.replace("src='img/", f"src='{base}/img/")
+          else:
+            txt_email = txt
 
-          # Render HTML (tables enabled). Raw HTML in markdown (e.g., the Macro charts table) passes through.
+          Path("docs/email.md").write_text(txt_email, encoding="utf-8")
+
           body_html = md.markdown(
-              txt,
+              txt_email,
               extensions=["tables", "sane_lists", "fenced_code"]
           )
 
@@ -95,9 +111,7 @@ jobs:
           </html>"""
 
           Path("docs/email.html").write_text(html, encoding="utf-8")
-
-          # Plain-text fallback (some clients show this)
-          Path("docs/email.txt").write_text(txt[:12000], encoding="utf-8")
+          Path("docs/email.txt").write_text(txt_email[:12000], encoding="utf-8")
           print("Prepared docs/email.md, docs/email.html, docs/email.txt")
           PY
 
