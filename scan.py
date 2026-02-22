@@ -75,7 +75,6 @@ WATCHLIST_GROUPS: Dict[str, List[str]] = {
     "Venezuela Oil": ["NAT","INSW","TNK","FRO","MPC","PSX","VLO","MAU.PA","REP.MC","CVX"],
 }
 
-
 # ----------------------------
 # Paths
 # ----------------------------
@@ -1550,33 +1549,54 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
 # ----------------------------
 # Charting (signals)
 # ----------------------------
-def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal) -> Optional[str]:
-    if df is None or df.empty:
-        return None
-    d = df.tail(220).dropna(subset=["Close"]).copy()
-    if len(d) < 60:
-        return None
-
+def _make_placeholder_png(out_path: Path, title: str, reason: str) -> None:
+    """Create a placeholder PNG so the report always has a clickable chart."""
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     fig = plt.figure(figsize=(10, 4.8))
     ax = fig.add_subplot(111)
-    ax.plot(d.index, d["Close"].values)
-    ax.axhline(sig.level, linestyle="--")
+    ax.axis("off")
+    ax.text(0.02, 0.75, title, fontsize=14, weight="bold", transform=ax.transAxes)
+    ax.text(0.02, 0.50, "Chart unavailable", fontsize=12, transform=ax.transAxes)
+    ax.text(0.02, 0.30, f"Reason: {reason}", fontsize=10, transform=ax.transAxes)
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=160)
+    plt.close(fig)
 
-    title = f"{ticker} | {sig.signal} | level={sig.level:.2f} | dist={sig.dist_atr:+.2f} ATR"
-    ax.set_title(title)
-    ax.set_xlabel("Date")
-    ax.set_ylabel("Close")
-
-    ax.scatter([d.index[-1]], [d["Close"].iloc[-1]])
-    ax.text(d.index[-1], d["Close"].iloc[-1], f"  {d['Close'].iloc[-1]:.2f}", va="center")
-
+def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal) -> str:
+    """Always returns a chart path. If plotting fails, creates a placeholder PNG."""
     fname = f"{ticker}_{sig.signal}.png"
     fname = re.sub(r"[^A-Za-z0-9_\-\.]+", "_", fname)
     out_path = IMG_DIR / fname
 
-    fig.tight_layout()
-    fig.savefig(out_path, dpi=160)
-    plt.close(fig)
+    try:
+        if df is None or df.empty:
+            raise RuntimeError("no price data")
+        d = df.tail(220).dropna(subset=["Close"]).copy()
+        if len(d) < 60:
+            raise RuntimeError("insufficient history (<60 rows)")
+
+        fig = plt.figure(figsize=(10, 4.8))
+        ax = fig.add_subplot(111)
+        ax.plot(d.index, d["Close"].values)
+        ax.axhline(sig.level, linestyle="--")
+
+        title = f"{ticker} | {sig.signal} | level={sig.level:.2f} | dist={sig.dist_atr:+.2f} ATR"
+        ax.set_title(title)
+        ax.set_xlabel("Date")
+        ax.set_ylabel("Close")
+
+        ax.scatter([d.index[-1]], [d["Close"].iloc[-1]])
+        ax.text(d.index[-1], d["Close"].iloc[-1], f"  {d['Close'].iloc[-1]:.2f}", va="center")
+
+        fig.tight_layout()
+        fig.savefig(out_path, dpi=160)
+        plt.close(fig)
+
+        if not out_path.exists() or out_path.stat().st_size < 5000:
+            raise RuntimeError("chart file missing/too small after save")
+
+    except Exception as e:
+        _make_placeholder_png(out_path, f"{ticker} — {sig.signal}", str(e))
 
     return f"img/{fname}"
 
