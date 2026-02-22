@@ -112,10 +112,12 @@ jobs:
 
       - name: Commit and push report
         run: |
+          set -e
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           mkdir -p docs/img
+
           git add docs/report.md docs/index.md docs/state.json docs/img docs/email.md docs/email.html docs/email.txt || true
 
           if git diff --cached --quiet; then
@@ -123,6 +125,7 @@ jobs:
           else
             git commit -m "Daily report update"
             git push
+          fi
 
       - name: Compute subject timestamp
         id: subject
