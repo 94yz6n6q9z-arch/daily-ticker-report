@@ -1,12 +1,12 @@
 # Daily Report
 
-_Generated: **2026-02-22 11:39 CET**_
+_Generated: **2026-02-22 15:46 CET**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and volatility at VIX -5.64%, with headlines clustering around Fed/rates, AI/tech. Over the past month vs ~3 months, S&P +0.49% vs +4.64% and NDX -1.24% vs +3.19% frame today’s move in context; No watchlist names moved >4% incl. after-hours.
+Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and volatility at VIX -5.64%, with headlines clustering around AI/tech, macro/geopolitics. Over the past month vs ~3 months, S&P +0.49% vs +4.64% and NDX -1.24% vs +3.19% frame today’s move in context; No watchlist names moved >4% incl. after-hours.
 
 **Key tape (multi-horizon):**
 
@@ -27,11 +27,11 @@ Markets moved on the day with the Nasdaq leading (NDX +0.87% vs S&P +0.69%) and 
 | Silver           | 82.34     | <span style="color:#11823b;">+6.16%</span> | <span style="color:#11823b;">+5.77%</span>  | <span style="color:#b91c1c;">-10.70%</span> | <span style="color:#11823b;">+65.11%</span> | <span style="color:#11823b;">+111.12%</span> |
 | Coffee           | 287.65    | <span style="color:#11823b;">+0.09%</span> | <span style="color:#b91c1c;">-4.13%</span>  | <span style="color:#b91c1c;">-17.22%</span> | <span style="color:#b91c1c;">-28.09%</span> | <span style="color:#b91c1c;">-26.37%</span>  |
 | Cocoa            | 3,072.00  | <span style="color:#11823b;">+3.50%</span> | <span style="color:#b91c1c;">-14.21%</span> | <span style="color:#b91c1c;">-30.94%</span> | <span style="color:#b91c1c;">-39.58%</span> | <span style="color:#b91c1c;">-59.48%</span>  |
-| Bitcoin          | 68,075.29 | <span style="color:#11823b;">+0.11%</span> | <span style="color:#b91c1c;">-1.04%</span>  | <span style="color:#b91c1c;">-23.94%</span> | <span style="color:#b91c1c;">-22.88%</span> | <span style="color:#b91c1c;">-39.11%</span>  |
+| Bitcoin          | 67,441.14 | <span style="color:#b91c1c;">-0.83%</span> | <span style="color:#b91c1c;">-1.96%</span>  | <span style="color:#b91c1c;">-24.65%</span> | <span style="color:#b91c1c;">-23.60%</span> | <span style="color:#b91c1c;">-39.68%</span>  |
 
 **Macro charts (5Y):**
 
-<table><tr><td style="padding-right:12px;"><img src="img/macro_vix_5y.png" width="414" style="width:414px;max-width:414px;height:auto;"></td><td><img src="img/macro_eurusd_5y.png" width="414" style="width:414px;max-width:414px;height:auto;"></td></tr></table>
+<table><tr><td style='padding-right:12px;'><img src='img/macro_vix_5y.png' width='414' style='width:414px;max-width:414px;height:auto;'></td><td><img src='img/macro_eurusd_5y.png' width='414' style='width:414px;max-width:414px;height:auto;'></td></tr></table>
 
 
 ## 2) Biggest movers (≥ 4%)
@@ -56,10 +56,13 @@ _Upcoming earnings dates for your 44-ticker watchlist._
 | NU       | 2026-02-25      |      3 |
 | NVDA     | 2026-02-25      |      3 |
 | SNPS     | 2026-02-25      |      3 |
+| INSW     | 2026-02-26      |      4 |
 | MUV2.DE  | 2026-02-26      |      4 |
+| NAT      | 2026-02-26      |      4 |
 | QBTS     | 2026-02-26      |      4 |
 | SMR      | 2026-02-26      |      4 |
 | VST      | 2026-02-26      |      4 |
+| FRO      | 2026-02-27      |      5 |
 | ANF      | 2026-03-04      |     10 |
 | AVGO     | 2026-03-04      |     10 |
 
@@ -95,7 +98,15 @@ _Includes **SOFT** (pierced but <0.5 ATR) and **CONFIRMED** (≥0.5 ATR)._
 
 **NEW (today):**
 
-_None_
+| Ticker   | Signal                      |   Close |   Level |   Dist(ATR) | Day%   | Chart                                             |
+| :--- | :--- | ---: | ---: | ---: | ---: | :--- |
+| REP.MC   | CONFIRMED_RECT_BREAKOUT     |   18.3  |   16.9  |        3    | +0.88% | [chart](img/REP.MC_CONFIRMED_RECT_BREAKOUT.png)   |
+| NAT      | CONFIRMED_RECT_BREAKOUT     |    4.93 |    4.44 |        3.52 | +2.07% | [chart](img/NAT_CONFIRMED_RECT_BREAKOUT.png)      |
+| REP.MC   | CONFIRMED_IHS_BREAKOUT      |   18.3  |   16.35 |        4.18 | +0.88% | [chart](img/REP.MC_CONFIRMED_IHS_BREAKOUT.png)    |
+| TNK      | CONFIRMED_BROADEN_BREAKOUT  |   72.88 |   62.62 |        4.34 | -1.37% | [chart](img/TNK_CONFIRMED_BROADEN_BREAKOUT.png)   |
+| INSW     | CONFIRMED_WEDGE_UP_BREAKOUT |   67.47 |   55.65 |        6    | +0.66% | [chart](img/INSW_CONFIRMED_WEDGE_UP_BREAKOUT.png) |
+| CVX      | SOFT_WEDGE_UP_BREAKOUT      |  183.93 |  183.26 |        0.18 | -0.46% |                                                   |
+| PSX      | SOFT_WEDGE_UP_BREAKOUT      |  155.75 |  154.88 |        0.19 | +0.22% |                                                   |
 
 **ONGOING:**
 
@@ -114,11 +125,11 @@ _None_
 | QBTS      | CONFIRMED_WEDGE_DOWN_BREAKDOWN |     18.06 |     21.95 |       -2.1  | -6.81% | [chart](img/QBTS_CONFIRMED_WEDGE_DOWN_BREAKDOWN.png)   |
 | AMZN      | CONFIRMED_HS_TOP_BREAKDOWN     |    210.11 |    228.75 |       -2.28 | +2.56% | [chart](img/AMZN_CONFIRMED_HS_TOP_BREAKDOWN.png)       |
 | ARM       | CONFIRMED_WEDGE_DOWN_BREAKOUT  |    125.58 |    106.39 |        2.71 | -1.06% | [chart](img/ARM_CONFIRMED_WEDGE_DOWN_BREAKOUT.png)     |
-| OKLO      | SOFT_WEDGE_DOWN_BREAKDOWN      |     63.83 |     63.97 |       -0.02 | -5.63% | [chart](img/OKLO_SOFT_WEDGE_DOWN_BREAKDOWN.png)        |
-| VST       | SOFT_BROADEN_BREAKOUT          |    171.4  |    171.03 |        0.05 | -0.64% | [chart](img/VST_SOFT_BROADEN_BREAKOUT.png)             |
-| TSM       | SOFT_BROADEN_BREAKOUT          |    370.54 |    369.2  |        0.08 | +2.82% | [chart](img/TSM_SOFT_BROADEN_BREAKOUT.png)             |
-| PLTR      | SOFT_WEDGE_DOWN_BREAKDOWN      |    135.24 |    136.01 |       -0.08 | +0.26% | [chart](img/PLTR_SOFT_WEDGE_DOWN_BREAKDOWN.png)        |
-| ARR       | SOFT_RECT_BREAKDOWN            |     17.89 |     17.93 |       -0.1  | +1.30% | [chart](img/ARR_SOFT_RECT_BREAKDOWN.png)               |
+| OKLO      | SOFT_WEDGE_DOWN_BREAKDOWN      |     63.83 |     63.97 |       -0.02 | -5.63% |                                                        |
+| VST       | SOFT_BROADEN_BREAKOUT          |    171.4  |    171.03 |        0.05 | -0.64% |                                                        |
+| TSM       | SOFT_BROADEN_BREAKOUT          |    370.54 |    369.2  |        0.08 | +2.82% |                                                        |
+| PLTR      | SOFT_WEDGE_DOWN_BREAKDOWN      |    135.24 |    136.01 |       -0.08 | +0.26% |                                                        |
+| ARR       | SOFT_RECT_BREAKDOWN            |     17.89 |     17.93 |       -0.1  | +1.30% |                                                        |
 | AMZN      | SOFT_BROADEN_BREAKDOWN         |    210.11 |    211.13 |       -0.12 | +2.56% |                                                        |
 | MELI      | SOFT_TRIANGLE_BREAKDOWN        |   1996.87 |   2008.36 |       -0.14 | +0.02% |                                                        |
 | GOOGL     | SOFT_BROADEN_BREAKDOWN         |    314.98 |    316.58 |       -0.15 | +4.01% |                                                        |
@@ -130,20 +141,134 @@ _None_
 
 _Linked digest for drill-down._
 
-- [AI nerds think this British company is massively undervalued](https://finance.yahoo.com/news/ai-nerds-think-british-company-080000949.html) — Yahoo Finance
-- [Plug Power (PLUG) Confronts Legal Challenge Amid Hydrogen Expansion Plans](https://finance.yahoo.com/news/plug-power-plug-confronts-legal-105001462.html) — Yahoo Finance
-- [Best money market account rates today, February 21, 2026 (best account provides 4.01% APY)](https://finance.yahoo.com/personal-finance/banking/article/best-money-market-account-rates-today-saturday-february-21-2026-110019404.html) — Yahoo Finance
-- [HELOC and home equity loan rates Saturday, February 21, 2026: Introductory rates tumble (as low as 1.99% to 3.99%)](https://finance.yahoo.com/personal-finance/mortgages/article/heloc-home-equity-loan-interest-rates-today-saturday-february-21-2026-110009891.html) — Yahoo Finance
-- [Mortgage and refinance interest rates today, February 21, 2026: Slightly higher but still below 6%](https://finance.yahoo.com/personal-finance/mortgages/article/mortgage-refinance-interest-rates-today-saturday-february-21-2026-110034591.html) — Yahoo Finance
-- [Famed "Big Short" Investor Michael Burry Made a Dire Prediction About Palantir Stock. I Think He's Dead Wrong](https://finance.yahoo.com/news/famed-big-short-investor-michael-082200189.html) — Yahoo Finance
-- [Best CD rates today, February 21, 2026 (best account provides 4% APY)](https://finance.yahoo.com/personal-finance/banking/article/best-cd-rates-today-saturday-february-21-2026-110037681.html) — Yahoo Finance
-- [Best high-yield savings interest rates today, February 21, 2026 (Earn up to 4% APY)](https://finance.yahoo.com/personal-finance/article/best-high-yield-savings-interest-rates-today-saturday-february-21-2026-110039281.html) — Yahoo Finance
-- [TD Cowen is Bullish on Adaptive Biotechnologies Corporation (ADPT)](https://finance.yahoo.com/news/td-cowen-bullish-adaptive-biotechnologies-110153992.html) — Yahoo Finance
-- [B. Riley is Bullish on Century Aluminum Company (CENX)](https://finance.yahoo.com/news/b-riley-bullish-century-aluminum-110254224.html) — Yahoo Finance
+- [Two AI Stocks, Ralph Lauren Lead Five Stocks To Watch Near Buy Points](https://www.investors.com/news/ai-stocks-ralph-lauren-rl-stocks-to-watch/?src=A00220&yptr=yahoo) — Yahoo Finance
+- [RGTI or QBTS: Top Analyst Selects the Top Quantum Computing Stock to Buy](https://finance.yahoo.com/news/rgti-qbts-top-analyst-selects-130000704.html) — Yahoo Finance
+- [Charlie Munger said saving $100K creates the fast track to wealth, but here’s why just 20K can set you up for success](https://finance.yahoo.com/news/charlie-munger-said-saving-100k-130000914.html) — Yahoo Finance
+- ['Buyer beware': Legal expert says private equity funds could pose big risk to your 401(k). Here's what you need to know](https://finance.yahoo.com/news/buyer-beware-legal-expert-says-124500760.html) — Yahoo Finance
+- [United Airlines escalates the credit card perk wars](https://finance.yahoo.com/news/united-airlines-escalates-the-credit-card-perk-wars-110050612.html) — Yahoo Finance
+- [50% of US parents financially support their adult kids, with average payments of $1,474/month. What they're doing wrong](https://finance.yahoo.com/news/50-us-parents-financially-support-123000232.html) — Yahoo Finance
+- [VivoPower secures $30M for AI data centers - ICYMI](https://finance.yahoo.com/news/vivopower-secures-30m-ai-data-130004444.html) — Yahoo Finance
+- [Couple was on track for early retirement until kids blew up the budget. Can they still achieve their goal on one income?](https://finance.yahoo.com/news/couple-track-early-retirement-until-133000895.html) — Yahoo Finance
+- [One man used his Costco membership to save over $11K on a new car. How shoppers are finding alternatives to high prices](https://finance.yahoo.com/news/one-man-used-costco-membership-121500026.html) — Yahoo Finance
+- [Cushman & Wakefield (CWK) Delivers Record Revenue as Commercial Real Estate Demand Holds Firm](https://finance.yahoo.com/news/cushman-wakefield-cwk-delivers-record-134319753.html) — Yahoo Finance
 
 ## Changelog
 
-**New signals:** _None_
+**New signals:**
 
+- CVX|SOFT_WEDGE_UP_BREAKOUT
+- INSW|CONFIRMED_WEDGE_UP_BREAKOUT
+- NAT|CONFIRMED_RECT_BREAKOUT
+- PSX|SOFT_WEDGE_UP_BREAKOUT
+- REP.MC|CONFIRMED_IHS_BREAKOUT
+- REP.MC|CONFIRMED_RECT_BREAKOUT
+- TNK|CONFIRMED_BROADEN_BREAKOUT
 
 **Ended signals:** _None_
+
+## 6) Watchlist performance (all tickers)
+
+Columns: **Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M**
+
+### AI compute & semis
+
+| Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 000660.KS | 949,000.0 | +6.2% | +83.8% |  |  | 1.0x | <span style="color:#11823b;">+6.2%</span> | <span style="color:#11823b;">+10.3%</span> | <span style="color:#11823b;">+25.7%</span> | <span style="color:#11823b;">+82.1%</span> |
+| LRCX | 244.9 | +3.2% | +80.9% |  |  | 0.7x | <span style="color:#11823b;">+3.2%</span> | <span style="color:#11823b;">+4.2%</span> | <span style="color:#11823b;">+11.0%</span> | <span style="color:#11823b;">+71.7%</span> |
+| TSM | 370.5 | +2.8% | +74.7% |  |  | 0.7x | <span style="color:#11823b;">+2.8%</span> | <span style="color:#b91c1c;">-0.9%</span> | <span style="color:#11823b;">+13.2%</span> | <span style="color:#11823b;">+34.7%</span> |
+| AMAT | 375.4 | +1.5% | +68.1% |  |  | 0.9x | <span style="color:#11823b;">+1.5%</span> | <span style="color:#11823b;">+10.4%</span> | <span style="color:#11823b;">+17.8%</span> | <span style="color:#11823b;">+67.6%</span> |
+| NVDA | 189.8 | +1.0% | +76.8% |  |  | 1.0x | <span style="color:#11823b;">+1.0%</span> | <span style="color:#b91c1c;">-0.1%</span> | <span style="color:#11823b;">+2.7%</span> | <span style="color:#11823b;">+6.1%</span> |
+| ASML | 1,469.6 | +0.7% | +10.0% |  |  | 0.6x | <span style="color:#11823b;">+0.7%</span> | <span style="color:#11823b;">+2.4%</span> | <span style="color:#11823b;">+5.3%</span> | <span style="color:#11823b;">+52.0%</span> |
+| AVGO | 332.6 | -0.4% | -41.7% |  |  | 0.7x | <span style="color:#b91c1c;">-0.4%</span> | <span style="color:#b91c1c;">-2.9%</span> | <span style="color:#11823b;">+2.2%</span> | <span style="color:#b91c1c;">-2.2%</span> |
+| ARM | 125.6 | -1.1% | -75.4% |  |  | 0.6x | <span style="color:#b91c1c;">-1.1%</span> | <span style="color:#11823b;">+0.2%</span> | <span style="color:#11823b;">+5.4%</span> | <span style="color:#b91c1c;">-4.6%</span> |
+
+### EDA & design software
+
+| Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| CDNS | 296.3 | -0.1% | -29.8% |  |  | 0.8x | <span style="color:#b91c1c;">-0.1%</span> | <span style="color:#b91c1c;">-1.1%</span> | <span style="color:#b91c1c;">-6.6%</span> | <span style="color:#b91c1c;">-1.4%</span> |
+| SNPS | 439.9 | -0.6% | -58.5% |  |  | 0.7x | <span style="color:#b91c1c;">-0.6%</span> | <span style="color:#11823b;">+0.4%</span> | <span style="color:#b91c1c;">-13.6%</span> | <span style="color:#11823b;">+13.3%</span> |
+
+### Big Tech platforms
+
+| Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| GOOGL | 315.0 | +4.0% | +75.9% |  |  | 1.3x | <span style="color:#11823b;">+4.0%</span> | <span style="color:#11823b;">+1.3%</span> | <span style="color:#b91c1c;">-4.7%</span> | <span style="color:#11823b;">+5.1%</span> |
+| AMZN | 210.1 | +2.6% | +71.4% |  |  | 1.0x | <span style="color:#11823b;">+2.6%</span> | <span style="color:#11823b;">+3.0%</span> | <span style="color:#b91c1c;">-10.3%</span> | <span style="color:#b91c1c;">-4.8%</span> |
+| NFLX | 78.7 | +2.2% | +85.3% |  |  | 0.8x | <span style="color:#11823b;">+2.2%</span> | <span style="color:#b91c1c;">-1.2%</span> | <span style="color:#b91c1c;">-5.8%</span> | <span style="color:#b91c1c;">-24.6%</span> |
+| META | 655.7 | +1.7% | +37.4% |  |  | 0.8x | <span style="color:#11823b;">+1.7%</span> | <span style="color:#b91c1c;">-1.9%</span> | <span style="color:#11823b;">+1.2%</span> | <span style="color:#11823b;">+10.3%</span> |
+| AAPL | 264.6 | +1.5% | +94.8% |  |  | 0.7x | <span style="color:#11823b;">+1.5%</span> | <span style="color:#b91c1c;">-4.0%</span> | <span style="color:#11823b;">+6.5%</span> | <span style="color:#b91c1c;">-2.5%</span> |
+| MSFT | 397.2 | -0.3% | -16.5% |  |  | 0.7x | <span style="color:#b91c1c;">-0.3%</span> | <span style="color:#b91c1c;">-1.8%</span> | <span style="color:#b91c1c;">-11.9%</span> | <span style="color:#b91c1c;">-15.9%</span> |
+
+### Consumer & retail
+
+| Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| MC.PA | 554.7 | +4.4% | +52.9% |  |  | 1.8x | <span style="color:#11823b;">+4.4%</span> | <span style="color:#11823b;">+5.6%</span> | <span style="color:#b91c1c;">-6.9%</span> | <span style="color:#b91c1c;">-11.0%</span> |
+| RMS.PA | 2,112.0 | +3.6% | +51.5% |  |  | 1.2x | <span style="color:#11823b;">+3.6%</span> | <span style="color:#b91c1c;">-0.4%</span> | <span style="color:#b91c1c;">-0.9%</span> | <span style="color:#b91c1c;">-0.6%</span> |
+| ANF | 96.4 | +0.5% | -41.8% |  |  | 1.3x | <span style="color:#11823b;">+0.5%</span> | <span style="color:#11823b;">+5.4%</span> | <span style="color:#b91c1c;">-1.1%</span> | <span style="color:#11823b;">+38.0%</span> |
+| DECK | 118.7 | +0.5% | -24.8% |  |  | 0.9x | <span style="color:#11823b;">+0.5%</span> | <span style="color:#11823b;">+2.9%</span> | <span style="color:#11823b;">+16.8%</span> | <span style="color:#11823b;">+39.4%</span> |
+| DASH | 176.3 | +0.1% | +35.7% |  |  | 1.2x | <span style="color:#11823b;">+0.1%</span> | <span style="color:#11823b;">+0.5%</span> | <span style="color:#b91c1c;">-15.1%</span> | <span style="color:#b91c1c;">-7.0%</span> |
+| BYDDY | 12.4 | -0.6% | +86.7% |  |  | 0.5x | <span style="color:#b91c1c;">-0.6%</span> | <span style="color:#b91c1c;">-1.8%</span> | <span style="color:#b91c1c;">-3.3%</span> | <span style="color:#11823b;">+3.4%</span> |
+| CMG | 37.5 | -1.1% | -45.6% |  |  | 0.7x | <span style="color:#b91c1c;">-1.1%</span> | <span style="color:#11823b;">+0.9%</span> | <span style="color:#b91c1c;">-7.4%</span> | <span style="color:#11823b;">+18.7%</span> |
+| WMT | 123.0 | -1.5% | +59.7% |  |  | 1.3x | <span style="color:#b91c1c;">-1.5%</span> | <span style="color:#b91c1c;">-4.5%</span> | <span style="color:#11823b;">+4.4%</span> | <span style="color:#11823b;">+16.8%</span> |
+| RRTL |  |  |  |  |  |  |  |  |  |  |
+
+### Fintech & financials
+
+| Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| UCG.MI | 73.9 | +1.5% | +12.0% |  |  | 0.9x | <span style="color:#11823b;">+1.5%</span> | <span style="color:#b91c1c;">-0.9%</span> | <span style="color:#11823b;">+2.0%</span> | <span style="color:#11823b;">+17.6%</span> |
+| ARR | 17.9 | +1.3% | +85.4% |  |  | 0.9x | <span style="color:#11823b;">+1.3%</span> | <span style="color:#11823b;">+1.3%</span> | <span style="color:#b91c1c;">-3.0%</span> | <span style="color:#11823b;">+7.7%</span> |
+| NU | 17.5 | +1.2% | +71.4% |  |  | 0.8x | <span style="color:#11823b;">+1.2%</span> | <span style="color:#11823b;">+0.7%</span> | <span style="color:#b91c1c;">-2.6%</span> | <span style="color:#11823b;">+10.3%</span> |
+| PGR | 204.1 | +1.1% | +96.3% |  |  | 0.7x | <span style="color:#11823b;">+1.1%</span> | <span style="color:#b91c1c;">-2.1%</span> | <span style="color:#b91c1c;">-1.4%</span> | <span style="color:#b91c1c;">-10.1%</span> |
+| HOOD | 76.1 | +0.6% | -33.6% |  |  | 0.8x | <span style="color:#11823b;">+0.6%</span> | <span style="color:#b91c1c;">-2.4%</span> | <span style="color:#b91c1c;">-28.4%</span> | <span style="color:#b91c1c;">-29.1%</span> |
+
+### Healthcare
+
+| Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| ISRG | 504.0 | +0.9% | +85.3% |  |  | 0.7x | <span style="color:#11823b;">+0.9%</span> | <span style="color:#11823b;">+1.6%</span> | <span style="color:#b91c1c;">-4.1%</span> | <span style="color:#b91c1c;">-10.2%</span> |
+| LLY | 1,009.5 | -1.3% | -46.1% |  |  | 0.9x | <span style="color:#b91c1c;">-1.3%</span> | <span style="color:#b91c1c;">-0.6%</span> | <span style="color:#b91c1c;">-7.2%</span> | <span style="color:#b91c1c;">-4.7%</span> |
+| NVO | 47.4 | -2.1% | +8.3% |  |  | 0.5x | <span style="color:#b91c1c;">-2.1%</span> | <span style="color:#b91c1c;">-2.7%</span> | <span style="color:#b91c1c;">-23.8%</span> | <span style="color:#b91c1c;">-0.4%</span> |
+
+### Energy & Nuclear
+
+| Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| CCJ | 121.3 | +1.9% | +27.3% |  |  | 1.0x | <span style="color:#11823b;">+1.9%</span> | <span style="color:#11823b;">+1.8%</span> | <span style="color:#b91c1c;">-0.4%</span> | <span style="color:#11823b;">+52.8%</span> |
+| CEG | 294.8 | +1.1% | +35.0% |  |  | 0.7x | <span style="color:#11823b;">+1.1%</span> | <span style="color:#11823b;">+6.5%</span> | <span style="color:#11823b;">+2.6%</span> | <span style="color:#b91c1c;">-12.8%</span> |
+| VST | 171.4 | -0.6% | +6.7% |  |  | 0.7x | <span style="color:#b91c1c;">-0.6%</span> | <span style="color:#11823b;">+7.0%</span> | <span style="color:#11823b;">+6.9%</span> | <span style="color:#11823b;">+1.7%</span> |
+| LEU | 203.7 | -2.5% | -21.2% |  |  | 0.5x | <span style="color:#b91c1c;">-2.5%</span> | <span style="color:#b91c1c;">-3.1%</span> | <span style="color:#b91c1c;">-32.6%</span> | <span style="color:#b91c1c;">-15.7%</span> |
+| OKLO | 63.8 | -5.6% | -54.8% |  |  | 0.7x | <span style="color:#b91c1c;">-5.6%</span> | <span style="color:#b91c1c;">-3.6%</span> | <span style="color:#b91c1c;">-29.8%</span> | <span style="color:#b91c1c;">-27.6%</span> |
+| SMR | 13.4 | -8.2% | -82.1% |  |  | 1.0x | <span style="color:#b91c1c;">-8.2%</span> | <span style="color:#b91c1c;">-13.7%</span> | <span style="color:#b91c1c;">-34.9%</span> | <span style="color:#b91c1c;">-27.7%</span> |
+
+### Quantum
+
+| Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| IONQ | 31.9 | -4.6% | -58.4% |  |  | 0.7x | <span style="color:#b91c1c;">-4.6%</span> | <span style="color:#b91c1c;">-5.1%</span> | <span style="color:#b91c1c;">-35.3%</span> | <span style="color:#b91c1c;">-23.5%</span> |
+| QBTS | 18.1 | -6.8% | -69.4% |  |  | 0.9x | <span style="color:#b91c1c;">-6.8%</span> | <span style="color:#b91c1c;">-8.0%</span> | <span style="color:#b91c1c;">-34.2%</span> | <span style="color:#b91c1c;">-11.5%</span> |
+
+### Venezuela Oil
+
+| Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| FRO | 34.7 | +2.7% | +93.8% |  |  | 1.0x | <span style="color:#11823b;">+2.7%</span> | <span style="color:#11823b;">+15.3%</span> | <span style="color:#11823b;">+37.2%</span> | <span style="color:#11823b;">+34.1%</span> |
+| NAT | 4.9 | +2.1% | +100.0% |  |  | 1.3x | <span style="color:#11823b;">+2.1%</span> | <span style="color:#11823b;">+9.6%</span> | <span style="color:#11823b;">+22.9%</span> | <span style="color:#11823b;">+28.1%</span> |
+| REP.MC | 18.3 | +0.9% | +66.7% |  |  | 1.4x | <span style="color:#11823b;">+0.9%</span> | <span style="color:#11823b;">+6.9%</span> | <span style="color:#11823b;">+16.7%</span> | <span style="color:#11823b;">+16.6%</span> |
+| VLO | 200.8 | +0.8% | +45.6% |  |  | 0.7x | <span style="color:#11823b;">+0.8%</span> | <span style="color:#b91c1c;">-1.5%</span> | <span style="color:#11823b;">+7.4%</span> | <span style="color:#11823b;">+15.7%</span> |
+| INSW | 67.5 | +0.7% | +97.5% |  |  | 1.1x | <span style="color:#11823b;">+0.7%</span> | <span style="color:#11823b;">+7.3%</span> | <span style="color:#11823b;">+19.8%</span> | <span style="color:#11823b;">+23.8%</span> |
+| MAU.PA | 8.6 | +0.2% | +3.0% |  |  | 1.2x | <span style="color:#11823b;">+0.2%</span> | <span style="color:#11823b;">+16.4%</span> | <span style="color:#11823b;">+38.2%</span> | <span style="color:#11823b;">+79.3%</span> |
+| PSX | 155.8 | +0.2% | +14.8% |  |  | 1.1x | <span style="color:#11823b;">+0.2%</span> | <span style="color:#b91c1c;">-3.6%</span> | <span style="color:#11823b;">+9.7%</span> | <span style="color:#11823b;">+16.5%</span> |
+| MPC | 196.8 | +0.1% | +12.7% |  |  | 0.7x | <span style="color:#11823b;">+0.1%</span> | <span style="color:#b91c1c;">-5.7%</span> | <span style="color:#11823b;">+11.9%</span> | <span style="color:#11823b;">+3.2%</span> |
+| CVX | 183.9 | -0.5% | +25.3% |  |  | 0.8x | <span style="color:#b91c1c;">-0.5%</span> | <span style="color:#b91c1c;">-1.0%</span> | <span style="color:#11823b;">+10.4%</span> | <span style="color:#11823b;">+22.6%</span> |
+| TNK | 72.9 | -1.4% | +3.4% |  |  | 1.7x | <span style="color:#b91c1c;">-1.4%</span> | <span style="color:#11823b;">+4.8%</span> | <span style="color:#11823b;">+20.5%</span> | <span style="color:#11823b;">+17.1%</span> |
+
+### Other
+
+| Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| MUV2.DE | 542.0 | +1.2% | +100.0% |  |  | 1.1x | <span style="color:#11823b;">+1.2%</span> | <span style="color:#11823b;">+1.6%</span> | <span style="color:#11823b;">+6.1%</span> | <span style="color:#11823b;">+1.8%</span> |
+| MELI | 1,996.9 | +0.0% | +14.9% |  |  | 0.7x | <span style="color:#11823b;">+0.0%</span> | <span style="color:#b91c1c;">-1.1%</span> | <span style="color:#b91c1c;">-7.3%</span> | <span style="color:#11823b;">+2.3%</span> |
