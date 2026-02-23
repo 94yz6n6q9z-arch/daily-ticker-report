@@ -1,8 +1,9 @@
 # tools/watchlist_perf.py
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 import math
+
 import pandas as pd
 import yfinance as yf
 
@@ -36,21 +37,8 @@ def _color_pct(x: Optional[float], decimals: int = 1) -> str:
     return f'<span style="color:{color};">{s}</span>'
 
 
-def _base_ticker(t: str) -> str:
-    # display without exchange suffix, keep =F intact
-    t = (t or "").strip()
-    if t.endswith("=F"):
-        return t
-    return t.split(".")[0]
-
-
-def _last_valid_ohlc(df: pd.DataFrame) -> pd.DataFrame:
-    cols = [c for c in ["Open", "High", "Low", "Close"] if c in df.columns]
-    return df.dropna(subset=cols).copy()
-
-
 def _calc_return_pct(close: pd.Series, n: int) -> Optional[float]:
-    """Percent units: +1.2 means +1.2%."""
+    """Return percent (not fraction): +1.2 means +1.2%. n is trading sessions back."""
     if close is None or len(close) < n + 1:
         return None
     a = float(close.iloc[-1])
@@ -61,6 +49,7 @@ def _calc_return_pct(close: pd.Series, n: int) -> Optional[float]:
 
 
 def _calc_clv_pct(high: pd.Series, low: pd.Series, close: pd.Series) -> Optional[float]:
+    """CLV in percent: CLV[-1..+1] * 100."""
     if any(s is None or len(s) < 1 for s in (high, low, close)):
         return None
     h = float(high.iloc[-1])
@@ -81,18 +70,12 @@ def _true_range(high: pd.Series, low: pd.Series, close: pd.Series) -> pd.Series:
     return tr
 
 
-def _wilder_atr(df: pd.DataFrame, n: int = 14) -> pd.Series:
-    df = _last_valid_ohlc(df)
-    if df.empty:
-        return pd.Series(dtype=float)
-    high = df["High"].astype(float)
-    low = df["Low"].astype(float)
-    close = df["Close"].astype(float)
+def _wilder_atr(high: pd.Series, low: pd.Series, close: pd.Series, n: int = 14) -> pd.Series:
     tr = _true_range(high, low, close)
     if len(tr) < n:
-        return pd.Series([math.nan] * len(tr), index=df.index)
+        return tr * float("nan")
     atr = tr.copy() * 0.0
-    atr.iloc[: n - 1] = math.nan
+    atr.iloc[: n - 1] = float("nan")
     atr.iloc[n - 1] = tr.iloc[:n].mean()
     for i in range(n, len(tr)):
         atr.iloc[i] = (atr.iloc[i - 1] * (n - 1) + tr.iloc[i]) / n
@@ -100,13 +83,17 @@ def _wilder_atr(df: pd.DataFrame, n: int = 14) -> pd.Series:
 
 
 def _atr_delta_14d_pct(atr: pd.Series) -> Optional[float]:
-    if atr is None or len(atr) < 15:
+    """ATR change vs 14 trading sessions ago, in %."""
+    if atr is None:
         return None
-    a_now = atr.iloc[-1]
-    a_prev = atr.iloc[-15]
-    if pd.isna(a_now) or pd.isna(a_prev) or a_prev == 0:
+    a = atr.dropna()
+    if len(a) < 15:
         return None
-    return (float(a_now) / float(a_prev) - 1.0) * 100.0
+    now = float(a.iloc[-1])
+    prev = float(a.iloc[-15])
+    if prev == 0 or math.isnan(now) or math.isnan(prev):
+        return None
+    return (now / prev - 1.0) * 100.0
 
 
 def _vol_ratio(vol: pd.Series, window: int = 20) -> Optional[float]:
@@ -139,15 +126,16 @@ def build_watchlist_performance_section_md(
     ticker_segment_rank: Optional[Dict[str, int]] = None,
 ) -> str:
     """
-    Watchlist performance table (all figures 1 decimal).
-    Columns:
-      Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M
-    Last 4 returns are color-coded.
+    Columns (all 1 decimal):
+    Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M
+
+    - Last 4 columns are color-coded green/red.
+    - ticker_labels lets you tag subsegments (e.g., CVX (Integrated)) without creating separate tables.
     """
     ticker_labels = ticker_labels or {}
     ticker_segment_rank = ticker_segment_rank or {}
 
-    # Flatten tickers, preserve order, de-dupe
+    # Flatten tickers (preserve order), de-dupe
     all_tickers: List[str] = []
     for _, ts in tickers_by_group.items():
         all_tickers.extend(ts)
@@ -180,48 +168,57 @@ def build_watchlist_performance_section_md(
         rows = []
         for t in group_tickers:
             df = frames.get(t)
+            display = ticker_labels.get(t, t)
+
             if df is None or df.empty:
-                rows.append((t, None, None, None, None, None, None, None, None, None, None))
+                rows.append((t, display, None, None, None, None, None, None, None, None, None, None))
                 continue
 
-            df = _last_valid_ohlc(df)
-            if df.empty:
-                rows.append((t, None, None, None, None, None, None, None, None, None, None))
+            cols = {c.lower(): c for c in df.columns}
+
+            def col(name: str) -> pd.Series:
+                key = cols.get(name)
+                return df[key] if key else pd.Series(dtype=float)
+
+            close = col("close")
+            high = col("high")
+            low = col("low")
+            vol = col("volume")
+
+            # Drop rows where OHLC is missing (prevents blank ATR on weekends/partial rows)
+            ohlc = pd.DataFrame({"Close": close, "High": high, "Low": low, "Volume": vol})
+            ohlc = ohlc.dropna(subset=["Close", "High", "Low"])  # key fix
+            if ohlc.empty or len(ohlc) < 30:
+                rows.append((t, display, None, None, None, None, None, None, None, None, None, None))
                 continue
 
-            close = df["Close"].astype(float)
-            high = df["High"].astype(float)
-            low = df["Low"].astype(float)
-            vol = df["Volume"].astype(float) if "Volume" in df.columns else pd.Series(dtype=float)
+            close2 = ohlc["Close"]
+            high2 = ohlc["High"]
+            low2 = ohlc["Low"]
+            vol2 = ohlc["Volume"].dropna()
 
-            last_close = float(close.iloc[-1])
-            day_pct = _calc_return_pct(close, 1)
-            clv_pct = _calc_clv_pct(high, low, close)
+            last_close = float(close2.iloc[-1])
+            day_pct = _calc_return_pct(close2, 1)
+            clv_pct = _calc_clv_pct(high2, low2, close2)
 
-            atr_s = _wilder_atr(df, n=atr_period)
-            atr_now = float(atr_s.dropna().iloc[-1]) if len(atr_s.dropna()) else None
-            atr_delta = _atr_delta_14d_pct(atr_s.dropna()) if len(atr_s.dropna()) else None
+            atr_series = _wilder_atr(high2, low2, close2, n=atr_period)
+            atr_clean = atr_series.dropna()
+            atr_now = float(atr_clean.iloc[-1]) if len(atr_clean) else None
+            atr_delta = _atr_delta_14d_pct(atr_series)
 
-            vr = _vol_ratio(vol, 20)
+            vr = _vol_ratio(vol2, 20)
 
             r1d = day_pct
-            r7d = _calc_return_pct(close, 7)
-            r1m = _calc_return_pct(close, 21)
-            r3m = _calc_return_pct(close, 63)
+            r7d = _calc_return_pct(close2, 7)
+            r1m = _calc_return_pct(close2, 21)
+            r3m = _calc_return_pct(close2, 63)
 
-            rows.append((t, last_close, day_pct, clv_pct, atr_now, atr_delta, vr, r1d, r7d, r1m, r3m))
+            rows.append((t, display, last_close, day_pct, clv_pct, atr_now, atr_delta, vr, r1d, r7d, r1m, r3m))
 
-        # cluster by segment rank (default 99), then sort by 1D desc within cluster
-        def key(x):
-            t = x[0]
-            seg = ticker_segment_rank.get(t, 99)
-            r1d = x[7] if x[7] is not None else -9999.0
-            return (seg, -r1d)
+        # Sort by 1D
+        rows.sort(key=lambda x: (ticker_segment_rank.get(x[0], 99), -(x[8] if x[8] is not None else -9999.0)))
 
-        rows.sort(key=key)
-
-        for (t, last_close, day_pct, clv_pct, atr_now, atr_delta, vr, r1d, r7d, r1m, r3m) in rows:
-            disp = ticker_labels.get(t) or _base_ticker(t)
+        for (t, disp, last_close, day_pct, clv_pct, atr_now, atr_delta, vr, r1d, r7d, r1m, r3m) in rows:
             out.append(
                 "| {t} | {close} | {day} | {clv} | {atr} | {atr_d} | {vr} | {c1} | {c7} | {c1m} | {c3m} |".format(
                     t=disp,
@@ -237,6 +234,7 @@ def build_watchlist_performance_section_md(
                     c3m=_color_pct(r3m, 1),
                 )
             )
+
         out.append("")
 
     return "\n".join(out)
