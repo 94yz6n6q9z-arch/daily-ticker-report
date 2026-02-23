@@ -1,6 +1,6 @@
 # Daily Report
 
-_Generated: **2026-02-23 23:21 CET**_
+_Generated: **2026-02-24 00:39 CET**_
 
 ## 1) Market recap & positioning
 
@@ -21,13 +21,13 @@ Markets moved on the day with the Nasdaq leading (NDX -1.21% vs S&P -1.04%) and 
 | CAC 40           | 8,497.17  | <span style="color:#b91c1c;">-0.22%</span>  | <span style="color:#11823b;">+2.17%</span>  | <span style="color:#11823b;">+4.35%</span>  | <span style="color:#11823b;">+5.87%</span>  | <span style="color:#11823b;">+9.73%</span>   |
 | FTSE 100         | 10,684.74 | <span style="color:#b91c1c;">-0.02%</span>  | <span style="color:#11823b;">+2.01%</span>  | <span style="color:#11823b;">+5.34%</span>  | <span style="color:#11823b;">+11.19%</span> | <span style="color:#11823b;">+15.44%</span>  |
 | VIX              | 21.01     | <span style="color:#11823b;">+10.06%</span> | <span style="color:#11823b;">+1.99%</span>  | <span style="color:#11823b;">+30.58%</span> | <span style="color:#11823b;">+13.20%</span> | <span style="color:#11823b;">+41.48%</span>  |
-| EUR/USD          | 1.18      | <span style="color:#11823b;">+0.16%</span>  | <span style="color:#b91c1c;">-0.67%</span>  | <span style="color:#11823b;">+0.29%</span>  | <span style="color:#11823b;">+2.33%</span>  | <span style="color:#11823b;">+1.28%</span>   |
-| WTI Crude        | 66.29     | <span style="color:#b91c1c;">-0.15%</span>  | <span style="color:#11823b;">+5.41%</span>  | <span style="color:#11823b;">+8.55%</span>  | <span style="color:#11823b;">+14.39%</span> | <span style="color:#11823b;">+3.34%</span>   |
-| Gold             | 5,247.90  | <span style="color:#11823b;">+3.73%</span>  | <span style="color:#11823b;">+4.50%</span>  | <span style="color:#11823b;">+5.46%</span>  | <span style="color:#11823b;">+26.79%</span> | <span style="color:#11823b;">+54.14%</span>  |
-| Silver           | 88.00     | <span style="color:#11823b;">+6.95%</span>  | <span style="color:#11823b;">+13.04%</span> | <span style="color:#b91c1c;">-12.81%</span> | <span style="color:#11823b;">+72.77%</span> | <span style="color:#11823b;">+127.45%</span> |
+| EUR/USD          | 1.18      | <span style="color:#11823b;">+0.22%</span>  | <span style="color:#b91c1c;">-0.61%</span>  | <span style="color:#11823b;">+0.35%</span>  | <span style="color:#11823b;">+2.39%</span>  | <span style="color:#11823b;">+1.34%</span>   |
+| WTI Crude        | 66.25     | <span style="color:#b91c1c;">-0.21%</span>  | <span style="color:#11823b;">+5.34%</span>  | <span style="color:#11823b;">+8.48%</span>  | <span style="color:#11823b;">+14.32%</span> | <span style="color:#11823b;">+3.27%</span>   |
+| Gold             | 5,256.50  | <span style="color:#11823b;">+3.90%</span>  | <span style="color:#11823b;">+4.67%</span>  | <span style="color:#11823b;">+5.63%</span>  | <span style="color:#11823b;">+26.99%</span> | <span style="color:#11823b;">+54.39%</span>  |
+| Silver           | 88.36     | <span style="color:#11823b;">+7.39%</span>  | <span style="color:#11823b;">+13.50%</span> | <span style="color:#b91c1c;">-12.45%</span> | <span style="color:#11823b;">+73.48%</span> | <span style="color:#11823b;">+128.39%</span> |
 | Coffee           | 278.25    | <span style="color:#b91c1c;">-3.49%</span>  | <span style="color:#b91c1c;">-7.27%</span>  | <span style="color:#b91c1c;">-20.70%</span> | <span style="color:#b91c1c;">-32.82%</span> | <span style="color:#b91c1c;">-29.34%</span>  |
 | Cocoa            | 3,145.00  | <span style="color:#11823b;">+2.11%</span>  | <span style="color:#b91c1c;">-12.18%</span> | <span style="color:#b91c1c;">-25.14%</span> | <span style="color:#b91c1c;">-37.09%</span> | <span style="color:#b91c1c;">-59.32%</span>  |
-| Bitcoin          | 64,984.13 | <span style="color:#b91c1c;">-3.95%</span>  | <span style="color:#b91c1c;">-5.61%</span>  | <span style="color:#b91c1c;">-27.07%</span> | <span style="color:#b91c1c;">-25.60%</span> | <span style="color:#b91c1c;">-41.57%</span>  |
+| Bitcoin          | 64,815.41 | <span style="color:#b91c1c;">-4.20%</span>  | <span style="color:#b91c1c;">-5.85%</span>  | <span style="color:#b91c1c;">-27.26%</span> | <span style="color:#b91c1c;">-25.79%</span> | <span style="color:#b91c1c;">-41.72%</span>  |
 
 **Macro charts (5Y):**
 
@@ -65,21 +65,21 @@ _Upcoming earnings dates for your 44-ticker watchlist._
 
 | Ticker            | Earnings Date   |   Days |
 | :--- | ---: | ---: |
-| CEG (Power)       | 2026-02-24      |      1 |
-| MELI (E-comm)     | 2026-02-24      |      1 |
-| IONQ (Quantum)    | 2026-02-25      |      2 |
-| NU (Fintech)      | 2026-02-25      |      2 |
-| NVDA (Compute/IP) | 2026-02-25      |      2 |
-| SNPS (EDA)        | 2026-02-25      |      2 |
-| INSW (Tanker)     | 2026-02-26      |      3 |
-| MUV2 (Insurance)  | 2026-02-26      |      3 |
-| NAT (Tanker)      | 2026-02-26      |      3 |
-| QBTS (Quantum)    | 2026-02-26      |      3 |
-| SMR (SMR)         | 2026-02-26      |      3 |
-| VST (Power)       | 2026-02-26      |      3 |
-| FRO (Tanker)      | 2026-02-27      |      4 |
-| ANF (Brands)      | 2026-03-04      |      9 |
-| AVGO (Compute/IP) | 2026-03-04      |      9 |
+| CEG (Power)       | 2026-02-24      |      0 |
+| MELI (E-comm)     | 2026-02-24      |      0 |
+| IONQ (Quantum)    | 2026-02-25      |      1 |
+| NU (Fintech)      | 2026-02-25      |      1 |
+| NVDA (Compute/IP) | 2026-02-25      |      1 |
+| SNPS (EDA)        | 2026-02-25      |      1 |
+| INSW (Tanker)     | 2026-02-26      |      2 |
+| MUV2 (Insurance)  | 2026-02-26      |      2 |
+| NAT (Tanker)      | 2026-02-26      |      2 |
+| QBTS (Quantum)    | 2026-02-26      |      2 |
+| SMR (SMR)         | 2026-02-26      |      2 |
+| VST (Power)       | 2026-02-26      |      2 |
+| FRO (Tanker)      | 2026-02-27      |      3 |
+| ANF (Brands)      | 2026-03-04      |      8 |
+| AVGO (Compute/IP) | 2026-03-04      |      8 |
 
 ## 4) Technical triggers
 
@@ -150,16 +150,16 @@ _None_
 
 _Linked digest for drill-down._
 
-- [This "Magnificent Seven" Stock Is Down 22%. Buy It Before It Sets a New All-Time High.](https://finance.yahoo.com/news/magnificent-seven-stock-down-22-134500565.html) — Yahoo Finance
-- [Hedge fund billionaire Ray Dalio warned that the US is heading into ‘very dark times.’ How to protect your portfolio](https://finance.yahoo.com/news/hedge-fund-billionaire-ray-dalio-140000672.html) — Yahoo Finance
-- [Content creation can be a profitable gig, but you need to follow IRS tax rules. Here's what you need to report and why](https://finance.yahoo.com/news/content-creation-profitable-gig-irs-140000780.html) — Yahoo Finance
-- [4 in 10 Americans aren’t confident about their savings — they may be right if these 3 debts aren’t paid off](https://finance.yahoo.com/news/4-10-americans-aren-t-140000929.html) — Yahoo Finance
-- [If Palantir is Near a Bottom, What's the Best Play in PLTR Stock?](https://finance.yahoo.com/news/palantir-near-bottom-whats-best-140002655.html) — Yahoo Finance
-- [A $1 Million 401(k) In Retirement Can Still Cost You Six Figures Without These 5 Moves](https://finance.yahoo.com/news/1-million-401-k-retirement-134445761.html) — Yahoo Finance
-- [Tesla: As institutional investors sell stock, retail investors pile in](https://finance.yahoo.com/news/tesla-as-institutional-investors-sell-stock-retail-investors-pile-in-165419382.html) — Yahoo Finance
-- [Readers sound off: Rising medical bills are devouring Social Security checks](https://finance.yahoo.com/news/readers-sound-off-rising-medical-bills-are-devouring-social-security-checks-182856580.html) — Yahoo Finance
-- [Advisors Muscle Up Client Portfolios as Dollar Weakens](https://finance.yahoo.com/news/advisors-muscle-client-portfolios-dollar-130000907.html) — Yahoo Finance
-- [Gold falls nearly $1K from historic highs before rising again. How to safely diversify a portfolio with precious metals](https://finance.yahoo.com/news/gold-falls-nearly-1k-historic-124500284.html) — Yahoo Finance
+- [6 Less Common Side Hustles That Fit Perfectly Into a 9-to-5 Schedule](https://finance.yahoo.com/news/6-less-common-side-hustles-151133840.html) — Yahoo Finance
+- [Rocket Lab (RKLB) Launches Cassowary Vex Hypersonic Mission for the U.S. Department of War](https://finance.yahoo.com/news/rocket-lab-rklb-launches-cassowary-152456696.html) — Yahoo Finance
+- [Analysts Maintain Buy on Amazon (AMZN) Despite 18% Share Depreciation](https://finance.yahoo.com/news/analysts-maintain-buy-amazon-amzn-152442705.html) — Yahoo Finance
+- [Mixed Analyst Sentiment on Tesla (TSLA) Post 5 New Collisions in the “Robotaxi” Fleet](https://finance.yahoo.com/news/mixed-analyst-sentiment-tesla-tsla-152446849.html) — Yahoo Finance
+- [IREN (IREN) Added to MSCI USA Index, Boosting Exposure to Institutional Investors](https://finance.yahoo.com/news/iren-iren-added-msci-usa-152454878.html) — Yahoo Finance
+- [GDX Gold or SLVP Silver: Which ETF Should You Buy Now?](https://finance.yahoo.com/news/gdx-gold-slvp-silver-etf-150947626.html) — Yahoo Finance
+- [Needham Raises Micron (MU) Target to $450, Maintains Buy Rating](https://finance.yahoo.com/news/needham-raises-micron-mu-target-152447491.html) — Yahoo Finance
+- [Reddit (RDDT) Director Buys 50,500 Shares in Major Insider Purchase](https://finance.yahoo.com/news/reddit-rddt-director-buys-50-152451037.html) — Yahoo Finance
+- [Phillip Securities Cuts Palantir (PLTR) Target, Reiterates Buy Rating Again](https://finance.yahoo.com/news/phillip-securities-cuts-palantir-pltr-152449934.html) — Yahoo Finance
+- [Mizuho Reiterates Outperform on Alphabet (GOOGL) With $410 Target Price](https://finance.yahoo.com/news/mizuho-reiterates-outperform-alphabet-googl-152444211.html) — Yahoo Finance
 
 ## Changelog
 
