@@ -196,7 +196,7 @@ VOL_CONFIRM_MULT = 1.25   # volume must be >= 1.25x AvgVol(20) for CONFIRMED
 CLV_BREAKOUT_MIN = 0.70   # CLV in [-1..+1] must be >= +0.70 for breakout confirmation
 CLV_BREAKDOWN_MAX = -0.70  # CLV in [-1..+1] must be <= -0.70 for breakdown confirmation
 
-LOOKBACK_DAYS = 260 * 2
+LOOKBACK_DAYS = 260
 DOWNLOAD_PERIOD = "3y"
 DOWNLOAD_INTERVAL = "1d"
 CHUNK_SIZE = 80
@@ -1170,9 +1170,9 @@ def build_watchlist_pulse_section_md(
     md = []
     md.append("### 4) Emerging chart trends (the actual “so what”)")
     md.append("")
-    md.append("_Logic: score each ticker by stage (CONFIRMED=3, SOFT=2, EARLY=1) × direction (BREAKOUT=+1, BREAKDOWN=-1), then aggregate by category._")
+    md.append("_Logic: score each ticker by stage (CONFIRMED=3, EARLY=1) × direction (BREAKOUT=+1, BREAKDOWN=-1), then aggregate by category._")
     md.append("")
-    md.append("| Category | Bias | CONF↑ | CONF↓ | SOFT↑ | SOFT↓ | EARLY↑ | EARLY↓ |")
+    md.append("| Category | Bias | CONF↑ | CONF↓ | EARLY↑ | EARLY↓ |")
     md.append("| :--- | :--- | ---: | ---: | ---: | ---: |")
     for cat, s in cat_stats.items():
         sc = s["score"]
@@ -1499,8 +1499,9 @@ def movers_table(df: pd.DataFrame, title: str) -> str:
     if df is None or df.empty:
         return f"**{title}:** _None ≥ {MOVER_THRESHOLD_PCT:.0f}%_\n"
     t = df.copy()
+    t["Ticker"] = t["symbol"].astype(str).map(display_ticker)
     t["pct"] = pd.to_numeric(t["pct"], errors="coerce").map(lambda x: f"{x:+.2f}%")
-    out = t[["symbol", "pct"]]
+    out = t[["Ticker", "pct"]]
     md = df_to_markdown_aligned(out, aligns=("left", "right"), index=False)
     return f"**{title}:**\n\n" + md + "\n"
 
@@ -2294,6 +2295,10 @@ def md_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 30) -> s
             d[c] = pd.to_numeric(d[c], errors="coerce").map(lambda x: f"{x:.2f}" if pd.notna(x) else "")
     if "Dist(ATR)" in d.columns:
         d["Dist(ATR)"] = pd.to_numeric(d["Dist(ATR)"], errors="coerce").map(lambda x: f"{x:+.2f}" if pd.notna(x) else "")
+    if "Vol/AvgVol20" in d.columns:
+        d["Vol/AvgVol20"] = pd.to_numeric(d["Vol/AvgVol20"], errors="coerce").map(lambda x: f"{x:.2f}×" if pd.notna(x) else "")
+    if "CLV" in d.columns:
+        d["CLV"] = pd.to_numeric(d["CLV"], errors="coerce").map(lambda x: f"{x:+.2f}" if pd.notna(x) else "")
     if "Day%" in d.columns:
         d["Day%"] = pd.to_numeric(d["Day%"], errors="coerce").map(lambda x: f"{x:+.2f}%" if pd.notna(x) else "")
     if "Chart" in d.columns:
@@ -2306,6 +2311,89 @@ def md_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 30) -> s
     aligns = tuple("left" if c in left_cols else "right" for c in cols)
 
     return df_to_markdown_aligned(out, aligns=aligns, index=False)
+
+
+def enrich_confirmed_rules(df: pd.DataFrame, ohlcv: Dict[str, pd.DataFrame]) -> pd.DataFrame:
+    """Add confirmation-gate diagnostics to CONFIRMED tables.
+
+    Adds:
+      - Threshold (same as Level)
+      - Vol/AvgVol20
+      - CLV ([-1..+1])
+      - PriceOK / VolOK / CLVOK (✅/❌)
+    """
+    if df is None or df.empty:
+        return df
+
+    d = df.copy()
+    if "Threshold" not in d.columns:
+        d["Threshold"] = d["Level"] if "Level" in d.columns else np.nan
+
+    vols = []
+    clvs = []
+    price_ok = []
+    vol_ok = []
+    clv_ok = []
+
+    for _, r in d.iterrows():
+        t = str(r.get("Ticker", "")).strip()
+        sig = str(r.get("Signal", ""))
+        dist = pd.to_numeric(r.get("Dist(ATR)", np.nan), errors="coerce")
+        is_breakout = "BREAKOUT" in sig and "BREAKDOWN" not in sig
+        is_breakdown = "BREAKDOWN" in sig
+
+        # Price gate from Dist(ATR)
+        p_ok = False
+        if pd.notna(dist):
+            if is_breakout:
+                p_ok = dist >= ATR_CONFIRM_MULT
+            elif is_breakdown:
+                p_ok = dist <= -ATR_CONFIRM_MULT
+        # Vol/CLV from OHLCV
+        vr = np.nan
+        cv = np.nan
+        td = ohlcv.get(t)
+        if td is not None and not td.empty:
+            td2 = td.dropna(subset=["Open","High","Low","Close"])
+            if not td2.empty:
+                try:
+                    close = float(td2["Close"].iloc[-1])
+                    hi = float(td2["High"].iloc[-1])
+                    lo = float(td2["Low"].iloc[-1])
+                    if hi > lo:
+                        cv = (2.0*close - hi - lo) / (hi - lo)
+                        cv = max(-1.0, min(1.0, float(cv)))
+                except Exception:
+                    cv = np.nan
+                if "Volume" in td2.columns and not td2["Volume"].dropna().empty and len(td2) >= 2:
+                    try:
+                        v = float(td2["Volume"].iloc[-1])
+                        avg20 = float(td2["Volume"].tail(20).mean()) if len(td2) >= 20 else np.nan
+                        if avg20 and not math.isnan(avg20) and not math.isnan(v):
+                            vr = v / avg20
+                    except Exception:
+                        vr = np.nan
+
+        v_ok = bool(pd.notna(vr) and vr >= VOL_CONFIRM_MULT)
+        c_ok = False
+        if pd.notna(cv):
+            if is_breakout:
+                c_ok = cv >= CLV_BREAKOUT_MIN
+            elif is_breakdown:
+                c_ok = cv <= CLV_BREAKDOWN_MAX
+
+        vols.append(vr)
+        clvs.append(cv)
+        price_ok.append("✅" if p_ok else "❌")
+        vol_ok.append("✅" if v_ok else "❌")
+        clv_ok.append("✅" if c_ok else "❌")
+
+    d["Vol/AvgVol20"] = vols
+    d["CLV"] = clvs
+    d["PriceOK"] = price_ok
+    d["VolOK"] = vol_ok
+    d["CLVOK"] = clv_ok
+    return d
 
 
 def diff_new_ended(prev: Dict[str, List[str]], cur: Dict[str, List[str]]) -> Tuple[List[str], List[str]]:
@@ -2367,11 +2455,24 @@ def main():
     ohlcv = yf_download_chunk(universe)
 
     # 2) Movers
-    session_g, session_l = fetch_session_movers_yahoo()
-    session_gf = filter_movers(session_g)
-    session_lf = filter_movers(session_l)
-    if not session_lf.empty:
-        session_lf = session_lf.sort_values("pct", ascending=True)
+    # Compute session movers from our watchlist universe (more reliable than scraping Yahoo gainers/losers)
+    session_rows = []
+    for t in universe:
+        d = ohlcv.get(t)
+        if d is None or d.empty or "Close" not in d.columns:
+            continue
+        dd = d.dropna(subset=["Close"])
+        if len(dd) < 2:
+            continue
+        c0 = float(dd["Close"].iloc[-2])
+        c1 = float(dd["Close"].iloc[-1])
+        if c0 == 0 or math.isnan(c0) or math.isnan(c1):
+            continue
+        pct = (c1 / c0 - 1.0) * 100.0
+        session_rows.append({"symbol": t, "pct": float(pct)})
+    session_all = pd.DataFrame(session_rows, columns=["symbol", "pct"])
+    session_gf = session_all[session_all["pct"] >= MOVER_THRESHOLD_PCT].sort_values("pct", ascending=False)
+    session_lf = session_all[session_all["pct"] <= -MOVER_THRESHOLD_PCT].sort_values("pct", ascending=True)
 
     ah_g, ah_l = fetch_afterhours_movers()
     ah_gf = filter_movers(ah_g)
@@ -2496,7 +2597,6 @@ def main():
 
     # 4) Technical triggers
     md.append("## 4) Technical triggers\n")
-    md.append(f"**Breakout confirmation rule:** close beyond trigger by **≥ {ATR_CONFIRM_MULT:.1f} ATR**.\n")
 
     # Emerging chart trends (watchlist pulse) — before early callouts
     md.append(build_watchlist_pulse_section_md(
