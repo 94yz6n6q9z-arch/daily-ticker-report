@@ -1,14 +1,9 @@
-name: Daily Report
+name: Daily Report (auto-email 22:30 Vienna)
 
 on:
   workflow_dispatch:
-    inputs:
-      force_send:
-        description: "Force send now (ignore time window + already-sent lock)"
-        required: false
-        default: "false"
   schedule:
-    # Reduced frequency: every 30 minutes on weekdays
+    # Every 30 minutes on weekdays (scheduler drift tolerant)
     - cron: "*/30 * * * 1-5"
 
 permissions:
@@ -32,10 +27,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Decide whether to run (earliest 22:30 + wide window + once-per-day lock)
+      - name: Decide whether to run (manual always sends; scheduled window + lock)
         id: gate
         env:
-          FORCE_SEND: ${{ github.event.inputs.force_send }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           python - <<'PY'
           import json
@@ -43,40 +38,44 @@ jobs:
           from datetime import datetime, time
           from pathlib import Path
 
-          force = (os.environ.get("FORCE_SEND","") or "").strip().lower() == "true"
-
+          event_name = (os.environ.get("EVENT_NAME") or "").strip()
           now = datetime.now()  # TZ is set by workflow env
-          start = time(22, 30)  # earliest allowed
-          end = time(23, 45)    # wide window to tolerate scheduler drift
+          today = now.strftime("%Y-%m-%d")
+          now_hm = now.strftime("%H:%M")
+
+          # Scheduled send window (Vienna local time)
+          start = time(22, 30)   # earliest allowed
+          end = time(23, 45)     # wide window to tolerate drift
 
           def in_window(t):
               return start <= t <= end
 
-          today = now.strftime("%Y-%m-%d")
-          now_hm = now.strftime("%H:%M")
-
           run = False
           reason = ""
-          if force:
+
+          if event_name == "workflow_dispatch":
+              # Manual runs should ALWAYS send immediately (do not enforce time window, do not enforce lock).
               run = True
-              reason = "forced"
-          elif not in_window(now.time()):
-              run = False
-              reason = f"outside_window ({now_hm} not in 22:30-23:45)"
+              reason = "manual_run"
           else:
-              lock = Path("docs/email_state.json")
-              last = ""
-              if lock.exists():
-                  try:
-                      last = json.loads(lock.read_text(encoding="utf-8")).get("last_sent_date","") or ""
-                  except Exception:
-                      last = ""
-              if last == today:
+              # Scheduled runs: only send inside window, and at most once per day.
+              if not in_window(now.time()):
                   run = False
-                  reason = f"already_sent_today ({last})"
+                  reason = f"outside_window ({now_hm} not in 22:30-23:45)"
               else:
-                  run = True
-                  reason = "in_window_and_not_sent"
+                  lock = Path("docs/email_state.json")
+                  last = ""
+                  if lock.exists():
+                      try:
+                          last = json.loads(lock.read_text(encoding="utf-8")).get("last_sent_date","") or ""
+                      except Exception:
+                          last = ""
+                  if last == today:
+                      run = False
+                      reason = f"already_sent_today ({last})"
+                  else:
+                      run = True
+                      reason = "scheduled_in_window_and_not_sent"
 
           out = os.environ["GITHUB_OUTPUT"]
           with open(out, "a", encoding="utf-8") as f:
@@ -84,7 +83,8 @@ jobs:
               f.write(f"reason={reason}\n")
               f.write(f"today={today}\n")
               f.write(f"now_hm={now_hm}\n")
-          print("gate:", run, reason)
+              f.write(f"event={event_name}\n")
+          print("gate:", run, reason, "event:", event_name)
           PY
 
       - name: Stop early (no-op run)
@@ -178,7 +178,7 @@ jobs:
               log_tail = ""
               if scanlog.exists():
                   lines = scanlog.read_text(encoding="utf-8", errors="ignore").splitlines()
-                  log_tail = "\n".join(lines[-80:])
+                  log_tail = "\n".join(lines[-120:])
               txt = "Daily Ticker Report — ERROR\n\nscan.py did not produce docs/report.md.\n\nLast log lines:\n" + log_tail
               (docs / "email.txt").write_text(txt[:12000], encoding="utf-8")
               html = "<html><body><h1>Daily Ticker Report</h1><h2>ERROR</h2><pre style='white-space:pre-wrap'>" +                      (txt.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")) +                      "</pre></body></html>"
@@ -230,8 +230,8 @@ jobs:
         run: |
           python tools/send_gmail_inline.py
 
-      - name: Update once-per-day email lock
-        if: ${{ steps.gate.outputs.run == 'true' }}
+      - name: Update once-per-day email lock (scheduled runs only)
+        if: ${{ steps.gate.outputs.run == 'true' && github.event_name == 'schedule' }}
         run: |
           set -e
           mkdir -p docs
