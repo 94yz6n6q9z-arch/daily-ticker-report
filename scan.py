@@ -64,35 +64,93 @@ WATCHLIST_44: List[str] = ["MELI","ARM","QBTS","IONQ","HOOD","PLTR","SNPS","AVGO
 # Watchlist categories (for Section 6)
 # ----------------------------
 WATCHLIST_GROUPS: Dict[str, List[str]] = {
-    "AI compute & semis (incl. EDA)": ["NVDA","TSM","ASML","AMAT","LRCX","AVGO","ARM","000660.KS","SNPS","CDNS"],
-    "Big Tech platforms": ["AMZN","GOOGL","AAPL","META","MSFT","NFLX","MELI"],
-    "Consumer & retail (incl. luxury)": ["WMT","CMG","ANF","DECK","DASH","RRTL","BYDDY","MC.PA","RMS.PA"],
-    "Fintech & financials": ["HOOD","NU","UCG.MI","PGR","ARR","MUV2.DE"],
+    # EDA merged into this bucket
+    "AI compute & semis (incl. EDA)": ["NVDA","ARM","AVGO","TSM","000660.KS","ASML","AMAT","LRCX","SNPS","CDNS"],
+    # Treat AMZN as E-commerce platform (cluster with MELI)
+    "Big Tech platforms": ["AMZN","MELI","GOOGL","META","AAPL","MSFT","NFLX"],
+    "Consumer & retail (incl. luxury)": ["WMT","RRTL","ANF","DECK","MC.PA","RMS.PA","CMG","DASH","BYDDY"],
+    # MUV2 is insurance (cluster with PGR)
+    "Fintech & financials": ["HOOD","NU","PGR","MUV2.DE","UCG.MI","ARR"],
     "Healthcare": ["ISRG","LLY","NVO"],
-    "Energy & Nuclear": ["VST","CEG","OKLO","SMR","LEU","CCJ"],
+    "Energy & Nuclear": ["VST","CEG","CCJ","LEU","OKLO","SMR"],
+    # Single quantum bucket (no sub-splitting)
     "Quantum": ["IONQ","QBTS"],
-    "Venezuela Oil": ["NAT","INSW","TNK","FRO","MPC","PSX","VLO","MAU.PA","REP.MC","CVX"],
+    "Venezuela Oil": ["NAT","INSW","TNK","FRO","MPC","PSX","VLO","CVX","REP.MC","MAU.PA"],
 }
 
-# Venezuela Oil subsegments (for labeling without separate tables)
-VENEZUELA_OIL_SEGMENTS: Dict[str, str] = {
-    # Tankers
-    "NAT": "Tanker",
-    "INSW": "Tanker",
-    "TNK": "Tanker",
-    "FRO": "Tanker",
-    # Refiners
-    "MPC": "Refiner",
-    "PSX": "Refiner",
-    "VLO": "Refiner",
-    # Integrated / upstream / producers
-    "CVX": "Integrated",
-    "REP.MC": "Integrated",
+# One-level-deeper subsegments (max 4 per category), implemented as ticker tags (no extra tables).
+# These tags are used in:
+# - Watchlist performance table (ticker column)
+# - "Emerging chart trends (so what)" GPT rewrite (keeps tags when citing tickers)
+SEGMENT_TAGS: Dict[str, str] = {
+    # AI compute & semis (incl. EDA) — 4 segments
+    "NVDA": "Compute/IP", "ARM": "Compute/IP", "AVGO": "Compute/IP",
+    "TSM": "Foundry/Mem", "000660.KS": "Foundry/Mem",
+    "ASML": "Equipment", "AMAT": "Equipment", "LRCX": "Equipment",
+    "SNPS": "EDA", "CDNS": "EDA",
+
+    # Big Tech platforms — 4 segments (AMZN grouped with MELI)
+    "AMZN": "E-comm", "MELI": "E-comm",
+    "GOOGL": "Ads", "META": "Ads",
+    "AAPL": "Ecosystem", "MSFT": "Ecosystem",
+    "NFLX": "Media",
+
+    # Consumer & retail — 4 segments
+    "WMT": "Defensive", "RRTL": "Defensive",
+    "ANF": "Brands", "DECK": "Brands",
+    "MC.PA": "Luxury", "RMS.PA": "Luxury",
+    "CMG": "Services", "DASH": "Services", "BYDDY": "Services",
+
+    # Fintech & financials — 4 segments
+    "HOOD": "Brokerage",
+    "NU": "Fintech",
+    "PGR": "Insurance", "MUV2.DE": "Insurance",
+    "UCG.MI": "Bank/Yield", "ARR": "Bank/Yield",
+
+    # Healthcare — 2 segments (still <= 4)
+    "ISRG": "Medtech",
+    "LLY": "Pharma", "NVO": "Pharma",
+
+    # Energy & Nuclear — 4 segments
+    "VST": "Power", "CEG": "Power",
+    "CCJ": "Uranium",
+    "LEU": "FuelCycle",
+    "OKLO": "SMR", "SMR": "SMR",
+
+    # Quantum — single segment
+    "IONQ": "Quantum", "QBTS": "Quantum",
+
+    # Venezuela Oil — 4 segments (keep cluster order in tables)
+    "NAT": "Tanker", "INSW": "Tanker", "TNK": "Tanker", "FRO": "Tanker",
+    "MPC": "Refiner", "PSX": "Refiner", "VLO": "Refiner",
+    "CVX": "Integrated", "REP.MC": "Integrated",
     "MAU.PA": "Upstream",
 }
 
-TICKER_LABELS: Dict[str, str] = {t: f"{t} ({seg})" for t, seg in VENEZUELA_OIL_SEGMENTS.items()}
+TICKER_LABELS: Dict[str, str] = {t: f"{t} ({seg})" for t, seg in SEGMENT_TAGS.items()}
 
+# Segment order for clustering inside tables (rank 0..3 within each category)
+SEGMENT_ORDER: Dict[str, List[str]] = {
+    "AI compute & semis (incl. EDA)": ["Compute/IP", "Foundry/Mem", "Equipment", "EDA"],
+    "Big Tech platforms": ["E-comm", "Ads", "Ecosystem", "Media"],
+    "Consumer & retail (incl. luxury)": ["Defensive", "Brands", "Luxury", "Services"],
+    "Fintech & financials": ["Brokerage", "Fintech", "Insurance", "Bank/Yield"],
+    "Healthcare": ["Medtech", "Pharma"],
+    "Energy & Nuclear": ["Power", "Uranium", "FuelCycle", "SMR"],
+    "Quantum": ["Quantum"],
+    "Venezuela Oil": ["Tanker", "Refiner", "Integrated", "Upstream"],
+}
+
+# Build per-ticker rank so watchlist performance table clusters segments (e.g., refiners together).
+TICKER_SEGMENT_RANK: Dict[str, int] = {}
+for _cat, _ticks in WATCHLIST_GROUPS.items():
+    order = SEGMENT_ORDER.get(_cat, [])
+    idx_map = {seg: i for i, seg in enumerate(order)}
+    for _t in _ticks:
+        seg = SEGMENT_TAGS.get(_t)
+        if seg is None:
+            continue
+        TICKER_SEGMENT_RANK[_t] = idx_map.get(seg, 99)
 # ----------------------------
 # Paths
 # ----------------------------
@@ -943,7 +1001,7 @@ def _openai_responses_watchlist_pulse(payload_text: str) -> Optional[str]:
         "1) Use ONLY the provided JSON facts. Do NOT invent macro events or external explanations.\n"
         "2) Each bullet should mention at least one category and 1–3 tickers with their signal direction (breakout/breakdown) or the signal label as given.\n"
         "3) Prefer leadership/breadth/dispersion framing (which categories lead/lag; narrow vs broad).\n"
-        "4) If 'Venezuela Oil' tickers are mentioned, include their segment tags (e.g., 'NAT (Tanker)').\n"
+        "4) If a ticker label includes a segment tag in parentheses (e.g., 'AMZN (E-comm)', 'NAT (Tanker)'), keep that tag when mentioning the ticker.\n"
         "5) Be concise, analyst-like, and practical ('watch next', 'if this persists')."
     )
 
@@ -2118,7 +2176,7 @@ def main():
     else:
         md.append("\n**Ended signals:** _None_\n")
     # Section 6: Full watchlist performance (grouped)
-    md.append(build_watchlist_performance_section_md(WATCHLIST_GROUPS, ticker_labels=TICKER_LABELS))
+    md.append(build_watchlist_performance_section_md(WATCHLIST_GROUPS, ticker_labels=TICKER_LABELS, ticker_segment_rank=TICKER_SEGMENT_RANK))
 
 
     md_text = "\n".join(md).strip() + "\n"
