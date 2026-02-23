@@ -1855,9 +1855,75 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
 # ----------------------------
 # Charting (signals)
 # ----------------------------
+def _pivots(arr: np.ndarray, w: int = 5, kind: str = "high") -> List[int]:
+    piv: List[int] = []
+    for i in range(w, len(arr) - w):
+        window = arr[i - w : i + w + 1]
+        if kind == "high":
+            if arr[i] == np.max(window) and np.sum(window == arr[i]) == 1:
+                piv.append(i)
+        else:
+            if arr[i] == np.min(window) and np.sum(window == arr[i]) == 1:
+                piv.append(i)
+    return piv
+
+
+def _annotate_hs_top(ax, close: np.ndarray, low: np.ndarray) -> None:
+    piv = _pivots(close, w=5, kind="high")[-12:]
+    if len(piv) < 3:
+        return
+    best = None
+    for i in range(len(piv) - 2):
+        a, b, c = piv[i], piv[i + 1], piv[i + 2]
+        if close[b] > close[a] and close[b] > close[c]:
+            if abs(close[a] - close[c]) / max(close[a], close[c]) < 0.12:
+                best = (a, b, c)
+    if best is None:
+        best = (piv[-3], piv[-2], piv[-1])
+    ls, head, rs = best
+    for idx, label in [(ls, "LS"), (head, "H"), (rs, "RS")]:
+        ax.scatter([idx], [close[idx]], s=40)
+        ax.annotate(label, (idx, close[idx]), xytext=(idx, close[idx] + 3),
+                    arrowprops=dict(arrowstyle="->", lw=1))
+    n1 = float(np.min(low[min(ls, head) : max(ls, head) + 1]))
+    n2 = float(np.min(low[min(head, rs) : max(head, rs) + 1]))
+    neckline = (n1 + n2) / 2.0
+    ax.axhline(neckline, linestyle="--", linewidth=1)
+    ax.text(len(close) - 1, neckline, " Neckline", va="bottom")
+
+
+def _annotate_ihs(ax, close: np.ndarray, high: np.ndarray) -> None:
+    piv = _pivots(close, w=5, kind="low")[-12:]
+    if len(piv) < 3:
+        return
+    best = None
+    for i in range(len(piv) - 2):
+        a, b, c = piv[i], piv[i + 1], piv[i + 2]
+        if close[b] < close[a] and close[b] < close[c]:
+            if abs(close[a] - close[c]) / max(close[a], close[c]) < 0.12:
+                best = (a, b, c)
+    if best is None:
+        best = (piv[-3], piv[-2], piv[-1])
+    ls, head, rs = best
+    for idx, label in [(ls, "LS"), (head, "H"), (rs, "RS")]:
+        ax.scatter([idx], [close[idx]], s=40)
+        ax.annotate(label, (idx, close[idx]), xytext=(idx, close[idx] - 4),
+                    arrowprops=dict(arrowstyle="->", lw=1))
+    n1 = float(np.max(high[min(ls, head) : max(ls, head) + 1]))
+    n2 = float(np.max(high[min(head, rs) : max(head, rs) + 1]))
+    neckline = (n1 + n2) / 2.0
+    ax.axhline(neckline, linestyle="--", linewidth=1)
+    ax.text(len(close) - 1, neckline, " Neckline", va="bottom")
+
+
 def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal) -> Optional[str]:
     """
-    Always returns a chart path. If data is missing/insufficient, writes a placeholder PNG so the 'chart' link always works.
+    Returns a chart path (always). Adds:
+      - Trigger (sig.level)
+      - Confirm line (±0.5 ATR) using ATR(14)
+      - For HS/IHS patterns: labels LS/H/RS + neckline
+      - A small trade-prep box: trigger/confirm/dist
+    If data missing, writes a placeholder PNG so the link always works.
     """
     fname = f"{ticker}_{sig.signal}.png"
     fname = re.sub(r"[^A-Za-z0-9_\-\.]+", "_", fname)
@@ -1865,10 +1931,10 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal) -> Option
     IMG_DIR.mkdir(parents=True, exist_ok=True)
 
     def placeholder(reason: str) -> str:
-        fig = plt.figure(figsize=(10, 4.8))
+        fig = plt.figure(figsize=(10.5, 5.0))
         ax = fig.add_subplot(111)
         ax.axis("off")
-        ax.text(0.02, 0.75, f"{ticker}", fontsize=16, weight="bold", transform=ax.transAxes)
+        ax.text(0.02, 0.75, f"{display_ticker(ticker)}", fontsize=16, weight="bold", transform=ax.transAxes)
         ax.text(0.02, 0.58, f"{sig.signal}", fontsize=12, transform=ax.transAxes)
         ax.text(0.02, 0.40, "Chart unavailable", fontsize=12, transform=ax.transAxes)
         ax.text(0.02, 0.25, f"Reason: {reason}", fontsize=10, transform=ax.transAxes)
@@ -1879,23 +1945,54 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal) -> Option
 
     if df is None or df.empty:
         return placeholder("no data")
-    d = df.tail(220).dropna(subset=["Close"]).copy()
-    if len(d) < 60:
+    d = df.tail(260).dropna(subset=["Close", "High", "Low"]).copy()
+    if len(d) < 80:
         return placeholder("insufficient history")
 
     try:
-        fig = plt.figure(figsize=(10, 4.8))
-        ax = fig.add_subplot(111)
-        ax.plot(d.index, d["Close"].values)
-        ax.axhline(sig.level, linestyle="--")
+        # ATR(14)
+        atr_s = atr(d, 14)
+        atr_last = float(atr_s.dropna().iloc[-1]) if atr_s is not None and len(atr_s.dropna()) else 0.0
 
-        title = f"{ticker} | {sig.signal} | level={sig.level:.2f} | dist={sig.dist_atr:+.2f} ATR"
+        # confirm line per rule: ±0.5 ATR beyond trigger
+        direction = 1 if "BREAKOUT" in sig.signal else -1 if "BREAKDOWN" in sig.signal else 0
+        confirm = sig.level + direction * 0.5 * atr_last
+
+        close = d["Close"].astype(float).values
+        high = d["High"].astype(float).values
+        low = d["Low"].astype(float).values
+
+        fig = plt.figure(figsize=(10.5, 5.0))
+        ax = fig.add_subplot(111)
+        ax.plot(d.index, close)
+
+        # Trigger + confirm
+        ax.axhline(sig.level, linestyle="-.", linewidth=1)
+        ax.axhline(confirm, linestyle=":", linewidth=1)
+        ax.text(d.index[-1], sig.level, " Trigger", va="bottom")
+        ax.text(d.index[-1], confirm, " Confirm (±0.5 ATR)", va="bottom")
+
+        # Pattern markings (best-effort)
+        if "HS_TOP" in sig.signal or "H&S_TOP" in sig.signal:
+            _annotate_hs_top(ax, close, low)
+        if "IHS" in sig.signal:
+            _annotate_ihs(ax, close, high)
+
+        # Latest close marker
+        ax.scatter([d.index[-1]], [close[-1]], s=60)
+        ax.annotate("Close", (d.index[-1], close[-1]),
+                    xytext=(d.index[-1], close[-1]),
+                    textcoords="data")
+
+        # Trade-prep box
+        box = f"Trigger: {sig.level:.2f}\\nConfirm: {confirm:.2f}\\nDist: {sig.dist_atr:+.2f} ATR"
+        ax.text(0.02, 0.02, box, transform=ax.transAxes, fontsize=9, va="bottom",
+                bbox=dict(boxstyle="round", fc="white", ec="black", lw=0.6))
+
+        title = f"{display_ticker(ticker)} | {sig.signal}"
         ax.set_title(title)
         ax.set_xlabel("Date")
         ax.set_ylabel("Close")
-
-        ax.scatter([d.index[-1]], [d["Close"].iloc[-1]])
-        ax.text(d.index[-1], d["Close"].iloc[-1], f"  {d['Close'].iloc[-1]:.2f}", va="center")
 
         fig.tight_layout()
         fig.savefig(out_path, dpi=160)
@@ -1907,8 +2004,6 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal) -> Option
         except Exception:
             pass
         return placeholder(str(e))
-
-
 
 # ----------------------------
 # Reporting utilities
@@ -2156,6 +2251,33 @@ def main():
     md.append("_Close enough to pre-plan. “Close enough” = within 0.5 ATR of neckline/boundary._\n")
     md.append("**NEW (today):**\n")
     md.append(md_table_from_df(df_early_new, cols=["Ticker", "Signal", "Close", "Level", "Dist(ATR)", "Day%", "Chart"], max_rows=40))
+    # NEW early callouts: add a short, deterministic explanation + embed the annotated chart
+    if df_early_new is not None and not df_early_new.empty:
+        md.append("\n**What’s going on (NEW early callouts):**\n")
+        # Keep it tight: show up to 8 explanations
+        for _, rr in df_early_new.head(8).iterrows():
+            t = str(rr.get("Ticker", "")).strip()
+            sig_name = str(rr.get("Signal", "")).strip()
+            try:
+                close_v = float(rr.get("Close"))
+            except Exception:
+                close_v = float("nan")
+            try:
+                level_v = float(rr.get("Level"))
+            except Exception:
+                level_v = float("nan")
+            try:
+                dist_v = float(rr.get("Dist(ATR)"))
+            except Exception:
+                dist_v = float("nan")
+            chart_p = rr.get("Chart", "")
+            md.append(f"#### {display_ticker(t)} — `{sig_name}`")
+            md.append(f"- **Trigger (level):** {level_v:.2f}  |  **Close:** {close_v:.2f}  |  **Distance:** {dist_v:+.2f} ATR")
+            md.append("- Chart includes trigger + confirmation (±0.5 ATR). HS/IHS (if applicable) is labeled (LS/H/RS) and neckline is marked.")
+            if isinstance(chart_p, str) and chart_p:
+                md.append(f'<img src="{chart_p}" width="720" style="max-width:100%;height:auto;">')
+            md.append("")
+
     md.append("\n**ONGOING:**\n")
     md.append(md_table_from_df(df_early_old, cols=["Ticker", "Signal", "Close", "Level", "Dist(ATR)", "Day%", "Chart"], max_rows=80))
     md.append("")
@@ -2190,8 +2312,7 @@ def main():
     else:
         md.append("\n**Ended signals:** _None_\n")
     # Section 6: Full watchlist performance (grouped)
-    md.append(build_watchlist_performance_section_md(WATCHLIST_GROUPS, ticker_labels=TICKER_LABELS, ticker_segment_rank=TICKER_SEGMENT_RANK, ticker_labels=TICKER_LABELS, ticker_segment_rank=TICKER_SEGMENT_RANK))
-
+    md.append(build_watchlist_performance_section_md(WATCHLIST_GROUPS, ticker_labels=TICKER_LABELS, ticker_segment_rank=TICKER_SEGMENT_RANK))
 
     md_text = "\n".join(md).strip() + "\n"
 
