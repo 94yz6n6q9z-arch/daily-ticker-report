@@ -1,4 +1,4 @@
-name: Daily Report (auto-email 22:30 Vienna)
+name: Daily Report
 
 on:
   workflow_dispatch:
