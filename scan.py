@@ -64,16 +64,34 @@ WATCHLIST_44: List[str] = ["MELI","ARM","QBTS","IONQ","HOOD","PLTR","SNPS","AVGO
 # Watchlist categories (for Section 6)
 # ----------------------------
 WATCHLIST_GROUPS: Dict[str, List[str]] = {
-    "AI compute & semis": ["NVDA","TSM","ASML","AMAT","LRCX","AVGO","ARM","000660.KS"],
-    "EDA & design software": ["SNPS","CDNS"],
+    "AI compute & semis (incl. EDA)": ["NVDA","TSM","ASML","AMAT","LRCX","AVGO","ARM","000660.KS","SNPS","CDNS"],
     "Big Tech platforms": ["AMZN","GOOGL","AAPL","META","MSFT","NFLX","MELI"],
-    "Consumer & retail": ["WMT","CMG","ANF","DECK","DASH","RRTL","BYDDY","MC.PA","RMS.PA"],
+    "Consumer & retail (incl. luxury)": ["WMT","CMG","ANF","DECK","DASH","RRTL","BYDDY","MC.PA","RMS.PA"],
     "Fintech & financials": ["HOOD","NU","UCG.MI","PGR","ARR","MUV2.DE"],
     "Healthcare": ["ISRG","LLY","NVO"],
     "Energy & Nuclear": ["VST","CEG","OKLO","SMR","LEU","CCJ"],
     "Quantum": ["IONQ","QBTS"],
     "Venezuela Oil": ["NAT","INSW","TNK","FRO","MPC","PSX","VLO","MAU.PA","REP.MC","CVX"],
 }
+
+# Venezuela Oil subsegments (for labeling without separate tables)
+VENEZUELA_OIL_SEGMENTS: Dict[str, str] = {
+    # Tankers
+    "NAT": "Tanker",
+    "INSW": "Tanker",
+    "TNK": "Tanker",
+    "FRO": "Tanker",
+    # Refiners
+    "MPC": "Refiner",
+    "PSX": "Refiner",
+    "VLO": "Refiner",
+    # Integrated / upstream / producers
+    "CVX": "Integrated",
+    "REP.MC": "Integrated",
+    "MAU.PA": "Upstream",
+}
+
+TICKER_LABELS: Dict[str, str] = {t: f"{t} ({seg})" for t, seg in VENEZUELA_OIL_SEGMENTS.items()}
 
 # ----------------------------
 # Paths
@@ -907,6 +925,222 @@ def _openai_responses_exec_summary(payload_text: str) -> Optional[str]:
         return None
 
 
+
+def _openai_responses_watchlist_pulse(payload_text: str) -> Optional[str]:
+    """Call OpenAI Responses API to rewrite the 'Emerging chart trends' watchlist pulse."""
+    api_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    if not api_key:
+        return None
+
+    model = os.environ.get("OPENAI_MODEL", "gpt-5.2-pro").strip() or "gpt-5.2-pro"
+    effort = os.environ.get("OPENAI_REASONING_EFFORT", "medium").strip() or "medium"
+
+    instructions = (
+        "You are writing a short 'Emerging chart trends (the actual so what)' section for a daily trading report. "
+        "You will receive JSON facts computed from the user's watchlist signals.\n"
+        "Output EXACTLY 4 to 6 numbered bullets (format '1.'...'6.'), no heading, no extra text.\n"
+        "Rules:\n"
+        "1) Use ONLY the provided JSON facts. Do NOT invent macro events or external explanations.\n"
+        "2) Each bullet should mention at least one category and 1–3 tickers with their signal direction (breakout/breakdown) or the signal label as given.\n"
+        "3) Prefer leadership/breadth/dispersion framing (which categories lead/lag; narrow vs broad).\n"
+        "4) If 'Venezuela Oil' tickers are mentioned, include their segment tags (e.g., 'NAT (Tanker)').\n"
+        "5) Be concise, analyst-like, and practical ('watch next', 'if this persists')."
+    )
+
+    body = {
+        "model": model,
+        "instructions": instructions,
+        "input": payload_text,
+        "temperature": 0.3,
+        "max_output_tokens": 260,
+        "reasoning": {"effort": effort},
+        "text": {"verbosity": "low"},
+    }
+
+    try:
+        req = Request(
+            "https://api.openai.com/v1/responses",
+            data=json.dumps(body).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "User-Agent": USER_AGENT,
+            },
+            method="POST",
+        )
+        with urlopen(req, timeout=90) as resp:
+            raw = resp.read().decode("utf-8", errors="ignore")
+        data = json.loads(raw)
+
+        out_text = ""
+        if isinstance(data, dict):
+            if isinstance(data.get("output_text"), str) and data["output_text"].strip():
+                out_text = data["output_text"].strip()
+            else:
+                outs = data.get("output", [])
+                if isinstance(outs, list):
+                    parts = []
+                    for item in outs:
+                        if not isinstance(item, dict):
+                            continue
+                        if item.get("type") == "message":
+                            content = item.get("content", [])
+                            if isinstance(content, list):
+                                for c in content:
+                                    if isinstance(c, dict) and c.get("type") in ("output_text", "text"):
+                                        t = c.get("text") or ""
+                                        if isinstance(t, str) and t.strip():
+                                            parts.append(t.strip())
+                    out_text = "\n".join(parts).strip()
+
+        out_text = out_text.strip()
+        if not out_text:
+            return None
+
+        lines = [ln.strip() for ln in out_text.splitlines() if ln.strip()]
+        numbered = [ln for ln in lines if re.match(r"^\d+\.", ln)]
+        if len(numbered) >= 4:
+            return "\n".join(numbered[:6])
+        return None
+    except Exception:
+        return None
+
+
+def _sig_stage_weight(sig: str) -> int:
+    if sig.startswith("CONFIRMED_"):
+        return 3
+    if sig.startswith("SOFT_"):
+        return 2
+    if sig.startswith("EARLY_"):
+        return 1
+    return 1
+
+
+def _sig_direction(sig: str) -> int:
+    if "BREAKOUT" in sig:
+        return +1
+    if "BREAKDOWN" in sig:
+        return -1
+    return 0
+
+
+def _dominant_signal(signals: List[Tuple[str, float, bool]]) -> Optional[Tuple[str, float, bool]]:
+    if not signals:
+        return None
+    ranked = []
+    for s, dist, is_new in signals:
+        ranked.append((_sig_stage_weight(s), 1 if is_new else 0, abs(dist), s, dist, is_new))
+    ranked.sort(reverse=True)
+    _, _, _, s, dist, is_new = ranked[0]
+    return (s, dist, is_new)
+
+
+def build_watchlist_pulse_section_md(
+    df_early_new: pd.DataFrame,
+    df_early_old: pd.DataFrame,
+    df_trig_new: pd.DataFrame,
+    df_trig_old: pd.DataFrame,
+    watchlist_groups: Dict[str, List[str]],
+    ticker_labels: Dict[str, str],
+) -> str:
+    def _iter_df(df: pd.DataFrame, is_new: bool) -> List[Tuple[str, str, float, bool]]:
+        if df is None or df.empty:
+            return []
+        out = []
+        for _, r in df.iterrows():
+            t = str(r.get("Ticker", "")).strip()
+            s = str(r.get("Signal", "")).strip()
+            dist = r.get("Dist(ATR)", float("nan"))
+            try:
+                dist = float(dist)
+            except Exception:
+                dist = float("nan")
+            out.append((t, s, dist, is_new))
+        return out
+
+    rows = []
+    rows += _iter_df(df_early_new, True)
+    rows += _iter_df(df_early_old, False)
+    rows += _iter_df(df_trig_new, True)
+    rows += _iter_df(df_trig_old, False)
+
+    sigs_by_t: Dict[str, List[Tuple[str, float, bool]]] = {}
+    for t, s, dist, is_new in rows:
+        if not t or not s:
+            continue
+        sigs_by_t.setdefault(t, []).append((s, 0.0 if math.isnan(dist) else dist, is_new))
+
+    cat_stats = {}
+    for cat, tickers in watchlist_groups.items():
+        counts = {"CONF_UP": 0, "CONF_DN": 0, "SOFT_UP": 0, "SOFT_DN": 0, "EARLY_UP": 0, "EARLY_DN": 0}
+        score = 0
+        leaders = []
+        for t in tickers:
+            dom = _dominant_signal(sigs_by_t.get(t, []))
+            if not dom:
+                continue
+            sig, dist, is_new = dom
+            w = _sig_stage_weight(sig)
+            d = _sig_direction(sig)
+            if d == 0:
+                continue
+            key = ("CONF" if w == 3 else "SOFT" if w == 2 else "EARLY") + ("_UP" if d > 0 else "_DN")
+            counts[key] += 1
+            score += w * d
+            label = ticker_labels.get(t, t)
+            leaders.append((w, 1 if is_new else 0, abs(dist), label, sig))
+        leaders.sort(reverse=True)
+        top = [{"ticker": x[3], "signal": x[4]} for x in leaders[:3]]
+        cat_stats[cat] = {"score": score, "counts": counts, "top": top}
+
+    md = []
+    md.append("### 4) Emerging chart trends (the actual “so what”)")
+    md.append("")
+    md.append("_Logic: score each ticker by stage (CONFIRMED=3, SOFT=2, EARLY=1) × direction (BREAKOUT=+1, BREAKDOWN=-1), then aggregate by category._")
+    md.append("")
+    md.append("| Category | Bias | CONF↑ | CONF↓ | SOFT↑ | SOFT↓ | EARLY↑ | EARLY↓ |")
+    md.append("| :--- | :--- | ---: | ---: | ---: | ---: | ---: | ---: |")
+    for cat, s in cat_stats.items():
+        sc = s["score"]
+        bias = "Bullish" if sc >= 3 else "Bearish" if sc <= -3 else "Mixed"
+        c = s["counts"]
+        md.append(f"| {cat} | {bias} | {c['CONF_UP']} | {c['CONF_DN']} | {c['SOFT_UP']} | {c['SOFT_DN']} | {c['EARLY_UP']} | {c['EARLY_DN']} |")
+    md.append("")
+
+    payload = {
+        "category_stats": [
+            {"category": cat, "score": s["score"], **s["counts"], "top": s["top"]}
+            for cat, s in cat_stats.items()
+        ],
+        "note": "Facts are derived from the watchlist technical triggers tables (early callouts + breakouts/breakdowns).",
+    }
+
+    llm = _openai_responses_watchlist_pulse(json.dumps(payload, ensure_ascii=False))
+    if llm:
+        md.append(llm)
+    else:
+        # deterministic fallback (short)
+        cats_sorted = sorted(cat_stats.items(), key=lambda kv: kv[1]["score"])
+        bearish = [kv for kv in cats_sorted if kv[1]["score"] <= -3]
+        bullish = [kv for kv in reversed(cats_sorted) if kv[1]["score"] >= 3]
+        bullets = []
+        if bullish and bearish:
+            bullets.append(f"1. **Leadership is split** — {bullish[0][0]} leads while {bearish[0][0]} leans bearish; reads as selective risk-taking rather than broad risk-on.")
+        n = 2
+        for cat, s in bullish[:2]:
+            tops = ", ".join([f"{x['ticker']} ({x['signal']})" for x in s["top"]]) or "—"
+            bullets.append(f"{n}. **{cat} is a tailwind** — signals skew bullish. Key names: {tops}.")
+            n += 1
+        for cat, s in bearish[:2]:
+            tops = ", ".join([f"{x['ticker']} ({x['signal']})" for x in s["top"]]) or "—"
+            bullets.append(f"{n}. **{cat} is a headwind** — breakdowns dominate. Key names: {tops}.")
+            n += 1
+        md.extend(bullets[:6])
+
+    md.append("")
+    return "\n".join(md)
+
+
 def _absolutize_md_links(md: str, base_url: str) -> str:
     """Rewrite relative links (img/...) to absolute URLs for email rendering."""
     base_url = (base_url or "").strip()
@@ -1549,32 +1783,35 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
 # ----------------------------
 # Charting (signals)
 # ----------------------------
-def _make_placeholder_png(out_path: Path, title: str, reason: str) -> None:
-    """Create a placeholder PNG so the report always has a clickable chart."""
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    fig = plt.figure(figsize=(10, 4.8))
-    ax = fig.add_subplot(111)
-    ax.axis("off")
-    ax.text(0.02, 0.75, title, fontsize=14, weight="bold", transform=ax.transAxes)
-    ax.text(0.02, 0.50, "Chart unavailable", fontsize=12, transform=ax.transAxes)
-    ax.text(0.02, 0.30, f"Reason: {reason}", fontsize=10, transform=ax.transAxes)
-    fig.tight_layout()
-    fig.savefig(out_path, dpi=160)
-    plt.close(fig)
-
-def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal) -> str:
-    """Always returns a chart path. If plotting fails, creates a placeholder PNG."""
+def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal) -> Optional[str]:
+    """
+    Always returns a chart path. If data is missing/insufficient, writes a placeholder PNG so the 'chart' link always works.
+    """
     fname = f"{ticker}_{sig.signal}.png"
     fname = re.sub(r"[^A-Za-z0-9_\-\.]+", "_", fname)
     out_path = IMG_DIR / fname
+    IMG_DIR.mkdir(parents=True, exist_ok=True)
+
+    def placeholder(reason: str) -> str:
+        fig = plt.figure(figsize=(10, 4.8))
+        ax = fig.add_subplot(111)
+        ax.axis("off")
+        ax.text(0.02, 0.75, f"{ticker}", fontsize=16, weight="bold", transform=ax.transAxes)
+        ax.text(0.02, 0.58, f"{sig.signal}", fontsize=12, transform=ax.transAxes)
+        ax.text(0.02, 0.40, "Chart unavailable", fontsize=12, transform=ax.transAxes)
+        ax.text(0.02, 0.25, f"Reason: {reason}", fontsize=10, transform=ax.transAxes)
+        fig.tight_layout()
+        fig.savefig(out_path, dpi=160)
+        plt.close(fig)
+        return f"img/{fname}"
+
+    if df is None or df.empty:
+        return placeholder("no data")
+    d = df.tail(220).dropna(subset=["Close"]).copy()
+    if len(d) < 60:
+        return placeholder("insufficient history")
 
     try:
-        if df is None or df.empty:
-            raise RuntimeError("no price data")
-        d = df.tail(220).dropna(subset=["Close"]).copy()
-        if len(d) < 60:
-            raise RuntimeError("insufficient history (<60 rows)")
-
         fig = plt.figure(figsize=(10, 4.8))
         ax = fig.add_subplot(111)
         ax.plot(d.index, d["Close"].values)
@@ -1591,14 +1828,14 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal) -> str:
         fig.tight_layout()
         fig.savefig(out_path, dpi=160)
         plt.close(fig)
-
-        if not out_path.exists() or out_path.stat().st_size < 5000:
-            raise RuntimeError("chart file missing/too small after save")
-
+        return f"img/{fname}"
     except Exception as e:
-        _make_placeholder_png(out_path, f"{ticker} — {sig.signal}", str(e))
+        try:
+            plt.close("all")
+        except Exception:
+            pass
+        return placeholder(str(e))
 
-    return f"img/{fname}"
 
 
 # ----------------------------
@@ -1760,9 +1997,9 @@ def main():
     early_sorted = sorted(early, key=lambda s: abs(s.dist_atr))
 
     # Charts for signals
-    for s in triggered_sorted[:MAX_CHARTS_TRIGGERED]:
+    for s in triggered_sorted:
         s.chart_path = plot_signal_chart(s.ticker, ohlcv.get(s.ticker), s)
-    for s in early_sorted[:MAX_CHARTS_EARLY]:
+    for s in early_sorted:
         s.chart_path = plot_signal_chart(s.ticker, ohlcv.get(s.ticker), s)
 
     # State diff
@@ -1833,6 +2070,16 @@ def main():
     md.append("## 4) Technical triggers\n")
     md.append(f"**Breakout confirmation rule:** close beyond trigger by **≥ {ATR_CONFIRM_MULT:.1f} ATR**.\n")
 
+    # Emerging chart trends (watchlist pulse) — before early callouts
+    md.append(build_watchlist_pulse_section_md(
+        df_early_new=df_early_new,
+        df_early_old=df_early_old,
+        df_trig_new=df_trig_new,
+        df_trig_old=df_trig_old,
+        watchlist_groups=WATCHLIST_GROUPS,
+        ticker_labels=TICKER_LABELS,
+    ))
+
     md.append("### 4A) Early callouts (~80% complete)\n")
     md.append("_Close enough to pre-plan. “Close enough” = within 0.5 ATR of neckline/boundary._\n")
     md.append("**NEW (today):**\n")
@@ -1871,7 +2118,7 @@ def main():
     else:
         md.append("\n**Ended signals:** _None_\n")
     # Section 6: Full watchlist performance (grouped)
-    md.append(build_watchlist_performance_section_md(WATCHLIST_GROUPS))
+    md.append(build_watchlist_performance_section_md(WATCHLIST_GROUPS, ticker_labels=TICKER_LABELS))
 
 
     md_text = "\n".join(md).strip() + "\n"
