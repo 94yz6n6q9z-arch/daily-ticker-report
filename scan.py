@@ -55,7 +55,7 @@ WATCHLIST_44: List[str] = ["MELI","ARM","QBTS","IONQ","HOOD","PLTR","SNPS","AVGO
     "NFLX","LRCX","TSM","DASH","ISRG","MUV2.DE","PGR","CMG","ANF","DECK",
     "NU","UCG.MI","MC.PA","RMS.PA","VST","OKLO","SMR","CEG","LEU","CCJ",
     "000660.KS","NVDA","NVO","LLY","AMZN","GOOGL","AAPL","META","MSFT","ASML",
-    "WMT","BYDDY","RRTL","ARR",
+    "WMT","BYDDY","RRTL.DE","ARR",
     "NAT","INSW","TNK","FRO","MPC","PSX","VLO","MAU.PA","REP.MC","CVX"
 ]
 
@@ -68,7 +68,7 @@ WATCHLIST_GROUPS: Dict[str, List[str]] = {
     "AI compute & semis (incl. EDA)": ["NVDA","ARM","AVGO","TSM","000660.KS","ASML","AMAT","LRCX","SNPS","CDNS"],
     # Treat AMZN as E-commerce platform (cluster with MELI)
     "Big Tech platforms": ["AMZN","MELI","GOOGL","META","AAPL","MSFT","NFLX"],
-    "Consumer & retail (incl. luxury)": ["WMT","RRTL","ANF","DECK","MC.PA","RMS.PA","CMG","DASH","BYDDY"],
+    "Consumer & retail (incl. luxury)": ["WMT","RRTL.DE","ANF","DECK","MC.PA","RMS.PA","CMG","DASH","BYDDY"],
     # MUV2 is insurance (cluster with PGR)
     "Fintech & financials": ["HOOD","NU","PGR","MUV2.DE","UCG.MI","ARR"],
     "Healthcare": ["ISRG","LLY","NVO"],
@@ -96,7 +96,7 @@ SEGMENT_TAGS: Dict[str, str] = {
     "NFLX": "Media",
 
     # Consumer & retail — 4 segments
-    "WMT": "Defensive", "RRTL": "Defensive",
+    "WMT": "Defensive", "RRTL.DE": "Defensive",
     "ANF": "Brands", "DECK": "Brands",
     "MC.PA": "Luxury", "RMS.PA": "Luxury",
     "CMG": "Services", "DASH": "Services", "BYDDY": "Services",
@@ -127,7 +127,17 @@ SEGMENT_TAGS: Dict[str, str] = {
     "MAU.PA": "Upstream",
 }
 
-TICKER_LABELS: Dict[str, str] = {t: f"{t} ({seg})" for t, seg in SEGMENT_TAGS.items()}
+def _base_ticker(t: str) -> str:
+    # Display ticker without exchange suffix (e.g., MC.PA -> MC, RRTL.DE -> RRTL)
+    return t.split(".", 1)[0] if "." in t else t
+
+# Ticker display labels: include segment tag when available, but hide exchange suffix.
+TICKER_LABELS: Dict[str, str] = {t: f"{_base_ticker(t)} ({seg})" for t, seg in SEGMENT_TAGS.items()}
+
+def display_ticker(t: str) -> str:
+    # Use segment-tag label when available, otherwise strip exchange suffix.
+    return TICKER_LABELS.get(t, _base_ticker(t))
+
 
 # Segment order for clustering inside tables (rank 0..3 within each category)
 SEGMENT_ORDER: Dict[str, List[str]] = {
@@ -280,8 +290,12 @@ def df_to_markdown_aligned(df: pd.DataFrame, aligns: Tuple[str, ...], index: boo
     """
     Generate markdown and force alignment row regardless of pandas/tabulate version.
     """
+    if "Ticker" in df.columns:
+        df = df.copy()
+        df["Ticker"] = df["Ticker"].astype(str).map(display_ticker)
     md = df.to_markdown(index=index)
     return _patch_markdown_alignment(md, aligns)
+
 
 
 # ----------------------------
@@ -2176,7 +2190,7 @@ def main():
     else:
         md.append("\n**Ended signals:** _None_\n")
     # Section 6: Full watchlist performance (grouped)
-    md.append(build_watchlist_performance_section_md(WATCHLIST_GROUPS, ticker_labels=TICKER_LABELS, ticker_segment_rank=TICKER_SEGMENT_RANK))
+    md.append(build_watchlist_performance_section_md(WATCHLIST_GROUPS, ticker_labels=TICKER_LABELS, ticker_segment_rank=TICKER_SEGMENT_RANK, ticker_labels=TICKER_LABELS, ticker_segment_rank=TICKER_SEGMENT_RANK))
 
 
     md_text = "\n".join(md).strip() + "\n"
