@@ -192,6 +192,10 @@ ATR_N = 14
 ATR_CONFIRM_MULT = 0.5     # confirmed breakout/breakdown threshold
 EARLY_MULT = 0.5           # early callout threshold (within 0.5 ATR)
 
+VOL_CONFIRM_MULT = 1.25   # volume must be >= 1.25x AvgVol(20) for CONFIRMED
+CLV_BREAKOUT_MIN = 0.70   # CLV in [-1..+1] must be >= +0.70 for breakout confirmation
+CLV_BREAKDOWN_MAX = -0.70  # CLV in [-1..+1] must be <= -0.70 for breakdown confirmation
+
 LOOKBACK_DAYS = 260 * 2
 DOWNLOAD_PERIOD = "3y"
 DOWNLOAD_INTERVAL = "1d"
@@ -1081,8 +1085,6 @@ def _openai_responses_watchlist_pulse(payload_text: str) -> Optional[str]:
 def _sig_stage_weight(sig: str) -> int:
     if sig.startswith("CONFIRMED_"):
         return 3
-    if sig.startswith("SOFT_"):
-        return 2
     if sig.startswith("EARLY_"):
         return 1
     return 1
@@ -1144,7 +1146,7 @@ def build_watchlist_pulse_section_md(
 
     cat_stats = {}
     for cat, tickers in watchlist_groups.items():
-        counts = {"CONF_UP": 0, "CONF_DN": 0, "SOFT_UP": 0, "SOFT_DN": 0, "EARLY_UP": 0, "EARLY_DN": 0}
+        counts = {"CONF_UP": 0, "CONF_DN": 0, "EARLY_UP": 0, "EARLY_DN": 0}
         score = 0
         leaders = []
         for t in tickers:
@@ -1171,12 +1173,12 @@ def build_watchlist_pulse_section_md(
     md.append("_Logic: score each ticker by stage (CONFIRMED=3, SOFT=2, EARLY=1) × direction (BREAKOUT=+1, BREAKDOWN=-1), then aggregate by category._")
     md.append("")
     md.append("| Category | Bias | CONF↑ | CONF↓ | SOFT↑ | SOFT↓ | EARLY↑ | EARLY↓ |")
-    md.append("| :--- | :--- | ---: | ---: | ---: | ---: | ---: | ---: |")
+    md.append("| :--- | :--- | ---: | ---: | ---: | ---: |")
     for cat, s in cat_stats.items():
         sc = s["score"]
         bias = "Bullish" if sc >= 3 else "Bearish" if sc <= -3 else "Mixed"
         c = s["counts"]
-        md.append(f"| {cat} | {bias} | {c['CONF_UP']} | {c['CONF_DN']} | {c['SOFT_UP']} | {c['SOFT_DN']} | {c['EARLY_UP']} | {c['EARLY_DN']} |")
+        md.append(f"| {cat} | {bias} | {c['CONF_UP']} | {c['CONF_DN']} | {c['EARLY_UP']} | {c['EARLY_DN']} |")
     md.append("")
 
     payload = {
@@ -1645,26 +1647,52 @@ def _line_fit(x: np.ndarray, y: np.ndarray) -> Tuple[float, float]:
     return float(a), float(b)
 
 
-def _classify_vs_level(close: float, level: float, atr_val: float, direction: str) -> Tuple[str, float]:
+def _classify_vs_level(
+    close: float,
+    level: float,
+    atr_val: float,
+    direction: str,
+    vol_ratio: float,
+    clv: float,
+) -> Tuple[str, float]:
+    """Classify signal strength vs a trigger level with hard confirmation gates.
+
+    CONFIRMED requires ALL:
+      1) close beyond trigger by >= ATR_CONFIRM_MULT * ATR(14)
+      2) volume ratio >= VOL_CONFIRM_MULT (vs AvgVol(20))
+      3) CLV >= CLV_BREAKOUT_MIN for breakouts, <= CLV_BREAKDOWN_MAX for breakdowns (CLV in [-1..+1])
+
+    EARLY is within EARLY_MULT * ATR of the trigger (pre-plan zone); if not CONFIRMED, we keep it EARLY (no SOFT tier).
+    """
     if atr_val is None or atr_val <= 0 or math.isnan(atr_val):
         atr_val = max(level * 0.01, 1e-6)
+
+    if vol_ratio is None or (isinstance(vol_ratio, float) and math.isnan(vol_ratio)):
+        vol_ratio = 1.0
+    if clv is None or (isinstance(clv, float) and math.isnan(clv)):
+        clv = 0.0
+
     dist_atr = (close - level) / atr_val
 
     if direction == "BREAKOUT":
-        if close >= level + ATR_CONFIRM_MULT * atr_val:
+        price_ok = close >= level + ATR_CONFIRM_MULT * atr_val
+        vol_ok = vol_ratio >= VOL_CONFIRM_MULT
+        clv_ok = clv >= CLV_BREAKOUT_MIN
+        if price_ok and vol_ok and clv_ok:
             return "CONFIRMED_", dist_atr
-        if close >= level:
-            return "SOFT_", dist_atr
-        if (level - close) <= EARLY_MULT * atr_val:
+        # No SOFT tier: if not confirmed, keep only EARLY when close is within the pre-plan zone.
+        if abs(close - level) <= EARLY_MULT * atr_val:
             return "EARLY_", dist_atr
         return "", dist_atr
 
     # BREAKDOWN
-    if close <= level - ATR_CONFIRM_MULT * atr_val:
+    price_ok = close <= level - ATR_CONFIRM_MULT * atr_val
+    vol_ok = vol_ratio >= VOL_CONFIRM_MULT
+    clv_ok = clv <= CLV_BREAKDOWN_MAX
+    if price_ok and vol_ok and clv_ok:
         return "CONFIRMED_", dist_atr
-    if close <= level:
-        return "SOFT_", dist_atr
-    if (close - level) <= EARLY_MULT * atr_val:
+    # No SOFT tier: if not confirmed, keep only EARLY when close is within the pre-plan zone.
+    if abs(close - level) <= EARLY_MULT * atr_val:
         return "EARLY_", dist_atr
     return "", dist_atr
 
@@ -1803,10 +1831,28 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
     close = float(d["Close"].iloc[-1])
     pct_today = pct_change_last(d)
 
+    # Confirmation gates use volume ratio (vs AvgVol20) and CLV ([-1..+1])
+    vol_ratio = 1.0
+    if "Volume" in d.columns and not d["Volume"].dropna().empty:
+        v = float(d["Volume"].iloc[-1]) if not math.isnan(float(d["Volume"].iloc[-1])) else float("nan")
+        avg20 = float(d["Volume"].tail(20).mean()) if len(d) >= 20 else float("nan")
+        if avg20 and not math.isnan(avg20) and not math.isnan(v):
+            vol_ratio = v / avg20
+
+    clv = 0.0
+    try:
+        hi = float(d["High"].iloc[-1])
+        lo = float(d["Low"].iloc[-1])
+        if hi > lo:
+            clv = (2.0 * close - hi - lo) / (hi - lo)  # CLV in [-1..+1]
+            clv = max(-1.0, min(1.0, float(clv)))
+    except Exception:
+        clv = 0.0
+
     hs = detect_hs_top(d)
     if hs:
         pattern, direction, level = hs
-        prefix, dist_atr = _classify_vs_level(close, level, atr_val, direction)
+        prefix, dist_atr = _classify_vs_level(close, level, atr_val, direction, vol_ratio, clv)
         if prefix:
             sigs.append(LevelSignal(
                 ticker=ticker, signal=f"{prefix}{pattern}_{direction}",
@@ -1818,7 +1864,7 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
     ihs = detect_inverse_hs(d)
     if ihs:
         pattern, direction, level = ihs
-        prefix, dist_atr = _classify_vs_level(close, level, atr_val, direction)
+        prefix, dist_atr = _classify_vs_level(close, level, atr_val, direction, vol_ratio, clv)
         if prefix:
             sigs.append(LevelSignal(
                 ticker=ticker, signal=f"{prefix}{pattern}_{direction}",
@@ -1831,7 +1877,7 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
     if st:
         pattern, upper_level, lower_level = st
 
-        prefix_u, dist_u = _classify_vs_level(close, upper_level, atr_val, "BREAKOUT")
+        prefix_u, dist_u = _classify_vs_level(close, upper_level, atr_val, "BREAKOUT", vol_ratio, clv)
         if prefix_u:
             sigs.append(LevelSignal(
                 ticker=ticker, signal=f"{prefix_u}{pattern}_BREAKOUT",
@@ -1840,7 +1886,7 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
                 dist_atr=float(dist_u), pct_today=pct_today
             ))
 
-        prefix_l, dist_l = _classify_vs_level(close, lower_level, atr_val, "BREAKDOWN")
+        prefix_l, dist_l = _classify_vs_level(close, lower_level, atr_val, "BREAKDOWN", vol_ratio, clv)
         if prefix_l:
             sigs.append(LevelSignal(
                 ticker=ticker, signal=f"{prefix_l}{pattern}_BREAKDOWN",
@@ -1866,6 +1912,11 @@ def _pivots(arr: np.ndarray, w: int = 5, kind: str = "high") -> List[int]:
             if arr[i] == np.min(window) and np.sum(window == arr[i]) == 1:
                 piv.append(i)
     return piv
+
+def pivots(arr: np.ndarray, w: int = 5, kind: str = "high") -> List[int]:
+    """Alias for _pivots (backward-compatible)."""
+    return _pivots(arr, w=w, kind=kind)
+
 
 
 def _annotate_hs_top(ax, close: np.ndarray, low: np.ndarray) -> None:
@@ -2364,10 +2415,10 @@ def main():
         all_signals.extend(compute_signals_for_ticker(t, df))
 
     early = [s for s in all_signals if s.signal.startswith("EARLY_")]
-    triggered = [s for s in all_signals if s.signal.startswith("SOFT_") or s.signal.startswith("CONFIRMED_")]
+    triggered = [s for s in all_signals if s.signal.startswith("CONFIRMED_")]
 
     def rank_trigger(s: LevelSignal) -> Tuple[int, float]:
-        tier = 0 if s.signal.startswith("CONFIRMED_") else (1 if s.signal.startswith("SOFT_") else 2)
+        tier = 0
         return (tier, abs(s.dist_atr))
 
     triggered_sorted = sorted(triggered, key=rank_trigger)
@@ -2458,9 +2509,12 @@ def main():
     ))
 
     md.append("### 4A) Early callouts (~80% complete)\n")
-    md.append("_Close enough to pre-plan. “Close enough” = within 0.5 ATR of neckline/boundary._\n")
+    md.append("_Close enough to pre-plan. “Close enough” = within 0.5 ATR of the trigger (neckline/boundary). No SOFT tier — anything not CONFIRMED stays in EARLY._\n")
     md.append("**NEW (today):**\n")
-    md.append(md_table_from_df(df_early_new, cols=["Ticker", "Signal", "Close", "Level", "Dist(ATR)", "Day%", "Chart"], max_rows=40))
+    df_early_new_tbl = df_early_new.copy()
+    if "Level" in df_early_new_tbl.columns and "Threshold" not in df_early_new_tbl.columns:
+        df_early_new_tbl["Threshold"] = df_early_new_tbl["Level"]
+    md.append(md_table_from_df(df_early_new_tbl, cols=["Ticker", "Signal", "Close", "Threshold", "Dist(ATR)", "Day%", "Chart"], max_rows=40))
     # NEW early callouts: add a short, deterministic explanation + embed the annotated chart
     if df_early_new is not None and not df_early_new.empty:
         md.append("\n**What’s going on (NEW early callouts):**\n")
@@ -2497,15 +2551,24 @@ def main():
             md.append("")
 
     md.append("\n**ONGOING:**\n")
-    md.append(md_table_from_df(df_early_old, cols=["Ticker", "Signal", "Close", "Level", "Dist(ATR)", "Day%", "Chart"], max_rows=80))
+    df_early_old_tbl = df_early_old.copy()
+    if "Level" in df_early_old_tbl.columns and "Threshold" not in df_early_old_tbl.columns:
+        df_early_old_tbl["Threshold"] = df_early_old_tbl["Level"]
+    md.append(md_table_from_df(df_early_old_tbl, cols=["Ticker", "Signal", "Close", "Threshold", "Dist(ATR)", "Day%", "Chart"], max_rows=80))
     md.append("")
 
     md.append("### 4B) Breakouts / breakdowns (or about to)\n")
-    md.append("_Includes **SOFT** (pierced but <0.5 ATR) and **CONFIRMED** (≥0.5 ATR)._ \n")
+    md.append("_Includes **CONFIRMED** only: close beyond trigger by ≥0.5 ATR AND Volume ≥1.25×AvgVol(20) AND CLV ≥+0.70 (breakout) / ≤−0.70 (breakdown)._ \n")
     md.append("**NEW (today):**\n")
-    md.append(md_table_from_df(df_trig_new, cols=["Ticker", "Signal", "Close", "Level", "Dist(ATR)", "Day%", "Chart"], max_rows=60))
+    df_trig_new_tbl = df_trig_new.copy()
+    if "Level" in df_trig_new_tbl.columns and "Threshold" not in df_trig_new_tbl.columns:
+        df_trig_new_tbl["Threshold"] = df_trig_new_tbl["Level"]
+    md.append(md_table_from_df(df_trig_new_tbl, cols=["Ticker", "Signal", "Close", "Threshold", "Dist(ATR)", "Day%", "Chart"], max_rows=60))
     md.append("\n**ONGOING:**\n")
-    md.append(md_table_from_df(df_trig_old, cols=["Ticker", "Signal", "Close", "Level", "Dist(ATR)", "Day%", "Chart"], max_rows=120))
+    df_trig_old_tbl = df_trig_old.copy()
+    if "Level" in df_trig_old_tbl.columns and "Threshold" not in df_trig_old_tbl.columns:
+        df_trig_old_tbl["Threshold"] = df_trig_old_tbl["Level"]
+    md.append(md_table_from_df(df_trig_old_tbl, cols=["Ticker", "Signal", "Close", "Threshold", "Dist(ATR)", "Day%", "Chart"], max_rows=120))
     md.append("")
 
     # 5) Catalysts
