@@ -1,4 +1,4 @@
-name: Daily Report
+name: Daily Report (22:30 Vienna)
 
 on:
   workflow_dispatch:
@@ -17,9 +17,9 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       TZ: Europe/Vienna
-      # Used to make email chart links clickable (absolute URLs)
       PUBLIC_IMG_BASE: https://94yz6n6q9z-arch.github.io/daily-ticker-report
 
     steps:
@@ -48,76 +48,93 @@ jobs:
             exit 0
           fi
 
-      - name: Run scan
+      - name: Run scan (capture log)
+        id: scan1
+        continue-on-error: true
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_MODEL: gpt-5.2-pro
           OPENAI_REASONING_EFFORT: medium
         run: |
-          python scan.py
+          set -o pipefail
+          mkdir -p docs
+          python scan.py 2>&1 | tee docs/scan.log
+          exit ${PIPESTATUS[0]}
+
+      - name: Retry scan once (if first attempt failed)
+        id: scan2
+        if: ${{ steps.scan1.outcome == 'failure' }}
+        continue-on-error: true
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: gpt-5.2-pro
+          OPENAI_REASONING_EFFORT: medium
+        run: |
+          set -o pipefail
+          echo "First run failed; retrying in 60s..."
+          sleep 60
+          python scan.py 2>&1 | tee -a docs/scan.log
+          exit ${PIPESTATUS[0]}
+
+      - name: Determine scan status
+        id: status
+        run: |
+          if [ -f docs/report.md ]; then
+            echo "ok=true" >> $GITHUB_OUTPUT
+          else
+            echo "ok=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Prepare email bodies (HTML + text)
+        if: ${{ always() }}
         env:
           PUBLIC_IMG_BASE: ${{ env.PUBLIC_IMG_BASE }}
         run: |
           python - <<'PY'
           from pathlib import Path
+          import os, re
           import markdown as md
-          import os
-          import re
 
-          base = os.environ.get("PUBLIC_IMG_BASE", "").rstrip("/")
-          report = Path("docs/report.md")
-          if not report.exists():
-            raise SystemExit("docs/report.md missing; scan.py did not generate it")
+          base = os.environ.get("PUBLIC_IMG_BASE","").rstrip("/")
+          docs = Path("docs"); docs.mkdir(parents=True, exist_ok=True)
 
-          txt = report.read_text(encoding="utf-8", errors="ignore")
+          report = docs / "report.md"
+          scanlog = docs / "scan.log"
 
-          # Make chart links absolute for email (Gmail won't open relative links)
-          if base:
-            txt = txt.replace("(img/", f"({base}/img/")
-            txt = txt.replace('src="img/', f'src="{base}/img/')
-            txt = txt.replace("src='img/", f"src='{base}/img/")
+          if report.exists():
+              txt = report.read_text(encoding="utf-8", errors="ignore")
+              if base:
+                  txt = txt.replace("(img/", f"({base}/img/")
+                  txt = txt.replace('src="img/', f'src="{base}/img/')
+                  txt = txt.replace("src='img/", f"src='{base}/img/")
+              (docs / "email.md").write_text(txt, encoding="utf-8")
 
-          Path("docs/email.md").write_text(txt, encoding="utf-8")
+              body_html = md.markdown(txt, extensions=["tables","sane_lists","fenced_code"])
+              html = "<!doctype html><html><head>"                      "<meta charset='utf-8'/><meta name='viewport' content='width=device-width, initial-scale=1'/>"                      "<style>"                      "body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif;line-height:1.35;}"                      "h1,h2,h3{margin:16px 0 10px;}"                      "table{border-collapse:collapse;width:100%;margin:10px 0 18px;}"                      "th,td{border:1px solid #ddd;padding:8px;vertical-align:top;}"                      "th{background:#f6f8fa;}"                      "img{max-width:100%;height:auto;}"                      "</style></head><body>" + body_html + "</body></html>"
+              (docs / "email.html").write_text(html, encoding="utf-8")
+              (docs / "email.txt").write_text(txt[:12000], encoding="utf-8")
+          else:
+              log_tail = ""
+              if scanlog.exists():
+                  lines = scanlog.read_text(encoding="utf-8", errors="ignore").splitlines()
+                  log_tail = "\n".join(lines[-60:])
+              txt = "Daily Ticker Report — ERROR\n\nscan.py did not produce docs/report.md.\n\nLast log lines:\n" + log_tail
+              (docs / "email.txt").write_text(txt[:12000], encoding="utf-8")
+              html = "<html><body><h1>Daily Ticker Report</h1><h2>ERROR</h2><pre style='white-space:pre-wrap'>" +                      (txt.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")) +                      "</pre></body></html>"
+              (docs / "email.html").write_text(html, encoding="utf-8")
+              (docs / "email.md").write_text(txt, encoding="utf-8")
 
-          body_html = md.markdown(
-              txt,
-              extensions=["tables", "sane_lists", "fenced_code"]
-          )
-
-          html = f"""<!doctype html>
-          <html>
-          <head>
-            <meta charset="utf-8"/>
-            <meta name="viewport" content="width=device-width, initial-scale=1"/>
-            <style>
-              body {{ font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif; line-height: 1.35; }}
-              h1,h2,h3 {{ margin: 16px 0 10px; }}
-              table {{ border-collapse: collapse; width: 100%; margin: 10px 0 18px; }}
-              th, td {{ border: 1px solid #ddd; padding: 8px; vertical-align: top; }}
-              th {{ background: #f6f8fa; }}
-              img {{ max-width: 100%; height: auto; }}
-            </style>
-          </head>
-          <body>
-            {body_html}
-          </body>
-          </html>"""
-
-          Path("docs/email.html").write_text(html, encoding="utf-8")
-          Path("docs/email.txt").write_text(re.sub(r"\s+", " ", txt)[:12000], encoding="utf-8")
-          print("Prepared docs/email.md, docs/email.html, docs/email.txt")
+          print("Prepared docs/email.html + docs/email.txt")
           PY
 
       - name: Commit and push report
+        if: ${{ steps.status.outputs.ok == 'true' }}
         run: |
           set -e
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           mkdir -p docs/img
-
           git add docs/report.md docs/index.md docs/state.json docs/img docs/email.md docs/email.html docs/email.txt || true
 
           if git diff --cached --quiet; then
@@ -129,10 +146,12 @@ jobs:
 
       - name: Compute subject timestamp
         id: subject
+        if: ${{ always() }}
         run: |
           echo "subject=Daily Ticker Report — $(date +'%Y-%m-%d %H:%M %Z')" >> $GITHUB_OUTPUT
 
       - name: Verify mail secrets (fail early with clear error)
+        if: ${{ always() }}
         env:
           MAIL_TO: ${{ secrets.MAIL_TO }}
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
@@ -143,6 +162,7 @@ jobs:
           test -n "$MAIL_PASSWORD" || (echo "MAIL_PASSWORD secret missing/empty" && exit 1)
 
       - name: Send email (inline macro charts)
+        if: ${{ always() }}
         env:
           MAIL_TO: ${{ secrets.MAIL_TO }}
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
