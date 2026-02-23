@@ -1,11 +1,15 @@
-name: Daily Report (22:30 Vienna)
+name: Daily Report (auto-email 22:30 Vienna)
 
 on:
   workflow_dispatch:
+    inputs:
+      force_send:
+        description: "Force send now (ignore time window + already-sent lock)"
+        required: false
+        default: "false"
   schedule:
-    # Run at 20:30 UTC (22:30 CEST) and 21:30 UTC (22:30 CET)
-    - cron: "30 20 * * 1-5"
-    - cron: "30 21 * * 1-5"
+    # Reduced frequency: every 30 minutes on weekdays
+    - cron: "*/30 * * * 1-5"
 
 permissions:
   contents: write
@@ -17,7 +21,7 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
       TZ: Europe/Vienna
       PUBLIC_IMG_BASE: https://94yz6n6q9z-arch.github.io/daily-ticker-report
@@ -28,27 +32,83 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Decide whether to run (wide time window + once-per-day lock)
+        id: gate
+        run: |
+          set -e
+          FORCE="${{ github.event_name == 'workflow_dispatch' && inputs.force_send || 'false' }}"
+          echo "force=$FORCE" >> $GITHUB_OUTPUT
+
+          NOW_HM="$(date +'%H:%M')"
+          TODAY="$(date +'%Y-%m-%d')"
+          echo "now_hm=$NOW_HM" >> $GITHUB_OUTPUT
+          echo "today=$TODAY" >> $GITHUB_OUTPUT
+
+          # Wide send window (Vienna local time) to tolerate scheduling drift.
+          # Still sends AT MOST ONCE thanks to the lock below.
+          START="22:30"
+          END="23:00"
+
+          in_window() {
+            [ "$NOW_HM" ">=" "$START" ] && [ "$NOW_HM" "<=" "$END" ]
+          }
+
+          if [ "$FORCE" = "true" ]; then
+            echo "run=true" >> $GITHUB_OUTPUT
+            echo "reason=forced" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          if ! in_window; then
+            echo "run=false" >> $GITHUB_OUTPUT
+            echo "reason=outside_window ($NOW_HM not in $START-$END)" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Once-per-day lock file (committed in repo)
+          LOCK="docs/email_state.json"
+          if [ -f "$LOCK" ]; then
+            LAST="$(python - <<'PY'
+import json
+from pathlib import Path
+p=Path("docs/email_state.json")
+try:
+  j=json.loads(p.read_text(encoding="utf-8"))
+  print(j.get("last_sent_date",""))
+except Exception:
+  print("")
+PY
+)"
+            if [ "$LAST" = "$TODAY" ]; then
+              echo "run=false" >> $GITHUB_OUTPUT
+              echo "reason=already_sent_today ($LAST)" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          fi
+
+          echo "run=true" >> $GITHUB_OUTPUT
+          echo "reason=in_window_and_not_sent" >> $GITHUB_OUTPUT
+
+      - name: Stop early (no-op run)
+        if: ${{ steps.gate.outputs.run != 'true' }}
+        run: |
+          echo "Skipping: ${{ steps.gate.outputs.reason }}"
+
       - name: Set up Python
+        if: ${{ steps.gate.outputs.run == 'true' }}
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
       - name: Install dependencies
+        if: ${{ steps.gate.outputs.run == 'true' }}
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           pip install markdown
 
-      - name: Time guard (scheduled runs only)
-        if: ${{ github.event_name == 'schedule' }}
-        run: |
-          NOW="$(date +'%H:%M')"
-          if [ "$NOW" != "22:30" ]; then
-            echo "Not 22:30 local (now $NOW). Exiting."
-            exit 0
-          fi
-
       - name: Run scan (capture log)
+        if: ${{ steps.gate.outputs.run == 'true' }}
         id: scan1
         continue-on-error: true
         env:
@@ -62,8 +122,8 @@ jobs:
           exit ${PIPESTATUS[0]}
 
       - name: Retry scan once (if first attempt failed)
+        if: ${{ steps.gate.outputs.run == 'true' && steps.scan1.outcome == 'failure' }}
         id: scan2
-        if: ${{ steps.scan1.outcome == 'failure' }}
         continue-on-error: true
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -77,6 +137,7 @@ jobs:
           exit ${PIPESTATUS[0]}
 
       - name: Determine scan status
+        if: ${{ steps.gate.outputs.run == 'true' }}
         id: status
         run: |
           if [ -f docs/report.md ]; then
@@ -86,49 +147,49 @@ jobs:
           fi
 
       - name: Prepare email bodies (HTML + text)
-        if: ${{ always() }}
+        if: ${{ steps.gate.outputs.run == 'true' }}
         env:
           PUBLIC_IMG_BASE: ${{ env.PUBLIC_IMG_BASE }}
         run: |
           python - <<'PY'
-          from pathlib import Path
-          import os, re
-          import markdown as md
+from pathlib import Path
+import os
+import markdown as md
 
-          base = os.environ.get("PUBLIC_IMG_BASE","").rstrip("/")
-          docs = Path("docs"); docs.mkdir(parents=True, exist_ok=True)
+base = os.environ.get("PUBLIC_IMG_BASE","").rstrip("/")
+docs = Path("docs"); docs.mkdir(parents=True, exist_ok=True)
 
-          report = docs / "report.md"
-          scanlog = docs / "scan.log"
+report = docs / "report.md"
+scanlog = docs / "scan.log"
 
-          if report.exists():
-              txt = report.read_text(encoding="utf-8", errors="ignore")
-              if base:
-                  txt = txt.replace("(img/", f"({base}/img/")
-                  txt = txt.replace('src="img/', f'src="{base}/img/')
-                  txt = txt.replace("src='img/", f"src='{base}/img/")
-              (docs / "email.md").write_text(txt, encoding="utf-8")
+if report.exists():
+    txt = report.read_text(encoding="utf-8", errors="ignore")
+    if base:
+        txt = txt.replace("(img/", f"({base}/img/")
+        txt = txt.replace('src="img/', f'src="{base}/img/')
+        txt = txt.replace("src='img/", f"src='{base}/img/")
+    (docs / "email.md").write_text(txt, encoding="utf-8")
 
-              body_html = md.markdown(txt, extensions=["tables","sane_lists","fenced_code"])
-              html = "<!doctype html><html><head>"                      "<meta charset='utf-8'/><meta name='viewport' content='width=device-width, initial-scale=1'/>"                      "<style>"                      "body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif;line-height:1.35;}"                      "h1,h2,h3{margin:16px 0 10px;}"                      "table{border-collapse:collapse;width:100%;margin:10px 0 18px;}"                      "th,td{border:1px solid #ddd;padding:8px;vertical-align:top;}"                      "th{background:#f6f8fa;}"                      "img{max-width:100%;height:auto;}"                      "</style></head><body>" + body_html + "</body></html>"
-              (docs / "email.html").write_text(html, encoding="utf-8")
-              (docs / "email.txt").write_text(txt[:12000], encoding="utf-8")
-          else:
-              log_tail = ""
-              if scanlog.exists():
-                  lines = scanlog.read_text(encoding="utf-8", errors="ignore").splitlines()
-                  log_tail = "\n".join(lines[-60:])
-              txt = "Daily Ticker Report — ERROR\n\nscan.py did not produce docs/report.md.\n\nLast log lines:\n" + log_tail
-              (docs / "email.txt").write_text(txt[:12000], encoding="utf-8")
-              html = "<html><body><h1>Daily Ticker Report</h1><h2>ERROR</h2><pre style='white-space:pre-wrap'>" +                      (txt.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")) +                      "</pre></body></html>"
-              (docs / "email.html").write_text(html, encoding="utf-8")
-              (docs / "email.md").write_text(txt, encoding="utf-8")
+    body_html = md.markdown(txt, extensions=["tables","sane_lists","fenced_code"])
+    html = "<!doctype html><html><head>"            "<meta charset='utf-8'/><meta name='viewport' content='width=device-width, initial-scale=1'/>"            "<style>"            "body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif;line-height:1.35;}"            "h1,h2,h3{margin:16px 0 10px;}"            "table{border-collapse:collapse;width:100%;margin:10px 0 18px;}"            "th,td{border:1px solid #ddd;padding:8px;vertical-align:top;}"            "th{background:#f6f8fa;}"            "img{max-width:100%;height:auto;}"            "</style></head><body>" + body_html + "</body></html>"
+    (docs / "email.html").write_text(html, encoding="utf-8")
 
-          print("Prepared docs/email.html + docs/email.txt")
-          PY
+    # Keep line breaks (don't collapse whitespace) to avoid table distortion
+    (docs / "email.txt").write_text(txt[:12000], encoding="utf-8")
+else:
+    log_tail = ""
+    if scanlog.exists():
+        lines = scanlog.read_text(encoding="utf-8", errors="ignore").splitlines()
+        log_tail = "\n".join(lines[-80:])
+    txt = "Daily Ticker Report — ERROR\n\nscan.py did not produce docs/report.md.\n\nLast log lines:\n" + log_tail
+    (docs / "email.txt").write_text(txt[:12000], encoding="utf-8")
+    html = "<html><body><h1>Daily Ticker Report</h1><h2>ERROR</h2><pre style='white-space:pre-wrap'>" +            (txt.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")) +            "</pre></body></html>"
+    (docs / "email.html").write_text(html, encoding="utf-8")
+    (docs / "email.md").write_text(txt, encoding="utf-8")
+PY
 
       - name: Commit and push report
-        if: ${{ steps.status.outputs.ok == 'true' }}
+        if: ${{ steps.gate.outputs.run == 'true' && steps.status.outputs.ok == 'true' }}
         run: |
           set -e
           git config user.name "github-actions[bot]"
@@ -145,13 +206,13 @@ jobs:
           fi
 
       - name: Compute subject timestamp
+        if: ${{ steps.gate.outputs.run == 'true' }}
         id: subject
-        if: ${{ always() }}
         run: |
           echo "subject=Daily Ticker Report — $(date +'%Y-%m-%d %H:%M %Z')" >> $GITHUB_OUTPUT
 
       - name: Verify mail secrets (fail early with clear error)
-        if: ${{ always() }}
+        if: ${{ steps.gate.outputs.run == 'true' }}
         env:
           MAIL_TO: ${{ secrets.MAIL_TO }}
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
@@ -162,7 +223,7 @@ jobs:
           test -n "$MAIL_PASSWORD" || (echo "MAIL_PASSWORD secret missing/empty" && exit 1)
 
       - name: Send email (inline macro charts)
-        if: ${{ always() }}
+        if: ${{ steps.gate.outputs.run == 'true' }}
         env:
           MAIL_TO: ${{ secrets.MAIL_TO }}
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
@@ -170,3 +231,35 @@ jobs:
           MAIL_SUBJECT: ${{ steps.subject.outputs.subject }}
         run: |
           python tools/send_gmail_inline.py
+
+      - name: Update once-per-day email lock
+        if: ${{ steps.gate.outputs.run == 'true' }}
+        run: |
+          set -e
+          mkdir -p docs
+          python - <<'PY'
+import json
+from pathlib import Path
+from datetime import datetime
+
+p = Path("docs/email_state.json")
+p.parent.mkdir(parents=True, exist_ok=True)
+
+now = datetime.now()
+state = {
+  "last_sent_date": now.strftime("%Y-%m-%d"),
+  "last_sent_ts": now.strftime("%Y-%m-%d %H:%M:%S"),
+}
+p.write_text(json.dumps(state, indent=2), encoding="utf-8")
+print("Wrote", p)
+PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/email_state.json || true
+          if git diff --cached --quiet; then
+            echo "No lock changes to commit."
+          else
+            git commit -m "Email lock update [skip ci]"
+            git push
+          fi
