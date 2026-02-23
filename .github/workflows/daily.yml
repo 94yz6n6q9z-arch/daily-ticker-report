@@ -32,62 +32,60 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Decide whether to run (wide time window + once-per-day lock)
+      - name: Decide whether to run (earliest 22:30 + wide window + once-per-day lock)
         id: gate
+        env:
+          FORCE_SEND: ${{ github.event.inputs.force_send }}
         run: |
-          set -e
-          FORCE="${{ github.event_name == 'workflow_dispatch' && inputs.force_send || 'false' }}"
-          echo "force=$FORCE" >> $GITHUB_OUTPUT
+          python - <<'PY'
+          import json
+          import os
+          from datetime import datetime, time
+          from pathlib import Path
 
-          NOW_HM="$(date +'%H:%M')"
-          TODAY="$(date +'%Y-%m-%d')"
-          echo "now_hm=$NOW_HM" >> $GITHUB_OUTPUT
-          echo "today=$TODAY" >> $GITHUB_OUTPUT
+          force = (os.environ.get("FORCE_SEND","") or "").strip().lower() == "true"
 
-          # Wide send window (Vienna local time) to tolerate scheduling drift.
-          # Still sends AT MOST ONCE thanks to the lock below.
-          START="22:00"
-          END="23:00"
+          now = datetime.now()  # TZ is set by workflow env
+          start = time(22, 30)  # earliest allowed
+          end = time(23, 45)    # wide window to tolerate scheduler drift
 
-          in_window() {
-            [ "$NOW_HM" ">=" "$START" ] && [ "$NOW_HM" "<=" "$END" ]
-          }
+          def in_window(t):
+              return start <= t <= end
 
-          if [ "$FORCE" = "true" ]; then
-            echo "run=true" >> $GITHUB_OUTPUT
-            echo "reason=forced" >> $GITHUB_OUTPUT
-            exit 0
-          fi
+          today = now.strftime("%Y-%m-%d")
+          now_hm = now.strftime("%H:%M")
 
-          if ! in_window; then
-            echo "run=false" >> $GITHUB_OUTPUT
-            echo "reason=outside_window ($NOW_HM not in $START-$END)" >> $GITHUB_OUTPUT
-            exit 0
-          fi
+          run = False
+          reason = ""
+          if force:
+              run = True
+              reason = "forced"
+          elif not in_window(now.time()):
+              run = False
+              reason = f"outside_window ({now_hm} not in 22:30-23:45)"
+          else:
+              lock = Path("docs/email_state.json")
+              last = ""
+              if lock.exists():
+                  try:
+                      last = json.loads(lock.read_text(encoding="utf-8")).get("last_sent_date","") or ""
+                  except Exception:
+                      last = ""
+              if last == today:
+                  run = False
+                  reason = f"already_sent_today ({last})"
+              else:
+                  run = True
+                  reason = "in_window_and_not_sent"
 
-          # Once-per-day lock file (committed in repo)
-          LOCK="docs/email_state.json"
-          if [ -f "$LOCK" ]; then
-            LAST="$(python - <<'PY'
-import json
-from pathlib import Path
-p=Path("docs/email_state.json")
-try:
-  j=json.loads(p.read_text(encoding="utf-8"))
-  print(j.get("last_sent_date",""))
-except Exception:
-  print("")
-PY
-)"
-            if [ "$LAST" = "$TODAY" ]; then
-              echo "run=false" >> $GITHUB_OUTPUT
-              echo "reason=already_sent_today ($LAST)" >> $GITHUB_OUTPUT
-              exit 0
-            fi
-          fi
-
-          echo "run=true" >> $GITHUB_OUTPUT
-          echo "reason=in_window_and_not_sent" >> $GITHUB_OUTPUT
+          out = os.environ["GITHUB_OUTPUT"]
+          with open(out, "a", encoding="utf-8") as f:
+              f.write(f"run={'true' if run else 'false'}\n")
+              f.write(f"reason={reason}\n")
+              f.write(f"today={today}\n")
+              f.write(f"now_hm={now_hm}\n")
+          print("gate:", run, reason)
+          PY
 
       - name: Stop early (no-op run)
         if: ${{ steps.gate.outputs.run != 'true' }}
@@ -152,41 +150,41 @@ PY
           PUBLIC_IMG_BASE: ${{ env.PUBLIC_IMG_BASE }}
         run: |
           python - <<'PY'
-from pathlib import Path
-import os
-import markdown as md
+          from pathlib import Path
+          import os
+          import markdown as md
 
-base = os.environ.get("PUBLIC_IMG_BASE","").rstrip("/")
-docs = Path("docs"); docs.mkdir(parents=True, exist_ok=True)
+          base = os.environ.get("PUBLIC_IMG_BASE","").rstrip("/")
+          docs = Path("docs"); docs.mkdir(parents=True, exist_ok=True)
 
-report = docs / "report.md"
-scanlog = docs / "scan.log"
+          report = docs / "report.md"
+          scanlog = docs / "scan.log"
 
-if report.exists():
-    txt = report.read_text(encoding="utf-8", errors="ignore")
-    if base:
-        txt = txt.replace("(img/", f"({base}/img/")
-        txt = txt.replace('src="img/', f'src="{base}/img/')
-        txt = txt.replace("src='img/", f"src='{base}/img/")
-    (docs / "email.md").write_text(txt, encoding="utf-8")
+          if report.exists():
+              txt = report.read_text(encoding="utf-8", errors="ignore")
+              if base:
+                  txt = txt.replace("(img/", f"({base}/img/")
+                  txt = txt.replace('src="img/', f'src="{base}/img/')
+                  txt = txt.replace("src='img/", f"src='{base}/img/")
+              (docs / "email.md").write_text(txt, encoding="utf-8")
 
-    body_html = md.markdown(txt, extensions=["tables","sane_lists","fenced_code"])
-    html = "<!doctype html><html><head>"            "<meta charset='utf-8'/><meta name='viewport' content='width=device-width, initial-scale=1'/>"            "<style>"            "body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif;line-height:1.35;}"            "h1,h2,h3{margin:16px 0 10px;}"            "table{border-collapse:collapse;width:100%;margin:10px 0 18px;}"            "th,td{border:1px solid #ddd;padding:8px;vertical-align:top;}"            "th{background:#f6f8fa;}"            "img{max-width:100%;height:auto;}"            "</style></head><body>" + body_html + "</body></html>"
-    (docs / "email.html").write_text(html, encoding="utf-8")
+              body_html = md.markdown(txt, extensions=["tables","sane_lists","fenced_code"])
+              html = "<!doctype html><html><head>"                      "<meta charset='utf-8'/><meta name='viewport' content='width=device-width, initial-scale=1'/>"                      "<style>"                      "body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif;line-height:1.35;}"                      "h1,h2,h3{margin:16px 0 10px;}"                      "table{border-collapse:collapse;width:100%;margin:10px 0 18px;}"                      "th,td{border:1px solid #ddd;padding:8px;vertical-align:top;}"                      "th{background:#f6f8fa;}"                      "img{max-width:100%;height:auto;}"                      "</style></head><body>" + body_html + "</body></html>"
+              (docs / "email.html").write_text(html, encoding="utf-8")
 
-    # Keep line breaks (don't collapse whitespace) to avoid table distortion
-    (docs / "email.txt").write_text(txt[:12000], encoding="utf-8")
-else:
-    log_tail = ""
-    if scanlog.exists():
-        lines = scanlog.read_text(encoding="utf-8", errors="ignore").splitlines()
-        log_tail = "\n".join(lines[-80:])
-    txt = "Daily Ticker Report — ERROR\n\nscan.py did not produce docs/report.md.\n\nLast log lines:\n" + log_tail
-    (docs / "email.txt").write_text(txt[:12000], encoding="utf-8")
-    html = "<html><body><h1>Daily Ticker Report</h1><h2>ERROR</h2><pre style='white-space:pre-wrap'>" +            (txt.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")) +            "</pre></body></html>"
-    (docs / "email.html").write_text(html, encoding="utf-8")
-    (docs / "email.md").write_text(txt, encoding="utf-8")
-PY
+              # Keep line breaks (don't collapse whitespace) to avoid table distortion
+              (docs / "email.txt").write_text(txt[:12000], encoding="utf-8")
+          else:
+              log_tail = ""
+              if scanlog.exists():
+                  lines = scanlog.read_text(encoding="utf-8", errors="ignore").splitlines()
+                  log_tail = "\n".join(lines[-80:])
+              txt = "Daily Ticker Report — ERROR\n\nscan.py did not produce docs/report.md.\n\nLast log lines:\n" + log_tail
+              (docs / "email.txt").write_text(txt[:12000], encoding="utf-8")
+              html = "<html><body><h1>Daily Ticker Report</h1><h2>ERROR</h2><pre style='white-space:pre-wrap'>" +                      (txt.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")) +                      "</pre></body></html>"
+              (docs / "email.html").write_text(html, encoding="utf-8")
+              (docs / "email.md").write_text(txt, encoding="utf-8")
+          PY
 
       - name: Commit and push report
         if: ${{ steps.gate.outputs.run == 'true' && steps.status.outputs.ok == 'true' }}
@@ -238,21 +236,21 @@ PY
           set -e
           mkdir -p docs
           python - <<'PY'
-import json
-from pathlib import Path
-from datetime import datetime
+          import json
+          from pathlib import Path
+          from datetime import datetime
 
-p = Path("docs/email_state.json")
-p.parent.mkdir(parents=True, exist_ok=True)
+          p = Path("docs/email_state.json")
+          p.parent.mkdir(parents=True, exist_ok=True)
 
-now = datetime.now()
-state = {
-  "last_sent_date": now.strftime("%Y-%m-%d"),
-  "last_sent_ts": now.strftime("%Y-%m-%d %H:%M:%S"),
-}
-p.write_text(json.dumps(state, indent=2), encoding="utf-8")
-print("Wrote", p)
-PY
+          now = datetime.now()
+          state = {
+            "last_sent_date": now.strftime("%Y-%m-%d"),
+            "last_sent_ts": now.strftime("%Y-%m-%d %H:%M:%S"),
+          }
+          p.write_text(json.dumps(state, indent=2), encoding="utf-8")
+          print("Wrote", p)
+          PY
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
