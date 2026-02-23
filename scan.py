@@ -1916,14 +1916,137 @@ def _annotate_ihs(ax, close: np.ndarray, high: np.ndarray) -> None:
     ax.text(len(close) - 1, neckline, " Neckline", va="bottom")
 
 
+
+
+
+
+def _annotate_hs_top_dt(ax, dates, close, low) -> Optional[float]:
+    """Date-aware HS-top labeling (avoids date-axis distortion)."""
+    piv_hi = pivots(close, w=5, kind="high")[-10:]
+    if len(piv_hi) < 3:
+        return None
+    best = None
+    for i in range(len(piv_hi) - 2):
+        a, b, c = piv_hi[i], piv_hi[i + 1], piv_hi[i + 2]
+        if close[b] > close[a] and close[b] > close[c]:
+            if abs(close[a] - close[c]) / max(close[a], close[c]) < 0.12:
+                best = (a, b, c)
+    if not best:
+        best = (piv_hi[-3], piv_hi[-2], piv_hi[-1])
+    ls, head, rs = best
+
+    for idxp, label in [(ls, "LS"), (head, "H"), (rs, "RS")]:
+        ax.scatter([dates[idxp]], [close[idxp]], s=40)
+        ax.annotate(label, (dates[idxp], close[idxp]),
+                    xytext=(dates[idxp], close[idxp] + 3),
+                    textcoords="data",
+                    arrowprops=dict(arrowstyle="->", lw=1))
+
+    n1 = float(np.min(low[min(ls, head):max(ls, head) + 1]))
+    n2 = float(np.min(low[min(head, rs):max(head, rs) + 1]))
+    neckline = (n1 + n2) / 2.0
+    ax.axhline(neckline, linestyle="--", linewidth=1)
+    ax.text(dates[-1], neckline, " Neckline", va="bottom")
+    return neckline
+
+
+def _annotate_ihs_dt(ax, dates, close, high) -> Optional[float]:
+    """Date-aware IHS labeling (avoids date-axis distortion)."""
+    piv_lo = pivots(close, w=5, kind="low")[-10:]
+    if len(piv_lo) < 3:
+        return None
+    best = None
+    for i in range(len(piv_lo) - 2):
+        a, b, c = piv_lo[i], piv_lo[i + 1], piv_lo[i + 2]
+        if close[b] < close[a] and close[b] < close[c]:
+            if abs(close[a] - close[c]) / max(close[a], close[c]) < 0.12:
+                best = (a, b, c)
+    if not best:
+        best = (piv_lo[-3], piv_lo[-2], piv_lo[-1])
+    ls, head, rs = best
+
+    for idxp, label in [(ls, "LS"), (head, "H"), (rs, "RS")]:
+        ax.scatter([dates[idxp]], [close[idxp]], s=40)
+        ax.annotate(label, (dates[idxp], close[idxp]),
+                    xytext=(dates[idxp], close[idxp] - 4),
+                    textcoords="data",
+                    arrowprops=dict(arrowstyle="->", lw=1))
+
+    n1 = float(np.max(high[min(ls, head):max(ls, head) + 1]))
+    n2 = float(np.max(high[min(head, rs):max(head, rs) + 1]))
+    neckline = (n1 + n2) / 2.0
+    ax.axhline(neckline, linestyle="--", linewidth=1)
+    ax.text(dates[-1], neckline, " Neckline", va="bottom")
+    return neckline
+def _annotate_wedge(ax, dates, high, low, lookback: int = 120) -> None:
+    """
+    Best-effort wedge visual:
+    - fit upper trendline through pivot highs
+    - fit lower trendline through pivot lows
+    - scatter pivot points (touches) used for the fit
+    Works for both WEDGE_UP_* and WEDGE_DOWN_*.
+    """
+    import numpy as _np
+
+    n = len(high)
+    if n < 40:
+        return
+    lb = min(lookback, n)
+    hi = _np.asarray(high[-lb:], dtype=float)
+    lo = _np.asarray(low[-lb:], dtype=float)
+    dts = dates[-lb:]
+
+    def pivots(arr, w=4, kind="high"):
+        out = []
+        for i in range(w, len(arr)-w):
+            win = arr[i-w:i+w+1]
+            if kind == "high":
+                if arr[i] == _np.max(win):
+                    out.append(i)
+            else:
+                if arr[i] == _np.min(win):
+                    out.append(i)
+        return out
+
+    piv_hi = pivots(hi, w=4, kind="high")[-4:]
+    piv_lo = pivots(lo, w=4, kind="low")[-4:]
+    if len(piv_hi) < 2 or len(piv_lo) < 2:
+        return
+
+    xh = _np.array(piv_hi, dtype=float)
+    yh = hi[piv_hi]
+    xl = _np.array(piv_lo, dtype=float)
+    yl = lo[piv_lo]
+
+    # Fit lines y = a*x + b
+    ah, bh = _np.polyfit(xh, yh, 1)
+    al, bl = _np.polyfit(xl, yl, 1)
+
+    xs = _np.arange(lb, dtype=float)
+    upper = ah*xs + bh
+    lower = al*xs + bl
+
+    # plot lines
+    ax.plot(dts, upper, linestyle="--", linewidth=1)
+    ax.plot(dts, lower, linestyle="--", linewidth=1)
+    # touches
+    ax.scatter([dts[i] for i in piv_hi], yh, s=22)
+    ax.scatter([dts[i] for i in piv_lo], yl, s=22)
+
+    # label
+    ax.text(dts[int(lb*0.02)], upper[int(lb*0.05)], "Wedge upper", fontsize=9)
+    ax.text(dts[int(lb*0.02)], lower[int(lb*0.10)], "Wedge lower", fontsize=9)
 def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal) -> Optional[str]:
     """
-    Returns a chart path (always). Adds:
-      - Trigger (sig.level)
-      - Confirm line (±0.5 ATR) using ATR(14)
-      - For HS/IHS patterns: labels LS/H/RS + neckline
-      - A small trade-prep box: trigger/confirm/dist
-    If data missing, writes a placeholder PNG so the link always works.
+    Chart output (last ~1Y, with indicators):
+      - Close (line)
+      - SMA(50) and SMA(200)
+      - Volume subplot
+      - Trigger (sig.level) + Confirm (±0.5 ATR)
+      - Pattern markings:
+          * HS/IHS: LS/H/RS + neckline
+          * WEDGE: upper/lower lines + "touch" pivots
+    Always returns a chart path; if anything fails, writes a placeholder PNG.
     """
     fname = f"{ticker}_{sig.signal}.png"
     fname = re.sub(r"[^A-Za-z0-9_\-\.]+", "_", fname)
@@ -1945,38 +2068,100 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal) -> Option
 
     if df is None or df.empty:
         return placeholder("no data")
-    d = df.tail(260).dropna(subset=["Close", "High", "Low"]).copy()
-    if len(d) < 80:
+
+    # --- Clean + ensure datetime index ---
+    d0 = df.copy()
+    # keep needed
+    for col in ["Open", "High", "Low", "Close", "Volume"]:
+        if col not in d0.columns:
+            if col == "Volume":
+                d0[col] = np.nan
+            else:
+                return placeholder(f"missing column {col}")
+
+    # Drop rows with invalid OHLC (common on weekends/partials for some tickers)
+    d0 = d0.dropna(subset=["Close", "High", "Low"]).copy()
+    if d0.empty or len(d0) < 80:
         return placeholder("insufficient history")
 
     try:
+        # Ensure datetime index; avoid accidental epoch (1970) axes
+        if not isinstance(d0.index, pd.DatetimeIndex):
+            # If there's a Date column, use it; otherwise synthesize business-day index
+            if "Date" in d0.columns:
+                d0["Date"] = pd.to_datetime(d0["Date"], errors="coerce")
+                d0 = d0.dropna(subset=["Date"]).set_index("Date")
+            else:
+                d0.index = pd.bdate_range(end=pd.Timestamp.today().normalize(), periods=len(d0))
+        else:
+            # Clean any non-datetime artifacts
+            idx = pd.to_datetime(d0.index, errors="coerce")
+            d0 = d0.loc[~idx.isna()].copy()
+            d0.index = pd.to_datetime(d0.index, errors="coerce")
+
+        if d0.empty:
+            return placeholder("could not parse dates")
+
+        d0 = d0.sort_index()
+
+        # Guard against epoch/outlier dates (e.g., 1970) by using last 400 rows then date-filter
+        d_full = d0.tail(420).copy()
+
+        # Plot window = last ~1 year
+        last_dt = d_full.index.max()
+        cutoff = last_dt - pd.Timedelta(days=370)
+        d = d_full.loc[d_full.index >= cutoff].copy()
+        if len(d) < 80:
+            d = d_full.tail(260).copy()
+
+        # Indicators (computed on d_full so SMA200 works)
+        sma50_full = d_full["Close"].rolling(50).mean()
+        sma200_full = d_full["Close"].rolling(200).mean()
+        sma50 = sma50_full.loc[d.index]
+        sma200 = sma200_full.loc[d.index]
+
         # ATR(14)
-        atr_s = atr(d, 14)
+        atr_s = atr(d_full, 14)
         atr_last = float(atr_s.dropna().iloc[-1]) if atr_s is not None and len(atr_s.dropna()) else 0.0
 
-        # confirm line per rule: ±0.5 ATR beyond trigger
+        # Confirm line per rule
         direction = 1 if "BREAKOUT" in sig.signal else -1 if "BREAKDOWN" in sig.signal else 0
         confirm = sig.level + direction * 0.5 * atr_last
 
-        close = d["Close"].astype(float).values
-        high = d["High"].astype(float).values
-        low = d["Low"].astype(float).values
+        # --- Build figure with volume subplot ---
+        fig, (ax, axv) = plt.subplots(
+            2, 1,
+            figsize=(10.8, 6.4),
+            sharex=True,
+            gridspec_kw={"height_ratios": [3.2, 1.0]}
+        )
 
-        fig = plt.figure(figsize=(10.5, 5.0))
-        ax = fig.add_subplot(111)
-        ax.plot(d.index, close)
+        # Price + SMAs
+        ax.plot(d.index, d["Close"].astype(float).values)
+        ax.plot(d.index, sma50.astype(float).values)
+        ax.plot(d.index, sma200.astype(float).values)
 
         # Trigger + confirm
         ax.axhline(sig.level, linestyle="-.", linewidth=1)
         ax.axhline(confirm, linestyle=":", linewidth=1)
+
         ax.text(d.index[-1], sig.level, " Trigger", va="bottom")
         ax.text(d.index[-1], confirm, " Confirm (±0.5 ATR)", va="bottom")
 
-        # Pattern markings (best-effort)
+        # Pattern markings
+        close = d["Close"].astype(float).values
+        high = d["High"].astype(float).values
+        low = d["Low"].astype(float).values
+
         if "HS_TOP" in sig.signal or "H&S_TOP" in sig.signal:
-            _annotate_hs_top(ax, close, low)
+            _annotate_hs_top_dt(ax, d.index.to_list(), close, low)
+            # Label neckline (visual anchor)
+            ax.text(d.index[int(len(d)*0.05)], sig.level, "Neckline", va="bottom")
         if "IHS" in sig.signal:
-            _annotate_ihs(ax, close, high)
+            _annotate_ihs_dt(ax, d.index.to_list(), close, high)
+            ax.text(d.index[int(len(d)*0.05)], sig.level, "Neckline", va="bottom")
+        if "WEDGE" in sig.signal:
+            _annotate_wedge(ax, d.index.to_list(), high, low, lookback=min(140, len(d)))
 
         # Latest close marker
         ax.scatter([d.index[-1]], [close[-1]], s=60)
@@ -1989,15 +2174,21 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal) -> Option
         ax.text(0.02, 0.02, box, transform=ax.transAxes, fontsize=9, va="bottom",
                 bbox=dict(boxstyle="round", fc="white", ec="black", lw=0.6))
 
+        # Volume subplot
+        vol = d["Volume"].fillna(0).astype(float).values
+        axv.bar(d.index, vol, width=1.0)
+        axv.set_ylabel("Vol")
+
         title = f"{display_ticker(ticker)} | {sig.signal}"
         ax.set_title(title)
-        ax.set_xlabel("Date")
         ax.set_ylabel("Close")
+        axv.set_xlabel("Date")
 
         fig.tight_layout()
         fig.savefig(out_path, dpi=160)
         plt.close(fig)
         return f"img/{fname}"
+
     except Exception as e:
         try:
             plt.close("all")
@@ -2005,7 +2196,26 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal) -> Option
             pass
         return placeholder(str(e))
 
+
 # ----------------------------
+
+def blurb_for_new_signal(sig: LevelSignal) -> str:
+    """
+    Short explanation for NEW early callouts (used in 4A).
+    Kept deterministic (no macro storytelling).
+    """
+    direction = "breakout" if "BREAKOUT" in sig.signal else "breakdown" if "BREAKDOWN" in sig.signal else "move"
+    pattern = sig.pattern if sig.pattern else "pattern"
+    lines = []
+    lines.append(f"**{display_ticker(sig.ticker)} — {sig.signal}**")
+    lines.append(f"- **Pattern:** {pattern} ({direction}).")
+    lines.append(f"- **Trigger (level):** {sig.level:.2f} | **Distance:** {sig.dist_atr:+.2f} ATR.")
+    lines.append(f"- **Plan:** wait for a close beyond trigger by ≥ 0.5 ATR (confirmation) or a clean retest/failure depending on direction.")
+    if "WEDGE" in sig.signal:
+        lines.append("- **Wedge visual:** chart shows upper/lower trendlines with recent touch points; trigger is drawn at the breakout boundary.")
+    if "HS_TOP" in sig.signal or "IHS" in sig.signal:
+        lines.append("- **HS/IHS visual:** chart labels LS/H/RS and the neckline; trigger is the neckline.")
+    return "\n".join(lines)
 # Reporting utilities
 # ----------------------------
 def signals_to_df(signals: List[LevelSignal]) -> pd.DataFrame:
@@ -2273,7 +2483,15 @@ def main():
             chart_p = rr.get("Chart", "")
             md.append(f"#### {display_ticker(t)} — `{sig_name}`")
             md.append(f"- **Trigger (level):** {level_v:.2f}  |  **Close:** {close_v:.2f}  |  **Distance:** {dist_v:+.2f} ATR")
-            md.append("- Chart includes trigger + confirmation (±0.5 ATR). HS/IHS (if applicable) is labeled (LS/H/RS) and neckline is marked.")
+            md.append("- Chart includes **SMA(50)** + **SMA(200)**, **volume**, plus trigger + confirmation (±0.5 ATR). HS/IHS is labeled (LS/H/RS) with neckline; Wedges include upper/lower trendlines with touch points.")
+            # Pattern-specific blurb
+            if "WEDGE" in sig_name:
+                md.append("- **Wedge read:** upper/lower trendlines converge; chart marks recent touch points. Trigger is the boundary; confirmation is ±0.5 ATR beyond.")
+            elif "HS_TOP" in sig_name or "IHS" in sig_name:
+                md.append("- **HS/IHS read:** neckline is the trigger; chart labels LS/H/RS and draws the neckline + confirmation band.")
+            else:
+                md.append("- **Setup:** watch for confirmation close beyond trigger by ≥ 0.5 ATR, or a clean retest/failure in the direction of the signal.")
+
             if isinstance(chart_p, str) and chart_p:
                 md.append(f'<img src="{chart_p}" width="720" style="max-width:100%;height:auto;">')
             md.append("")
