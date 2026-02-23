@@ -123,6 +123,7 @@ def build_watchlist_performance_section_md(
     tickers_by_group: Dict[str, List[str]],
     atr_period: int = 14,
     ticker_labels: Optional[Dict[str, str]] = None,
+    ticker_segment_rank: Optional[Dict[str, int]] = None,
 ) -> str:
     """
     Columns (all 1 decimal):
@@ -132,6 +133,7 @@ def build_watchlist_performance_section_md(
     - ticker_labels lets you tag subsegments (e.g., CVX (Integrated)) without creating separate tables.
     """
     ticker_labels = ticker_labels or {}
+    ticker_segment_rank = ticker_segment_rank or {}
 
     # Flatten tickers (preserve order), de-dupe
     all_tickers: List[str] = []
@@ -169,7 +171,7 @@ def build_watchlist_performance_section_md(
             display = ticker_labels.get(t, t)
 
             if df is None or df.empty:
-                rows.append((display, None, None, None, None, None, None, None, None, None, None))
+                rows.append((t, display, None, None, None, None, None, None, None, None, None, None))
                 continue
 
             cols = {c.lower(): c for c in df.columns}
@@ -187,7 +189,7 @@ def build_watchlist_performance_section_md(
             ohlc = pd.DataFrame({"Close": close, "High": high, "Low": low, "Volume": vol})
             ohlc = ohlc.dropna(subset=["Close", "High", "Low"])  # key fix
             if ohlc.empty or len(ohlc) < 30:
-                rows.append((display, None, None, None, None, None, None, None, None, None, None))
+                rows.append((t, display, None, None, None, None, None, None, None, None, None, None))
                 continue
 
             close2 = ohlc["Close"]
@@ -211,12 +213,12 @@ def build_watchlist_performance_section_md(
             r1m = _calc_return_pct(close2, 21)
             r3m = _calc_return_pct(close2, 63)
 
-            rows.append((display, last_close, day_pct, clv_pct, atr_now, atr_delta, vr, r1d, r7d, r1m, r3m))
+            rows.append((t, display, last_close, day_pct, clv_pct, atr_now, atr_delta, vr, r1d, r7d, r1m, r3m))
 
         # Sort by 1D
-        rows.sort(key=lambda x: (x[7] if x[7] is not None else -9999.0), reverse=True)
+        rows.sort(key=lambda x: (ticker_segment_rank.get(x[0], 99), -(x[8] if x[8] is not None else -9999.0)))
 
-        for (disp, last_close, day_pct, clv_pct, atr_now, atr_delta, vr, r1d, r7d, r1m, r3m) in rows:
+        for (t, disp, last_close, day_pct, clv_pct, atr_now, atr_delta, vr, r1d, r7d, r1m, r3m) in rows:
             out.append(
                 "| {t} | {close} | {day} | {clv} | {atr} | {atr_d} | {vr} | {c1} | {c7} | {c1m} | {c3m} |".format(
                     t=disp,
