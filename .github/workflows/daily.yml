@@ -46,7 +46,7 @@ jobs:
 
           # Wide send window (Vienna local time) to tolerate scheduling drift.
           # Still sends AT MOST ONCE thanks to the lock below.
-          START="22:30"
+          START="22:00"
           END="23:00"
 
           in_window() {
