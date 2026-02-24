@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 import math
-
 import pandas as pd
 import yfinance as yf
 
@@ -11,22 +10,35 @@ GREEN = "#11823b"
 RED = "#b91c1c"
 
 
+def _is_nan(x) -> bool:
+    return x is None or (isinstance(x, float) and math.isnan(x))
+
+
 def _fmt_num(x: Optional[float], decimals: int = 1) -> str:
-    if x is None or (isinstance(x, float) and math.isnan(x)):
+    if _is_nan(x):
         return ""
     return f"{x:,.{decimals}f}"
 
 
 def _fmt_pct(x: Optional[float], decimals: int = 1) -> str:
-    if x is None or (isinstance(x, float) and math.isnan(x)):
+    """x is percent units: +1.2 means +1.2%."""
+    if _is_nan(x):
         return ""
     return f"{x:+.{decimals}f}%"
 
 
 def _fmt_ratio(x: Optional[float], decimals: int = 1) -> str:
-    if x is None or (isinstance(x, float) and math.isnan(x)):
+    if _is_nan(x):
         return ""
     return f"{x:.{decimals}f}x"
+
+
+def _fmt_clv(x: Optional[float], decimals: int = 1) -> str:
+    """CLV in [-1, +1]."""
+    if _is_nan(x):
+        return ""
+    x = max(-1.0, min(1.0, float(x)))
+    return f"{x:+.{decimals}f}"
 
 
 def _color_pct(x: Optional[float], decimals: int = 1) -> str:
@@ -38,7 +50,7 @@ def _color_pct(x: Optional[float], decimals: int = 1) -> str:
 
 
 def _calc_return_pct(close: pd.Series, n: int) -> Optional[float]:
-    """Return percent (not fraction): +1.2 means +1.2%. n is trading sessions back."""
+    """Return percent (not fraction): +1.2 means +1.2%."""
     if close is None or len(close) < n + 1:
         return None
     a = float(close.iloc[-1])
@@ -48,8 +60,12 @@ def _calc_return_pct(close: pd.Series, n: int) -> Optional[float]:
     return (a / b - 1.0) * 100.0
 
 
-def _calc_clv_pct(high: pd.Series, low: pd.Series, close: pd.Series) -> Optional[float]:
-    """CLV in percent: CLV[-1..+1] * 100."""
+def _calc_clv(high: pd.Series, low: pd.Series, close: pd.Series) -> Optional[float]:
+    """
+    Closing Location Value (CLV) in [-1, +1]
+    +1  => close at day's high
+    -1  => close at day's low
+    """
     if any(s is None or len(s) < 1 for s in (high, low, close)):
         return None
     h = float(high.iloc[-1])
@@ -57,8 +73,7 @@ def _calc_clv_pct(high: pd.Series, low: pd.Series, close: pd.Series) -> Optional
     c = float(close.iloc[-1])
     if math.isnan(h) or math.isnan(l) or math.isnan(c) or h <= l:
         return None
-    clv = (2 * c - h - l) / (h - l)
-    return clv * 100.0
+    return (2 * c - h - l) / (h - l)
 
 
 def _true_range(high: pd.Series, low: pd.Series, close: pd.Series) -> pd.Series:
@@ -83,17 +98,13 @@ def _wilder_atr(high: pd.Series, low: pd.Series, close: pd.Series, n: int = 14) 
 
 
 def _atr_delta_14d_pct(atr: pd.Series) -> Optional[float]:
-    """ATR change vs 14 trading sessions ago, in %."""
-    if atr is None:
+    if atr is None or len(atr) < 15:
         return None
-    a = atr.dropna()
-    if len(a) < 15:
+    a_now = atr.iloc[-1]
+    a_prev = atr.iloc[-15]
+    if pd.isna(a_now) or pd.isna(a_prev) or a_prev == 0:
         return None
-    now = float(a.iloc[-1])
-    prev = float(a.iloc[-15])
-    if prev == 0 or math.isnan(now) or math.isnan(prev):
-        return None
-    return (now / prev - 1.0) * 100.0
+    return (float(a_now) / float(a_prev) - 1.0) * 100.0
 
 
 def _vol_ratio(vol: pd.Series, window: int = 20) -> Optional[float]:
@@ -126,16 +137,18 @@ def build_watchlist_performance_section_md(
     ticker_segment_rank: Optional[Dict[str, int]] = None,
 ) -> str:
     """
-    Columns (all 1 decimal):
-    Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M
+    Table columns (all figures 1 decimal):
+    Ticker | Close | Day% | CLV | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M
 
-    - Last 4 columns are color-coded green/red.
-    - ticker_labels lets you tag subsegments (e.g., CVX (Integrated)) without creating separate tables.
+    Notes:
+    - CLV is in [-1, +1] (NOT a percent).
+    - Last 4 columns (1D/7D/1M/3M) are color-coded green/red.
+    - Optional: ticker_labels to display short tickers (e.g., strip exchange suffix).
+    - Optional: ticker_segment_rank to cluster within a group (lower rank first).
     """
     ticker_labels = ticker_labels or {}
     ticker_segment_rank = ticker_segment_rank or {}
 
-    # Flatten tickers (preserve order), de-dupe
     all_tickers: List[str] = []
     for _, ts in tickers_by_group.items():
         all_tickers.extend(ts)
@@ -153,25 +166,28 @@ def build_watchlist_performance_section_md(
     )
     frames = _split_download(raw, all_tickers)
 
-    out: List[str] = []
-    out.append("## 6) Watchlist performance (all tickers)")
-    out.append("")
-    out.append("Columns: **Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M**")
-    out.append("")
+    out_lines: List[str] = []
+    out_lines.append("## 6) Watchlist performance (all tickers)")
+    out_lines.append("")
+    out_lines.append("Columns: **Close | Day% | CLV | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M**")
+    out_lines.append("")
 
     for group, group_tickers in tickers_by_group.items():
-        out.append(f"### {group}")
-        out.append("")
-        out.append("| Ticker | Close | Day% | CLV% | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M |")
-        out.append("| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
+        out_lines.append(f"### {group}")
+        out_lines.append("")
+        out_lines.append("| Ticker | Close | Day% | CLV | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M |")
+        out_lines.append("| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
 
         rows = []
         for t in group_tickers:
             df = frames.get(t)
-            display = ticker_labels.get(t, t)
-
             if df is None or df.empty:
-                rows.append((t, display, None, None, None, None, None, None, None, None, None, None))
+                rows.append((t, "", None, None, None, None, None, None, None, None, None, None))
+                continue
+
+            df = df.dropna(subset=["High", "Low", "Close"], how="any")
+            if df.empty:
+                rows.append((t, "", None, None, None, None, None, None, None, None, None, None))
                 continue
 
             cols = {c.lower(): c for c in df.columns}
@@ -185,46 +201,41 @@ def build_watchlist_performance_section_md(
             low = col("low")
             vol = col("volume")
 
-            # Drop rows where OHLC is missing (prevents blank ATR on weekends/partial rows)
-            ohlc = pd.DataFrame({"Close": close, "High": high, "Low": low, "Volume": vol})
-            ohlc = ohlc.dropna(subset=["Close", "High", "Low"])  # key fix
-            if ohlc.empty or len(ohlc) < 30:
-                rows.append((t, display, None, None, None, None, None, None, None, None, None, None))
-                continue
+            last_close = float(close.iloc[-1]) if len(close) else None
+            day_pct = _calc_return_pct(close, 1)
+            clv = _calc_clv(high, low, close)
 
-            close2 = ohlc["Close"]
-            high2 = ohlc["High"]
-            low2 = ohlc["Low"]
-            vol2 = ohlc["Volume"].dropna()
-
-            last_close = float(close2.iloc[-1])
-            day_pct = _calc_return_pct(close2, 1)
-            clv_pct = _calc_clv_pct(high2, low2, close2)
-
-            atr_series = _wilder_atr(high2, low2, close2, n=atr_period)
-            atr_clean = atr_series.dropna()
-            atr_now = float(atr_clean.iloc[-1]) if len(atr_clean) else None
+            atr_series = _wilder_atr(high, low, close, n=atr_period)
+            atr_now = float(atr_series.iloc[-1]) if len(atr_series) else None
+            if atr_now is not None and math.isnan(atr_now):
+                atr_now = None
             atr_delta = _atr_delta_14d_pct(atr_series)
 
-            vr = _vol_ratio(vol2, 20)
+            vr = _vol_ratio(vol, 20)
 
             r1d = day_pct
-            r7d = _calc_return_pct(close2, 7)
-            r1m = _calc_return_pct(close2, 21)
-            r3m = _calc_return_pct(close2, 63)
+            r7d = _calc_return_pct(close, 7)
+            r1m = _calc_return_pct(close, 21)
+            r3m = _calc_return_pct(close, 63)
 
-            rows.append((t, display, last_close, day_pct, clv_pct, atr_now, atr_delta, vr, r1d, r7d, r1m, r3m))
+            disp = ticker_labels.get(t, t)
+            rows.append((t, disp, last_close, day_pct, clv, atr_now, atr_delta, vr, r1d, r7d, r1m, r3m))
 
-        # Sort by 1D
-        rows.sort(key=lambda x: (ticker_segment_rank.get(x[0], 99), -(x[8] if x[8] is not None else -9999.0)))
+        rows.sort(
+            key=lambda x: (
+                ticker_segment_rank.get(x[0], 999),
+                -(x[8] if x[8] is not None else -9999.0),
+                x[0],
+            )
+        )
 
-        for (t, disp, last_close, day_pct, clv_pct, atr_now, atr_delta, vr, r1d, r7d, r1m, r3m) in rows:
-            out.append(
+        for (t, disp, last_close, day_pct, clv, atr_now, atr_delta, vr, r1d, r7d, r1m, r3m) in rows:
+            out_lines.append(
                 "| {t} | {close} | {day} | {clv} | {atr} | {atr_d} | {vr} | {c1} | {c7} | {c1m} | {c3m} |".format(
                     t=disp,
                     close=_fmt_num(last_close, 1),
                     day=_fmt_pct(day_pct, 1),
-                    clv=_fmt_pct(clv_pct, 1),
+                    clv=_fmt_clv(clv, 1),
                     atr=_fmt_num(atr_now, 1),
                     atr_d=_fmt_pct(atr_delta, 1),
                     vr=_fmt_ratio(vr, 1),
@@ -234,7 +245,6 @@ def build_watchlist_performance_section_md(
                     c3m=_color_pct(r3m, 1),
                 )
             )
+        out_lines.append("")
 
-        out.append("")
-
-    return "\n".join(out)
+    return "\n".join(out_lines)
