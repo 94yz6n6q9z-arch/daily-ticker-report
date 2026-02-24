@@ -958,78 +958,47 @@ def summarize_rss_themes(items: List[Dict[str, str]]) -> str:
 def _openai_responses_exec_summary(payload_text: str) -> Optional[str]:
     """Call OpenAI Responses API to generate a 2–3 sentence executive summary.
 
-    Fixes two common failure modes:
-    1) Invalid/unsupported model name (e.g., custom env values) -> model fallback ladder.
-    2) 400s due to optional fields (reasoning/text) -> retry with minimal request.
-
-    Returns None on failure so deterministic fallback can run.
+    Uses GPT-5.2 pro by default (set OPENAI_MODEL to override).
+    Set OPENAI_API_KEY in the environment (GitHub Actions secret).
     """
-
     api_key = os.environ.get("OPENAI_API_KEY", "").strip()
     if not api_key:
         return None
 
-    preferred = (os.environ.get("OPENAI_MODEL", "") or "").strip()
-    candidates = [m for m in [preferred, "gpt-5.2-pro", "gpt-5.2-thinking", "gpt-4.1", "gpt-4o"] if m]
-    seen = set(); models = []
-    for m in candidates:
-        if m not in seen:
-            models.append(m); seen.add(m)
-
-    effort = (os.environ.get("OPENAI_REASONING_EFFORT", "medium") or "medium").strip()
-
+    model = os.environ.get("OPENAI_MODEL", "gpt-5.2-pro").strip() or "gpt-5.2-pro"
+    effort = os.environ.get("OPENAI_REASONING_EFFORT", "medium").strip() or "medium"
     instructions = """You are an experienced Financial Times markets editor.
 
 Task: Write the Executive summary for a daily market report.
 
 Output EXACTLY 2 or 3 sentences (no bullets, no headings).
-Format rule: the FIRST sentence must start with the provided THEME_PHRASE followed by a colon.
+Format rule: the FIRST sentence must start with a short theme phrase (max 8 words) followed by a colon.
 
 Hard rules:
 A) Use ONLY the provided market data + the provided headlines; do not invent events, names, or catalysts.
-B) The first sentence must anchor to the provided DOMINANT_HEADLINE (paraphrase; no quotes).
+B) The first sentence must name the day’s dominant driver using ONE of the provided headlines (paraphrase; do not quote).
 C) Include concrete figures in sentence 1: at least NDX 1D, S&P 1D, and VIX 1D.
-D) Contextualize today inside the last 3–4 weeks as a narrative (continuation/reversal of the recent tape).
-   - You MAY use 7D/1M stats only as brief supporting evidence (max ONE short parenthetical).
-   - Do NOT write a horizon comparison sentence like “Over the past month vs three months …”.
-E) Mention watchlist movers ≥4% on BOTH sides if present (up to 2 gainers + 2 losers). If none, say so.
+D) Contextualize today inside the last 3–4 weeks WITHOUT turning it into a returns comparison:
+   - Describe the recent tape in words (e.g., “after a tariff-driven slide / after a choppy pullback / after a strong rally”),
+   - Use 7D/1M stats only as supporting evidence (at most ONE short parenthetical, optional).
+   - Do NOT write a standalone sentence like “Over the past month vs three months…”.
+E) Mention up to 3 watchlist movers ≥4% (include direction); if none, say so.
 F) Only mention oil/FX when justified by headlines or clear linkage; otherwise omit.
 
-Style: crisp, specific, FT-like. No filler (“markets moved”), no hype, no jargon like “risk-on”.
+Style: crisp, specific, FT-like, no filler (“markets moved”), no hype, no jargon like “risk-on”.
 """
 
-    def _extract_text(data: dict) -> str:
-        if isinstance(data.get("output_text"), str) and data["output_text"].strip():
-            return data["output_text"].strip()
-        outs = data.get("output", [])
-        if isinstance(outs, list):
-            parts = []
-            for item in outs:
-                if not isinstance(item, dict):
-                    continue
-                if item.get("type") == "message":
-                    content = item.get("content", [])
-                    if isinstance(content, list):
-                        for c in content:
-                            if isinstance(c, dict) and c.get("type") in ("output_text", "text"):
-                                t = c.get("text") or ""
-                                if isinstance(t, str) and t.strip():
-                                    parts.append(t.strip())
-            return " ".join(parts).strip()
-        return ""
+    body = {
+        "model": model,
+        "instructions": instructions,
+        "input": payload_text,
+        "temperature": 0.3,
+        "max_output_tokens": 220,
+        "reasoning": {"effort": effort},
+        "text": {"verbosity": "low"},
+    }
 
-    def _call(model: str, minimal: bool) -> Optional[str]:
-        body = {
-            "model": model,
-            "instructions": instructions,
-            "input": payload_text,
-            "temperature": 0.2,
-            "max_output_tokens": 220,
-        }
-        if not minimal:
-            body["reasoning"] = {"effort": effort}
-            body["text"] = {"verbosity": "low"}
-
+    try:
         req = Request(
             "https://api.openai.com/v1/responses",
             data=json.dumps(body).encode("utf-8"),
@@ -1040,33 +1009,44 @@ Style: crisp, specific, FT-like. No filler (“markets moved”), no hype, no ja
             },
             method="POST",
         )
-        try:
-            with urlopen(req, timeout=90) as resp:
-                raw = resp.read().decode("utf-8", errors="ignore")
-            data = json.loads(raw)
-            out_text = _extract_text(data)
-            out_text = re.sub(r"\s+", " ", out_text).strip()
-            if not out_text:
-                return None
-            sentences = re.split(r"(?<=[\.\!\?])\s+", out_text)
-            sentences = [s.strip() for s in sentences if s.strip()]
-            if len(sentences) > 3:
-                out_text = " ".join(sentences[:3]).strip()
-            print(f"[openai] exec success model={model} minimal={minimal}")
-            return out_text
-        except Exception as e:
-            print(f"[openai] exec model={model} minimal={minimal} failed: {e}")
+        with urlopen(req, timeout=90) as resp:
+            raw = resp.read().decode("utf-8", errors="ignore")
+        data = json.loads(raw)
+
+        out_text = ""
+        if isinstance(data, dict):
+            if isinstance(data.get("output_text"), str) and data["output_text"].strip():
+                out_text = data["output_text"].strip()
+            else:
+                outs = data.get("output", [])
+                if isinstance(outs, list):
+                    parts = []
+                    for item in outs:
+                        if not isinstance(item, dict):
+                            continue
+                        if item.get("type") == "message":
+                            content = item.get("content", [])
+                            if isinstance(content, list):
+                                for c in content:
+                                    if isinstance(c, dict) and c.get("type") in ("output_text", "text"):
+                                        t = c.get("text") or ""
+                                        if isinstance(t, str) and t.strip():
+                                            parts.append(t.strip())
+                    out_text = " ".join(parts).strip()
+
+        out_text = re.sub(r"\s+", " ", out_text).strip()
+        if not out_text:
             return None
 
-    for m in models:
-        out = _call(m, minimal=False)
-        if out:
-            return out
-        out = _call(m, minimal=True)
-        if out:
-            return out
+        # Hard cap to 3 sentences
+        sentences = re.split(r"(?<=[\.\!\?])\s+", out_text)
+        sentences = [s.strip() for s in sentences if s.strip()]
+        if len(sentences) > 3:
+            out_text = " ".join(sentences[:3]).strip()
+        return out_text
 
-    return None
+    except Exception:
+        return None
 
 
 
@@ -1385,54 +1365,6 @@ def build_exec_summary(
         if (it.get("title") or "").strip()
     ][:12]
 
-
-    def pick_dominant(items: List[dict]) -> Optional[dict]:
-        if not items:
-            return None
-
-        def score(it: dict) -> int:
-            title = (it.get("title", "") or "").lower()
-            src = (it.get("source", "") or "").lower()
-            s = 0
-            if "cnbc" in src:
-                s += 3
-            if "yahoo" in src:
-                s += 2
-            if "invest" in src:
-                s += 2
-            if "reuters" in src:
-                s += 4
-            for kw in [
-                "fed",
-                "rates",
-                "inflation",
-                "cpi",
-                "powell",
-                "tariff",
-                "supreme court",
-                "iran",
-                "ukraine",
-                "gaza",
-                "earnings",
-                "guidance",
-                "ai",
-                "nvidia",
-                "stocks",
-                "market",
-            ]:
-                if kw in title:
-                    s += 2
-            return s
-
-        return max(items, key=score)
-
-    dominant = pick_dominant(top_headlines)
-    theme_phrase = "Market wrap"
-    if dominant and (dominant.get("title") or "").strip():
-        dom_title = str(dominant.get("title", "")).strip()
-        words = re.sub(r"[^A-Za-z0-9\s\-]", "", dom_title).split()
-        theme_phrase = " ".join(words[:8]).strip() or "Market wrap"
-
     payload = {
         "market": {
             "NDX": {"1D": f(ndx, "1D"), "7D": f(ndx, "7D"), "1M": f(ndx, "1M")},
@@ -1448,54 +1380,37 @@ def build_exec_summary(
             "after_hours": watchlist_movers.get("after_hours", []),
         },
         "headline_themes": summarize_rss_themes(rss_items),
-        "dominant_headline": dominant,
-        "theme_phrase": theme_phrase,
         "headlines": top_headlines,
     }
 
     llm = _openai_responses_exec_summary(json.dumps(payload, ensure_ascii=False))
     if llm:
-        # Enforce the theme opener so the first sentence always starts with the dominant driver phrase.
-        try:
-            tp = (theme_phrase or "").strip()
-            if tp:
-                low = llm.strip().lower()
-                want = tp.lower() + ':'
-                if not low.startswith(want):
-                    # If the model already used another opener, keep the body but replace the opener.
-                    llm = tp + ': ' + llm.strip()
-        except Exception:
-            pass
         return llm
 
-    # Deterministic fallback (only used if OpenAI API is missing/fails)
-    # Use the dominant headline to anchor the first sentence, and show both gainers/losers.
-    dom_hint = ""
-    if dominant and (dominant.get("title") or "").strip():
-        dom_hint = f" (per {str(dominant.get('source','')).strip()} — {str(dominant.get('title','')).strip()})"
+    # Deterministic fallback (keeps style constraints and recent-context framing)
+    themes = summarize_rss_themes(rss_items) or "mixed macro"
+    theme_phrase = themes.split(",")[0].strip() if themes else "Mixed macro"
+
+    def fmt_movers(items: List[Tuple[str, float]], k: int = 3) -> str:
+        if not items:
+            return ""
+        parts = []
+        for t, pct in items[:k]:
+            try:
+                parts.append(f"{t} {pct:+.1f}%")
+            except Exception:
+                parts.append(str(t))
+        return ", ".join(parts)
 
     movers = watchlist_movers.get("session", []) + watchlist_movers.get("after_hours", [])
-    gainers = sorted([x for x in movers if x[1] >= MOVER_THRESHOLD_PCT], key=lambda z: z[1], reverse=True)
-    losers = sorted([x for x in movers if x[1] <= -MOVER_THRESHOLD_PCT], key=lambda z: z[1])
-
-    if not gainers and not losers:
-        movers_txt = "No watchlist names moved >4% incl. after-hours."
-    else:
-        def _fmt(items):
-            return ", ".join([f"{t} {p:+.1f}%" for t, p in items])
-        g = _fmt(gainers[:2])
-        l = _fmt(losers[:2])
-        movers_txt = "Watchlist movers >4%: " + " | ".join([x for x in [g, l] if x]) + "."
+    movers_txt = "No watchlist names moved >4% incl. after-hours." if not movers else f"Watchlist movers >4%: {fmt_movers(movers, 6)}."
 
     s1 = (
-        f"{theme_phrase}: NDX {f(ndx,'1D'):+.2f}% vs S&P {f(spx,'1D'):+.2f}%, with VIX {f(vix,'1D'):+.2f}% as investors digested the day’s lead story{dom_hint}."
+        f"{theme_phrase.title()} into the close: NDX {f(ndx,'1D'):+.2f}% vs S&P {f(spx,'1D'):+.2f}%, while VIX {f(vix,'1D'):+.2f}% reflected the day's risk tone as headlines centered on {themes}."
     )
-
-    # Narrative context (avoid horizon comparisons)
     s2 = (
-        "The move landed in a market that’s been choppy recently, with investors oscillating between macro/rates and growth/AI positioning."
+        f"After a choppy few weeks (NDX {f(ndx,'1M'):+.2f}% over ~1M; S&P {f(spx,'1M'):+.2f}%), today’s move fit that broader tape as investors digested the day’s headlines."
     )
-
     return s1 + " " + s2 + " " + movers_txt
 
 
@@ -2640,13 +2555,13 @@ def main():
         d = d[d["symbol"].astype(str).isin(wl_set)]
         if d.empty:
             return []
-        d["pct"] = pd.to_numeric(d["pct"], errors="coerce")
-        d = d.dropna(subset=["pct"])
-        g = d[d["pct"] >= MOVER_THRESHOLD_PCT].sort_values("pct", ascending=False).head(3)
-        l = d[d["pct"] <= -MOVER_THRESHOLD_PCT].sort_values("pct", ascending=True).head(3)
-        out: List[Tuple[str, float]] = []
-        for _, r in pd.concat([g, l], ignore_index=True).iterrows():
-            out.append((str(r["symbol"]), float(r["pct"])))
+        d = d.assign(abs_pct=d["pct"].abs()).sort_values("abs_pct", ascending=False)
+        out = []
+        for _, r in d.head(6).iterrows():
+            try:
+                out.append((str(r["symbol"]), float(r["pct"])))
+            except Exception:
+                continue
         return out
 
     # session_gf/session_lf already filtered to >= 4% absolute movers
