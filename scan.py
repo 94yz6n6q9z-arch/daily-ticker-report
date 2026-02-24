@@ -366,21 +366,31 @@ def parse_rss(url: str, source_name: str, limit: int = 10) -> List[Dict[str, str
 
 
 
-def fetch_rss_headlines(limit_total: int = 16) -> List[Dict[str, str]]:
-    # A diversified set of free-to-read headline feeds (some articles may still have partial paywalls,
-    # but headlines + links remain useful for daily context).
+def fetch_rss_headlines(limit_total: int = 18, max_age_hours: int = 48) -> List[Dict[str, str]]:
+    """Fetch a diversified set of free headline feeds for daily context.
+
+    - Best-effort: failures return fewer items (never crash the report).
+    - De-dupes by title.
+    - Filters to recent items when pubDate is parseable.
+    """
+    from email.utils import parsedate_to_datetime
+    from datetime import datetime, timezone, timedelta
+
     feeds = [
+        ("Financial Times", "https://www.ft.com/?format=rss"),
         ("Yahoo Finance", "https://finance.yahoo.com/rss/topstories"),
         ("CNBC Top News", "https://www.cnbc.com/id/100003114/device/rss/rss.html"),
         ("CNBC Markets", "https://www.cnbc.com/id/15839069/device/rss/rss.html"),
-        ("Reuters Top News", "https://feeds.reuters.com/reuters/topNews"),
+        # Investing.com provides multiple RSS feeds under /rss/news_*.rss (some may be region-locked).
+        ("Investing.com", "https://www.investing.com/rss/news_25.rss"),
         ("Reuters Business", "https://feeds.reuters.com/reuters/businessNews"),
+        ("Reuters Top News", "https://feeds.reuters.com/reuters/topNews"),
         ("MarketWatch Top Stories", "https://feeds.marketwatch.com/marketwatch/topstories"),
-        ("Financial Times", "https://www.ft.com/?format=rss"),
     ]
+
     all_items: List[Dict[str, str]] = []
     for name, url in feeds:
-        all_items.extend(parse_rss(url, name, limit=10))
+        all_items.extend(parse_rss(url, name, limit=12))
 
     # De-dupe by title (case-insensitive)
     seen = set()
@@ -393,7 +403,37 @@ def fetch_rss_headlines(limit_total: int = 16) -> List[Dict[str, str]]:
         seen.add(key)
         uniq.append(it)
 
-    return uniq[:limit_total]
+    # Filter by recency when possible
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(hours=max_age_hours)
+
+    def _ts(it: Dict[str, str]) -> float:
+        pub = (it.get("pubDate") or "").strip()
+        if not pub:
+            return 0.0
+        try:
+            dt = parsedate_to_datetime(pub)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt.timestamp()
+        except Exception:
+            return 0.0
+
+    recent: List[Dict[str, str]] = []
+    for it in uniq:
+        ts = _ts(it)
+        if ts == 0.0:
+            # keep undated items (some feeds omit pubDate)
+            recent.append(it)
+        else:
+            if datetime.fromtimestamp(ts, tz=timezone.utc) >= cutoff:
+                recent.append(it)
+
+    # Sort newest-first when possible (undated items fall to bottom)
+    recent.sort(key=_ts, reverse=True)
+
+    return recent[:limit_total]
+
 
 
 # ----------------------------
@@ -927,18 +967,26 @@ def _openai_responses_exec_summary(payload_text: str) -> Optional[str]:
 
     model = os.environ.get("OPENAI_MODEL", "gpt-5.2-pro").strip() or "gpt-5.2-pro"
     effort = os.environ.get("OPENAI_REASONING_EFFORT", "medium").strip() or "medium"
+    instructions = """You are an experienced Financial Times markets editor.
 
-    instructions = (
-        "Write the Executive summary for a daily market report. "
-        "Output EXACTLY 2 or 3 sentences (no bullets, no headings).\n"
-        "Requirements:\n"
-        "1) Sentence 1: summarize what drove markets today using ONLY the provided headlines as evidence. "
-        "If no clear catalyst is present, say so; do not invent events.\n"
-        "2) Include the concrete figures that back it (at least NDX 1D, S&P 1D, VIX 1D; add one more relevant metric if helpful).\n"
-        "3) Add 3–4 week context using the provided 1M vs 3M returns.\n"
-        "4) Mention any watchlist mover(s) >4% incl. after-hours; if none: 'No watchlist names moved >4% incl. after-hours.'\n"
-        "Style: plain English, compact, no jargon like 'risk-on', no hype."
-    )
+Task: Write the Executive summary for a daily market report.
+
+Output EXACTLY 2 or 3 sentences (no bullets, no headings).
+Format rule: the FIRST sentence must start with a short theme phrase (max 8 words) followed by a colon.
+
+Hard rules:
+A) Use ONLY the provided market data + the provided headlines; do not invent events, names, or catalysts.
+B) The first sentence must name the day’s dominant driver using ONE of the provided headlines (paraphrase; do not quote).
+C) Include concrete figures in sentence 1: at least NDX 1D, S&P 1D, and VIX 1D.
+D) Contextualize today inside the last 3–4 weeks WITHOUT turning it into a returns comparison:
+   - Describe the recent tape in words (e.g., “after a tariff-driven slide / after a choppy pullback / after a strong rally”),
+   - Use 7D/1M stats only as supporting evidence (at most ONE short parenthetical, optional).
+   - Do NOT write a standalone sentence like “Over the past month vs three months…”.
+E) Mention up to 3 watchlist movers ≥4% (include direction); if none, say so.
+F) Only mention oil/FX when justified by headlines or clear linkage; otherwise omit.
+
+Style: crisp, specific, FT-like, no filler (“markets moved”), no hype, no jargon like “risk-on”.
+"""
 
     body = {
         "model": model,
@@ -1010,18 +1058,17 @@ def _openai_responses_watchlist_pulse(payload_text: str) -> Optional[str]:
 
     model = os.environ.get("OPENAI_MODEL", "gpt-5.2-pro").strip() or "gpt-5.2-pro"
     effort = os.environ.get("OPENAI_REASONING_EFFORT", "medium").strip() or "medium"
+    instructions = """You are an experienced markets editor.
 
-    instructions = (
-        "You are writing a short 'Emerging chart trends (the actual so what)' section for a daily trading report. "
-        "You will receive JSON facts computed from the user's watchlist signals.\n"
-        "Output EXACTLY 4 to 6 numbered bullets (format '1.'...'6.'), no heading, no extra text.\n"
-        "Rules:\n"
-        "1) Use ONLY the provided JSON facts. Do NOT invent macro events or external explanations.\n"
-        "2) Each bullet should mention at least one category and 1–3 tickers with their signal direction (breakout/breakdown) or the signal label as given.\n"
-        "3) Prefer leadership/breadth/dispersion framing (which categories lead/lag; narrow vs broad).\n"
-        "4) If a ticker label includes a segment tag in parentheses (e.g., 'AMZN (E-comm)', 'NAT (Tanker)'), keep that tag when mentioning the ticker.\n"
-        "5) Be concise, analyst-like, and practical ('watch next', 'if this persists')."
-    )
+Task: Summarize the watchlist technical-signal mix (“Emerging chart trends / so what”).
+
+Output 4–6 numbered bullets (e.g., “1.”, “2.”). No headings.
+Rules:
+- Use ONLY the provided category_stats facts; do not invent catalysts.
+- Focus on what the signal mix implies (leadership, risk appetite, sector rotation).
+- Mention 1–3 tickers per bullet with their segment tags (in parentheses) when provided.
+- Keep each bullet to one sentence, crisp and action-oriented.
+"""
 
     body = {
         "model": model,
@@ -1282,7 +1329,7 @@ def build_exec_summary(
 ) -> str:
     """Executive summary (2–3 sentences).
 
-    Prefer GPT-5.2 pro prose via OpenAI API; fall back to deterministic text if API missing/fails.
+    Prefer GPT prose via OpenAI API; fall back to deterministic text if API missing/fails.
     """
     if snapshot_df is None or snapshot_df.empty:
         return "Market summary unavailable (snapshot empty)."
@@ -1294,11 +1341,10 @@ def build_exec_summary(
     ndx = row("Nasdaq 100")
     spx = row("S&P 500")
     vix = row("VIX")
+    wti = row("WTI Crude")
+    eur = row("EUR/USD")
     stx = row("STOXX Europe 600")
     dax = row("DAX")
-    eur = row("EUR/USD")
-    gold = row("Gold")
-    btc = row("Bitcoin")
 
     def f(r: Optional[pd.Series], key: str) -> float:
         try:
@@ -1308,42 +1354,64 @@ def build_exec_summary(
         except Exception:
             return float("nan")
 
-    # Build compact payload for the model (keeps cost low)
-    top_headlines = [it.get("title","").strip() for it in (rss_items or [])][:10]
+    # Headline payload (source + title + link) so the model can anchor the story.
+    top_headlines = [
+        {
+            "source": (it.get("source", "") or "").strip(),
+            "title": (it.get("title", "") or "").strip(),
+            "link": (it.get("link", "") or "").strip(),
+        }
+        for it in (rss_items or [])
+        if (it.get("title") or "").strip()
+    ][:12]
+
     payload = {
-        "today": {
-            "NDX": {"1D": f(ndx,"1D"), "1M": f(ndx,"1M"), "3M": f(ndx,"3M")},
-            "S&P": {"1D": f(spx,"1D"), "1M": f(spx,"1M"), "3M": f(spx,"3M")},
-            "VIX": {"1D": f(vix,"1D"), "1M": f(vix,"1M"), "3M": f(vix,"3M")},
-            "STOXX": {"1D": f(stx,"1D")} if stx is not None else None,
-            "DAX": {"1D": f(dax,"1D")} if dax is not None else None,
-            "EURUSD": {"1D": f(eur,"1D")} if eur is not None else None,
-            "Gold": {"1D": f(gold,"1D")} if gold is not None else None,
-            "BTC": {"1D": f(btc,"1D")} if btc is not None else None,
+        "market": {
+            "NDX": {"1D": f(ndx, "1D"), "7D": f(ndx, "7D"), "1M": f(ndx, "1M")},
+            "S&P": {"1D": f(spx, "1D"), "7D": f(spx, "7D"), "1M": f(spx, "1M")},
+            "VIX": {"1D": f(vix, "1D"), "7D": f(vix, "7D"), "1M": f(vix, "1M")},
+            "WTI": {"1D": f(wti, "1D"), "7D": f(wti, "7D"), "1M": f(wti, "1M")} if wti is not None else None,
+            "EURUSD": {"1D": f(eur, "1D")} if eur is not None else None,
+            "STOXX": {"1D": f(stx, "1D")} if stx is not None else None,
+            "DAX": {"1D": f(dax, "1D")} if dax is not None else None,
         },
         "watchlist_movers_over_4pct": {
             "session": watchlist_movers.get("session", []),
             "after_hours": watchlist_movers.get("after_hours", []),
         },
+        "headline_themes": summarize_rss_themes(rss_items),
         "headlines": top_headlines,
     }
 
-    payload_text = json.dumps(payload, ensure_ascii=False)
-
-    llm = _openai_responses_exec_summary(payload_text)
+    llm = _openai_responses_exec_summary(json.dumps(payload, ensure_ascii=False))
     if llm:
         return llm
 
-    # Deterministic fallback (still 2 sentences + movers mention)
-    themes = summarize_rss_themes(rss_items)
+    # Deterministic fallback (keeps style constraints and recent-context framing)
+    themes = summarize_rss_themes(rss_items) or "mixed macro"
+    theme_phrase = themes.split(",")[0].strip() if themes else "Mixed macro"
+
+    def fmt_movers(items: List[Tuple[str, float]], k: int = 3) -> str:
+        if not items:
+            return ""
+        parts = []
+        for t, pct in items[:k]:
+            try:
+                parts.append(f"{t} {pct:+.1f}%")
+            except Exception:
+                parts.append(str(t))
+        return ", ".join(parts)
+
+    movers = watchlist_movers.get("session", []) + watchlist_movers.get("after_hours", [])
+    movers_txt = "No watchlist names moved >4% incl. after-hours." if not movers else f"Watchlist movers >4%: {fmt_movers(movers, 6)}."
+
     s1 = (
-        f"Markets moved on the day with the Nasdaq leading (NDX {f(ndx,'1D'):+.2f}% vs S&P {f(spx,'1D'):+.2f}%) and volatility at VIX {f(vix,'1D'):+.2f}%, with headlines clustering around {themes}."
+        f"{theme_phrase.title()} into the close: NDX {f(ndx,'1D'):+.2f}% vs S&P {f(spx,'1D'):+.2f}%, while VIX {f(vix,'1D'):+.2f}% reflected the day's risk tone as headlines centered on {themes}."
     )
     s2 = (
-        f"Over the past month vs ~3 months, S&P {f(spx,'1M'):+.2f}% vs {f(spx,'3M'):+.2f}% and NDX {f(ndx,'1M'):+.2f}% vs {f(ndx,'3M'):+.2f}% frame today’s move in context; "
-        f"{'No watchlist names moved >4% incl. after-hours.' if (not watchlist_movers.get('session') and not watchlist_movers.get('after_hours')) else 'Watchlist movers >4%: ' + ', '.join([t for t,_ in (watchlist_movers.get('session', []) + watchlist_movers.get('after_hours', []))][:6]) + '.'}"
+        f"After a choppy few weeks (NDX {f(ndx,'1M'):+.2f}% over ~1M; S&P {f(spx,'1M'):+.2f}%), today’s move fit that broader tape as investors digested the day’s headlines."
     )
-    return s1 + " " + s2
+    return s1 + " " + s2 + " " + movers_txt
 
 
 def format_rss_digest(items: List[Dict[str, str]], max_items: int = 10) -> str:
