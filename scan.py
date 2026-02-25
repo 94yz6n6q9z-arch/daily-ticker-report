@@ -577,10 +577,10 @@ def _normalize_sp500_sector_label(x: str) -> str:
 def load_msci_world_classification(path: Path = MSCI_WORLD_CLASSIFICATION_CSV) -> pd.DataFrame:
     """Load local MSCI World constituents + 11-sector classification CSV.
 
-    Expected columns (flexible names): symbol/ticker, company/name (optional), sector/category.
+    Expected columns (flexible names): symbol/ticker, company/name (optional), country (optional), sector/category.
     Non-watchlist names should use one of the S&P 500 11 sector labels.
     """
-    cols = ["Ticker", "Company", "Sector"]
+    cols = ["Ticker", "Company", "Country", "Sector"]
     if path is None or not Path(path).exists():
         return pd.DataFrame(columns=cols)
     try:
@@ -602,6 +602,7 @@ def load_msci_world_classification(path: Path = MSCI_WORLD_CLASSIFICATION_CSV) -
     col_t = _pick(["ticker", "symbol"])
     col_c = _pick(["company", "name", "security", "issuer"])
     col_s = _pick(["sector", "category", "gics_sector"])
+    col_country = _pick(["country", "country_name", "country/region", "region_country"])
     if col_t is None or col_s is None:
         print("[msci] classification csv missing required columns: ticker/symbol and sector/category")
         return pd.DataFrame(columns=cols)
@@ -609,6 +610,7 @@ def load_msci_world_classification(path: Path = MSCI_WORLD_CLASSIFICATION_CSV) -
     df = raw.copy()
     df["Ticker"] = df[col_t].astype(str).map(_clean_ticker).str.strip()
     df["Company"] = df[col_c].astype(str).str.strip() if col_c is not None else ""
+    df["Country"] = df[col_country].astype(str).str.strip() if col_country is not None else ""
     df["Sector"] = df[col_s].astype(str).map(_normalize_sp500_sector_label).str.strip()
     df = df[(df["Ticker"] != "") & (df["Ticker"].str.lower() != "nan")]
     df = df.drop_duplicates(subset=["Ticker"], keep="first")
@@ -645,7 +647,72 @@ def build_category_resolver(msci_df: pd.DataFrame):
         if base in WATCHLIST_CATEGORY_BY_TICKER:
             return WATCHLIST_CATEGORY_BY_TICKER[base]
         return msci_sector.get(t, msci_sector.get(base, "Unclassified"))
-    return _resolve
+
+def _infer_country_from_ticker(ticker: str) -> str:
+    t = str(ticker or "").strip().upper()
+    if not t:
+        return ""
+    # Exchange suffix heuristics (best-effort for watchlist names not in MSCI map)
+    suffix = ""
+    if "." in t:
+        suffix = t.rsplit(".", 1)[-1]
+    suffix_map = {
+        "KS": "South Korea",
+        "T": "Japan",
+        "DE": "Germany",
+        "MI": "Italy",
+        "PA": "France",
+        "SW": "Switzerland",
+        "L": "United Kingdom",
+        "MC": "Spain",
+        "AS": "Netherlands",
+        "HK": "Hong Kong",
+        "TO": "Canada",
+        "AX": "Australia",
+        "ST": "Sweden",
+        "CO": "Denmark",
+        "HE": "Finland",
+        "OL": "Norway",
+        "BR": "Belgium",
+    }
+    if suffix in suffix_map:
+        return suffix_map[suffix]
+    # US/default for unsuffixed tickers in the watchlist-centric report
+    return "United States"
+
+
+def build_company_country_resolvers(msci_df: pd.DataFrame):
+    msci_company: Dict[str, str] = {}
+    msci_country: Dict[str, str] = {}
+    if msci_df is not None and not msci_df.empty and "Ticker" in msci_df.columns:
+        for _, r in msci_df.iterrows():
+            t = str(r.get("Ticker", "")).strip()
+            if not t:
+                continue
+            comp = str(r.get("Company", "") or "").strip()
+            ctry = str(r.get("Country", "") or "").strip()
+            if comp:
+                msci_company[t] = comp
+                msci_company.setdefault(_base_ticker(t), comp)
+            if ctry:
+                msci_country[t] = ctry
+                msci_country.setdefault(_base_ticker(t), ctry)
+
+    def _name(ticker: str) -> str:
+        t = str(ticker or "").strip()
+        if not t:
+            return ""
+        base = _base_ticker(t)
+        return msci_company.get(t) or msci_company.get(base) or _display_name(t)
+
+    def _country(ticker: str) -> str:
+        t = str(ticker or "").strip()
+        if not t:
+            return ""
+        base = _base_ticker(t)
+        return msci_country.get(t) or msci_country.get(base) or _infer_country_from_ticker(t)
+
+    return _name, _country
 
 
 # ----------------------------
@@ -2845,8 +2912,10 @@ def blurb_for_new_signal(sig: LevelSignal) -> str:
 def signals_to_df(
     signals: List[LevelSignal],
     category_resolver=None,
+    name_resolver=None,
+    country_resolver=None,
 ) -> pd.DataFrame:
-    cols = ["Ticker", "Signal", "Pattern", "Dir", "Category", "Close", "Level", "Dist(ATR)", "Day%", "Chart"]
+    cols = ["Name of Company", "Ticker", "Country", "Signal", "Pattern", "Dir", "Category", "Close", "Level", "Dist(ATR)", "Day%", "Chart"]
     if not signals:
         return pd.DataFrame(columns=cols)
     rows = []
@@ -2857,8 +2926,22 @@ def signals_to_df(
                 cat = str(category_resolver(s.ticker) or "")
         except Exception:
             cat = ""
+        name = ""
+        country = ""
+        try:
+            if callable(name_resolver):
+                name = str(name_resolver(s.ticker) or "")
+        except Exception:
+            name = ""
+        try:
+            if callable(country_resolver):
+                country = str(country_resolver(s.ticker) or "")
+        except Exception:
+            country = ""
         rows.append({
+            "Name of Company": name,
             "Ticker": s.ticker,
+            "Country": country,
             "Signal": s.signal,
             "Pattern": s.pattern,
             "Dir": s.direction,
@@ -2894,7 +2977,7 @@ def md_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 30) -> s
     out = d[cols]
 
     # Alignment: textual columns left, numeric-ish columns right
-    left_cols = {"Ticker", "Category", "Signal", "Pattern", "Dir", "Chart", "Instrument", "Symbol", "symbol"}
+    left_cols = {"Name of Company", "Name", "Ticker", "Country", "Category", "Signal", "Pattern", "Dir", "Chart", "Instrument", "Symbol", "symbol"}
     aligns = tuple("left" if c in left_cols else "right" for c in cols)
 
     return df_to_markdown_aligned(out, aligns=aligns, index=False)
@@ -3023,6 +3106,7 @@ def main():
 
     tech_scan_universe = sorted(set(base_universe + msci_tickers))
     category_for_ticker = build_category_resolver(msci_df)
+    company_name_for_ticker, country_for_ticker = build_company_country_resolvers(msci_df)
 
     now = dt.datetime.now(dt.timezone.utc)
     header_time = now.astimezone().strftime("%Y-%m-%d %H:%M %Z")
@@ -3055,21 +3139,48 @@ def main():
     ohlcv = yf_download_chunk(tech_scan_universe)
 
     # 2) Movers
-    # Compute session movers from our watchlist universe (more reliable than scraping Yahoo gainers/losers)
+    # Compute session movers from the watchlist universe (more reliable than scraping Yahoo gainers/losers).
+    # With MSCI expansion enabled, the large batch download can occasionally miss a few watchlist names;
+    # do a small fallback redownload so >4% watchlist movers are not dropped from section 2 / exec summary.
     session_rows = []
-    for t in base_universe:
+    mover_universe = list(custom)
+    missing_for_movers = []
+    for t in mover_universe:
         d = ohlcv.get(t)
         if d is None or d.empty or "Close" not in d.columns:
+            missing_for_movers.append(t)
             continue
         dd = d.dropna(subset=["Close"])
         if len(dd) < 2:
+            missing_for_movers.append(t)
             continue
         c0 = float(dd["Close"].iloc[-2])
         c1 = float(dd["Close"].iloc[-1])
         if c0 == 0 or math.isnan(c0) or math.isnan(c1):
+            missing_for_movers.append(t)
             continue
         pct = (c1 / c0 - 1.0) * 100.0
         session_rows.append({"symbol": t, "pct": float(pct)})
+
+    if missing_for_movers:
+        try:
+            ohlcv_movers_fb = yf_download_chunk(sorted(set(missing_for_movers)))
+        except Exception as e:
+            print(f"[movers] fallback redownload failed for {len(missing_for_movers)} tickers: {e}")
+            ohlcv_movers_fb = {}
+        for t in missing_for_movers:
+            d = ohlcv_movers_fb.get(t)
+            if d is None or d.empty or "Close" not in d.columns:
+                continue
+            dd = d.dropna(subset=["Close"])
+            if len(dd) < 2:
+                continue
+            c0 = float(dd["Close"].iloc[-2])
+            c1 = float(dd["Close"].iloc[-1])
+            if c0 == 0 or math.isnan(c0) or math.isnan(c1):
+                continue
+            pct = (c1 / c0 - 1.0) * 100.0
+            session_rows.append({"symbol": t, "pct": float(pct)})
     session_all = pd.DataFrame(session_rows, columns=["symbol", "pct"])
     session_gf = session_all[session_all["pct"] >= MOVER_THRESHOLD_PCT].sort_values("pct", ascending=False)
     session_lf = session_all[session_all["pct"] <= -MOVER_THRESHOLD_PCT].sort_values("pct", ascending=True)
@@ -3138,12 +3249,12 @@ def main():
     triggered_sorted = sorted(triggered, key=rank_trigger)
     early_sorted = sorted(early, key=lambda s: abs(s.dist_atr))
 
-    # Charts for signals (watchlist/base universe only; skip mass charting for MSCI-wide confirmed names)
+    # Charts for confirmed signals (include MSCI names shown in 4B).
+    # Use a higher runtime cap so table rows get chart links, while still bounding render time.
+    trig_chart_cap = max(int(MAX_CHARTS_TRIGGERED), 260)
     trig_charts = 0
     for s in triggered_sorted:
-        if s.ticker not in base_set:
-            continue
-        if trig_charts >= MAX_CHARTS_TRIGGERED:
+        if trig_charts >= trig_chart_cap:
             continue
         s.chart_path = plot_signal_chart(s.ticker, ohlcv.get(s.ticker), s)
         trig_charts += 1
@@ -3175,8 +3286,8 @@ def main():
         d_old = d[~d["_id"].isin(new_set)].drop(columns=["_id"])
         return d_new, d_old
 
-    df_early = signals_to_df(early_sorted, category_resolver=category_for_ticker)
-    df_trig = signals_to_df(triggered_sorted, category_resolver=category_for_ticker)
+    df_early = signals_to_df(early_sorted, category_resolver=category_for_ticker, name_resolver=company_name_for_ticker, country_resolver=country_for_ticker)
+    df_trig = signals_to_df(triggered_sorted, category_resolver=category_for_ticker, name_resolver=company_name_for_ticker, country_resolver=country_for_ticker)
     df_early_new, df_early_old = mark_new(df_early)
     df_trig_new, df_trig_old = mark_new(df_trig)
 
@@ -3291,14 +3402,14 @@ def main():
         df_trig_new_tbl["Threshold"] = df_trig_new_tbl["Level"]
     if not df_trig_new_tbl.empty and "Category" in df_trig_new_tbl.columns:
         df_trig_new_tbl = df_trig_new_tbl.sort_values(["Category", "Signal", "Dist(ATR)"], na_position="last")
-    md.append(md_table_from_df(df_trig_new_tbl, cols=["Ticker", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "Day%", "Chart"], max_rows=80))
+    md.append(md_table_from_df(df_trig_new_tbl, cols=["Name of Company", "Ticker", "Country", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "Day%", "Chart"], max_rows=80))
     md.append("\n**ONGOING:**\n")
     df_trig_old_tbl = df_trig_old.copy()
     if "Level" in df_trig_old_tbl.columns and "Threshold" not in df_trig_old_tbl.columns:
         df_trig_old_tbl["Threshold"] = df_trig_old_tbl["Level"]
     if not df_trig_old_tbl.empty and "Category" in df_trig_old_tbl.columns:
         df_trig_old_tbl = df_trig_old_tbl.sort_values(["Category", "Signal", "Dist(ATR)"], na_position="last")
-    md.append(md_table_from_df(df_trig_old_tbl, cols=["Ticker", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "Day%", "Chart"], max_rows=160))
+    md.append(md_table_from_df(df_trig_old_tbl, cols=["Name of Company", "Ticker", "Country", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "Day%", "Chart"], max_rows=160))
     md.append("")
 
     # 5) Catalysts
