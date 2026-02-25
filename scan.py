@@ -195,6 +195,7 @@ EMAIL_TXT_PATH = DOCS_DIR / "email.txt"
 CUSTOM_TICKERS_PATH = CONFIG_DIR / "tickers_custom.txt"
 SP500_LOCAL = CONFIG_DIR / "universe_sp500.txt"
 NDX_LOCAL = CONFIG_DIR / "universe_nasdaq100.txt"
+MSCI_WORLD_CLASSIFICATION_CSV = CONFIG_DIR / "msci_world_classification.csv"
 
 
 # ----------------------------
@@ -523,6 +524,128 @@ def get_custom_tickers() -> List[str]:
                 tickers.add(_clean_ticker(x))
 
     return sorted(tickers)
+
+
+# ----------------------------
+# MSCI World classification (local CSV)
+# ----------------------------
+SP500_11_SECTORS: Tuple[str, ...] = (
+    "Communication Services",
+    "Consumer Discretionary",
+    "Consumer Staples",
+    "Energy",
+    "Financials",
+    "Health Care",
+    "Industrials",
+    "Information Technology",
+    "Materials",
+    "Real Estate",
+    "Utilities",
+)
+
+_SECTOR_CANONICAL_MAP: Dict[str, str] = {
+    "communication services": "Communication Services",
+    "consumer discretionary": "Consumer Discretionary",
+    "consumer staples": "Consumer Staples",
+    "energy": "Energy",
+    "financials": "Financials",
+    "health care": "Health Care",
+    "healthcare": "Health Care",
+    "industrials": "Industrials",
+    "information technology": "Information Technology",
+    "technology": "Information Technology",
+    "it": "Information Technology",
+    "materials": "Materials",
+    "real estate": "Real Estate",
+    "utilities": "Utilities",
+}
+
+WATCHLIST_CATEGORY_BY_TICKER: Dict[str, str] = {}
+for _cat_name, _tickers in WATCHLIST_GROUPS.items():
+    for _t in _tickers:
+        WATCHLIST_CATEGORY_BY_TICKER[str(_t).strip()] = _cat_name
+
+
+def _normalize_sp500_sector_label(x: str) -> str:
+    s = str(x or "").strip()
+    if not s:
+        return ""
+    key = re.sub(r"\s+", " ", s).strip().lower()
+    return _SECTOR_CANONICAL_MAP.get(key, s)
+
+
+def load_msci_world_classification(path: Path = MSCI_WORLD_CLASSIFICATION_CSV) -> pd.DataFrame:
+    """Load local MSCI World constituents + 11-sector classification CSV.
+
+    Expected columns (flexible names): symbol/ticker, company/name (optional), sector/category.
+    Non-watchlist names should use one of the S&P 500 11 sector labels.
+    """
+    cols = ["Ticker", "Company", "Sector"]
+    if path is None or not Path(path).exists():
+        return pd.DataFrame(columns=cols)
+    try:
+        raw = pd.read_csv(path, dtype=str)
+    except Exception as e:
+        print(f"[msci] failed reading classification csv: {e}")
+        return pd.DataFrame(columns=cols)
+
+    if raw is None or raw.empty:
+        return pd.DataFrame(columns=cols)
+
+    def _pick(names: List[str]) -> Optional[str]:
+        low = {str(c).strip().lower(): c for c in raw.columns}
+        for n in names:
+            if n in low:
+                return low[n]
+        return None
+
+    col_t = _pick(["ticker", "symbol"])
+    col_c = _pick(["company", "name", "security", "issuer"])
+    col_s = _pick(["sector", "category", "gics_sector"])
+    if col_t is None or col_s is None:
+        print("[msci] classification csv missing required columns: ticker/symbol and sector/category")
+        return pd.DataFrame(columns=cols)
+
+    df = raw.copy()
+    df["Ticker"] = df[col_t].astype(str).map(_clean_ticker).str.strip()
+    df["Company"] = df[col_c].astype(str).str.strip() if col_c is not None else ""
+    df["Sector"] = df[col_s].astype(str).map(_normalize_sp500_sector_label).str.strip()
+    df = df[(df["Ticker"] != "") & (df["Ticker"].str.lower() != "nan")]
+    df = df.drop_duplicates(subset=["Ticker"], keep="first")
+
+    invalid = sorted({s for s in df["Sector"].dropna().astype(str) if s and s not in SP500_11_SECTORS})
+    if invalid:
+        print(f"[msci] warning: {len(invalid)} sector labels not in S&P 500 11 sectors (examples: {invalid[:5]})")
+
+    return df[cols].reset_index(drop=True)
+
+
+def get_msci_world_tickers() -> List[str]:
+    df = load_msci_world_classification(MSCI_WORLD_CLASSIFICATION_CSV)
+    if df is None or df.empty:
+        return []
+    return sorted({str(x).strip() for x in df["Ticker"].astype(str).tolist() if str(x).strip()})
+
+
+def build_category_resolver(msci_df: pd.DataFrame):
+    msci_sector = {}
+    if msci_df is not None and not msci_df.empty and "Ticker" in msci_df.columns:
+        for _, r in msci_df.iterrows():
+            t = str(r.get("Ticker", "")).strip()
+            s = str(r.get("Sector", "")).strip()
+            if t and s:
+                msci_sector[t] = s
+    def _resolve(ticker: str) -> str:
+        t = str(ticker or "").strip()
+        if not t:
+            return ""
+        if t in WATCHLIST_CATEGORY_BY_TICKER:
+            return WATCHLIST_CATEGORY_BY_TICKER[t]
+        base = _base_ticker(t)
+        if base in WATCHLIST_CATEGORY_BY_TICKER:
+            return WATCHLIST_CATEGORY_BY_TICKER[base]
+        return msci_sector.get(t, msci_sector.get(base, "Unclassified"))
+    return _resolve
 
 
 # ----------------------------
@@ -1529,7 +1652,7 @@ def build_watchlist_pulse_section_md(
         cat_stats[cat] = {"score": score, "counts": counts, "top": top}
 
     md = []
-    md.append("### 4) Emerging chart trends (the actual “so what”)")
+    md.append("### 4) Watchlist emerging chart trends")
     md.append("")
     md.append("_Logic: score each ticker by stage (CONFIRMED=3, EARLY=1) × direction (BREAKOUT=+1, BREAKDOWN=-1), then aggregate by category._")
     md.append("")
@@ -2214,12 +2337,52 @@ def detect_structure(df: pd.DataFrame) -> Optional[Tuple[str, float, float]]:
         if a_u < 0 and a_l > 0:
             return ("TRIANGLE", float(upper_now), float(lower_now))
         if a_u < 0 and a_l < 0:
+            # Falling wedge (bullish setup) should show true compression: upper trendline falling faster than lower.
+            upper_faster = (a_u < a_l) and (abs(a_u) >= 1.15 * max(abs(a_l), 1e-9))
+            if not upper_faster:
+                # More likely a downward channel / weak compression than a reversal wedge.
+                return None
             return ("WEDGE_DOWN", float(upper_now), float(lower_now))
         if a_u > 0 and a_l > 0:
+            # Rising wedge (bearish setup) should show lower trendline rising faster than upper.
+            lower_faster = (a_l > a_u) and (abs(a_l) >= 1.15 * max(abs(a_u), 1e-9))
+            if not lower_faster:
+                return None
             return ("WEDGE_UP", float(upper_now), float(lower_now))
         return ("TRIANGLE", float(upper_now), float(lower_now))
 
     return None
+
+
+def _allow_early_wedge_upside_callout(d: pd.DataFrame, close: float, atr_val: float, clv: float, pct_today: Optional[float]) -> bool:
+    """Reduce false-positive bullish falling-wedge early callouts in falling-knife tapes."""
+    try:
+        dd = d.dropna(subset=["Close"]).copy()
+        if dd.empty:
+            return False
+        c = dd["Close"].astype(float)
+        # Reject if making/pressing fresh lows very recently (common down-channel false positive)
+        look = min(20, len(c))
+        if look >= 10:
+            recent = c.tail(look)
+            if float(recent.iloc[-1]) <= float(recent.min()) * 1.01:
+                return False
+        # Reject if the latest session itself is a hard down day and closes weak in range
+        if pct_today is not None and not (isinstance(pct_today, float) and math.isnan(pct_today)):
+            if float(pct_today) <= -1.5:
+                return False
+        if pd.notna(clv) and float(clv) <= -0.20:
+            return False
+        # Prefer some evidence of stabilization vs short trend
+        if len(c) >= 20:
+            sma20 = float(c.tail(20).mean())
+            if pd.notna(sma20):
+                tol = float(atr_val) if pd.notna(atr_val) else 0.0
+                if float(close) < (sma20 - 1.25 * tol):
+                    return False
+    except Exception:
+        return False
+    return True
 
 
 def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSignal]:
@@ -2283,6 +2446,11 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
         pattern, upper_level, lower_level = st
 
         prefix_u, dist_u = _classify_vs_level(close, upper_level, atr_val, "BREAKOUT", vol_ratio, clv)
+        if prefix_u:
+            # Reduce false-positive bullish falling-wedge early setups in clear falling-knife tapes.
+            if pattern == "WEDGE_DOWN" and prefix_u == "EARLY_":
+                if not _allow_early_wedge_upside_callout(d, close, atr_val, clv, pct_today):
+                    prefix_u = None
         if prefix_u:
             sigs.append(LevelSignal(
                 ticker=ticker, signal=f"{prefix_u}{pattern}_BREAKOUT",
@@ -2674,20 +2842,35 @@ def blurb_for_new_signal(sig: LevelSignal) -> str:
     return "\n".join(lines)
 # Reporting utilities
 # ----------------------------
-def signals_to_df(signals: List[LevelSignal]) -> pd.DataFrame:
+def signals_to_df(
+    signals: List[LevelSignal],
+    category_resolver=None,
+) -> pd.DataFrame:
+    cols = ["Ticker", "Signal", "Pattern", "Dir", "Category", "Close", "Level", "Dist(ATR)", "Day%", "Chart"]
     if not signals:
-        return pd.DataFrame(columns=["Ticker", "Signal", "Pattern", "Dir", "Close", "Level", "Dist(ATR)", "Day%", "Chart"])
-    return pd.DataFrame([{
-        "Ticker": s.ticker,
-        "Signal": s.signal,
-        "Pattern": s.pattern,
-        "Dir": s.direction,
-        "Close": s.close,
-        "Level": s.level,
-        "Dist(ATR)": s.dist_atr,
-        "Day%": s.pct_today if s.pct_today is not None else np.nan,
-        "Chart": s.chart_path or ""
-    } for s in signals])
+        return pd.DataFrame(columns=cols)
+    rows = []
+    for s in signals:
+        cat = ""
+        try:
+            if callable(category_resolver):
+                cat = str(category_resolver(s.ticker) or "")
+        except Exception:
+            cat = ""
+        rows.append({
+            "Ticker": s.ticker,
+            "Signal": s.signal,
+            "Pattern": s.pattern,
+            "Dir": s.direction,
+            "Category": cat,
+            "Close": s.close,
+            "Level": s.level,
+            "Dist(ATR)": s.dist_atr,
+            "Day%": s.pct_today if s.pct_today is not None else np.nan,
+            "Chart": s.chart_path or ""
+        })
+    return pd.DataFrame(rows)
+
 
 
 def md_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 30) -> str:
@@ -2711,7 +2894,7 @@ def md_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 30) -> s
     out = d[cols]
 
     # Alignment: textual columns left, numeric-ish columns right
-    left_cols = {"Ticker", "Signal", "Pattern", "Dir", "Chart", "Instrument", "Symbol", "symbol"}
+    left_cols = {"Ticker", "Category", "Signal", "Pattern", "Dir", "Chart", "Instrument", "Symbol", "symbol"}
     aligns = tuple("left" if c in left_cols else "right" for c in cols)
 
     return df_to_markdown_aligned(out, aligns=aligns, index=False)
@@ -2816,17 +2999,30 @@ def main():
     args = ap.parse_args()
 
     custom = get_custom_tickers()
+    watchlist_set = set(custom)
 
-    # Universe for technical scan
+    # Base universe (unchanged behavior for movers/early callouts)
     if args.mode == "full":
         spx = get_sp500_tickers()
         ndx = get_nasdaq100_tickers()
-        universe = sorted(set(custom + spx + ndx))
+        base_universe = sorted(set(custom + spx + ndx))
     else:
-        universe = custom
+        base_universe = custom
 
     if args.max_tickers and args.max_tickers > 0:
-        universe = universe[:args.max_tickers]
+        base_universe = base_universe[:args.max_tickers]
+
+    # Optional MSCI World expansion for CONFIRMED technical signals (4B only), driven by local classification CSV.
+    msci_df = load_msci_world_classification(MSCI_WORLD_CLASSIFICATION_CSV)
+    msci_tickers = [] if msci_df is None or msci_df.empty else [str(x).strip() for x in msci_df["Ticker"].astype(str).tolist()]
+    msci_tickers = sorted({t for t in msci_tickers if t and t not in set(base_universe)})
+    if msci_tickers:
+        print(f"[msci] loaded {len(msci_tickers)} non-watchlist/non-base tickers from {MSCI_WORLD_CLASSIFICATION_CSV}")
+    else:
+        print(f"[msci] no extra tickers loaded from {MSCI_WORLD_CLASSIFICATION_CSV} (4B remains base universe only)")
+
+    tech_scan_universe = sorted(set(base_universe + msci_tickers))
+    category_for_ticker = build_category_resolver(msci_df)
 
     now = dt.datetime.now(dt.timezone.utc)
     header_time = now.astimezone().strftime("%Y-%m-%d %H:%M %Z")
@@ -2856,12 +3052,12 @@ def main():
     )
 
     # Download OHLCV once (for technicals)
-    ohlcv = yf_download_chunk(universe)
+    ohlcv = yf_download_chunk(tech_scan_universe)
 
     # 2) Movers
     # Compute session movers from our watchlist universe (more reliable than scraping Yahoo gainers/losers)
     session_rows = []
-    for t in universe:
+    for t in base_universe:
         d = ohlcv.get(t)
         if d is None or d.empty or "Close" not in d.columns:
             continue
@@ -2883,7 +3079,7 @@ def main():
     ah_lf = filter_movers(ah_l)
 
     # Watchlist movers (>|4%|, incl. after-hours) for executive summary
-    wl_set = set(universe)
+    wl_set = set(custom)
     def _wl_extract(df: pd.DataFrame) -> List[Tuple[str, float]]:
         if df is None or df.empty:
             return []
@@ -2913,13 +3109,26 @@ def main():
         ah_lf = ah_lf.sort_values("pct", ascending=True)
 # 4) Technical triggers
     all_signals: List[LevelSignal] = []
-    for t in universe:
+
+    # Watchlist/base universe: keep EARLY + CONFIRMED (drives 4A + watchlist trend table)
+    base_set = set(base_universe)
+    for t in base_universe:
         df = ohlcv.get(t)
         if df is None or df.empty:
             continue
         all_signals.extend(compute_signals_for_ticker(t, df))
 
-    early = [s for s in all_signals if s.signal.startswith("EARLY_")]
+    # MSCI expansion: CONFIRMED only (4B), no EARLY noise outside the watchlist/base universe
+    if msci_tickers:
+        for t in msci_tickers:
+            df = ohlcv.get(t)
+            if df is None or df.empty:
+                continue
+            sigs = compute_signals_for_ticker(t, df)
+            if sigs:
+                all_signals.extend([s for s in sigs if s.signal.startswith("CONFIRMED_")])
+
+    early = [s for s in all_signals if s.signal.startswith("EARLY_") and s.ticker in base_set]
     triggered = [s for s in all_signals if s.signal.startswith("CONFIRMED_")]
 
     def rank_trigger(s: LevelSignal) -> Tuple[int, float]:
@@ -2929,11 +3138,24 @@ def main():
     triggered_sorted = sorted(triggered, key=rank_trigger)
     early_sorted = sorted(early, key=lambda s: abs(s.dist_atr))
 
-    # Charts for signals
+    # Charts for signals (watchlist/base universe only; skip mass charting for MSCI-wide confirmed names)
+    trig_charts = 0
     for s in triggered_sorted:
+        if s.ticker not in base_set:
+            continue
+        if trig_charts >= MAX_CHARTS_TRIGGERED:
+            continue
         s.chart_path = plot_signal_chart(s.ticker, ohlcv.get(s.ticker), s)
+        trig_charts += 1
+
+    early_charts = 0
     for s in early_sorted:
+        if s.ticker not in base_set:
+            continue
+        if early_charts >= MAX_CHARTS_EARLY:
+            continue
         s.chart_path = plot_signal_chart(s.ticker, ohlcv.get(s.ticker), s)
+        early_charts += 1
 
     # State diff
     state = load_state()
@@ -2953,8 +3175,8 @@ def main():
         d_old = d[~d["_id"].isin(new_set)].drop(columns=["_id"])
         return d_new, d_old
 
-    df_early = signals_to_df(early_sorted)
-    df_trig = signals_to_df(triggered_sorted)
+    df_early = signals_to_df(early_sorted, category_resolver=category_for_ticker)
+    df_trig = signals_to_df(triggered_sorted, category_resolver=category_for_ticker)
     df_early_new, df_early_old = mark_new(df_early)
     df_trig_new, df_trig_old = mark_new(df_trig)
 
@@ -3061,18 +3283,22 @@ def main():
     md.append(md_table_from_df(df_early_old_tbl, cols=["Ticker", "Signal", "Close", "Threshold", "Dist(ATR)", "Day%", "Chart"], max_rows=80))
     md.append("")
 
-    md.append("### 4B) Breakouts / breakdowns (or about to)\n")
-    md.append("_Includes **CONFIRMED** only: close beyond trigger by ≥0.5 ATR AND Volume ≥1.25×AvgVol(20) AND CLV ≥+0.70 (breakout) / ≤−0.70 (breakdown)._ \n")
+    md.append("### 4B) Confirmed breakouts / breakdowns (watchlist + MSCI World)\n")
+    md.append("_Includes **CONFIRMED** only: close beyond trigger by ≥0.5 ATR AND Volume ≥1.25×AvgVol(20) AND CLV ≥+0.70 (breakout) / ≤−0.70 (breakdown). Categories keep watchlist custom buckets; non-watchlist MSCI names use S&P 500 11-sector labels._ \n")
     md.append("**NEW (today):**\n")
     df_trig_new_tbl = df_trig_new.copy()
     if "Level" in df_trig_new_tbl.columns and "Threshold" not in df_trig_new_tbl.columns:
         df_trig_new_tbl["Threshold"] = df_trig_new_tbl["Level"]
-    md.append(md_table_from_df(df_trig_new_tbl, cols=["Ticker", "Signal", "Close", "Threshold", "Dist(ATR)", "Day%", "Chart"], max_rows=60))
+    if not df_trig_new_tbl.empty and "Category" in df_trig_new_tbl.columns:
+        df_trig_new_tbl = df_trig_new_tbl.sort_values(["Category", "Signal", "Dist(ATR)"], na_position="last")
+    md.append(md_table_from_df(df_trig_new_tbl, cols=["Ticker", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "Day%", "Chart"], max_rows=80))
     md.append("\n**ONGOING:**\n")
     df_trig_old_tbl = df_trig_old.copy()
     if "Level" in df_trig_old_tbl.columns and "Threshold" not in df_trig_old_tbl.columns:
         df_trig_old_tbl["Threshold"] = df_trig_old_tbl["Level"]
-    md.append(md_table_from_df(df_trig_old_tbl, cols=["Ticker", "Signal", "Close", "Threshold", "Dist(ATR)", "Day%", "Chart"], max_rows=120))
+    if not df_trig_old_tbl.empty and "Category" in df_trig_old_tbl.columns:
+        df_trig_old_tbl = df_trig_old_tbl.sort_values(["Category", "Signal", "Dist(ATR)"], na_position="last")
+    md.append(md_table_from_df(df_trig_old_tbl, cols=["Ticker", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "Day%", "Chart"], max_rows=160))
     md.append("")
 
     # 5) Catalysts
