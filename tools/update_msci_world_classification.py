@@ -527,10 +527,10 @@ def build_output_dataframe(raw_df: pd.DataFrame, source_fund: str, source_url: s
         [
             "Ticker",
             "Company",
+            "Country",
             "Sector",
             "RawTicker",
             "Exchange",
-            "Country",
             "ISIN",
             "WeightPct",
             "SourceFund",
@@ -613,7 +613,7 @@ def main() -> int:
         "removed_sample": removed[:25],
         "notes": [
             "Public-source proxy (iShares MSCI World ETF holdings), not a licensed direct MSCI constituent feed.",
-            "scan.py only requires Ticker/Company/Sector; extra columns are for audit/debug.",
+            "scan.py requires Ticker + Sector and uses Company/Country when present; extra columns are for audit/debug.",
         ],
     }
 
