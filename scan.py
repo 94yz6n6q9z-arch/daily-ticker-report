@@ -206,6 +206,9 @@ MOVER_THRESHOLD_PCT = 4.0
 ATR_N = 14
 ATR_CONFIRM_MULT = 0.5     # confirmed breakout/breakdown threshold
 EARLY_MULT = 0.5           # early callout threshold (within 0.5 ATR)
+VALIDATE_BARS = 3         # validated requires 3 sessions post-break with confirmation gates holding
+DCB_EARLY_MAX_BARS = 5     # dead-cat-bounce EARLY expires after 5 bars from event low (fresh shock only)
+DCB_EARLY_MAX_FROM_BOUNCE = 4  # ...and max 4 bars from bounce high
 
 VOL_CONFIRM_MULT = 1.25   # volume must be >= 1.25x AvgVol(20) for CONFIRMED
 CLV_BREAKOUT_MIN = 0.70   # CLV in [-1..+1] must be >= +0.70 for breakout confirmation
@@ -1634,6 +1637,8 @@ Rules:
 
 
 def _sig_stage_weight(sig: str) -> int:
+    if sig.startswith("VALIDATED_"):
+        return 4
     if sig.startswith("CONFIRMED_"):
         return 3
     if sig.startswith("EARLY_"):
@@ -1663,8 +1668,10 @@ def _dominant_signal(signals: List[Tuple[str, float, bool]]) -> Optional[Tuple[s
 def build_watchlist_pulse_section_md(
     df_early_new: pd.DataFrame,
     df_early_old: pd.DataFrame,
-    df_trig_new: pd.DataFrame,
-    df_trig_old: pd.DataFrame,
+    df_conf_new: pd.DataFrame,
+    df_conf_old: pd.DataFrame,
+    df_val_new: pd.DataFrame,
+    df_val_old: pd.DataFrame,
     watchlist_groups: Dict[str, List[str]],
     ticker_labels: Dict[str, str],
 ) -> str:
@@ -1686,8 +1693,10 @@ def build_watchlist_pulse_section_md(
     rows = []
     rows += _iter_df(df_early_new, True)
     rows += _iter_df(df_early_old, False)
-    rows += _iter_df(df_trig_new, True)
-    rows += _iter_df(df_trig_old, False)
+    rows += _iter_df(df_conf_new, True)
+    rows += _iter_df(df_conf_old, False)
+    rows += _iter_df(df_val_new, True)
+    rows += _iter_df(df_val_old, False)
 
     sigs_by_t: Dict[str, List[Tuple[str, float, bool]]] = {}
     for t, s, dist, is_new in rows:
@@ -1697,7 +1706,7 @@ def build_watchlist_pulse_section_md(
 
     cat_stats = {}
     for cat, tickers in watchlist_groups.items():
-        counts = {"CONF_UP": 0, "CONF_DN": 0, "EARLY_UP": 0, "EARLY_DN": 0}
+        counts = {"VALID_UP": 0, "VALID_DN": 0, "CONF_UP": 0, "CONF_DN": 0, "EARLY_UP": 0, "EARLY_DN": 0}
         score = 0
         leaders = []
         for t in tickers:
@@ -1709,7 +1718,12 @@ def build_watchlist_pulse_section_md(
             d = _sig_direction(sig)
             if d == 0:
                 continue
-            key = ("CONF" if w == 3 else "SOFT" if w == 2 else "EARLY") + ("_UP" if d > 0 else "_DN")
+            stage = "EARLY"
+            if sig.startswith("VALIDATED_"):
+                stage = "VALID"
+            elif sig.startswith("CONFIRMED_"):
+                stage = "CONF"
+            key = stage + ("_UP" if d > 0 else "_DN")
             counts[key] += 1
             score += w * d
             label = ticker_labels.get(t, t)
@@ -1723,8 +1737,8 @@ def build_watchlist_pulse_section_md(
     md.append("")
     md.append("_Logic: score each ticker by stage (CONFIRMED=3, EARLY=1) × direction (BREAKOUT=+1, BREAKDOWN=-1), then aggregate by category._")
     md.append("")
-    md.append("| Category | Bias | CONF↑ | CONF↓ | EARLY↑ | EARLY↓ |")
-    md.append("| :--- | :--- | ---: | ---: | ---: | ---: |")
+    md.append("| Category | Bias | VALID↑ | VALID↓ | CONF↑ | CONF↓ | EARLY↑ | EARLY↓ |")
+    md.append("| :--- | :--- | ---: | ---: | ---: | ---: | ---: | ---: |")
     for cat, s in cat_stats.items():
         sc = s["score"]
         bias = "Bullish" if sc >= 3 else "Bearish" if sc <= -3 else "Mixed"
@@ -2988,6 +3002,8 @@ def detect_dead_cat_bounce(df: pd.DataFrame) -> Optional[PatternCandidate]:
         "trigger_kind": best["trigger_kind"],
         "plunge_pct": 100.0 * best["plunge"],
         "bounce_retr_pct": 100.0 * best["retr"],
+        "age_from_event_low_bars": int((len(d) - 1) - best["event_low_i"]),
+        "age_from_bounce_high_bars": int((len(d) - 1) - best["bounce_i"]),
     }
     return PatternCandidate(pattern="DEAD_CAT_BOUNCE", direction="BREAKDOWN", level=float(best["trigger"]), meta=meta)
 
@@ -3044,6 +3060,129 @@ def _classify_vs_level(
         if abs(close - level) <= EARLY_MULT * atr_val:
             return "EARLY_", dist_atr
         return "", dist_atr
+
+
+def _bar_clv(d: pd.DataFrame, i: int) -> float:
+    try:
+        close = float(d["Close"].iloc[i])
+        hi = float(d["High"].iloc[i])
+        lo = float(d["Low"].iloc[i])
+        if hi > lo:
+            v = (2.0 * close - hi - lo) / (hi - lo)
+            return float(max(-1.0, min(1.0, v)))
+    except Exception:
+        pass
+    return 0.0
+
+
+def _bar_vol_ratio(d: pd.DataFrame, i: int) -> float:
+    # Volume ratio vs prior 20 sessions (exclude current bar i)
+    try:
+        if "Volume" not in d.columns:
+            return 1.0
+        v = float(d["Volume"].iloc[i])
+        if not np.isfinite(v):
+            return 1.0
+        start = max(0, i - 20)
+        end = i
+        if end - start < 5:
+            return 1.0
+        avg = float(pd.to_numeric(d["Volume"].iloc[start:end], errors="coerce").dropna().mean())
+        if np.isfinite(avg) and avg > 0:
+            return float(v / avg)
+    except Exception:
+        pass
+    return 1.0
+
+
+def _level_at_bar(cand: PatternCandidate, d: pd.DataFrame, i: int) -> float:
+    # Default to static level
+    lvl = float(cand.level)
+    meta = cand.meta if isinstance(cand.meta, dict) else {}
+    lines = meta.get("lines") if isinstance(meta, dict) else None
+    if not isinstance(lines, list) or not lines:
+        return lvl
+
+    want = None
+    if cand.pattern in ("HS_TOP", "IHS"):
+        want = "Neckline"
+    elif cand.pattern == "DEAD_CAT_BOUNCE":
+        want = "Active trigger"
+    else:
+        # Band patterns
+        if cand.direction == "BREAKOUT":
+            want = "Upper"
+        else:
+            want = "Lower"
+
+    chosen = None
+    for ln in lines:
+        if isinstance(ln, dict) and str(ln.get("label", "")).lower() == str(want).lower():
+            chosen = ln
+            break
+    if chosen is None and isinstance(lines[0], dict):
+        chosen = lines[0]
+
+    try:
+        i1 = int(chosen.get("i1"))
+        i2 = int(chosen.get("i2"))
+        y1 = float(chosen.get("y1"))
+        y2 = float(chosen.get("y2"))
+        a, b = _line_fit(np.array([float(i1), float(i2)]), np.array([float(y1), float(y2)]))
+        return float(_line_eval(a, b, float(i)))
+    except Exception:
+        return lvl
+
+
+def _is_confirmed_bar(
+    cand: PatternCandidate,
+    d: pd.DataFrame,
+    a_series: pd.Series,
+    i: int,
+) -> bool:
+    close_i = float(d["Close"].iloc[i])
+    atr_i = float(a_series.iloc[i]) if i < len(a_series) and np.isfinite(a_series.iloc[i]) else float("nan")
+    if not np.isfinite(atr_i) or atr_i <= 0:
+        atr_i = max(close_i * 0.01, 1e-6)
+    level_i = _level_at_bar(cand, d, i)
+    clv_i = _bar_clv(d, i)
+    vol_ratio_i = _bar_vol_ratio(d, i)
+
+    if cand.direction == "BREAKOUT":
+        price_ok = close_i >= level_i + ATR_CONFIRM_MULT * atr_i
+        clv_ok = clv_i >= CLV_BREAKOUT_MIN
+    else:
+        price_ok = close_i <= level_i - ATR_CONFIRM_MULT * atr_i
+        clv_ok = clv_i <= CLV_BREAKDOWN_MAX
+    vol_ok = vol_ratio_i >= VOL_CONFIRM_MULT
+    return bool(price_ok and clv_ok and vol_ok)
+
+
+def _validated_today(cand: PatternCandidate, d: pd.DataFrame, a_series: pd.Series) -> bool:
+    """Validated = confirmed breakout day occurred 3 sessions ago, and all 4 bars
+    (breakout day + next 3 sessions incl. today) keep ALL 3 confirmation gates:
+    - price beyond trigger by >=0.5 ATR
+    - CLV >=0.7 (<=-0.7 for breakdown)
+    - volume >=1.25x prior-20 average
+    """
+    n = len(d)
+    if n < 30:
+        return False
+    # breakout day is exactly 3 sessions before today
+    j = n - 4
+    if j < 1:
+        return False
+    # breakout day must be confirmed
+    if not _is_confirmed_bar(cand, d, a_series, j):
+        return False
+    # prior day should NOT already be a confirmed breakout (avoid stale trends)
+    if _is_confirmed_bar(cand, d, a_series, j - 1):
+        return False
+    # all bars from j..n-1 must be confirmed (gates remain)
+    for k in range(j, n):
+        if not _is_confirmed_bar(cand, d, a_series, k):
+            return False
+    return True
 
     # BREAKDOWN
     price_ok = close <= level - ATR_CONFIRM_MULT * atr_val
@@ -3103,9 +3242,27 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
             continue
         seen.add(key)
 
-        prefix, dist_atr = _classify_vs_level(close, cand.level, atr_val, cand.direction, vol_ratio, clv)
-        if not prefix:
-            continue
+                # Stage logic:
+        # 1) VALIDATED: breakout/breakdown occurred 3 sessions ago and all confirmation gates held each session
+        # 2) CONFIRMED: hard gates hold on the current bar
+        # 3) EARLY: within 0.5 ATR of trigger, but missing at least one hard gate
+        dist_atr = (close - float(cand.level)) / (atr_val if np.isfinite(atr_val) and atr_val > 0 else max(float(cand.level) * 0.01, 1e-6))
+
+        if _validated_today(cand, d, a):
+            prefix = "VALIDATED_"
+        else:
+            prefix, dist_atr = _classify_vs_level(close, cand.level, atr_val, cand.direction, vol_ratio, clv)
+            if not prefix:
+                continue
+
+        # Dead-cat-bounce EARLY must be fresh (event-driven) or we suppress it
+        if cand.pattern == "DEAD_CAT_BOUNCE" and prefix == "EARLY_":
+            meta = cand.meta if isinstance(cand.meta, dict) else {}
+            age_low = int(meta.get("age_from_event_low_bars", 999))
+            age_bounce = int(meta.get("age_from_bounce_high_bars", 999))
+            if age_low > DCB_EARLY_MAX_BARS or age_bounce > DCB_EARLY_MAX_FROM_BOUNCE:
+                continue
+
         sigs.append(LevelSignal(
             ticker=ticker,
             signal=f"{prefix}{cand.pattern}_{cand.direction}",
@@ -3894,10 +4051,10 @@ def main():
 
     if not ah_lf.empty:
         ah_lf = ah_lf.sort_values("pct", ascending=True)
-# 4) Technical triggers
+# 4) # 4) Technical triggers
     all_signals: List[LevelSignal] = []
 
-    # Watchlist/base universe: keep EARLY + CONFIRMED (drives 4A + watchlist trend table)
+    # Watchlist/base universe: keep EARLY + CONFIRMED + VALIDATED (drives 4A + watchlist trend table)
     base_set = set(base_universe)
     for t in base_universe:
         df = ohlcv.get(t)
@@ -3905,7 +4062,7 @@ def main():
             continue
         all_signals.extend(compute_signals_for_ticker(t, df))
 
-    # MSCI expansion: CONFIRMED only (4B), no EARLY noise outside the watchlist/base universe
+    # MSCI expansion: CONFIRMED + VALIDATED only (4B), no EARLY noise outside the watchlist/base universe
     if msci_tickers:
         for t in msci_tickers:
             df = ohlcv.get(t)
@@ -3913,28 +4070,36 @@ def main():
                 continue
             sigs = compute_signals_for_ticker(t, df)
             if sigs:
-                all_signals.extend([s for s in sigs if s.signal.startswith("CONFIRMED_")])
+                all_signals.extend([s for s in sigs if s.signal.startswith("CONFIRMED_") or s.signal.startswith("VALIDATED_")])
 
+    validated = [s for s in all_signals if s.signal.startswith("VALIDATED_")]
+    confirmed = [s for s in all_signals if s.signal.startswith("CONFIRMED_")]
     early = [s for s in all_signals if s.signal.startswith("EARLY_") and s.ticker in base_set]
-    triggered = [s for s in all_signals if s.signal.startswith("CONFIRMED_")]
 
-    def rank_trigger(s: LevelSignal) -> Tuple[int, float]:
-        tier = 0
+    def rank_signal(s: LevelSignal) -> Tuple[int, float]:
+        # Higher priority: VALIDATED > CONFIRMED > EARLY; tie-break by proximity to trigger
+        if s.signal.startswith("VALIDATED_"):
+            tier = 0
+        elif s.signal.startswith("CONFIRMED_"):
+            tier = 1
+        else:
+            tier = 2
         return (tier, abs(s.dist_atr))
 
-    triggered_sorted = sorted(triggered, key=rank_trigger)
-    early_sorted = sorted(early, key=lambda s: abs(s.dist_atr))
+    validated_sorted = sorted(validated, key=rank_signal)
+    confirmed_sorted = sorted(confirmed, key=rank_signal)
+    early_sorted = sorted(early, key=rank_signal)
 
-    # Charts for confirmed signals (include MSCI names shown in 4B).
-    # Use a higher runtime cap so table rows get chart links, while still bounding render time.
+    # Charts: VALIDATED and CONFIRMED first (include MSCI names shown in 4B).
     trig_chart_cap = max(int(MAX_CHARTS_TRIGGERED), 260)
     trig_charts = 0
-    for s in triggered_sorted:
+    for s in (validated_sorted + confirmed_sorted):
         if trig_charts >= trig_chart_cap:
             continue
         s.chart_path = plot_signal_chart(s.ticker, ohlcv.get(s.ticker), s)
         trig_charts += 1
 
+    # Charts: EARLY only for base universe
     early_charts = 0
     for s in early_sorted:
         if s.ticker not in base_set:
@@ -3943,8 +4108,7 @@ def main():
             continue
         s.chart_path = plot_signal_chart(s.ticker, ohlcv.get(s.ticker), s)
         early_charts += 1
-
-    # State diff
+# State diff
     state = load_state()
     prev = {"signals": state.get("signals", [])}
     cur_ids = [f"{s.ticker}|{s.signal}" for s in all_signals]
@@ -3963,9 +4127,11 @@ def main():
         return d_new, d_old
 
     df_early = signals_to_df(early_sorted, category_resolver=category_for_ticker, name_resolver=company_name_for_ticker, country_resolver=country_for_ticker)
-    df_trig = signals_to_df(triggered_sorted, category_resolver=category_for_ticker, name_resolver=company_name_for_ticker, country_resolver=country_for_ticker)
+    df_conf = signals_to_df(confirmed_sorted, category_resolver=category_for_ticker, name_resolver=company_name_for_ticker, country_resolver=country_for_ticker)
+    df_val = signals_to_df(validated_sorted, category_resolver=category_for_ticker, name_resolver=company_name_for_ticker, country_resolver=country_for_ticker)
     df_early_new, df_early_old = mark_new(df_early)
-    df_trig_new, df_trig_old = mark_new(df_trig)
+    df_conf_new, df_conf_old = mark_new(df_conf)
+    df_val_new, df_val_old = mark_new(df_val)
 
     # Assemble markdown
     md: List[str] = []
@@ -4015,8 +4181,10 @@ def main():
     md.append(build_watchlist_pulse_section_md(
         df_early_new=df_early_new,
         df_early_old=df_early_old,
-        df_trig_new=df_trig_new,
-        df_trig_old=df_trig_old,
+        df_conf_new=df_conf_new,
+        df_conf_old=df_conf_old,
+        df_val_new=df_val_new,
+        df_val_old=df_val_old,
         watchlist_groups=WATCHLIST_GROUPS,
         ticker_labels=TICKER_LABELS,
     ))
@@ -4073,22 +4241,40 @@ def main():
     md.append("### 4B) Confirmed breakouts / breakdowns (watchlist + MSCI World)\n")
     md.append("_Includes **CONFIRMED** only: close beyond trigger by ≥0.5 ATR AND Volume ≥1.25×AvgVol(20) AND CLV ≥+0.70 (breakout) / ≤−0.70 (breakdown). Categories keep watchlist custom buckets; non-watchlist MSCI names use S&P 500 11-sector labels._ \n")
     md.append("**NEW (today):**\n")
-    df_trig_new_tbl = df_trig_new.copy()
-    if "Level" in df_trig_new_tbl.columns and "Threshold" not in df_trig_new_tbl.columns:
-        df_trig_new_tbl["Threshold"] = df_trig_new_tbl["Level"]
-    if not df_trig_new_tbl.empty and "Category" in df_trig_new_tbl.columns:
-        df_trig_new_tbl = df_trig_new_tbl.sort_values(["Category", "Signal", "Dist(ATR)"], na_position="last")
-    md.append(md_table_from_df(df_trig_new_tbl, cols=["Name of Company", "Ticker", "Country", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "Day%", "Chart"], max_rows=80))
+    df_conf_new_tbl = df_conf_new.copy()
+    if "Level" in df_conf_new_tbl.columns and "Threshold" not in df_conf_new_tbl.columns:
+        df_conf_new_tbl["Threshold"] = df_conf_new_tbl["Level"]
+    if not df_conf_new_tbl.empty and "Category" in df_conf_new_tbl.columns:
+        df_conf_new_tbl = df_conf_new_tbl.sort_values(["Category", "Signal", "Dist(ATR)"], na_position="last")
+    md.append(md_table_from_df(df_conf_new_tbl, cols=["Name of Company", "Ticker", "Country", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "Day%", "Chart"], max_rows=80))
     md.append("\n**ONGOING:**\n")
-    df_trig_old_tbl = df_trig_old.copy()
-    if "Level" in df_trig_old_tbl.columns and "Threshold" not in df_trig_old_tbl.columns:
-        df_trig_old_tbl["Threshold"] = df_trig_old_tbl["Level"]
-    if not df_trig_old_tbl.empty and "Category" in df_trig_old_tbl.columns:
-        df_trig_old_tbl = df_trig_old_tbl.sort_values(["Category", "Signal", "Dist(ATR)"], na_position="last")
-    md.append(md_table_from_df(df_trig_old_tbl, cols=["Name of Company", "Ticker", "Country", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "Day%", "Chart"], max_rows=160))
+    df_conf_old_tbl = df_conf_old.copy()
+    if "Level" in df_conf_old_tbl.columns and "Threshold" not in df_conf_old_tbl.columns:
+        df_conf_old_tbl["Threshold"] = df_conf_old_tbl["Level"]
+    if not df_conf_old_tbl.empty and "Category" in df_conf_old_tbl.columns:
+        df_conf_old_tbl = df_conf_old_tbl.sort_values(["Category", "Signal", "Dist(ATR)"], na_position="last")
+    md.append(md_table_from_df(df_conf_old_tbl, cols=["Name of Company", "Ticker", "Country", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "Day%", "Chart"], max_rows=160))
     md.append("")
 
     # 5) Catalysts
+    md.append("")
+    md.append("### 4C) Validated breakouts / breakdowns (3-session anti-whipsaw)\n")
+    md.append("_Includes **VALIDATED** only: breakout/breakdown occurred **3 sessions ago** AND for the breakout day + the next 3 sessions (incl. today) ALL 3 confirmation gates held on **each** session: (1) CLV >= +0.70 / <= -0.70, (2) Volume >= 1.25x AvgVol(20), (3) Close beyond trigger by >= 0.5 ATR(14)._\n")
+    md.append("**NEW (today):**\n")
+    df_val_new_tbl = df_val_new.copy()
+    if "Level" in df_val_new_tbl.columns and "Threshold" not in df_val_new_tbl.columns:
+        df_val_new_tbl["Threshold"] = df_val_new_tbl["Level"]
+    if not df_val_new_tbl.empty and "Category" in df_val_new_tbl.columns:
+        df_val_new_tbl = df_val_new_tbl.sort_values(["Category", "Signal", "Dist(ATR)"], na_position="last")
+    md.append(md_table_from_df(df_val_new_tbl, cols=["Name of Company", "Ticker", "Country", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "Day%", "Chart"], max_rows=80))
+    md.append("\n**ONGOING:**\n")
+    df_val_old_tbl = df_val_old.copy()
+    if "Level" in df_val_old_tbl.columns and "Threshold" not in df_val_old_tbl.columns:
+        df_val_old_tbl["Threshold"] = df_val_old_tbl["Level"]
+    if not df_val_old_tbl.empty and "Category" in df_val_old_tbl.columns:
+        df_val_old_tbl = df_val_old_tbl.sort_values(["Category", "Signal", "Dist(ATR)"], na_position="last")
+    md.append(md_table_from_df(df_val_old_tbl, cols=["Name of Company", "Ticker", "Country", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "Day%", "Chart"], max_rows=80))
+    md.append("")
     md.append("## 5) Needle-moving catalysts (RSS digest)\n")
     md.append("_Linked digest for drill-down._\n")
     md.append(format_rss_digest(rss_items, max_items=10))
@@ -4119,7 +4305,7 @@ def main():
 
     print(f"Wrote: {REPORT_PATH}")
     print(f"Wrote: {INDEX_PATH}")
-    print(f"Universe(base={len(base_universe)}, tech_scan={len(tech_scan_universe)})  Signals: early={len(early_sorted)} triggered={len(triggered_sorted)}")
+    print(f"Universe(base={len(base_universe)}, tech_scan={len(tech_scan_universe)})  Signals: early={len(early_sorted)} confirmed={len(confirmed_sorted)} validated={len(validated_sorted)}")
 
 
 if __name__ == "__main__":
