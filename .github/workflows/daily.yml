@@ -111,8 +111,9 @@ jobs:
         continue-on-error: true
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_MODEL: gpt-5.2-pro
+          OPENAI_MODEL: gpt-5.2
           OPENAI_REASONING_EFFORT: medium
+          EXEC_SUMMARY_DEBUG: "1"
         run: |
           set -o pipefail
           mkdir -p docs
@@ -125,8 +126,9 @@ jobs:
         continue-on-error: true
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_MODEL: gpt-5.2-pro
+          OPENAI_MODEL: gpt-5.2
           OPENAI_REASONING_EFFORT: medium
+          EXEC_SUMMARY_DEBUG: "1"
         run: |
           set -o pipefail
           echo "First run failed; retrying in 60s..."
