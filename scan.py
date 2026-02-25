@@ -127,16 +127,29 @@ SEGMENT_TAGS: Dict[str, str] = {
     "MAU.PA": "Upstream",
 }
 
+# Friendly display-name overrides for report presentation
+DISPLAY_NAME_OVERRIDES: Dict[str, str] = {
+    "000660.KS": "SK Hynix",
+    "000660": "SK Hynix",
+}
+
 def _base_ticker(t: str) -> str:
     # Display ticker without exchange suffix (e.g., MC.PA -> MC, RRTL.DE -> RRTL)
     return t.split(".", 1)[0] if "." in t else t
 
+def _display_name(t: str) -> str:
+    t = str(t).strip()
+    if t in DISPLAY_NAME_OVERRIDES:
+        return DISPLAY_NAME_OVERRIDES[t]
+    base = _base_ticker(t)
+    return DISPLAY_NAME_OVERRIDES.get(base, base)
+
 # Ticker display labels: include segment tag when available, but hide exchange suffix.
-TICKER_LABELS: Dict[str, str] = {t: f"{_base_ticker(t)} ({seg})" for t, seg in SEGMENT_TAGS.items()}
+TICKER_LABELS: Dict[str, str] = {t: f"{_display_name(t)} ({seg})" for t, seg in SEGMENT_TAGS.items()}
 
 def display_ticker(t: str) -> str:
-    # Use segment-tag label when available, otherwise strip exchange suffix.
-    return TICKER_LABELS.get(t, _base_ticker(t))
+    # Use segment-tag label when available, otherwise strip exchange suffix (with overrides).
+    return TICKER_LABELS.get(t, _display_name(t))
 
 
 # Segment order for clustering inside tables (rank 0..3 within each category)
@@ -953,6 +966,238 @@ def summarize_rss_themes(items: List[Dict[str, str]]) -> str:
     return ", ".join(themes[:3])
 
 
+# ----------------------------
+# Executive-summary headline selection (Yahoo + Investing + CNBC, market-only)
+# ----------------------------
+EXEC_SUMMARY_TARGET_SOURCES = ("Yahoo Finance", "Investing.com", "CNBC")
+
+_EXEC_MARKET_KEYWORDS = [
+    "market", "markets", "stock", "stocks", "share", "shares", "equity", "equities", "futures", "index", "indexes",
+    "nasdaq", "s&p", "dow", "stoxx", "dax", "vix",
+    "fed", "fomc", "powell", "rates", "rate cut", "yields", "yield", "treasury", "cpi", "pce", "inflation", "jobs", "payrolls",
+    "earnings", "guidance", "results", "outlook",
+    "ai", "nvidia", "semiconductor", "semiconductors", "chip", "chips",
+    "dollar", "eur/usd", "euro", "fx", "currency",
+    "oil", "crude", "brent", "wti", "energy",
+    "bitcoin", "crypto", "ethereum",
+    "tariff", "trade",
+]
+
+# Strong negatives to avoid random non-market headlines in top-news feeds.
+_EXEC_NON_MARKET_KEYWORDS = [
+    "sports", "soccer", "football", "nfl", "nba", "nhl", "mlb", "tennis", "golf",
+    "celebrity", "movie", "movies", "tv", "music", "showbiz", "entertainment",
+    "lifestyle", "fashion", "dating", "pregnant", "women", "royal", "crime", "murder", "trial",
+]
+
+_EXEC_THEME_STOPWORDS = {
+    "the", "a", "an", "to", "of", "for", "and", "on", "in", "as", "at", "by", "with", "from", "after",
+    "before", "into", "over", "under", "amid", "ahead", "today", "live", "updates", "update", "why", "how",
+    "what", "this", "that", "is", "are", "was", "were", "be", "it", "its", "their", "his", "her",
+    "yahoo", "finance", "cnbc", "investing", "com",
+}
+
+
+def _rss_source_family(source_name: str) -> Optional[str]:
+    s = (source_name or "").strip().lower()
+    if "yahoo" in s:
+        return "Yahoo Finance"
+    if "invest" in s:
+        return "Investing.com"
+    if "cnbc" in s:
+        return "CNBC"
+    return None
+
+
+def _market_headline_score(title: str, source_name: str = "", link: str = "") -> Tuple[int, List[str]]:
+    t = (title or "").strip().lower()
+    if not t:
+        return (0, [])
+    hits: List[str] = []
+    score = 0
+
+    for kw in _EXEC_MARKET_KEYWORDS:
+        if kw in t:
+            hits.append(kw)
+            score += 3
+
+    # Geopolitics only counts when clearly market-linked.
+    geo = any(k in t for k in ["ukraine", "russia", "iran", "gaza", "middle east", "red sea"])
+    geo_linked = any(k in t for k in ["oil", "crude", "gas", "energy", "shipping", "stocks", "markets", "futures"])
+    if geo and geo_linked:
+        hits.append("geo-linked")
+        score += 4
+
+    negative_hits = sum(1 for kw in _EXEC_NON_MARKET_KEYWORDS if kw in t)
+    if negative_hits:
+        score -= 6 * negative_hits
+
+    src = (source_name or "").lower()
+    if "cnbc markets" in src:
+        score += 3
+    if "yahoo finance" in src:
+        score += 2
+    if "investing.com" in src:
+        score += 2
+
+    # Guardrail: if geopolitics/news appears without clear market terms, penalize.
+    if any(k in t for k in ["ukraine", "russia", "war", "gaza", "iran"]) and not any(
+        k in t for k in ["market", "markets", "stocks", "futures", "oil", "crude", "yield", "rates"]
+    ):
+        score -= 8
+
+    if score < 3:
+        return (0, hits)
+    return (score, hits)
+
+
+def _headline_tokens(title: str) -> set:
+    toks = re.findall(r"[A-Za-z0-9]+", (title or "").lower())
+    out = set()
+    for tok in toks:
+        if len(tok) <= 2:
+            continue
+        if tok in _EXEC_THEME_STOPWORDS:
+            continue
+        out.add(tok)
+    return out
+
+
+def select_exec_summary_headlines(rss_items: List[Dict[str, str]]) -> Dict[str, object]:
+    candidates: List[Dict[str, object]] = []
+    for idx, it in enumerate(rss_items or []):
+        title = (it.get("title", "") or "").strip()
+        if not title:
+            continue
+        src_raw = (it.get("source", "") or "").strip()
+        family = _rss_source_family(src_raw)
+        if family not in EXEC_SUMMARY_TARGET_SOURCES:
+            continue
+
+        score, hits = _market_headline_score(title, src_raw, (it.get("link", "") or "").strip())
+        if score <= 0:
+            continue
+
+        candidates.append({
+            "source": src_raw,
+            "source_family": family,
+            "title": title,
+            "link": (it.get("link", "") or "").strip(),
+            "pubDate": (it.get("pubDate", "") or "").strip(),
+            "market_score": int(score),
+            "keyword_hits": hits[:8],
+            "_idx": idx,
+        })
+
+    by_family: Dict[str, List[Dict[str, object]]] = {k: [] for k in EXEC_SUMMARY_TARGET_SOURCES}
+    for c in candidates:
+        by_family[str(c["source_family"])].append(c)
+
+    for fam in by_family:
+        by_family[fam].sort(key=lambda x: (-int(x.get("market_score", 0)), int(x.get("_idx", 99999))))
+
+    selected: List[Dict[str, object]] = []
+    selected_by_source: List[Dict[str, str]] = []
+    for fam in EXEC_SUMMARY_TARGET_SOURCES:
+        if by_family[fam]:
+            c = by_family[fam][0]
+            selected.append(c)
+            selected_by_source.append({
+                "source_family": fam,
+                "source": str(c.get("source", "")),
+                "title": str(c.get("title", "")),
+                "link": str(c.get("link", "")),
+                "market_score": str(c.get("market_score", "")),
+            })
+
+    extras: List[Dict[str, object]] = []
+    for fam in EXEC_SUMMARY_TARGET_SOURCES:
+        extras.extend(by_family[fam][1:3])
+    extras.sort(key=lambda x: (-int(x.get("market_score", 0)), int(x.get("_idx", 99999))))
+    for c in extras:
+        if len(selected) >= 6:
+            break
+        selected.append(c)
+
+    if not selected:
+        for idx, it in enumerate(rss_items or []):
+            src_raw = (it.get("source", "") or "").strip()
+            fam = _rss_source_family(src_raw)
+            title = (it.get("title", "") or "").strip()
+            if fam in EXEC_SUMMARY_TARGET_SOURCES and title:
+                selected.append({
+                    "source": src_raw,
+                    "source_family": fam,
+                    "title": title,
+                    "link": (it.get("link", "") or "").strip(),
+                    "pubDate": (it.get("pubDate", "") or "").strip(),
+                    "market_score": 1,
+                    "keyword_hits": [],
+                    "_idx": idx,
+                })
+                selected_by_source.append({
+                    "source_family": fam,
+                    "source": src_raw,
+                    "title": title,
+                    "link": (it.get("link", "") or "").strip(),
+                    "market_score": "1",
+                })
+                break
+
+    dominant: Optional[Dict[str, object]] = None
+    if selected:
+        toks = [_headline_tokens(str(c.get("title", ""))) for c in selected]
+        ranks: List[Tuple[int, int]] = []
+        for i, c in enumerate(selected):
+            base_score = int(c.get("market_score", 0))
+            overlap_sources = 0
+            overlap_tokens = 0
+            fam_i = str(c.get("source_family", ""))
+            for j, c2 in enumerate(selected):
+                if i == j:
+                    continue
+                fam_j = str(c2.get("source_family", ""))
+                inter = toks[i].intersection(toks[j])
+                if inter:
+                    overlap_tokens += len(inter)
+                    if fam_i != fam_j:
+                        overlap_sources += 1
+            total = base_score + (4 * overlap_sources) + min(overlap_tokens, 6)
+            ranks.append((total, i))
+        ranks.sort(reverse=True)
+        dominant = selected[ranks[0][1]]
+
+    selected_out = [{
+        "source": str(c.get("source", "")),
+        "source_family": str(c.get("source_family", "")),
+        "title": str(c.get("title", "")),
+        "link": str(c.get("link", "")),
+        "pubDate": str(c.get("pubDate", "")),
+        "market_score": str(c.get("market_score", "")),
+    } for c in selected]
+
+    dominant_out = None
+    if dominant:
+        dominant_out = {
+            "source": str(dominant.get("source", "")),
+            "source_family": str(dominant.get("source_family", "")),
+            "title": str(dominant.get("title", "")),
+            "link": str(dominant.get("link", "")),
+            "pubDate": str(dominant.get("pubDate", "")),
+            "market_score": str(dominant.get("market_score", "")),
+        }
+
+    return {
+        "selected_headlines": selected_out,
+        "selected_by_source": selected_by_source,
+        "dominant_headline": dominant_out,
+        "coverage": {
+            "Yahoo Finance": len(by_family.get("Yahoo Finance", [])),
+            "Investing.com": len(by_family.get("Investing.com", [])),
+            "CNBC": len(by_family.get("CNBC", [])),
+        },
+    }
+
 
 
 def _openai_responses_exec_summary(payload_text: str) -> Optional[str]:
@@ -983,17 +1228,23 @@ def _openai_responses_exec_summary(payload_text: str) -> Optional[str]:
 Task: Write the Executive summary for a daily market report.
 
 Output EXACTLY 2 or 3 sentences (no bullets, no headings).
-Format rule: the FIRST sentence must start with the provided THEME_PHRASE followed by a colon.
+Format rules:
+- Sentence 1 must start with the provided THEME_PHRASE followed by a colon (normally "Headline:").
+- Sentence 1 should be a SYNTHESIZED market-theme headline in your own words (not a copied article title).
+- Sentence 2 should cover key market performance and context.
+- Sentence 3 (or the end of sentence 2 if only 2 sentences) should mention biggest movers >4% on either side.
 
 Hard rules:
-A) Use ONLY the provided market data + the provided headlines; do not invent events, names, or catalysts.
-B) The first sentence must anchor to the provided DOMINANT_HEADLINE (paraphrase; no quotes).
-C) Include concrete figures in sentence 1: at least NDX 1D, S&P 1D, and VIX 1D.
+A) Use ONLY the provided market data + the provided selected headlines; do not invent events, names, or catalysts.
+B) Build the headline theme from the cross-source market headlines selected from Yahoo Finance, Investing.com, and CNBC.
+   Ignore non-market/general-interest headlines even if they exist elsewhere in the payload.
+C) The market-performance sentence must include at least NDX 1D, S&P 1D, and VIX 1D.
 D) Contextualize today inside the last 3–4 weeks as a narrative (continuation/reversal of the recent tape).
    - You MAY use 7D/1M stats only as brief supporting evidence (max ONE short parenthetical).
-   - Do NOT write a horizon comparison sentence like “Over the past month vs three months …”.
+   - Do NOT write a horizon-comparison sentence like “Over the past month vs three months …”.
 E) Mention watchlist movers ≥4% on BOTH sides if present (up to 2 gainers + 2 losers). If none, say so.
-F) Only mention oil/FX when justified by headlines or clear linkage; otherwise omit.
+F) Use provided mover labels verbatim (e.g., "SK Hynix", not raw ticker codes) when available.
+G) Only mention oil/FX when justified by headlines or clear linkage; otherwise omit.
 
 Style: crisp, specific, FT-like. No filler (“markets moved”), no hype, no jargon like “risk-on”.
 """
@@ -1374,64 +1625,24 @@ def build_exec_summary(
         except Exception:
             return float("nan")
 
-    # Headline payload (source + title + link) so the model can anchor the story.
-    top_headlines = [
-        {
-            "source": (it.get("source", "") or "").strip(),
-            "title": (it.get("title", "") or "").strip(),
-            "link": (it.get("link", "") or "").strip(),
-        }
-        for it in (rss_items or [])
-        if (it.get("title") or "").strip()
-    ][:12]
+    # Executive-summary headline context: select only market-relevant headlines from Yahoo + Investing + CNBC.
+    headline_ctx = select_exec_summary_headlines(rss_items or [])
+    top_headlines = headline_ctx.get("selected_headlines", []) if isinstance(headline_ctx, dict) else []
+    dominant = headline_ctx.get("dominant_headline") if isinstance(headline_ctx, dict) else None
+    # Keep the user-facing structure stable: "Headline: ..." (the prose after the colon comes from OpenAI).
+    theme_phrase = "Headline"
 
-
-    def pick_dominant(items: List[dict]) -> Optional[dict]:
-        if not items:
-            return None
-
-        def score(it: dict) -> int:
-            title = (it.get("title", "") or "").lower()
-            src = (it.get("source", "") or "").lower()
-            s = 0
-            if "cnbc" in src:
-                s += 3
-            if "yahoo" in src:
-                s += 2
-            if "invest" in src:
-                s += 2
-            if "reuters" in src:
-                s += 4
-            for kw in [
-                "fed",
-                "rates",
-                "inflation",
-                "cpi",
-                "powell",
-                "tariff",
-                "supreme court",
-                "iran",
-                "ukraine",
-                "gaza",
-                "earnings",
-                "guidance",
-                "ai",
-                "nvidia",
-                "stocks",
-                "market",
-            ]:
-                if kw in title:
-                    s += 2
-            return s
-
-        return max(items, key=score)
-
-    dominant = pick_dominant(top_headlines)
-    theme_phrase = "Market wrap"
-    if dominant and (dominant.get("title") or "").strip():
-        dom_title = str(dominant.get("title", "")).strip()
-        words = re.sub(r"[^A-Za-z0-9\s\-]", "", dom_title).split()
-        theme_phrase = " ".join(words[:8]).strip() or "Market wrap"
+    def _fmt_exec_movers(items: List[Tuple[str, float]]) -> List[Tuple[str, float]]:
+        out: List[Tuple[str, float]] = []
+        for t, p in (items or []):
+            try:
+                out.append((display_ticker(str(t)), float(p)))
+            except Exception:
+                try:
+                    out.append((display_ticker(str(t)), p))
+                except Exception:
+                    out.append((str(t), p))
+        return out
 
     payload = {
         "market": {
@@ -1444,18 +1655,31 @@ def build_exec_summary(
             "DAX": {"1D": f(dax, "1D")} if dax is not None else None,
         },
         "watchlist_movers_over_4pct": {
-            "session": watchlist_movers.get("session", []),
-            "after_hours": watchlist_movers.get("after_hours", []),
+            "session": _fmt_exec_movers(watchlist_movers.get("session", [])),
+            "after_hours": _fmt_exec_movers(watchlist_movers.get("after_hours", [])),
         },
-        "headline_themes": summarize_rss_themes(rss_items),
+        "headline_themes": summarize_rss_themes(top_headlines if top_headlines else rss_items),
         "dominant_headline": dominant,
+        "selected_top_market_headlines_by_source": (headline_ctx or {}).get("selected_by_source", []),
+        "headline_selection_debug": {
+            "coverage": (headline_ctx or {}).get("coverage", {}),
+            "selected_headlines": top_headlines,
+        },
         "theme_phrase": theme_phrase,
         "headlines": top_headlines,
     }
 
+    if str(os.environ.get("EXEC_SUMMARY_DEBUG", "0")).strip().lower() in ("1", "true", "yes", "on"):
+        try:
+            print("[exec_summary][headline_debug] coverage=", json.dumps((headline_ctx or {}).get("coverage", {}), ensure_ascii=False))
+            print("[exec_summary][headline_debug] dominant=", json.dumps(dominant, ensure_ascii=False))
+            print("[exec_summary][headline_debug] selected_by_source=", json.dumps((headline_ctx or {}).get("selected_by_source", []), ensure_ascii=False))
+        except Exception:
+            pass
+
     llm = _openai_responses_exec_summary(json.dumps(payload, ensure_ascii=False))
     if llm:
-        # Enforce the theme opener so the first sentence always starts with the dominant driver phrase.
+        # Enforce the user-requested opener so the first sentence always starts with "Headline:".
         try:
             tp = (theme_phrase or "").strip()
             if tp:
@@ -1469,34 +1693,45 @@ def build_exec_summary(
         return llm
 
     # Deterministic fallback (only used if OpenAI API is missing/fails)
-    # Use the dominant headline to anchor the first sentence, and show both gainers/losers.
-    dom_hint = ""
-    if dominant and (dominant.get("title") or "").strip():
-        dom_hint = f" (per {str(dominant.get('source','')).strip()} — {str(dominant.get('title','')).strip()})"
+    # Keep the same structure: Headline / key market performance / movers >4%.
+    dom_title = str((dominant or {}).get("title", "")).strip()
+    dom_source = str((dominant or {}).get("source_family") or (dominant or {}).get("source") or "").strip()
+
+    if dom_title:
+        headline_text = dom_title
+        # Clean and shorten raw headline into a more report-friendly line.
+        headline_text = re.sub(r"\s+", " ", headline_text).strip().rstrip(".?!")
+        if len(headline_text) > 110:
+            headline_text = headline_text[:107].rstrip() + "..."
+        if dom_source:
+            s1 = f"{theme_phrase}: {headline_text} ({dom_source})."
+        else:
+            s1 = f"{theme_phrase}: {headline_text}."
+    else:
+        s1 = f"{theme_phrase}: Markets were driven by a mix of macro, rates and company-specific headlines across Yahoo Finance, Investing.com and CNBC."
 
     movers = watchlist_movers.get("session", []) + watchlist_movers.get("after_hours", [])
     gainers = sorted([x for x in movers if x[1] >= MOVER_THRESHOLD_PCT], key=lambda z: z[1], reverse=True)
     losers = sorted([x for x in movers if x[1] <= -MOVER_THRESHOLD_PCT], key=lambda z: z[1])
 
-    if not gainers and not losers:
-        movers_txt = "No watchlist names moved >4% incl. after-hours."
-    else:
-        def _fmt(items):
-            return ", ".join([f"{t} {p:+.1f}%" for t, p in items])
-        g = _fmt(gainers[:2])
-        l = _fmt(losers[:2])
-        movers_txt = "Watchlist movers >4%: " + " | ".join([x for x in [g, l] if x]) + "."
-
-    s1 = (
-        f"{theme_phrase}: NDX {f(ndx,'1D'):+.2f}% vs S&P {f(spx,'1D'):+.2f}%, with VIX {f(vix,'1D'):+.2f}% as investors digested the day’s lead story{dom_hint}."
-    )
-
-    # Narrative context (avoid horizon comparisons)
     s2 = (
-        "The move landed in a market that’s been choppy recently, with investors oscillating between macro/rates and growth/AI positioning."
+        f"The Nasdaq rose {f(ndx,'1D'):+.1f}% and the S&P 500 {'rose' if f(spx,'1D') >= 0 else 'fell'} {abs(f(spx,'1D')):.1f}%, while the VIX {'fell' if f(vix,'1D') <= 0 else 'rose'} {abs(f(vix,'1D')):.1f}%, with the session extending a choppy recent tape"
+        + (f" (NDX {f(ndx,'1M'):+.1f}% over 1M)." if not math.isnan(f(ndx,'1M')) else ".")
     )
 
-    return s1 + " " + s2 + " " + movers_txt
+    if not gainers and not losers:
+        s3 = "No watchlist names moved more than 4% (including after-hours)."
+    else:
+        def _fmt(items: List[Tuple[str, float]]) -> str:
+            return ", ".join([f"{display_ticker(str(t))} ({float(p):+,.1f}%)" for t, p in items])
+        parts = []
+        if gainers:
+            parts.append(_fmt(gainers[:2]))
+        if losers:
+            parts.append(_fmt(losers[:2]))
+        s3 = "Watchlist movers >4% included " + ("; ".join(parts)) + "."
+
+    return s1 + " " + s2 + " " + s3
 
 
 def format_rss_digest(items: List[Dict[str, str]], max_items: int = 10) -> str:
