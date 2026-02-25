@@ -3332,7 +3332,7 @@ def main():
 
     print(f"Wrote: {REPORT_PATH}")
     print(f"Wrote: {INDEX_PATH}")
-    print(f"Universe={len(universe)}  Signals: early={len(early_sorted)} triggered={len(triggered_sorted)}")
+    print(f"Universe(base={len(base_universe)}, tech_scan={len(tech_scan_universe)})  Signals: early={len(early_sorted)} triggered={len(triggered_sorted)}")
 
 
 if __name__ == "__main__":
