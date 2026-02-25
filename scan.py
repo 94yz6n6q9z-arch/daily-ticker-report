@@ -33,6 +33,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
 import xml.etree.ElementTree as ET
 
 import numpy as np
@@ -1200,6 +1201,27 @@ def select_exec_summary_headlines(rss_items: List[Dict[str, str]]) -> Dict[str, 
 
 
 
+def _normalize_openai_model_for_api(model: str) -> str:
+    """Normalize ChatGPT-style model labels to API model IDs.
+
+    In ChatGPT, users may think in terms of "GPT-5.2 Thinking" / "Instant".
+    In the API, the main reasoning model is `gpt-5.2` (with `reasoning.effort`).
+    """
+    m = (model or "").strip()
+    if not m:
+        return ""
+    ml = m.lower()
+    aliases = {
+        "gpt-5.2-thinking": "gpt-5.2",
+        "gpt-5.2-think": "gpt-5.2",
+        "gpt-5.2-instant": "gpt-5.2",
+        "gpt-5.2-default": "gpt-5.2",
+        "gpt5.2-thinking": "gpt-5.2",
+        "gpt5.2": "gpt-5.2",
+    }
+    return aliases.get(ml, m)
+
+
 def _openai_responses_exec_summary(payload_text: str) -> Optional[str]:
     """Call OpenAI Responses API to generate a 2–3 sentence executive summary.
 
@@ -1214,12 +1236,19 @@ def _openai_responses_exec_summary(payload_text: str) -> Optional[str]:
     if not api_key:
         return None
 
-    preferred = (os.environ.get("OPENAI_MODEL", "") or "").strip()
-    candidates = [m for m in [preferred, "gpt-5.2-pro", "gpt-5.2-thinking", "gpt-4.1", "gpt-4o"] if m]
+    preferred_raw = (os.environ.get("OPENAI_MODEL", "") or "").strip()
+    preferred = _normalize_openai_model_for_api(preferred_raw)
+    if preferred_raw and preferred_raw != preferred:
+        print(f"[openai] normalized OPENAI_MODEL {preferred_raw} -> {preferred}")
+
+    # Note: ChatGPT labels (e.g., "GPT-5.2 Thinking") do not always match API model IDs.
+    # In the API, `gpt-5.2` + reasoning.effort is the main reasoning path.
+    candidates = [m for m in [preferred, "gpt-5.2", "gpt-5.2-pro", "gpt-4.1", "gpt-4o"] if m]
     seen = set(); models = []
     for m in candidates:
-        if m not in seen:
-            models.append(m); seen.add(m)
+        m2 = _normalize_openai_model_for_api(m)
+        if m2 not in seen:
+            models.append(m2); seen.add(m2)
 
     effort = (os.environ.get("OPENAI_REASONING_EFFORT", "medium") or "medium").strip()
 
@@ -1305,6 +1334,20 @@ Style: crisp, specific, FT-like. No filler (“markets moved”), no hype, no ja
                 out_text = " ".join(sentences[:3]).strip()
             print(f"[openai] exec success model={model} minimal={minimal}")
             return out_text
+        except HTTPError as e:
+            try:
+                err_body = e.read().decode("utf-8", errors="ignore")
+            except Exception:
+                err_body = ""
+            err_body = re.sub(r"\s+", " ", err_body).strip()[:1200]
+            if err_body:
+                print(f"[openai] exec model={model} minimal={minimal} failed: HTTP Error {e.code}: {e.reason} | body={err_body}")
+            else:
+                print(f"[openai] exec model={model} minimal={minimal} failed: HTTP Error {e.code}: {e.reason}")
+            return None
+        except URLError as e:
+            print(f"[openai] exec model={model} minimal={minimal} failed: URLError {e}")
+            return None
         except Exception as e:
             print(f"[openai] exec model={model} minimal={minimal} failed: {e}")
             return None
@@ -1498,37 +1541,7 @@ def build_watchlist_pulse_section_md(
         c = s["counts"]
         md.append(f"| {cat} | {bias} | {c['CONF_UP']} | {c['CONF_DN']} | {c['EARLY_UP']} | {c['EARLY_DN']} |")
     md.append("")
-
-    payload = {
-        "category_stats": [
-            {"category": cat, "score": s["score"], **s["counts"], "top": s["top"]}
-            for cat, s in cat_stats.items()
-        ],
-        "note": "Facts are derived from the watchlist technical triggers tables (early callouts + breakouts/breakdowns).",
-    }
-
-    llm = _openai_responses_watchlist_pulse(json.dumps(payload, ensure_ascii=False))
-    if llm:
-        md.append(llm)
-    else:
-        # deterministic fallback (short)
-        cats_sorted = sorted(cat_stats.items(), key=lambda kv: kv[1]["score"])
-        bearish = [kv for kv in cats_sorted if kv[1]["score"] <= -3]
-        bullish = [kv for kv in reversed(cats_sorted) if kv[1]["score"] >= 3]
-        bullets = []
-        if bullish and bearish:
-            bullets.append(f"1. **Leadership is split** — {bullish[0][0]} leads while {bearish[0][0]} leans bearish; reads as selective risk-taking rather than broad risk-on.")
-        n = 2
-        for cat, s in bullish[:2]:
-            tops = ", ".join([f"{x['ticker']} ({x['signal']})" for x in s["top"]]) or "—"
-            bullets.append(f"{n}. **{cat} is a tailwind** — signals skew bullish. Key names: {tops}.")
-            n += 1
-        for cat, s in bearish[:2]:
-            tops = ", ".join([f"{x['ticker']} ({x['signal']})" for x in s["top"]]) or "—"
-            bullets.append(f"{n}. **{cat} is a headwind** — breakdowns dominate. Key names: {tops}.")
-            n += 1
-        md.extend(bullets[:6])
-
+    # Table-only by user preference (no narrative bullets below the table).
     md.append("")
     return "\n".join(md)
 
@@ -1669,13 +1682,16 @@ def build_exec_summary(
         "headlines": top_headlines,
     }
 
-    if str(os.environ.get("EXEC_SUMMARY_DEBUG", "0")).strip().lower() in ("1", "true", "yes", "on"):
+    _exec_debug_on = str(os.environ.get("EXEC_SUMMARY_DEBUG", "0")).strip().lower() in ("1", "true", "yes", "on")
+    if _exec_debug_on:
         try:
             print("[exec_summary][headline_debug] coverage=", json.dumps((headline_ctx or {}).get("coverage", {}), ensure_ascii=False))
             print("[exec_summary][headline_debug] dominant=", json.dumps(dominant, ensure_ascii=False))
             print("[exec_summary][headline_debug] selected_by_source=", json.dumps((headline_ctx or {}).get("selected_by_source", []), ensure_ascii=False))
         except Exception:
             pass
+    else:
+        print("[exec_summary][headline_debug] disabled (set EXEC_SUMMARY_DEBUG=1 to log selected headlines)")
 
     llm = _openai_responses_exec_summary(json.dumps(payload, ensure_ascii=False))
     if llm:
