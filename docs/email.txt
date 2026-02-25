@@ -1,12 +1,12 @@
 # Daily Report
 
-_Generated: **2026-02-24 22:54 CET**_
+_Generated: **2026-02-25 08:12 CET**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Workday stock sinks on weak revenue guidance: The Nasdaq rose 1.1% and the S&P 500 gained 0.8% while the VIX fell 7.0%, as investors looked past disappointing outlooks from some software names and extended last week’s tentative rebound following a volatile month (NDX still down 2.5% over 1M). Watchlist standouts included SMR (+6.6%), CEG (+6.4%), and 000660.KS (+5.7%), with no notable decliners over 4% today.
+Headline: Wall Street advances as geopolitical tensions and earnings updates shape sentiment. The Nasdaq rose 1.1% and the S&P 500 gained 0.8%—both rebounding from a softer month—while the VIX slid nearly 7% as investors weighed Middle East developments and corporate results; SMR, CEG, and SNPS each climbed more than 4%, with no notable declines of similar magnitude.
 
 **Key tape (multi-horizon):**
 
@@ -19,15 +19,15 @@ Workday stock sinks on weak revenue guidance: The Nasdaq rose 1.1% and the S&P 5
 | STOXX Europe 600 | 629.14    | <span style="color:#11823b;">+0.23%</span> | <span style="color:#11823b;">+1.26%</span>  | <span style="color:#11823b;">+3.42%</span>  | <span style="color:#11823b;">+9.57%</span>  | <span style="color:#11823b;">+13.63%</span>  |
 | DAX              | 24,986.25 | <span style="color:#b91c1c;">-0.02%</span> | <span style="color:#b91c1c;">-0.05%</span>  | <span style="color:#11823b;">+0.34%</span>  | <span style="color:#11823b;">+5.31%</span>  | <span style="color:#11823b;">+3.94%</span>   |
 | CAC 40           | 8,519.21  | <span style="color:#11823b;">+0.26%</span> | <span style="color:#11823b;">+1.89%</span>  | <span style="color:#11823b;">+4.62%</span>  | <span style="color:#11823b;">+5.22%</span>  | <span style="color:#11823b;">+9.75%</span>   |
-| FTSE 100         | 10,680.59 | <span style="color:#b91c1c;">-0.04%</span> | <span style="color:#11823b;">+1.18%</span>  | <span style="color:#11823b;">+5.30%</span>  | <span style="color:#11823b;">+10.20%</span> | <span style="color:#11823b;">+15.88%</span>  |
+| FTSE 100         | 10,680.60 | <span style="color:#b91c1c;">-0.04%</span> | <span style="color:#11823b;">+1.18%</span>  | <span style="color:#11823b;">+5.30%</span>  | <span style="color:#11823b;">+10.20%</span> | <span style="color:#11823b;">+15.88%</span>  |
 | VIX              | 19.55     | <span style="color:#b91c1c;">-6.95%</span> | <span style="color:#b91c1c;">-3.65%</span>  | <span style="color:#11823b;">+21.50%</span> | <span style="color:#11823b;">+13.73%</span> | <span style="color:#11823b;">+35.48%</span>  |
-| EUR/USD          | 1.18      | <span style="color:#b91c1c;">-0.49%</span> | <span style="color:#b91c1c;">-0.61%</span>  | <span style="color:#11823b;">+0.19%</span>  | <span style="color:#11823b;">+1.84%</span>  | <span style="color:#11823b;">+1.11%</span>   |
-| WTI Crude        | 66.11     | <span style="color:#b91c1c;">-0.30%</span> | <span style="color:#11823b;">+6.06%</span>  | <span style="color:#11823b;">+8.25%</span>  | <span style="color:#11823b;">+12.72%</span> | <span style="color:#11823b;">+2.34%</span>   |
-| Gold             | 5,169.10  | <span style="color:#b91c1c;">-0.68%</span> | <span style="color:#11823b;">+5.86%</span>  | <span style="color:#11823b;">+3.88%</span>  | <span style="color:#11823b;">+24.10%</span> | <span style="color:#11823b;">+50.62%</span>  |
-| Silver           | 87.23     | <span style="color:#11823b;">+0.82%</span> | <span style="color:#11823b;">+18.77%</span> | <span style="color:#b91c1c;">-13.57%</span> | <span style="color:#11823b;">+64.85%</span> | <span style="color:#11823b;">+122.58%</span> |
+| EUR/USD          | 1.18      | <span style="color:#11823b;">+0.13%</span> | <span style="color:#b91c1c;">-0.36%</span>  | <span style="color:#b91c1c;">-0.42%</span>  | <span style="color:#11823b;">+1.78%</span>  | <span style="color:#11823b;">+1.09%</span>   |
+| WTI Crude        | 66.08     | <span style="color:#11823b;">+0.69%</span> | <span style="color:#11823b;">+1.37%</span>  | <span style="color:#11823b;">+8.99%</span>  | <span style="color:#11823b;">+12.67%</span> | <span style="color:#11823b;">+3.23%</span>   |
+| Gold             | 5,207.50  | <span style="color:#11823b;">+1.00%</span> | <span style="color:#11823b;">+4.43%</span>  | <span style="color:#11823b;">+2.52%</span>  | <span style="color:#11823b;">+25.02%</span> | <span style="color:#11823b;">+49.91%</span>  |
+| Silver           | 90.43     | <span style="color:#11823b;">+3.39%</span> | <span style="color:#11823b;">+16.66%</span> | <span style="color:#b91c1c;">-21.42%</span> | <span style="color:#11823b;">+70.88%</span> | <span style="color:#11823b;">+124.94%</span> |
 | Coffee           | 284.25    | <span style="color:#11823b;">+1.10%</span> | <span style="color:#b91c1c;">-0.12%</span>  | <span style="color:#b91c1c;">-18.99%</span> | <span style="color:#b91c1c;">-30.92%</span> | <span style="color:#b91c1c;">-26.69%</span>  |
 | Cocoa            | 3,089.00  | <span style="color:#11823b;">+2.83%</span> | <span style="color:#b91c1c;">-8.72%</span>  | <span style="color:#b91c1c;">-26.47%</span> | <span style="color:#b91c1c;">-38.13%</span> | <span style="color:#b91c1c;">-60.08%</span>  |
-| Bitcoin          | 64,013.61 | <span style="color:#b91c1c;">-0.93%</span> | <span style="color:#b91c1c;">-5.16%</span>  | <span style="color:#b91c1c;">-26.06%</span> | <span style="color:#b91c1c;">-29.28%</span> | <span style="color:#b91c1c;">-43.12%</span>  |
+| Bitcoin          | 64,988.70 | <span style="color:#11823b;">+1.42%</span> | <span style="color:#b91c1c;">-2.16%</span>  | <span style="color:#b91c1c;">-26.37%</span> | <span style="color:#b91c1c;">-28.81%</span> | <span style="color:#b91c1c;">-40.05%</span>  |
 
 **Macro charts (5Y):**
 
@@ -38,15 +38,14 @@ Workday stock sinks on weak revenue guidance: The Nasdaq rose 1.1% and the S&P 5
 
 **Session gainers:**
 
-| Ticker               | pct    |
+| Ticker            | pct    |
 | :--- | ---: |
-| SMR (SMR)            | +6.59% |
-| CEG (Power)          | +6.41% |
-| 000660 (Foundry/Mem) | +5.68% |
-| SNPS (EDA)           | +4.73% |
-| TSM (Foundry/Mem)    | +4.25% |
-| FRO (Tanker)         | +4.08% |
-| INSW (Tanker)        | +4.06% |
+| SMR (SMR)         | +6.59% |
+| CEG (Power)       | +6.41% |
+| SNPS (EDA)        | +4.73% |
+| TSM (Foundry/Mem) | +4.25% |
+| FRO (Tanker)      | +4.08% |
+| INSW (Tanker)     | +4.06% |
 
 **Session losers:** _None ≥ 4%_
 
@@ -60,21 +59,19 @@ _Upcoming earnings dates for your 44-ticker watchlist._
 
 | Ticker            | Earnings Date   |   Days |
 | :--- | ---: | ---: |
-| CEG (Power)       | 2026-02-24      |      0 |
-| MELI (E-comm)     | 2026-02-24      |      0 |
-| IONQ (Quantum)    | 2026-02-25      |      1 |
-| NU (Fintech)      | 2026-02-25      |      1 |
-| NVDA (Compute/IP) | 2026-02-25      |      1 |
-| SNPS (EDA)        | 2026-02-25      |      1 |
-| INSW (Tanker)     | 2026-02-26      |      2 |
-| MUV2 (Insurance)  | 2026-02-26      |      2 |
-| NAT (Tanker)      | 2026-02-26      |      2 |
-| QBTS (Quantum)    | 2026-02-26      |      2 |
-| SMR (SMR)         | 2026-02-26      |      2 |
-| VST (Power)       | 2026-02-26      |      2 |
-| FRO (Tanker)      | 2026-02-27      |      3 |
-| ANF (Brands)      | 2026-03-04      |      8 |
-| AVGO (Compute/IP) | 2026-03-04      |      8 |
+| IONQ (Quantum)    | 2026-02-25      |      0 |
+| NU (Fintech)      | 2026-02-25      |      0 |
+| NVDA (Compute/IP) | 2026-02-25      |      0 |
+| SNPS (EDA)        | 2026-02-25      |      0 |
+| INSW (Tanker)     | 2026-02-26      |      1 |
+| MUV2 (Insurance)  | 2026-02-26      |      1 |
+| NAT (Tanker)      | 2026-02-26      |      1 |
+| QBTS (Quantum)    | 2026-02-26      |      1 |
+| SMR (SMR)         | 2026-02-26      |      1 |
+| VST (Power)       | 2026-02-26      |      1 |
+| FRO (Tanker)      | 2026-02-27      |      2 |
+| ANF (Brands)      | 2026-03-04      |      7 |
+| AVGO (Compute/IP) | 2026-03-04      |      7 |
 
 ## 4) Technical triggers
 
@@ -91,8 +88,9 @@ _Logic: score each ticker by stage (CONFIRMED=3, EARLY=1) × direction (BREAKOUT
 | Healthcare | Mixed | 0 | 0 | 0 | 0 |
 | Energy & Nuclear | Mixed | 0 | 0 | 1 | 2 |
 | Quantum | Mixed | 0 | 0 | 0 | 0 |
-| Venezuela Oil | Mixed | 0 | 0 | 2 | 0 |
+| Venezuela Oil | Bullish | 1 | 0 | 2 | 0 |
 
+2. **Venezuela Oil is a tailwind** — signals skew bullish. Key names: NAT (Tanker) (CONFIRMED_RECT_BREAKOUT), CVX (Integrated) (EARLY_WEDGE_UP_BREAKOUT), PSX (Refiner) (EARLY_WEDGE_UP_BREAKOUT).
 
 ### 4A) Early callouts (~80% complete)
 
@@ -100,39 +98,29 @@ _Close enough to pre-plan. “Close enough” = within 0.5 ATR of the trigger (n
 
 **NEW (today):**
 
-| Ticker           | Signal                     |   Close |   Threshold |   Dist(ATR) | Day%   | Chart                                            |
+_None_
+
+**ONGOING:**
+
+| Ticker            | Signal                     |   Close |   Threshold |   Dist(ATR) | Day%   | Chart                                            |
 | :--- | :--- | ---: | ---: | ---: | ---: | :--- |
-| VST (Power)      | EARLY_BROADEN_BREAKOUT     |  171.62 |    170.875  |        0.1  | +2.28% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/VST_EARLY_BROADEN_BREAKOUT.png)      |
-| BYDDY (Services) | EARLY_RECT_BREAKOUT        |   12.8  |     12.8315 |       -0.11 | +1.43% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/BYDDY_EARLY_RECT_BREAKOUT.png)       |
-| PSX (Refiner)    | EARLY_WEDGE_UP_BREAKOUT    |  154.36 |    155.381  |       -0.23 | -0.32% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/PSX_EARLY_WEDGE_UP_BREAKOUT.png)     |
-| AMZN (E-comm)    | EARLY_BROADEN_BREAKDOWN    |  208.56 |    210.613  |       -0.26 | +1.60% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/AMZN_EARLY_BROADEN_BREAKDOWN.png)    |
-| SNPS (EDA)       | EARLY_WEDGE_DOWN_BREAKDOWN |  440.72 |    434.731  |        0.3  | +4.73% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/SNPS_EARLY_WEDGE_DOWN_BREAKDOWN.png) |
-| AAPL (Ecosystem) | EARLY_BROADEN_BREAKOUT     |  272.14 |    269.877  |        0.32 | +2.24% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/AAPL_EARLY_BROADEN_BREAKOUT.png)     |
-| AAPL (Ecosystem) | EARLY_IHS_BREAKOUT         |  272.14 |    269.585  |        0.36 | +2.24% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/AAPL_EARLY_IHS_BREAKOUT.png)         |
-| ARR (Bank/Yield) | EARLY_RECT_BREAKOUT        |   18.18 |     18.3693 |       -0.45 | +0.83% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/ARR_EARLY_RECT_BREAKOUT.png)         |
-
-**What’s going on (NEW early callouts):**
-
-#### VST (Power) — `EARLY_BROADEN_BREAKOUT`
-- **Trigger (level):** 170.88  |  **Close:** 171.62  |  **Distance:** +0.10 ATR
-- Chart includes **SMA(50)** + **SMA(200)**, **volume**, plus trigger + confirmation (±0.5 ATR). HS/IHS is labeled (LS/H/RS) with neckline; Wedges include upper/lower trendlines with touch points.
-- **Setup:** watch for confirmation close beyond trigger by ≥ 0.5 ATR, or a clean retest/failure in the direction of the signal.
-<img src="https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/VST_EARLY_BROADEN_BREAKOUT.png" width="720" style="max-width:100%;height:auto;">
-
-#### BYDDY (Services) — `EARLY_RECT_BREAKOUT`
-- **Trigger (level):** 12.83  |  **Close:** 12.80  |  **Distance:** -0.11 ATR
-- Chart includes **SMA(50)** + **SMA(200)**, **volume**, plus trigger + confirmation (±0.5 ATR). HS/IHS is labeled (LS/H/RS) with neckline; Wedges include upper/lower trendlines with touch points.
-- **Setup:** watch for confirmation close beyond trigger by ≥ 0.5 ATR, or a clean retest/failure in the direction of the signal.
-<img src="https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/BYDDY_EARLY_RECT_BREAKOUT.png" width="720" style="max-width:100%;height:auto;">
-
-#### PSX (Refiner) — `EARLY_WEDGE_UP_BREAKOUT`
-- **Trigger (level):** 155.38  |  **Close:** 154.36  |  **Distance:** -0.23 ATR
-- Chart includes **SMA(50)** + **SMA(200)**, **volume**, plus trigger + confirmation (±0.5 ATR). HS/IHS is labeled (LS/H/RS) with neckline; Wedges include upper/lower trendlines with touch points.
-- **Wedge read:** upper/lower trendlines converge; chart marks recent touch points. Trigger is the boundary; confirmation is ±0.5 ATR beyond.
-<img src="https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/PSX_EARLY_WEDGE_UP_BREAKOUT.png" width="720" style="max-width:100%;height:auto;">
-
-#### AMZN (E-comm) — `EARLY_BROADEN_BREAKDOWN`
-- **Trigger (level):** 210.61  |  **Close:** 208.56  |  **Distance:** -0.26 ATR
-- Chart includes **SMA(50)** + **SMA(200)**, **volume**, plus trigger + confirmation (±0.5 ATR). HS/IHS is labeled (LS/H/RS) with neckline; Wedges include upper/lower trendlines with touch points.
-- **Setup:** watch for confirmation close beyond trigger by ≥ 0.5 ATR, or a clean retest/failure in the direction of the signal.
-<img src="https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/AMZN_EARLY_BROADEN_BREAKDOWN.png" width="720" style="max-width:100%;height:auto;
+| MSFT (Ecosystem)  | EARLY_BROADEN_BREAKDOWN    |  389    |    389.047  |       -0    | +1.18% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/MSFT_EARLY_BROADEN_BREAKDOWN.png)    |
+| CCJ (Uranium)     | EARLY_BROADEN_BREAKDOWN    |  121.08 |    121.432  |       -0.05 | +1.96% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/CCJ_EARLY_BROADEN_BREAKDOWN.png)     |
+| VST (Power)       | EARLY_BROADEN_BREAKOUT     |  171.62 |    170.875  |        0.1  | +2.28% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/VST_EARLY_BROADEN_BREAKOUT.png)      |
+| WMT (Defensive)   | EARLY_BROADEN_BREAKDOWN    |  126.75 |    127.172  |       -0.11 | +0.75% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/WMT_EARLY_BROADEN_BREAKDOWN.png)     |
+| NVDA (Compute/IP) | EARLY_BROADEN_BREAKOUT     |  192.85 |    192.006  |        0.13 | +0.68% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/NVDA_EARLY_BROADEN_BREAKOUT.png)     |
+| LRCX (Equipment)  | EARLY_WEDGE_UP_BREAKDOWN   |  244.25 |    242.348  |        0.16 | +0.82% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/LRCX_EARLY_WEDGE_UP_BREAKDOWN.png)   |
+| UCG (Bank/Yield)  | EARLY_HS_TOP_BREAKDOWN     |   72.72 |     72.17   |        0.21 | -1.33% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/UCG.MI_EARLY_HS_TOP_BREAKDOWN.png)   |
+| PSX (Refiner)     | EARLY_WEDGE_UP_BREAKOUT    |  154.36 |    155.381  |       -0.23 | -0.32% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/PSX_EARLY_WEDGE_UP_BREAKOUT.png)     |
+| NVDA (Compute/IP) | EARLY_IHS_BREAKOUT         |  192.85 |    191.28   |        0.24 | +0.68% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/NVDA_EARLY_IHS_BREAKOUT.png)         |
+| BYDDY (Services)  | EARLY_RECT_BREAKOUT        |   12.76 |     12.8315 |       -0.24 | +1.11% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/BYDDY_EARLY_RECT_BREAKOUT.png)       |
+| AMAT (Equipment)  | EARLY_BROADEN_BREAKOUT     |  377.93 |    373.58   |        0.24 | +1.17% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/AMAT_EARLY_BROADEN_BREAKOUT.png)     |
+| AMZN (E-comm)     | EARLY_BROADEN_BREAKDOWN    |  208.56 |    210.613  |       -0.26 | +1.60% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/AMZN_EARLY_BROADEN_BREAKDOWN.png)    |
+| OKLO (SMR)        | EARLY_WEDGE_DOWN_BREAKDOWN |   65.06 |     63.2888 |        0.28 | +3.12% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/OKLO_EARLY_WEDGE_DOWN_BREAKDOWN.png) |
+| AVGO (Compute/IP) | EARLY_WEDGE_DOWN_BREAKOUT  |  325.49 |    321.136  |        0.28 | -1.47% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/AVGO_EARLY_WEDGE_DOWN_BREAKOUT.png)  |
+| SNPS (EDA)        | EARLY_WEDGE_DOWN_BREAKDOWN |  440.72 |    434.731  |        0.3  | +4.73% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/SNPS_EARLY_WEDGE_DOWN_BREAKDOWN.png) |
+| CVX (Integrated)  | EARLY_WEDGE_UP_BREAKOUT    |  185.34 |    184.313  |        0.3  | +0.23% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/CVX_EARLY_WEDGE_UP_BREAKOUT.png)     |
+| AAPL (Ecosystem)  | EARLY_BROADEN_BREAKOUT     |  272.14 |    269.877  |        0.32 | +2.24% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/AAPL_EARLY_BROADEN_BREAKOUT.png)     |
+| AAPL (Ecosystem)  | EARLY_IHS_BREAKOUT         |  272.14 |    269.585  |        0.36 | +2.24% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/AAPL_EARLY_IHS_BREAKOUT.png)         |
+| META (Ads)        | EARLY_BROADEN_BREAKDOWN    |  639.3  |    647.317  |       -0.4  | +0.32% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/META_EARLY_BROADEN_BREAKDOWN.png)    |
+| ARR (Bank/Yield)  | EARLY_RECT_BREAKOUT        |   18.18 |     18.3693 |       -0.45 | +0.83% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/ARR_EARLY_RECT_BREAKOUT.png)    
