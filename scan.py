@@ -31,7 +31,7 @@ import re
 import traceback
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 import xml.etree.ElementTree as ET
@@ -2204,8 +2204,9 @@ def earnings_section_md(watchlist: List[str], days: int = 14) -> str:
 
 
 
+
 # ----------------------------
-# Technical patterns (lightweight heuristics)
+# Technical patterns (deterministic rules engine)
 # ----------------------------
 @dataclass
 class LevelSignal:
@@ -2219,9 +2220,58 @@ class LevelSignal:
     dist_atr: float
     pct_today: Optional[float] = None
     chart_path: Optional[str] = None
+    meta: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class PatternCandidate:
+    pattern: str
+    direction: str   # BREAKOUT / BREAKDOWN
+    level: float
+    meta: Optional[Dict[str, Any]] = None
+
+
+def _safe_float(x, default: float = float("nan")) -> float:
+    try:
+        v = float(x)
+        if math.isnan(v):
+            return default
+        return v
+    except Exception:
+        return default
+
+
+def _median_close(df: pd.DataFrame, start: int = 0, end: Optional[int] = None) -> float:
+    if df is None or df.empty or "Close" not in df.columns:
+        return float("nan")
+    s = pd.to_numeric(df["Close"].iloc[start:end], errors="coerce").dropna()
+    return float(s.median()) if not s.empty else float("nan")
+
+
+def _median_atr(df: pd.DataFrame, start: int = 0, end: Optional[int] = None) -> float:
+    try:
+        a = atr(df, ATR_N)
+        s = pd.to_numeric(a.iloc[start:end], errors="coerce").dropna()
+        if not s.empty:
+            return float(s.median())
+    except Exception:
+        pass
+    # Fallback if ATR unavailable
+    mc = _median_close(df, start, end)
+    if pd.notna(mc):
+        return max(mc * 0.01, 1e-6)
+    return 1e-6
+
+
+def _pivot_tolerance(df: pd.DataFrame, start: int = 0, end: Optional[int] = None) -> float:
+    atr_med = _median_atr(df, start, end)
+    close_med = _median_close(df, start, end)
+    cterm = 0.0075 * close_med if pd.notna(close_med) else 0.0
+    return float(max(0.35 * atr_med, cterm, 1e-6))
 
 
 def _swing_points(series: pd.Series, window: int = 3) -> Tuple[List[int], List[int]]:
+    """Legacy close-based pivots (kept for backwards compatibility / fallbacks)."""
     s = series.values
     highs, lows = [], []
     for i in range(window, len(s) - window):
@@ -2235,11 +2285,726 @@ def _swing_points(series: pd.Series, window: int = 3) -> Tuple[List[int], List[i
     return highs, lows
 
 
+def _swing_points_ohlc(
+    df: pd.DataFrame,
+    window: int = 3,
+    prominence_atr_mult: float = 0.5,
+) -> Tuple[List[int], List[int]]:
+    """
+    Deterministic pivots on High/Low with prominence filter:
+    - swing high: local max in [i-window, i+window], unique, prominence >= 0.5 ATR
+    - swing low: local min analogously
+    """
+    dd = df.dropna(subset=["High", "Low", "Close"]).copy()
+    if dd.empty or len(dd) < (2 * window + 5):
+        return [], []
+    hi = dd["High"].astype(float).values
+    lo = dd["Low"].astype(float).values
+    atr_s = atr(dd, ATR_N)
+    atr_v = pd.to_numeric(atr_s, errors="coerce").values if atr_s is not None else np.full(len(dd), np.nan)
+
+    highs: List[int] = []
+    lows: List[int] = []
+
+    for i in range(window, len(dd) - window):
+        hwin = hi[i - window : i + window + 1]
+        lwin = lo[i - window : i + window + 1]
+        if np.isnan(hwin).any() or np.isnan(lwin).any():
+            continue
+
+        atr_i = atr_v[i] if i < len(atr_v) and np.isfinite(atr_v[i]) else np.nan
+        if not np.isfinite(atr_i):
+            lo_i = max(0, i - 20)
+            atr_i = np.nanmedian(atr_v[lo_i : i + 1]) if np.isfinite(np.nanmedian(atr_v[lo_i : i + 1])) else np.nan
+        if not np.isfinite(atr_i):
+            atr_i = max(float(np.nanmedian((hwin - lwin))), 1e-6)
+
+        # High pivot
+        if hi[i] == np.max(hwin) and np.sum(hwin == hi[i]) == 1:
+            prominence = float(hi[i] - np.min(lwin))
+            if prominence >= float(prominence_atr_mult * atr_i):
+                highs.append(i)
+
+        # Low pivot
+        if lo[i] == np.min(lwin) and np.sum(lwin == lo[i]) == 1:
+            prominence = float(np.max(hwin) - lo[i])
+            if prominence >= float(prominence_atr_mult * atr_i):
+                lows.append(i)
+
+    return highs, lows
+
+
 def _line_fit(x: np.ndarray, y: np.ndarray) -> Tuple[float, float]:
     if len(x) < 2:
         return (0.0, float(y[-1]) if len(y) else 0.0)
     a, b = np.polyfit(x, y, 1)
     return float(a), float(b)
+
+
+def _line_eval(a: float, b: float, x: float) -> float:
+    return float(a * x + b)
+
+
+def _trend_context_label(c: pd.Series, pattern_start: int, atr_med: float) -> str:
+    """
+    Prior-trend classifier for top/bottom labeling:
+      - TOP if pre-window slope >0 and net move > +2 ATR
+      - BOTTOM if slope <0 and net move < -2 ATR
+      - else NEUTRAL
+    """
+    if c is None or c.empty:
+        return "NEUTRAL"
+    end = max(0, pattern_start)
+    start = max(0, end - 40)
+    if end - start < 20:
+        return "NEUTRAL"
+    seg = pd.to_numeric(c.iloc[start:end], errors="coerce").dropna()
+    if len(seg) < 20:
+        return "NEUTRAL"
+    xs = np.arange(len(seg), dtype=float)
+    try:
+        a, _ = np.polyfit(xs, seg.values.astype(float), 1)
+    except Exception:
+        a = 0.0
+    net = float(seg.iloc[-1] - seg.iloc[0])
+    thresh = max(2.0 * float(atr_med), 1e-6)
+    if a > 0 and net > thresh:
+        return "TOP"
+    if a < 0 and net < -thresh:
+        return "BOTTOM"
+    return "NEUTRAL"
+
+
+def _horizontal_slope_threshold(df: pd.DataFrame, start: int = 0, end: Optional[int] = None) -> float:
+    # "horizontal" if |slope| <= 0.05*ATR per bar
+    atr_med = _median_atr(df, start, end)
+    return float(max(0.05 * atr_med, 1e-8))
+
+
+def _touch_indices_for_line(
+    pivot_indices: List[int],
+    pivot_prices: np.ndarray,
+    a: float,
+    b: float,
+    tol: float,
+) -> List[int]:
+    out: List[int] = []
+    for idx, px in zip(pivot_indices, pivot_prices):
+        if abs(float(px) - _line_eval(a, b, float(idx))) <= tol:
+            out.append(int(idx))
+    return out
+
+
+def _alternation_count(events: List[Tuple[int, str]]) -> int:
+    if not events:
+        return 0
+    events = sorted(events, key=lambda x: x[0])
+    cnt = 0
+    prev = None
+    for _, side in events:
+        if prev is None:
+            prev = side
+            continue
+        if side != prev:
+            cnt += 1
+            prev = side
+    return cnt
+
+
+def _iso_ts(idx_val) -> str:
+    try:
+        return pd.Timestamp(idx_val).isoformat()
+    except Exception:
+        return str(idx_val)
+
+
+def _point_meta(df: pd.DataFrame, i: int, price: float, label: str, kind: str = "point") -> Dict[str, Any]:
+    return {"t": _iso_ts(df.index[i]), "p": float(price), "label": str(label), "kind": kind, "i": int(i)}
+
+
+def _line_meta(df: pd.DataFrame, i1: int, y1: float, i2: int, y2: float, label: str) -> Dict[str, Any]:
+    return {
+        "t1": _iso_ts(df.index[i1]), "y1": float(y1),
+        "t2": _iso_ts(df.index[i2]), "y2": float(y2),
+        "label": str(label), "i1": int(i1), "i2": int(i2)
+    }
+
+
+def _build_band_pattern_meta(
+    df: pd.DataFrame,
+    pattern: str,
+    start_i: int,
+    end_i: int,
+    a_u: float,
+    b_u: float,
+    a_l: float,
+    b_l: float,
+    hi_touches: List[int],
+    lo_touches: List[int],
+    extra: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    meta: Dict[str, Any] = {
+        "annot_type": "band",
+        "pattern": pattern,
+        "start_i": int(start_i),
+        "end_i": int(end_i),
+        "lines": [
+            _line_meta(df, start_i, _line_eval(a_u, b_u, start_i), end_i, _line_eval(a_u, b_u, end_i), "Upper"),
+            _line_meta(df, start_i, _line_eval(a_l, b_l, start_i), end_i, _line_eval(a_l, b_l, end_i), "Lower"),
+        ],
+        "touch_points": [],
+    }
+    for i in hi_touches:
+        meta["touch_points"].append(_point_meta(df, i, float(df["High"].iloc[i]), "H touch", kind="touch_high"))
+    for i in lo_touches:
+        meta["touch_points"].append(_point_meta(df, i, float(df["Low"].iloc[i]), "L touch", kind="touch_low"))
+    if extra:
+        meta.update(extra)
+    return meta
+
+
+def _pick_recent_hs_triplet(
+    highs_idx: List[int],
+    lows_idx: List[int],
+    c: pd.Series,
+    d: pd.DataFrame,
+    inverse: bool = False,
+) -> Optional[Tuple[int, int, int, int, int, float, float, float]]:
+    """
+    Returns (p1, p2, p3, t1, t2, px1, px2, px3) for H&S/IHS candidate if rules pass.
+    """
+    if len(highs_idx) + len(lows_idx) < 5:
+        return None
+    piv_hi = highs_idx[-16:]
+    piv_lo = lows_idx[-16:]
+    if inverse:
+        pivots_primary = piv_lo
+        pivots_between = piv_hi
+    else:
+        pivots_primary = piv_hi
+        pivots_between = piv_lo
+
+    if len(pivots_primary) < 3 or len(pivots_between) < 2:
+        return None
+
+    best = None
+    best_score = -1e18
+
+    for a_i in range(0, len(pivots_primary) - 2):
+        for b_i in range(a_i + 1, len(pivots_primary) - 1):
+            for c_i in range(b_i + 1, len(pivots_primary)):
+                p1, p2, p3 = pivots_primary[a_i], pivots_primary[b_i], pivots_primary[c_i]
+                # Need intervening opposite pivots
+                between1 = [x for x in pivots_between if p1 < x < p2]
+                between2 = [x for x in pivots_between if p2 < x < p3]
+                if not between1 or not between2:
+                    continue
+
+                px1 = float(c.iloc[p1]); px2 = float(c.iloc[p2]); px3 = float(c.iloc[p3])
+
+                # Time symmetry
+                dL = max(1, p2 - p1); dR = max(1, p3 - p2)
+                ratio = dL / dR
+                if ratio < 0.5 or ratio > 2.0:
+                    continue
+
+                # Pattern ATR context
+                start_i = p1
+                end_i = p3 + 1
+                atr_med = _median_atr(d, start_i, end_i)
+                price_ref = float(np.nanmedian([px1, px2, px3]))
+                min_head_gap = max(0.5 * atr_med, 0.02 * max(price_ref, 1e-6))
+                shoulder_tol = max(1.0 * atr_med, 0.05 * max((px1 + px3) / 2.0, 1e-6))
+
+                # Head / shoulders geometry
+                if inverse:
+                    if not (px2 <= min(px1, px3) - min_head_gap):
+                        continue
+                    if abs(px1 - px3) > shoulder_tol:
+                        continue
+                    # Highest highs between shoulders/head define neckline points
+                    t1 = max(between1, key=lambda k: float(d["High"].iloc[k]))
+                    t2 = max(between2, key=lambda k: float(d["High"].iloc[k]))
+                    n1 = float(d["High"].iloc[t1]); n2 = float(d["High"].iloc[t2])
+                    head_gap_quality = min(px1 - px2, px3 - px2)
+                else:
+                    if not (px2 >= max(px1, px3) + min_head_gap):
+                        continue
+                    if abs(px1 - px3) > shoulder_tol:
+                        continue
+                    t1 = min(between1, key=lambda k: float(d["Low"].iloc[k]))
+                    t2 = min(between2, key=lambda k: float(d["Low"].iloc[k]))
+                    n1 = float(d["Low"].iloc[t1]); n2 = float(d["Low"].iloc[t2])
+                    head_gap_quality = min(px2 - px1, px2 - px3)
+
+                # Prior trend label enforcement
+                trend = _trend_context_label(c, p1, atr_med)
+                if inverse and trend != "BOTTOM":
+                    continue
+                if (not inverse) and trend != "TOP":
+                    continue
+
+                # Score: recency + symmetry + prominence
+                recency_bonus = float(p3)
+                sym_penalty = abs(math.log(ratio))
+                neck_span = abs(n2 - n1)
+                score = recency_bonus + 4.0 * (head_gap_quality / max(atr_med, 1e-6)) - 2.0 * sym_penalty - 0.25 * (neck_span / max(atr_med, 1e-6))
+                if score > best_score:
+                    best_score = score
+                    best = (p1, p2, p3, int(t1), int(t2), px1, px2, px3)
+
+    return best
+
+
+def detect_hs_top(df: pd.DataFrame) -> Optional[PatternCandidate]:
+    d = df.tail(LOOKBACK_DAYS).dropna(subset=["Open", "High", "Low", "Close"]).copy()
+    if len(d) < 120:
+        return None
+    c = d["Close"].astype(float)
+    highs_idx, lows_idx = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5)
+    if len(highs_idx) < 3 or len(lows_idx) < 2:
+        return None
+
+    hs = _pick_recent_hs_triplet(highs_idx, lows_idx, c, d, inverse=False)
+    if hs is None:
+        return None
+    p1, p2, p3, t1, t2, px1, px2, px3 = hs
+
+    # Neckline through troughs (sloped allowed)
+    n1 = float(d["Low"].iloc[t1]); n2 = float(d["Low"].iloc[t2])
+    a_n, b_n = _line_fit(np.array([float(t1), float(t2)]), np.array([n1, n2]))
+    x_last = float(len(d) - 1)
+    neckline_now = _line_eval(a_n, b_n, x_last)
+
+    meta = {
+        "annot_type": "hs",
+        "variant": "top",
+        "points": [
+            _point_meta(d, p1, px1, "LS"),
+            _point_meta(d, p2, px2, "H"),
+            _point_meta(d, p3, px3, "RS"),
+            _point_meta(d, t1, n1, "T1"),
+            _point_meta(d, t2, n2, "T2"),
+        ],
+        "lines": [
+            _line_meta(d, t1, n1, t2, n2, "Neckline"),
+        ],
+        "pattern_start_i": int(p1),
+        "pattern_end_i": int(p3),
+        "trigger_line_type": "neckline",
+    }
+    return PatternCandidate(pattern="HS_TOP", direction="BREAKDOWN", level=float(neckline_now), meta=meta)
+
+
+def detect_inverse_hs(df: pd.DataFrame) -> Optional[PatternCandidate]:
+    d = df.tail(LOOKBACK_DAYS).dropna(subset=["Open", "High", "Low", "Close"]).copy()
+    if len(d) < 120:
+        return None
+    c = d["Close"].astype(float)
+    highs_idx, lows_idx = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5)
+    if len(lows_idx) < 3 or len(highs_idx) < 2:
+        return None
+
+    ihs = _pick_recent_hs_triplet(highs_idx, lows_idx, c, d, inverse=True)
+    if ihs is None:
+        return None
+    p1, p2, p3, r1, r2, px1, px2, px3 = ihs
+
+    h1 = float(d["High"].iloc[r1]); h2 = float(d["High"].iloc[r2])
+    a_n, b_n = _line_fit(np.array([float(r1), float(r2)]), np.array([h1, h2]))
+    atr_med = _median_atr(d, p1, p3 + 1)
+    # "Too steep neckline" safeguard -> horizontal trigger at higher reaction high
+    if abs(a_n) > 0.20 * max(atr_med, 1e-6):
+        use_horiz = True
+        neckline_now = float(max(h1, h2))
+        line_for_meta = _line_meta(d, min(r1, r2), neckline_now, len(d) - 1, neckline_now, "Neckline")
+    else:
+        use_horiz = False
+        x_last = float(len(d) - 1)
+        neckline_now = _line_eval(a_n, b_n, x_last)
+        line_for_meta = _line_meta(d, r1, h1, r2, h2, "Neckline")
+
+    meta = {
+        "annot_type": "hs",
+        "variant": "inverse",
+        "points": [
+            _point_meta(d, p1, px1, "LS"),
+            _point_meta(d, p2, px2, "H"),
+            _point_meta(d, p3, px3, "RS"),
+            _point_meta(d, r1, h1, "R1"),
+            _point_meta(d, r2, h2, "R2"),
+        ],
+        "lines": [line_for_meta],
+        "pattern_start_i": int(p1),
+        "pattern_end_i": int(p3),
+        "trigger_line_type": "neckline_horizontal" if use_horiz else "neckline",
+    }
+    return PatternCandidate(pattern="IHS", direction="BREAKOUT", level=float(neckline_now), meta=meta)
+
+
+def _detect_band_structure(df: pd.DataFrame) -> Optional[Dict[str, Any]]:
+    """
+    Deterministic detector for rectangles / broadening / triangles.
+
+    Returns a dict describing a geometric band (upper/lower lines + metadata),
+    or None if no valid structure is present.
+    """
+    d = df.tail(180).dropna(subset=["Open", "High", "Low", "Close"]).copy()
+    if len(d) < 100:
+        return None
+    c = d["Close"].astype(float)
+    highs_idx, lows_idx = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5)
+    if len(highs_idx) < 4 or len(lows_idx) < 4:
+        return None
+
+    hi_piv = highs_idx[-8:]
+    lo_piv = lows_idx[-8:]
+    if len(hi_piv) < 4 or len(lo_piv) < 4:
+        return None
+
+    # Fit on the most recent 4–6 pivots per side for stability.
+    hi_fit = hi_piv[-6:] if len(hi_piv) >= 6 else hi_piv[-4:]
+    lo_fit = lo_piv[-6:] if len(lo_piv) >= 6 else lo_piv[-4:]
+
+    xh = np.array(hi_fit, dtype=float)
+    yh = np.array([float(d["High"].iloc[i]) for i in hi_fit], dtype=float)
+    xl = np.array(lo_fit, dtype=float)
+    yl = np.array([float(d["Low"].iloc[i]) for i in lo_fit], dtype=float)
+
+    a_u, b_u = _line_fit(xh, yh)
+    a_l, b_l = _line_fit(xl, yl)
+
+    start_i = int(max(0, min(int(min(hi_fit)), int(min(lo_fit))) - 2))
+    end_i = int(len(d) - 1)
+    if end_i - start_i < 20:
+        return None
+
+    width_start = _line_eval(a_u, b_u, float(start_i)) - _line_eval(a_l, b_l, float(start_i))
+    width_end = _line_eval(a_u, b_u, float(end_i)) - _line_eval(a_l, b_l, float(end_i))
+    if not (np.isfinite(width_start) and np.isfinite(width_end)):
+        return None
+    if width_start <= 0 or width_end <= 0:
+        return None
+
+    atr_med = _median_atr(d, start_i, end_i + 1)
+    tol = _pivot_tolerance(d, start_i, end_i + 1)
+    slope_horiz = _horizontal_slope_threshold(d, start_i, end_i + 1)
+    close_med = _median_close(d, start_i, end_i + 1)
+
+    # Touch counts from all pivots in pattern window
+    hi_all = [i for i in highs_idx if start_i <= i <= end_i]
+    lo_all = [i for i in lows_idx if start_i <= i <= end_i]
+    hi_all_prices = np.array([float(d["High"].iloc[i]) for i in hi_all], dtype=float) if hi_all else np.array([])
+    lo_all_prices = np.array([float(d["Low"].iloc[i]) for i in lo_all], dtype=float) if lo_all else np.array([])
+    hi_touches = _touch_indices_for_line(hi_all, hi_all_prices, a_u, b_u, tol) if len(hi_all_prices) else []
+    lo_touches = _touch_indices_for_line(lo_all, lo_all_prices, a_l, b_l, tol) if len(lo_all_prices) else []
+
+    if len(hi_touches) < 2 or len(lo_touches) < 2:
+        return None
+
+    # Traversals / alternation (triangles need multiple side-to-side moves)
+    touch_events = [(i, "U") for i in hi_touches] + [(i, "L") for i in lo_touches]
+    alternations = _alternation_count(touch_events)
+
+    # Containment (for rectangles quality)
+    seg_close = c.iloc[start_i : end_i + 1]
+    inside = 0
+    total = 0
+    for j, px in enumerate(seg_close.values, start=start_i):
+        up = _line_eval(a_u, b_u, float(j)) + tol
+        lo_ = _line_eval(a_l, b_l, float(j)) - tol
+        if np.isfinite(px) and np.isfinite(up) and np.isfinite(lo_):
+            total += 1
+            if lo_ <= float(px) <= up:
+                inside += 1
+    containment = (inside / total) if total > 0 else 0.0
+
+    # Trend label for top/bottom variants
+    trend_label = _trend_context_label(c, start_i, atr_med)
+
+    # Converging/diverging
+    converging = width_end <= 0.80 * width_start
+    diverging = width_end >= 1.20 * width_start
+
+    # Apex for converging structures
+    apex_x = None
+    if abs(a_u - a_l) > 1e-10:
+        apex_x = (b_l - b_u) / (a_u - a_l)
+
+    # Triangle progress to apex (0 at start, 1 at apex)
+    progress = None
+    if apex_x is not None and np.isfinite(apex_x) and apex_x > start_i:
+        progress = (end_i - start_i) / max(apex_x - start_i, 1e-9)
+
+    # Pattern classification
+    pat = None
+    extra: Dict[str, Any] = {
+        "containment": float(containment),
+        "alternations": int(alternations),
+        "trend_label": trend_label,
+    }
+
+    upper_horizontal = abs(a_u) <= slope_horiz
+    lower_horizontal = abs(a_l) <= slope_horiz
+
+    # Rectangle (top/bottom by prior trend)
+    rect_height = min(width_start, width_end)
+    if (
+        upper_horizontal and lower_horizontal
+        and containment >= 0.80
+        and rect_height >= 1.0 * max(atr_med, 1e-6)
+    ):
+        if trend_label == "TOP":
+            pat = "RECT_TOP"
+        elif trend_label == "BOTTOM":
+            pat = "RECT_BOTTOM"
+        else:
+            pat = "RECT"
+    # Broadening (megaphone): higher highs + lower lows / diverging lines
+    elif (
+        diverging
+        and a_u > slope_horiz
+        and a_l < -slope_horiz
+        and len(hi_touches) >= 2 and len(lo_touches) >= 2
+        and (width_end >= 1.2 * width_start)
+    ):
+        if trend_label == "TOP":
+            pat = "BROADEN_TOP"
+        elif trend_label == "BOTTOM":
+            pat = "BROADEN_BOTTOM"
+        else:
+            pat = "BROADEN"
+    # Triangles (ascending / descending / symmetrical)
+    elif converging and (apex_x is not None) and np.isfinite(apex_x):
+        apex_in_future = apex_x > end_i and apex_x <= (end_i + 3.0 * max(end_i - start_i, 1))
+        if apex_in_future and len(hi_touches) >= 2 and len(lo_touches) >= 2 and alternations >= 3:
+            extra["apex_x"] = float(apex_x)
+            extra["progress_to_apex"] = float(progress) if progress is not None else np.nan
+            # Prefer triangles in the "watchable" part of the pattern, but do not over-restrict confirmed breaks.
+            if progress is not None and progress < 0.35:
+                return None
+
+            if upper_horizontal and a_l > slope_horiz:
+                pat = "ASC_TRIANGLE"
+            elif lower_horizontal and a_u < -slope_horiz:
+                pat = "DESC_TRIANGLE"
+            elif a_u < -slope_horiz and a_l > slope_horiz:
+                if trend_label == "TOP":
+                    pat = "SYM_TRIANGLE_TOP"
+                elif trend_label == "BOTTOM":
+                    pat = "SYM_TRIANGLE_BOTTOM"
+                else:
+                    pat = "SYM_TRIANGLE"
+            else:
+                pat = None
+
+    if pat is None:
+        return None
+
+    meta = _build_band_pattern_meta(
+        d, pat, start_i, end_i, a_u, b_u, a_l, b_l, hi_touches, lo_touches, extra=extra
+    )
+    return {
+        "pattern": pat,
+        "df": d,
+        "a_u": float(a_u), "b_u": float(b_u),
+        "a_l": float(a_l), "b_l": float(b_l),
+        "start_i": int(start_i), "end_i": int(end_i),
+        "upper_level": float(_line_eval(a_u, b_u, float(end_i))),
+        "lower_level": float(_line_eval(a_l, b_l, float(end_i))),
+        "meta": meta,
+    }
+
+
+def detect_structure_candidates(df: pd.DataFrame) -> List[PatternCandidate]:
+    out: List[PatternCandidate] = []
+    st = _detect_band_structure(df)
+    if not st:
+        return out
+    pat = str(st["pattern"])
+    upper_level = float(st["upper_level"])
+    lower_level = float(st["lower_level"])
+    base_meta = st.get("meta") or {}
+    # Two-sided triggers for band structures (even for asc/desc triangles, failures can trade)
+    out.append(PatternCandidate(pattern=pat, direction="BREAKOUT", level=upper_level, meta=dict(base_meta)))
+    out.append(PatternCandidate(pattern=pat, direction="BREAKDOWN", level=lower_level, meta=dict(base_meta)))
+    return out
+
+
+def detect_dead_cat_bounce(df: pd.DataFrame) -> Optional[PatternCandidate]:
+    """
+    Deterministic DCB detector:
+      - gap-down event (strict gap OR >3% gap-down open)
+      - plunge >=20% from pre-event high to event low within 1-3 days
+      - event volume >=1.5x avg20
+      - bounce retrace 10%-60%
+      - rollover before current bar
+      - trigger = aggressive (post-bounce swing low) else conservative (event low)
+    """
+    d = df.tail(140).dropna(subset=["Open", "High", "Low", "Close"]).copy()
+    if len(d) < 50:
+        return None
+    if "Volume" not in d.columns or d["Volume"].dropna().empty:
+        return None
+
+    H = d["High"].astype(float).values
+    L = d["Low"].astype(float).values
+    O = d["Open"].astype(float).values
+    C = d["Close"].astype(float).values
+    V = pd.to_numeric(d["Volume"], errors="coerce").astype(float).values
+
+    lows_idx_all = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5)[1]
+    best = None
+    best_score = -1e18
+
+    # Search recent candidate event days; prioritize recency
+    for i in range(max(20, len(d) - 60), len(d) - 8):
+        if i < 1:
+            continue
+        prev_low = float(L[i - 1]); prev_close = float(C[i - 1])
+
+        strict_gap = float(H[i]) < prev_low
+        gap_pct = (float(O[i]) / prev_close - 1.0) if prev_close != 0 else 0.0
+        fallback_gap = gap_pct <= -0.03
+        if not (strict_gap or fallback_gap):
+            continue
+
+        pre0 = max(0, i - 10)
+        if i - pre0 < 3:
+            continue
+        pre_event_high = float(np.nanmax(H[pre0:i]))
+        if not np.isfinite(pre_event_high) or pre_event_high <= 0:
+            continue
+
+        # Event low within 1-3 days
+        j_end = min(len(d), i + 3)
+        event_low_idx = int(i + np.nanargmin(L[i:j_end]))
+        event_low = float(L[event_low_idx])
+
+        plunge = (pre_event_high - event_low) / pre_event_high
+        if plunge < 0.20:
+            continue
+
+        # Event volume shock on the event day (i)
+        if i < 20:
+            continue
+        avg20_prior = float(np.nanmean(V[i - 20:i]))
+        if not np.isfinite(avg20_prior) or avg20_prior <= 0 or not np.isfinite(V[i]):
+            continue
+        if float(V[i]) < 1.5 * avg20_prior:
+            continue
+
+        # Bounce high after event low
+        b_start = event_low_idx + 1
+        b_end = min(len(d) - 2, event_low_idx + 20)
+        if b_end - b_start < 2:
+            continue
+        bounce_rel = int(np.nanargmax(H[b_start:b_end + 1]))
+        bounce_idx = b_start + bounce_rel
+        bounce_high = float(H[bounce_idx])
+        if not np.isfinite(bounce_high):
+            continue
+
+        decline_amt = pre_event_high - event_low
+        if decline_amt <= 0:
+            continue
+        retr = (bounce_high - event_low) / decline_amt
+        if retr < 0.10 or retr > 0.60:
+            continue
+        if bounce_high >= pre_event_high:
+            continue
+
+        # Rollover evidence
+        if len(d) - 1 <= bounce_idx + 2:
+            continue
+        post_bounce_high = float(np.nanmax(H[bounce_idx + 1 :]))
+        lower_high = post_bounce_high <= bounce_high * 0.995
+
+        # Break of bounce uptrendline using closes from event_low -> bounce_high
+        a_bt, b_bt = _line_fit(np.array([float(event_low_idx), float(bounce_idx)]), np.array([event_low, bounce_high]))
+        latest_close = float(C[-1])
+        latest_trendline = _line_eval(a_bt, b_bt, float(len(d) - 1))
+        trendline_broken = latest_close < latest_trendline
+
+        if not (lower_high or trendline_broken):
+            continue
+
+        # Aggressive trigger = lowest swing low after bounce high; conservative trigger = event low
+        post_lows = [x for x in lows_idx_all if x > bounce_idx and x < len(d) - 1]
+        aggressive_trigger = None
+        if post_lows:
+            # Lowest swing low after bounce high
+            ag_idx = min(post_lows, key=lambda k: float(L[k]))
+            aggressive_trigger = (int(ag_idx), float(L[ag_idx]))
+        conservative_trigger = (int(event_low_idx), float(event_low))
+
+        if aggressive_trigger is None:
+            trig_idx, trig_px = conservative_trigger
+            trigger_kind = "conservative_event_low"
+        else:
+            trig_idx, trig_px = aggressive_trigger
+            trigger_kind = "aggressive_post_bounce_low"
+
+        # Must still be in the DCB regime (price below bounce high)
+        if latest_close >= bounce_high:
+            continue
+
+        recency = i
+        score = recency + 5.0 * plunge + 2.0 * (1.0 - abs(retr - 0.33))
+        if score > best_score:
+            best_score = score
+            best = {
+                "event_i": int(i),
+                "event_low_i": int(event_low_idx),
+                "event_low": float(event_low),
+                "pre_event_high": float(pre_event_high),
+                "bounce_i": int(bounce_idx),
+                "bounce_high": float(bounce_high),
+                "trigger_i": int(trig_idx),
+                "trigger": float(trig_px),
+                "trigger_kind": trigger_kind,
+                "gap_strict": bool(strict_gap),
+                "gap_pct": float(gap_pct),
+                "plunge": float(plunge),
+                "retr": float(retr),
+            }
+
+    if not best:
+        return None
+
+    meta: Dict[str, Any] = {
+        "annot_type": "dcb",
+        "points": [
+            _point_meta(d, best["event_i"], float(C[best["event_i"]]), "Event"),
+            _point_meta(d, best["event_low_i"], best["event_low"], "Event low"),
+            _point_meta(d, best["bounce_i"], best["bounce_high"], "Bounce high"),
+            _point_meta(d, best["trigger_i"], best["trigger"], "Trigger"),
+        ],
+        "lines": [
+            _line_meta(d, best["event_low_i"], best["event_low"], best["bounce_i"], best["bounce_high"], "Bounce leg"),
+            _line_meta(d, best["event_low_i"], best["event_low"], len(d) - 1, best["event_low"], "Conservative trigger"),
+            _line_meta(d, best["trigger_i"], best["trigger"], len(d) - 1, best["trigger"], "Active trigger"),
+        ],
+        "trigger_kind": best["trigger_kind"],
+        "plunge_pct": 100.0 * best["plunge"],
+        "bounce_retr_pct": 100.0 * best["retr"],
+    }
+    return PatternCandidate(pattern="DEAD_CAT_BOUNCE", direction="BREAKDOWN", level=float(best["trigger"]), meta=meta)
+
+
+def detect_pattern_candidates(df: pd.DataFrame) -> List[PatternCandidate]:
+    out: List[PatternCandidate] = []
+    hs = detect_hs_top(df)
+    if hs:
+        out.append(hs)
+    ihs = detect_inverse_hs(df)
+    if ihs:
+        out.append(ihs)
+    dcb = detect_dead_cat_bounce(df)
+    if dcb:
+        out.append(dcb)
+    out.extend(detect_structure_candidates(df))
+    return out
 
 
 def _classify_vs_level(
@@ -2257,7 +3022,7 @@ def _classify_vs_level(
       2) volume ratio >= VOL_CONFIRM_MULT (vs AvgVol(20))
       3) CLV >= CLV_BREAKOUT_MIN for breakouts, <= CLV_BREAKDOWN_MAX for breakdowns (CLV in [-1..+1])
 
-    EARLY is within EARLY_MULT * ATR of the trigger (pre-plan zone); if not CONFIRMED, we keep it EARLY (no SOFT tier).
+    EARLY is within EARLY_MULT * ATR of the trigger (pre-break 90% zone); if not CONFIRMED, we keep it EARLY.
     """
     if atr_val is None or atr_val <= 0 or math.isnan(atr_val):
         atr_val = max(level * 0.01, 1e-6)
@@ -2275,7 +3040,7 @@ def _classify_vs_level(
         clv_ok = clv >= CLV_BREAKOUT_MIN
         if price_ok and vol_ok and clv_ok:
             return "CONFIRMED_", dist_atr
-        # No SOFT tier: if not confirmed, keep only EARLY when close is within the pre-plan zone.
+        # "90% there": within 0.5 ATR of trigger (and geometry already validated upstream)
         if abs(close - level) <= EARLY_MULT * atr_val:
             return "EARLY_", dist_atr
         return "", dist_atr
@@ -2286,170 +3051,9 @@ def _classify_vs_level(
     clv_ok = clv <= CLV_BREAKDOWN_MAX
     if price_ok and vol_ok and clv_ok:
         return "CONFIRMED_", dist_atr
-    # No SOFT tier: if not confirmed, keep only EARLY when close is within the pre-plan zone.
     if abs(close - level) <= EARLY_MULT * atr_val:
         return "EARLY_", dist_atr
     return "", dist_atr
-
-
-def detect_hs_top(df: pd.DataFrame) -> Optional[Tuple[str, str, float]]:
-    d = df.tail(LOOKBACK_DAYS).copy()
-    c = d["Close"].dropna()
-    if len(c) < 120:
-        return None
-
-    highs_idx, lows_idx = _swing_points(c, window=4)
-    if len(highs_idx) < 3 or len(lows_idx) < 2:
-        return None
-
-    recent_vals = [(i, float(c.iloc[i])) for i in highs_idx[-10:]]
-    last3 = recent_vals[-3:]
-    if len(last3) < 3:
-        return None
-
-    (i1, p1), (i2, p2), (i3, p3) = last3
-    if not (p2 > p1 and p2 > p3):
-        return None
-    if min(p1, p3) <= 0:
-        return None
-    if abs(p1 - p3) / min(p1, p3) > 0.07:
-        return None
-
-    lows_between_1 = [i for i in lows_idx if i1 < i < i2]
-    lows_between_2 = [i for i in lows_idx if i2 < i < i3]
-    if not lows_between_1 or not lows_between_2:
-        return None
-    l1 = float(c.iloc[lows_between_1[-1]])
-    l2 = float(c.iloc[lows_between_2[0]])
-    neckline = (l1 + l2) / 2.0
-    return ("HS_TOP", "BREAKDOWN", neckline)
-
-
-def detect_inverse_hs(df: pd.DataFrame) -> Optional[Tuple[str, str, float]]:
-    d = df.tail(LOOKBACK_DAYS).copy()
-    c = d["Close"].dropna()
-    if len(c) < 120:
-        return None
-
-    highs_idx, lows_idx = _swing_points(c, window=4)
-    if len(lows_idx) < 3 or len(highs_idx) < 2:
-        return None
-
-    recent_vals = [(i, float(c.iloc[i])) for i in lows_idx[-10:]]
-    last3 = recent_vals[-3:]
-    if len(last3) < 3:
-        return None
-
-    (i1, p1), (i2, p2), (i3, p3) = last3
-    if not (p2 < p1 and p2 < p3):
-        return None
-    if min(p1, p3) <= 0:
-        return None
-    if abs(p1 - p3) / min(p1, p3) > 0.08:
-        return None
-
-    highs_between_1 = [i for i in highs_idx if i1 < i < i2]
-    highs_between_2 = [i for i in highs_idx if i2 < i < i3]
-    if not highs_between_1 or not highs_between_2:
-        return None
-    h1 = float(c.iloc[highs_between_1[-1]])
-    h2 = float(c.iloc[highs_between_2[0]])
-    neckline = (h1 + h2) / 2.0
-    return ("IHS", "BREAKOUT", neckline)
-
-
-def detect_structure(df: pd.DataFrame) -> Optional[Tuple[str, float, float]]:
-    d = df.tail(180).copy()
-    c = d["Close"].dropna()
-    if len(c) < 120:
-        return None
-
-    highs_idx, lows_idx = _swing_points(c, window=3)
-    if len(highs_idx) < 4 or len(lows_idx) < 4:
-        return None
-
-    hi = np.array(highs_idx[-6:], dtype=int)
-    lo = np.array(lows_idx[-6:], dtype=int)
-
-    xh = hi.astype(float)
-    yh = np.array([float(c.iloc[i]) for i in hi])
-    xl = lo.astype(float)
-    yl = np.array([float(c.iloc[i]) for i in lo])
-
-    a_u, b_u = _line_fit(xh, yh)
-    a_l, b_l = _line_fit(xl, yl)
-
-    x_last = float(len(c) - 1)
-    upper_now = a_u * x_last + b_u
-    lower_now = a_l * x_last + b_l
-    if not (upper_now > lower_now):
-        return None
-
-    x_early = float(max(0, len(c) - 60))
-    width_now = (a_u * x_last + b_u) - (a_l * x_last + b_l)
-    width_then = (a_u * x_early + b_u) - (a_l * x_early + b_l)
-    if width_then <= 0:
-        return None
-
-    converging = width_now < 0.75 * width_then
-    diverging = width_now > 1.15 * width_then
-
-    if abs(a_u) < 0.02 and abs(a_l) < 0.02 and (width_now / max(lower_now, 1e-6)) < 0.18:
-        return ("RECT", float(upper_now), float(lower_now))
-
-    if diverging:
-        return ("BROADEN", float(upper_now), float(lower_now))
-
-    if converging:
-        if a_u < 0 and a_l > 0:
-            return ("TRIANGLE", float(upper_now), float(lower_now))
-        if a_u < 0 and a_l < 0:
-            # Falling wedge (bullish setup) should show true compression: upper trendline falling faster than lower.
-            upper_faster = (a_u < a_l) and (abs(a_u) >= 1.15 * max(abs(a_l), 1e-9))
-            if not upper_faster:
-                # More likely a downward channel / weak compression than a reversal wedge.
-                return None
-            return ("WEDGE_DOWN", float(upper_now), float(lower_now))
-        if a_u > 0 and a_l > 0:
-            # Rising wedge (bearish setup) should show lower trendline rising faster than upper.
-            lower_faster = (a_l > a_u) and (abs(a_l) >= 1.15 * max(abs(a_u), 1e-9))
-            if not lower_faster:
-                return None
-            return ("WEDGE_UP", float(upper_now), float(lower_now))
-        return ("TRIANGLE", float(upper_now), float(lower_now))
-
-    return None
-
-
-def _allow_early_wedge_upside_callout(d: pd.DataFrame, close: float, atr_val: float, clv: float, pct_today: Optional[float]) -> bool:
-    """Reduce false-positive bullish falling-wedge early callouts in falling-knife tapes."""
-    try:
-        dd = d.dropna(subset=["Close"]).copy()
-        if dd.empty:
-            return False
-        c = dd["Close"].astype(float)
-        # Reject if making/pressing fresh lows very recently (common down-channel false positive)
-        look = min(20, len(c))
-        if look >= 10:
-            recent = c.tail(look)
-            if float(recent.iloc[-1]) <= float(recent.min()) * 1.01:
-                return False
-        # Reject if the latest session itself is a hard down day and closes weak in range
-        if pct_today is not None and not (isinstance(pct_today, float) and math.isnan(pct_today)):
-            if float(pct_today) <= -1.5:
-                return False
-        if pd.notna(clv) and float(clv) <= -0.20:
-            return False
-        # Prefer some evidence of stabilization vs short trend
-        if len(c) >= 20:
-            sma20 = float(c.tail(20).mean())
-            if pd.notna(sma20):
-                tol = float(atr_val) if pd.notna(atr_val) else 0.0
-                if float(close) < (sma20 - 1.25 * tol):
-                    return False
-    except Exception:
-        return False
-    return True
 
 
 def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSignal]:
@@ -2457,7 +3061,7 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
     if df is None or df.empty or len(df) < 80:
         return sigs
 
-    d = df.dropna(subset=["Close"]).copy()
+    d = df.dropna(subset=["Close", "High", "Low"]).copy()
     if len(d) < 80:
         return sigs
 
@@ -2469,10 +3073,15 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
     # Confirmation gates use volume ratio (vs AvgVol20) and CLV ([-1..+1])
     vol_ratio = 1.0
     if "Volume" in d.columns and not d["Volume"].dropna().empty:
-        v = float(d["Volume"].iloc[-1]) if not math.isnan(float(d["Volume"].iloc[-1])) else float("nan")
-        avg20 = float(d["Volume"].tail(20).mean()) if len(d) >= 20 else float("nan")
-        if avg20 and not math.isnan(avg20) and not math.isnan(v):
-            vol_ratio = v / avg20
+        try:
+            v = float(d["Volume"].iloc[-1])
+            avg20_prior = float(d["Volume"].iloc[-21:-1].mean()) if len(d) >= 21 else float("nan")
+            if not np.isfinite(avg20_prior):
+                avg20_prior = float(d["Volume"].tail(20).mean()) if len(d) >= 20 else float("nan")
+            if avg20_prior and np.isfinite(avg20_prior) and np.isfinite(v):
+                vol_ratio = float(v / avg20_prior)
+        except Exception:
+            vol_ratio = 1.0
 
     clv = 0.0
     try:
@@ -2484,56 +3093,43 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
     except Exception:
         clv = 0.0
 
-    hs = detect_hs_top(d)
-    if hs:
-        pattern, direction, level = hs
-        prefix, dist_atr = _classify_vs_level(close, level, atr_val, direction, vol_ratio, clv)
-        if prefix:
-            sigs.append(LevelSignal(
-                ticker=ticker, signal=f"{prefix}{pattern}_{direction}",
-                pattern=pattern, direction=direction,
-                level=float(level), close=close, atr=atr_val,
-                dist_atr=float(dist_atr), pct_today=pct_today
-            ))
+    candidates = detect_pattern_candidates(d)
 
-    ihs = detect_inverse_hs(d)
-    if ihs:
-        pattern, direction, level = ihs
-        prefix, dist_atr = _classify_vs_level(close, level, atr_val, direction, vol_ratio, clv)
-        if prefix:
-            sigs.append(LevelSignal(
-                ticker=ticker, signal=f"{prefix}{pattern}_{direction}",
-                pattern=pattern, direction=direction,
-                level=float(level), close=close, atr=atr_val,
-                dist_atr=float(dist_atr), pct_today=pct_today
-            ))
+    # De-duplicate candidates (same pattern/dir/trigger rounded)
+    seen = set()
+    for cand in candidates:
+        key = (cand.pattern, cand.direction, round(float(cand.level), 4))
+        if key in seen:
+            continue
+        seen.add(key)
 
-    st = detect_structure(d)
-    if st:
-        pattern, upper_level, lower_level = st
+        prefix, dist_atr = _classify_vs_level(close, cand.level, atr_val, cand.direction, vol_ratio, clv)
+        if not prefix:
+            continue
+        sigs.append(LevelSignal(
+            ticker=ticker,
+            signal=f"{prefix}{cand.pattern}_{cand.direction}",
+            pattern=cand.pattern,
+            direction=cand.direction,
+            level=float(cand.level),
+            close=close,
+            atr=atr_val,
+            dist_atr=float(dist_atr),
+            pct_today=pct_today,
+            meta=cand.meta if isinstance(cand.meta, dict) else None,
+        ))
 
-        prefix_u, dist_u = _classify_vs_level(close, upper_level, atr_val, "BREAKOUT", vol_ratio, clv)
-        if prefix_u:
-            # Reduce false-positive bullish falling-wedge early setups in clear falling-knife tapes.
-            if pattern == "WEDGE_DOWN" and prefix_u == "EARLY_":
-                if not _allow_early_wedge_upside_callout(d, close, atr_val, clv, pct_today):
-                    prefix_u = None
-        if prefix_u:
-            sigs.append(LevelSignal(
-                ticker=ticker, signal=f"{prefix_u}{pattern}_BREAKOUT",
-                pattern=pattern, direction="BREAKOUT",
-                level=float(upper_level), close=close, atr=atr_val,
-                dist_atr=float(dist_u), pct_today=pct_today
-            ))
-
-        prefix_l, dist_l = _classify_vs_level(close, lower_level, atr_val, "BREAKDOWN", vol_ratio, clv)
-        if prefix_l:
-            sigs.append(LevelSignal(
-                ticker=ticker, signal=f"{prefix_l}{pattern}_BREAKDOWN",
-                pattern=pattern, direction="BREAKDOWN",
-                level=float(lower_level), close=close, atr=atr_val,
-                dist_atr=float(dist_l), pct_today=pct_today
-            ))
+    # If a dead-cat-bounce is active, suppress conflicting bullish early signals from triangles/rectangles near the bounce.
+    if any(s.pattern == "DEAD_CAT_BOUNCE" for s in sigs):
+        filtered: List[LevelSignal] = []
+        for s in sigs:
+            if s.pattern == "DEAD_CAT_BOUNCE":
+                filtered.append(s)
+                continue
+            if s.direction == "BREAKOUT" and s.signal.startswith("EARLY_"):
+                continue
+            filtered.append(s)
+        sigs = filtered
 
     return sigs
 
@@ -2727,6 +3323,80 @@ def _annotate_wedge(ax, dates, high, low, lookback: int = 120) -> None:
     # label
     ax.text(dts[int(lb*0.02)], upper[int(lb*0.05)], "Wedge upper", fontsize=9)
     ax.text(dts[int(lb*0.02)], lower[int(lb*0.10)], "Wedge lower", fontsize=9)
+
+def _annotate_from_signal_meta(ax, sig: LevelSignal) -> bool:
+    """Render pattern geometry from deterministic detector metadata. Returns True if used."""
+    meta = getattr(sig, "meta", None)
+    if not isinstance(meta, dict) or not meta:
+        return False
+
+    used = False
+
+    def _to_ts(x):
+        try:
+            return pd.to_datetime(x)
+        except Exception:
+            return None
+
+    # Draw lines first
+    for ln in meta.get("lines", []) or []:
+        try:
+            t1 = _to_ts(ln.get("t1")); t2 = _to_ts(ln.get("t2"))
+            y1 = float(ln.get("y1")); y2 = float(ln.get("y2"))
+            if t1 is None or t2 is None or not np.isfinite(y1) or not np.isfinite(y2):
+                continue
+            ax.plot([t1, t2], [y1, y2], linestyle="--", linewidth=1)
+            label = str(ln.get("label") or "")
+            if label:
+                ax.text(t2, y2, f" {label}", va="bottom")
+            used = True
+        except Exception:
+            continue
+
+    # Draw touch points / pivots
+    for pt in meta.get("touch_points", []) or []:
+        try:
+            t = _to_ts(pt.get("t")); y = float(pt.get("p"))
+            if t is None or not np.isfinite(y):
+                continue
+            ax.scatter([t], [y], s=20)
+            used = True
+        except Exception:
+            continue
+
+    for pt in meta.get("points", []) or []:
+        try:
+            t = _to_ts(pt.get("t")); y = float(pt.get("p"))
+            if t is None or not np.isfinite(y):
+                continue
+            ax.scatter([t], [y], s=36)
+            label = str(pt.get("label") or "")
+            if label:
+                # Small offset proportional to price
+                off = max(abs(y) * 0.01, 0.5)
+                if "Event low" in label or label in ("LS", "H", "RS") and sig.pattern == "IHS":
+                    ytext = y - off
+                else:
+                    ytext = y + off
+                ax.annotate(label, (t, y), xytext=(t, ytext), textcoords="data",
+                            arrowprops=dict(arrowstyle="->", lw=0.8))
+            used = True
+        except Exception:
+            continue
+
+    # Helpful title note for DCB
+    if meta.get("annot_type") == "dcb":
+        try:
+            trig_kind = str(meta.get("trigger_kind", ""))
+            if trig_kind:
+                ax.text(0.02, 0.10, f"DCB trigger: {trig_kind}", transform=ax.transAxes, fontsize=9,
+                        bbox=dict(boxstyle="round", fc="white", ec="black", lw=0.5))
+            used = True
+        except Exception:
+            pass
+
+    return used
+
 def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal) -> Optional[str]:
     """
     Chart output (last ~1Y, with indicators):
@@ -2844,15 +3514,17 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal) -> Option
         high = d["High"].astype(float).values
         low = d["Low"].astype(float).values
 
-        if "HS_TOP" in sig.signal or "H&S_TOP" in sig.signal:
-            _annotate_hs_top_dt(ax, d.index.to_list(), close, low)
-            # Label neckline (visual anchor)
-            ax.text(d.index[int(len(d)*0.05)], sig.level, "Neckline", va="bottom")
-        if "IHS" in sig.signal:
-            _annotate_ihs_dt(ax, d.index.to_list(), close, high)
-            ax.text(d.index[int(len(d)*0.05)], sig.level, "Neckline", va="bottom")
-        if "WEDGE" in sig.signal:
-            _annotate_wedge(ax, d.index.to_list(), high, low, lookback=min(140, len(d)))
+        used_meta_annotation = _annotate_from_signal_meta(ax, sig)
+        if not used_meta_annotation:
+            # Fallbacks for legacy signals / older state entries
+            if "HS_TOP" in sig.signal or "H&S_TOP" in sig.signal:
+                _annotate_hs_top_dt(ax, d.index.to_list(), close, low)
+                ax.text(d.index[int(len(d)*0.05)], sig.level, "Neckline", va="bottom")
+            if "IHS" in sig.signal:
+                _annotate_ihs_dt(ax, d.index.to_list(), close, high)
+                ax.text(d.index[int(len(d)*0.05)], sig.level, "Neckline", va="bottom")
+            if "WEDGE" in sig.signal:
+                _annotate_wedge(ax, d.index.to_list(), high, low, lookback=min(140, len(d)))
 
         # Latest close marker
         ax.scatter([d.index[-1]], [close[-1]], s=60)
@@ -2902,10 +3574,12 @@ def blurb_for_new_signal(sig: LevelSignal) -> str:
     lines.append(f"- **Pattern:** {pattern} ({direction}).")
     lines.append(f"- **Trigger (level):** {sig.level:.2f} | **Distance:** {sig.dist_atr:+.2f} ATR.")
     lines.append(f"- **Plan:** wait for a close beyond trigger by ≥ 0.5 ATR (confirmation) or a clean retest/failure depending on direction.")
-    if "WEDGE" in sig.signal:
-        lines.append("- **Wedge visual:** chart shows upper/lower trendlines with recent touch points; trigger is drawn at the breakout boundary.")
+    if any(k in sig.signal for k in ["TRIANGLE", "RECT", "BROADEN"]):
+        lines.append("- **Structure visual:** chart draws upper/lower boundaries and touch points used for the trigger line.")
     if "HS_TOP" in sig.signal or "IHS" in sig.signal:
-        lines.append("- **HS/IHS visual:** chart labels LS/H/RS and the neckline; trigger is the neckline.")
+        lines.append("- **HS/IHS visual:** chart labels LS/H/RS plus reaction pivots and the neckline trigger.")
+    if "DEAD_CAT_BOUNCE" in sig.signal:
+        lines.append("- **DCB visual:** chart marks the event day, event low, bounce high and the active breakdown trigger.")
     return "\n".join(lines)
 # Reporting utilities
 # ----------------------------
@@ -3038,7 +3712,9 @@ def enrich_confirmed_rules(df: pd.DataFrame, ohlcv: Dict[str, pd.DataFrame]) -> 
                 if "Volume" in td2.columns and not td2["Volume"].dropna().empty and len(td2) >= 2:
                     try:
                         v = float(td2["Volume"].iloc[-1])
-                        avg20 = float(td2["Volume"].tail(20).mean()) if len(td2) >= 20 else np.nan
+                        avg20 = float(td2["Volume"].iloc[-21:-1].mean()) if len(td2) >= 21 else np.nan
+                        if not np.isfinite(avg20):
+                            avg20 = float(td2["Volume"].tail(20).mean()) if len(td2) >= 20 else np.nan
                         if avg20 and not math.isnan(avg20) and not math.isnan(v):
                             vr = v / avg20
                     except Exception:
