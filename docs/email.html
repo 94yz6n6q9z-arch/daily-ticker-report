@@ -1,15 +1,1330 @@
 <!doctype html><html><head><meta charset='utf-8'/><meta name='viewport' content='width=device-width, initial-scale=1'/><style>body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif;line-height:1.35;}h1,h2,h3{margin:16px 0 10px;}table{border-collapse:collapse;width:100%;margin:10px 0 18px;}th,td{border:1px solid #ddd;padding:8px;vertical-align:top;}th{background:#f6f8fa;}img{max-width:100%;height:auto;}</style></head><body><h1>Daily Report</h1>
-<h2>ERROR</h2>
-<p>The run crashed. Traceback:</p>
-<pre><code class="language-text">Traceback (most recent call last):
-  File &quot;/home/runner/work/daily-ticker-report/daily-ticker-report/scan.py&quot;, line 4313, in &lt;module&gt;
-    main()
-  File &quot;/home/runner/work/daily-ticker-report/daily-ticker-report/scan.py&quot;, line 4063, in main
-    all_signals.extend(compute_signals_for_ticker(t, df))
-                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/home/runner/work/daily-ticker-report/daily-ticker-report/scan.py&quot;, line 3254, in compute_signals_for_ticker
-    prefix, dist_atr = _classify_vs_level(close, cand.level, atr_val, cand.direction, vol_ratio, clv)
-    ^^^^^^^^^^^^^^^^
-TypeError: cannot unpack non-iterable NoneType object
+<p><em>Generated: <strong>2026-02-25 18:57 CET</strong></em></p>
+<h2>1) Market recap &amp; positioning</h2>
+<p><strong>Executive summary:</strong></p>
+<p>Headline: Tech and earnings took centre stage as investors positioned for Nvidia’s results while digesting Lowe’s upbeat sales against a still-pressured housing market. The Nasdaq 100 rose 1.3% and the S&amp;P 500 gained 0.7% as the Vix fell 6.0%, extending the past few weeks’ choppy grind higher even as the Nasdaq remains down over a month (1M -1.6%). Big movers were IONQ +7.2%, DoorDash +5.9% and Netflix +5.5%, while MercadoLibre sank 8.6%.</p>
+<p><strong>Key tape (multi-horizon):</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Instrument</th>
+<th style="text-align: right;">Last</th>
+<th style="text-align: right;">1D</th>
+<th style="text-align: right;">7D</th>
+<th style="text-align: right;">1M</th>
+<th style="text-align: right;">3M</th>
+<th style="text-align: right;">6M</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Nasdaq 100</td>
+<td style="text-align: right;">25,299.76</td>
+<td style="text-align: right;"><span style="color:#11823b;">+1.29%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+1.61%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-1.61%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+0.25%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+8.05%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">S&amp;P 500</td>
+<td style="text-align: right;">6,941.73</td>
+<td style="text-align: right;"><span style="color:#11823b;">+0.75%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+0.88%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-0.12%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+1.90%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+7.45%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">QQQ</td>
+<td style="text-align: right;">615.71</td>
+<td style="text-align: right;"><span style="color:#11823b;">+1.29%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+1.64%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-1.56%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+0.23%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+7.94%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">SPY</td>
+<td style="text-align: right;">692.50</td>
+<td style="text-align: right;"><span style="color:#11823b;">+0.75%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+0.90%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-0.03%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+1.89%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+7.36%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">STOXX Europe 600</td>
+<td style="text-align: right;">633.47</td>
+<td style="text-align: right;"><span style="color:#11823b;">+0.69%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+0.76%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+3.92%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+10.17%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+15.15%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">DAX</td>
+<td style="text-align: right;">25,175.94</td>
+<td style="text-align: right;"><span style="color:#11823b;">+0.76%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-0.40%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+0.97%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+5.92%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+5.33%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">CAC 40</td>
+<td style="text-align: right;">8,559.07</td>
+<td style="text-align: right;"><span style="color:#11823b;">+0.47%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+1.54%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+5.26%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+5.67%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+11.10%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">FTSE 100</td>
+<td style="text-align: right;">10,806.41</td>
+<td style="text-align: right;"><span style="color:#11823b;">+1.18%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+1.12%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+6.48%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+11.48%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+17.62%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">VIX</td>
+<td style="text-align: right;">18.38</td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-5.98%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-6.32%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+13.81%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+6.92%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+19.66%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">EUR/USD</td>
+<td style="text-align: right;">1.18</td>
+<td style="text-align: right;"><span style="color:#11823b;">+0.14%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-0.35%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-0.40%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+1.80%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+1.10%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">WTI Crude</td>
+<td style="text-align: right;">65.41</td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-0.34%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+0.34%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+7.88%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+11.53%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+2.19%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">Gold</td>
+<td style="text-align: right;">5,226.00</td>
+<td style="text-align: right;"><span style="color:#11823b;">+1.36%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+4.80%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+2.88%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+25.47%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+50.44%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">Silver</td>
+<td style="text-align: right;">91.47</td>
+<td style="text-align: right;"><span style="color:#11823b;">+4.59%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+18.02%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-20.51%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+72.87%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+127.55%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">Coffee</td>
+<td style="text-align: right;">284.35</td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-1.35%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-1.11%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-20.18%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-30.90%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-28.35%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">Cocoa</td>
+<td style="text-align: right;">3,061.00</td>
+<td style="text-align: right;"><span style="color:#11823b;">+2.14%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-5.11%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-29.60%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-38.69%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-59.91%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">Bitcoin</td>
+<td style="text-align: right;">68,732.70</td>
+<td style="text-align: right;"><span style="color:#11823b;">+7.26%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+3.47%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-22.13%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-24.71%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-36.60%</span></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Macro charts (5Y):</strong></p>
+<table><tr><td style='padding-right:12px;'><img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/macro_vix_5y.png' width='414' style='width:414px;max-width:414px;height:auto;'></td><td><img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/macro_eurusd_5y.png' width='414' style='width:414px;max-width:414px;height:auto;'></td></tr></table>
 
-</code></pre></body></html>
+<h2>2) Biggest movers (≥ 4%)</h2>
+<p><strong>Session gainers:</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Ticker</th>
+<th style="text-align: right;">pct</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">IONQ (Quantum)</td>
+<td style="text-align: right;">+7.18%</td>
+</tr>
+<tr>
+<td style="text-align: left;">DASH (Services)</td>
+<td style="text-align: right;">+5.90%</td>
+</tr>
+<tr>
+<td style="text-align: left;">NFLX (Media)</td>
+<td style="text-align: right;">+5.48%</td>
+</tr>
+<tr>
+<td style="text-align: left;">HOOD (Brokerage)</td>
+<td style="text-align: right;">+4.69%</td>
+</tr>
+<tr>
+<td style="text-align: left;">AMAT (Equipment)</td>
+<td style="text-align: right;">+4.55%</td>
+</tr>
+<tr>
+<td style="text-align: left;">PLTR</td>
+<td style="text-align: right;">+4.52%</td>
+</tr>
+<tr>
+<td style="text-align: left;">QBTS (Quantum)</td>
+<td style="text-align: right;">+4.45%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Session losers:</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Ticker</th>
+<th style="text-align: right;">pct</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">MELI (E-comm)</td>
+<td style="text-align: right;">-8.56%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>After-hours gainers:</strong> <em>None ≥ 4%</em></p>
+<p><strong>After-hours losers:</strong> <em>None ≥ 4%</em></p>
+<h2>3) Earnings next 14 days (watchlist)</h2>
+<p><em>Upcoming earnings dates for your 44-ticker watchlist.</em></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Ticker</th>
+<th style="text-align: right;">Earnings Date</th>
+<th style="text-align: right;">Days</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">IONQ (Quantum)</td>
+<td style="text-align: right;">2026-02-25</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: left;">NU (Fintech)</td>
+<td style="text-align: right;">2026-02-25</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: left;">NVDA (Compute/IP)</td>
+<td style="text-align: right;">2026-02-25</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: left;">SNPS (EDA)</td>
+<td style="text-align: right;">2026-02-25</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: left;">INSW (Tanker)</td>
+<td style="text-align: right;">2026-02-26</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td style="text-align: left;">MUV2 (Insurance)</td>
+<td style="text-align: right;">2026-02-26</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td style="text-align: left;">NAT (Tanker)</td>
+<td style="text-align: right;">2026-02-26</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td style="text-align: left;">QBTS (Quantum)</td>
+<td style="text-align: right;">2026-02-26</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td style="text-align: left;">SMR (SMR)</td>
+<td style="text-align: right;">2026-02-26</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td style="text-align: left;">VST (Power)</td>
+<td style="text-align: right;">2026-02-26</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td style="text-align: left;">FRO (Tanker)</td>
+<td style="text-align: right;">2026-02-27</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr>
+<td style="text-align: left;">ANF (Brands)</td>
+<td style="text-align: right;">2026-03-04</td>
+<td style="text-align: right;">7</td>
+</tr>
+<tr>
+<td style="text-align: left;">AVGO (Compute/IP)</td>
+<td style="text-align: right;">2026-03-04</td>
+<td style="text-align: right;">7</td>
+</tr>
+</tbody>
+</table>
+<h2>4) Technical triggers</h2>
+<h3>4) Watchlist emerging chart trends</h3>
+<p><em>Logic: score each ticker by stage (CONFIRMED=3, EARLY=1) × direction (BREAKOUT=+1, BREAKDOWN=-1), then aggregate by category.</em></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Category</th>
+<th style="text-align: left;">Bias</th>
+<th style="text-align: right;">VALID↑</th>
+<th style="text-align: right;">VALID↓</th>
+<th style="text-align: right;">CONF↑</th>
+<th style="text-align: right;">CONF↓</th>
+<th style="text-align: right;">EARLY↑</th>
+<th style="text-align: right;">EARLY↓</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">AI compute &amp; semis (incl. EDA)</td>
+<td style="text-align: left;">Mixed</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: left;">Big Tech platforms</td>
+<td style="text-align: left;">Mixed</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: left;">Consumer &amp; retail (incl. luxury)</td>
+<td style="text-align: left;">Mixed</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: left;">Fintech &amp; financials</td>
+<td style="text-align: left;">Mixed</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: left;">Healthcare</td>
+<td style="text-align: left;">Mixed</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: left;">Energy &amp; Nuclear</td>
+<td style="text-align: left;">Mixed</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: left;">Quantum</td>
+<td style="text-align: left;">Mixed</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: left;">Venezuela Oil</td>
+<td style="text-align: left;">Mixed</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+</tbody>
+</table>
+<h3>4A) Early callouts (~80% complete)</h3>
+<p><em>Close enough to pre-plan. “Close enough” = within 0.5 ATR of the trigger (neckline/boundary). No SOFT tier — anything not CONFIRMED stays in EARLY.</em></p>
+<p><strong>NEW (today):</strong></p>
+<p><em>None</em></p>
+<p><strong>ONGOING:</strong></p>
+<p><em>None</em></p>
+<h3>4B) Confirmed breakouts / breakdowns (watchlist + MSCI World)</h3>
+<p><em>Includes <strong>CONFIRMED</strong> only: close beyond trigger by ≥0.5 ATR AND Volume ≥1.25×AvgVol(20) AND CLV ≥+0.70 (breakout) / ≤−0.70 (breakdown). Categories keep watchlist custom buckets; non-watchlist MSCI names use S&amp;P 500 11-sector labels.</em> </p>
+<p><strong>NEW (today):</strong></p>
+<p><em>None</em></p>
+<p><strong>ONGOING:</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Name of Company</th>
+<th style="text-align: left;">Ticker</th>
+<th style="text-align: left;">Country</th>
+<th style="text-align: left;">Category</th>
+<th style="text-align: left;">Signal</th>
+<th style="text-align: right;">Close</th>
+<th style="text-align: right;">Threshold</th>
+<th style="text-align: right;">Dist(ATR)</th>
+<th style="text-align: right;">Day%</th>
+<th style="text-align: left;">Chart</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">MURATA MANUFACTURING LTD</td>
+<td style="text-align: left;">6981</td>
+<td style="text-align: left;">Japan</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">CONFIRMED_RECT_TOP_BREAKOUT</td>
+<td style="text-align: right;">4223</td>
+<td style="text-align: right;">3377.85</td>
+<td style="text-align: right;">8.12</td>
+<td style="text-align: right;">+4.40%</td>
+<td style="text-align: left;"><a href="https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/6981.T_CONFIRMED_RECT_TOP_BREAKOUT.png">chart</a></td>
+</tr>
+</tbody>
+</table>
+<h3>4C) Validated breakouts / breakdowns (3-session anti-whipsaw)</h3>
+<p><em>Includes <strong>VALIDATED</strong> only: breakout/breakdown occurred <strong>3 sessions ago</strong> AND for the breakout day + the next 3 sessions (incl. today) ALL 3 confirmation gates held on <strong>each</strong> session: (1) CLV &gt;= +0.70 / &lt;= -0.70, (2) Volume &gt;= 1.25x AvgVol(20), (3) Close beyond trigger by &gt;= 0.5 ATR(14).</em></p>
+<p><strong>NEW (today):</strong></p>
+<p><em>None</em></p>
+<p><strong>ONGOING:</strong></p>
+<p><em>None</em></p>
+<h2>5) Needle-moving catalysts (RSS digest)</h2>
+<p><em>Linked digest for drill-down.</em></p>
+<ul>
+<li><a href="https://www.cnbc.com/2026/02/25/takeaways-trump-state-of-the-union-2026.html">5 takeaways from Trump's State of the Union address</a> — CNBC Top News</li>
+<li><a href="https://www.marketwatch.com/story/trump-says-prices-are-plummeting-during-sotu-heres-what-the-data-say-8a70759c?mod=mw_rss_topstories">Trump says ‘prices are plummeting’ during SOTU. Here’s what the data say.</a> — MarketWatch Top Stories</li>
+<li><a href="https://www.cnbc.com/2026/02/25/bill-gates-epstein-files-affair.html">Bill Gates addresses Epstein files in candid town hall days after last-minute speaking cancellation</a> — CNBC Top News</li>
+<li><a href="https://www.cnbc.com/2026/02/25/epstein-larry-summers-harvard-professor.html">Epstein files: Larry Summers to resign as Harvard professor</a> — CNBC Top News</li>
+<li><a href="https://www.cnbc.com/2026/02/25/pokmon-card-winner-scaramucci-says-collectibles-are-asset-class.html">Are collectibles a viable asset class? The buyer of the $16.5 million Pokémon card thinks so</a> — CNBC Top News</li>
+<li><a href="https://www.marketwatch.com/story/cava-says-diners-are-doing-better-this-year-and-could-be-getting-tired-of-chasing-meal-deals-25d062fe?mod=mw_rss_topstories">Cava’s stock rockets, as CEO sees people eating food they like again, not just what’s cheap</a> — MarketWatch Top Stories</li>
+<li><a href="https://www.cnbc.com/2026/02/25/paramount-wbd-david-ellison-box-office-history.html">David Ellison has a rocky history at the box office. Buying Warner Bros. could fix that</a> — CNBC Top News</li>
+<li><a href="https://www.cnbc.com/2026/02/25/epstein-files-richard-axel-quits-columbia-university-brain-institute.html">Epstein files: Nobel winner Axel quits Columbia U. brain institute over friendship with predator</a> — CNBC Top News</li>
+<li><a href="https://www.marketwatch.com/story/trump-says-ai-will-pay-its-fair-share-for-electricity-dont-expect-cheaper-power-bills-soon-a3984cee?mod=mw_rss_topstories">Trump says AI will pay its fair share for electricity. Don’t expect cheaper power bills soon.</a> — MarketWatch Top Stories</li>
+<li><a href="https://www.marketwatch.com/story/why-learning-to-speak-ai-can-help-your-money-manager-beat-the-market-0c6c445a?mod=mw_rss_topstories">Why learning to ‘speak AI’ can help your money manager beat the market</a> — MarketWatch Top Stories</li>
+</ul>
+<h2>Changelog</h2>
+<p><strong>New signals:</strong> <em>None</em></p>
+<p><strong>Ended signals:</strong></p>
+<ul>
+<li>ANF|EARLY_HS_TOP_BREAKDOWN</li>
+<li>ARM|EARLY_IHS_BREAKOUT</li>
+<li>AVGO|EARLY_HS_TOP_BREAKDOWN</li>
+<li>CCJ|EARLY_HS_TOP_BREAKDOWN</li>
+<li>CDNS|EARLY_HS_TOP_BREAKDOWN</li>
+<li>HOOD|EARLY_DEAD_CAT_BOUNCE_BREAKDOWN</li>
+<li>INTU|CONFIRMED_DEAD_CAT_BOUNCE_BREAKDOWN</li>
+<li>IONQ|EARLY_DEAD_CAT_BOUNCE_BREAKDOWN</li>
+<li>NU|EARLY_HS_TOP_BREAKDOWN</li>
+<li>TNK|CONFIRMED_IHS_BREAKOUT</li>
+<li>TPL|CONFIRMED_IHS_BREAKOUT</li>
+</ul>
+<h2>6) Watchlist performance (all tickers)</h2>
+<p>Columns: <strong>Close | Day% | CLV | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M</strong></p>
+<h3>AI compute &amp; semis (incl. EDA)</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Ticker</th>
+<th style="text-align: right;">Close</th>
+<th style="text-align: right;">Day%</th>
+<th style="text-align: right;">CLV</th>
+<th style="text-align: right;">ATR(14)</th>
+<th style="text-align: right;">ATR Δ14d</th>
+<th style="text-align: right;">Vol/AvgVol(20)</th>
+<th style="text-align: right;">1D</th>
+<th style="text-align: right;">7D</th>
+<th style="text-align: right;">1M</th>
+<th style="text-align: right;">3M</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">ARM (Compute/IP)</td>
+<td style="text-align: right;">132.6</td>
+<td style="text-align: right;">+3.5%</td>
+<td style="text-align: right;">+0.9</td>
+<td style="text-align: right;">6.1</td>
+<td style="text-align: right;">+15.2%</td>
+<td style="text-align: right;">0.3x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+3.5%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+5.8%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+15.5%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+0.8%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">NVDA (Compute/IP)</td>
+<td style="text-align: right;">196.8</td>
+<td style="text-align: right;">+2.0%</td>
+<td style="text-align: right;">+0.6</td>
+<td style="text-align: right;">5.9</td>
+<td style="text-align: right;">+1.4%</td>
+<td style="text-align: right;">0.7x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+2.0%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+7.6%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+5.5%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+10.0%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">AVGO (Compute/IP)</td>
+<td style="text-align: right;">332.0</td>
+<td style="text-align: right;">+2.0%</td>
+<td style="text-align: right;">-0.2</td>
+<td style="text-align: right;">14.1</td>
+<td style="text-align: right;">-4.5%</td>
+<td style="text-align: right;">0.4x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+2.0%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+2.1%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+2.2%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-2.4%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">SK Hynix (Foundry/Mem)</td>
+<td style="text-align: right;">1,018,000.0</td>
+<td style="text-align: right;">+1.3%</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;">112,801.8</td>
+<td style="text-align: right;">+173.4%</td>
+<td style="text-align: right;">0.0x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+1.3%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+18.4%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+34.8%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+78.3%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">TSM (Foundry/Mem)</td>
+<td style="text-align: right;">388.8</td>
+<td style="text-align: right;">+0.8%</td>
+<td style="text-align: right;">+0.5</td>
+<td style="text-align: right;">13.0</td>
+<td style="text-align: right;">+15.6%</td>
+<td style="text-align: right;">0.5x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+0.8%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+6.1%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+16.9%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+41.4%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">AMAT (Equipment)</td>
+<td style="text-align: right;">395.1</td>
+<td style="text-align: right;">+4.6%</td>
+<td style="text-align: right;">+1.0</td>
+<td style="text-align: right;">15.6</td>
+<td style="text-align: right;">+4.4%</td>
+<td style="text-align: right;">0.4x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+4.6%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+11.3%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+23.7%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+76.4%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">LRCX (Equipment)</td>
+<td style="text-align: right;">250.2</td>
+<td style="text-align: right;">+2.5%</td>
+<td style="text-align: right;">-0.6</td>
+<td style="text-align: right;">11.4</td>
+<td style="text-align: right;">-9.7%</td>
+<td style="text-align: right;">0.3x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+2.5%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+6.2%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+12.3%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+75.4%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">ASML (Equipment)</td>
+<td style="text-align: right;">1,532.9</td>
+<td style="text-align: right;">+2.3%</td>
+<td style="text-align: right;">+0.1</td>
+<td style="text-align: right;">45.4</td>
+<td style="text-align: right;">-12.4%</td>
+<td style="text-align: right;">0.5x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+2.3%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+9.0%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+8.5%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+58.6%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">CDNS (EDA)</td>
+<td style="text-align: right;">300.7</td>
+<td style="text-align: right;">+3.5%</td>
+<td style="text-align: right;">+0.5</td>
+<td style="text-align: right;">13.5</td>
+<td style="text-align: right;">+21.0%</td>
+<td style="text-align: right;">0.2x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+3.5%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+0.4%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-6.6%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+0.0%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">SNPS (EDA)</td>
+<td style="text-align: right;">448.9</td>
+<td style="text-align: right;">+1.9%</td>
+<td style="text-align: right;">+0.3</td>
+<td style="text-align: right;">19.4</td>
+<td style="text-align: right;">+3.1%</td>
+<td style="text-align: right;">0.4x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+1.9%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+2.7%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-10.8%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+15.6%</span></td>
+</tr>
+</tbody>
+</table>
+<h3>Big Tech platforms</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Ticker</th>
+<th style="text-align: right;">Close</th>
+<th style="text-align: right;">Day%</th>
+<th style="text-align: right;">CLV</th>
+<th style="text-align: right;">ATR(14)</th>
+<th style="text-align: right;">ATR Δ14d</th>
+<th style="text-align: right;">Vol/AvgVol(20)</th>
+<th style="text-align: right;">1D</th>
+<th style="text-align: right;">7D</th>
+<th style="text-align: right;">1M</th>
+<th style="text-align: right;">3M</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">AMZN (E-comm)</td>
+<td style="text-align: right;">209.3</td>
+<td style="text-align: right;">+0.4%</td>
+<td style="text-align: right;">-0.8</td>
+<td style="text-align: right;">6.6</td>
+<td style="text-align: right;">+7.2%</td>
+<td style="text-align: right;">0.3x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+0.4%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+5.3%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-12.2%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-5.2%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">MELI (E-comm)</td>
+<td style="text-align: right;">1,762.0</td>
+<td style="text-align: right;">-8.4%</td>
+<td style="text-align: right;">+0.7</td>
+<td style="text-align: right;">93.7</td>
+<td style="text-align: right;">+16.9%</td>
+<td style="text-align: right;">2.8x</td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-8.4%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-11.4%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-20.4%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-9.7%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">META (Ads)</td>
+<td style="text-align: right;">648.9</td>
+<td style="text-align: right;">+1.5%</td>
+<td style="text-align: right;">+0.3</td>
+<td style="text-align: right;">19.7</td>
+<td style="text-align: right;">-10.3%</td>
+<td style="text-align: right;">0.3x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+1.5%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+1.4%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-3.5%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+9.2%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">GOOGL (Ads)</td>
+<td style="text-align: right;">310.6</td>
+<td style="text-align: right;">-0.1%</td>
+<td style="text-align: right;">-0.5</td>
+<td style="text-align: right;">8.9</td>
+<td style="text-align: right;">+0.4%</td>
+<td style="text-align: right;">0.3x</td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-0.1%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+1.6%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-6.8%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+3.6%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">MSFT (Ecosystem)</td>
+<td style="text-align: right;">398.6</td>
+<td style="text-align: right;">+2.5%</td>
+<td style="text-align: right;">+0.7</td>
+<td style="text-align: right;">11.0</td>
+<td style="text-align: right;">-15.5%</td>
+<td style="text-align: right;">0.5x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+2.5%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-0.7%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-15.3%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-15.6%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">AAPL (Ecosystem)</td>
+<td style="text-align: right;">274.1</td>
+<td style="text-align: right;">+0.7%</td>
+<td style="text-align: right;">+0.7</td>
+<td style="text-align: right;">6.4</td>
+<td style="text-align: right;">+5.9%</td>
+<td style="text-align: right;">0.3x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+0.7%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+7.2%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+7.3%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+1.0%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">NFLX (Media)</td>
+<td style="text-align: right;">82.3</td>
+<td style="text-align: right;">+5.5%</td>
+<td style="text-align: right;">+0.9</td>
+<td style="text-align: right;">2.7</td>
+<td style="text-align: right;">+15.4%</td>
+<td style="text-align: right;">0.9x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+5.5%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+7.1%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-3.9%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-21.1%</span></td>
+</tr>
+</tbody>
+</table>
+<h3>Consumer &amp; retail (incl. luxury)</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Ticker</th>
+<th style="text-align: right;">Close</th>
+<th style="text-align: right;">Day%</th>
+<th style="text-align: right;">CLV</th>
+<th style="text-align: right;">ATR(14)</th>
+<th style="text-align: right;">ATR Δ14d</th>
+<th style="text-align: right;">Vol/AvgVol(20)</th>
+<th style="text-align: right;">1D</th>
+<th style="text-align: right;">7D</th>
+<th style="text-align: right;">1M</th>
+<th style="text-align: right;">3M</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">WMT (Defensive)</td>
+<td style="text-align: right;">126.3</td>
+<td style="text-align: right;">-0.4%</td>
+<td style="text-align: right;">-0.2</td>
+<td style="text-align: right;">3.4</td>
+<td style="text-align: right;">+30.2%</td>
+<td style="text-align: right;">0.3x</td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-0.4%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-5.7%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+7.3%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+19.9%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">RRTL (Defensive)</td>
+<td style="text-align: right;">36.3</td>
+<td style="text-align: right;">-0.7%</td>
+<td style="text-align: right;">-0.5</td>
+<td style="text-align: right;">0.7</td>
+<td style="text-align: right;">+1.0%</td>
+<td style="text-align: right;">0.6x</td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-0.7%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+2.0%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-2.0%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+9.3%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">ANF (Brands)</td>
+<td style="text-align: right;">95.9</td>
+<td style="text-align: right;">+1.0%</td>
+<td style="text-align: right;">+0.9</td>
+<td style="text-align: right;">4.9</td>
+<td style="text-align: right;">-5.1%</td>
+<td style="text-align: right;">0.3x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+1.0%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+2.4%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-1.2%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+37.3%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">DECK (Brands)</td>
+<td style="text-align: right;">119.3</td>
+<td style="text-align: right;">-1.4%</td>
+<td style="text-align: right;">-0.9</td>
+<td style="text-align: right;">4.0</td>
+<td style="text-align: right;">-15.7%</td>
+<td style="text-align: right;">0.3x</td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-1.4%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+3.1%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+17.8%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+40.1%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">RMS (Luxury)</td>
+<td style="text-align: right;">2,062.0</td>
+<td style="text-align: right;">-0.9%</td>
+<td style="text-align: right;">-0.3</td>
+<td style="text-align: right;">54.7</td>
+<td style="text-align: right;">+11.7%</td>
+<td style="text-align: right;">1.1x</td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-0.9%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-0.9%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-3.2%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-3.0%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">MC (Luxury)</td>
+<td style="text-align: right;">553.0</td>
+<td style="text-align: right;">-1.6%</td>
+<td style="text-align: right;">-0.6</td>
+<td style="text-align: right;">15.1</td>
+<td style="text-align: right;">-2.0%</td>
+<td style="text-align: right;">0.9x</td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-1.6%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+6.7%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-6.2%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-10.7%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">DASH (Services)</td>
+<td style="text-align: right;">174.6</td>
+<td style="text-align: right;">+6.2%</td>
+<td style="text-align: right;">+1.0</td>
+<td style="text-align: right;">9.7</td>
+<td style="text-align: right;">+24.0%</td>
+<td style="text-align: right;">0.4x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+6.2%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+8.9%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-16.6%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-7.9%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">CMG (Services)</td>
+<td style="text-align: right;">37.1</td>
+<td style="text-align: right;">+1.7%</td>
+<td style="text-align: right;">+0.6</td>
+<td style="text-align: right;">1.3</td>
+<td style="text-align: right;">+3.8%</td>
+<td style="text-align: right;">0.3x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+1.7%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+2.2%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-6.6%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+17.3%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">BYDDY (Services)</td>
+<td style="text-align: right;">12.6</td>
+<td style="text-align: right;">-1.0%</td>
+<td style="text-align: right;">+0.6</td>
+<td style="text-align: right;">0.3</td>
+<td style="text-align: right;">-11.9%</td>
+<td style="text-align: right;">0.2x</td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-1.0%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+3.0%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+0.0%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+5.3%</span></td>
+</tr>
+</tbody>
+</table>
+<h3>Fintech &amp; financials</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Ticker</th>
+<th style="text-align: right;">Close</th>
+<th style="text-align: right;">Day%</th>
+<th style="text-align: right;">CLV</th>
+<th style="text-align: right;">ATR(14)</th>
+<th style="text-align: right;">ATR Δ14d</th>
+<th style="text-align: right;">Vol/AvgVol(20)</th>
+<th style="text-align: right;">1D</th>
+<th style="text-align: right;">7D</th>
+<th style="text-align: right;">1M</th>
+<th style="text-align: right;">3M</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">HOOD (Brokerage)</td>
+<td style="text-align: right;">76.8</td>
+<td style="text-align: right;">+4.7%</td>
+<td style="text-align: right;">+0.3</td>
+<td style="text-align: right;">5.5</td>
+<td style="text-align: right;">-3.9%</td>
+<td style="text-align: right;">0.6x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+4.7%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+1.1%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-28.2%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-28.4%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">NU (Fintech)</td>
+<td style="text-align: right;">16.7</td>
+<td style="text-align: right;">+1.2%</td>
+<td style="text-align: right;">+0.3</td>
+<td style="text-align: right;">0.7</td>
+<td style="text-align: right;">+3.9%</td>
+<td style="text-align: right;">0.5x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+1.2%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-0.5%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-8.0%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+5.3%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">MUV2 (Insurance)</td>
+<td style="text-align: right;">552.6</td>
+<td style="text-align: right;">+0.7%</td>
+<td style="text-align: right;">-0.3</td>
+<td style="text-align: right;">8.7</td>
+<td style="text-align: right;">+4.4%</td>
+<td style="text-align: right;">1.4x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+0.7%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+4.1%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+8.1%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+3.8%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">PGR (Insurance)</td>
+<td style="text-align: right;">204.1</td>
+<td style="text-align: right;">-1.0%</td>
+<td style="text-align: right;">-0.5</td>
+<td style="text-align: right;">5.3</td>
+<td style="text-align: right;">-8.2%</td>
+<td style="text-align: right;">0.2x</td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-1.0%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-0.2%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-1.9%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-10.1%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">UCG (Bank/Yield)</td>
+<td style="text-align: right;">74.1</td>
+<td style="text-align: right;">+2.0%</td>
+<td style="text-align: right;">+1.0</td>
+<td style="text-align: right;">2.1</td>
+<td style="text-align: right;">+24.3%</td>
+<td style="text-align: right;">0.6x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+2.0%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+3.4%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+0.4%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+18.0%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">ARR (Bank/Yield)</td>
+<td style="text-align: right;">18.0</td>
+<td style="text-align: right;">-1.1%</td>
+<td style="text-align: right;">-0.0</td>
+<td style="text-align: right;">0.4</td>
+<td style="text-align: right;">+5.3%</td>
+<td style="text-align: right;">0.3x</td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-1.1%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-1.7%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-1.7%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+8.3%</span></td>
+</tr>
+</tbody>
+</table>
+<h3>Healthcare</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Ticker</th>
+<th style="text-align: right;">Close</th>
+<th style="text-align: right;">Day%</th>
+<th style="text-align: right;">CLV</th>
+<th style="text-align: right;">ATR(14)</th>
+<th style="text-align: right;">ATR Δ14d</th>
+<th style="text-align: right;">Vol/AvgVol(20)</th>
+<th style="text-align: right;">1D</th>
+<th style="text-align: right;">7D</th>
+<th style="text-align: right;">1M</th>
+<th style="text-align: right;">3M</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">ISRG (Medtech)</td>
+<td style="text-align: right;">502.9</td>
+<td style="text-align: right;">+1.8%</td>
+<td style="text-align: right;">+0.4</td>
+<td style="text-align: right;">13.0</td>
+<td style="text-align: right;">-5.6%</td>
+<td style="text-align: right;">0.3x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+1.8%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+3.5%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-4.9%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-10.5%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">LLY (Pharma)</td>
+<td style="text-align: right;">1,032.1</td>
+<td style="text-align: right;">-1.0%</td>
+<td style="text-align: right;">-0.9</td>
+<td style="text-align: right;">36.7</td>
+<td style="text-align: right;">-1.9%</td>
+<td style="text-align: right;">0.3x</td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-1.0%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-0.8%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-2.9%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-2.6%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">NVO (Pharma)</td>
+<td style="text-align: right;">37.9</td>
+<td style="text-align: right;">-1.8%</td>
+<td style="text-align: right;">-0.1</td>
+<td style="text-align: right;">2.4</td>
+<td style="text-align: right;">-10.3%</td>
+<td style="text-align: right;">1.3x</td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-1.8%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-23.5%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-40.8%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-20.4%</span></td>
+</tr>
+</tbody>
+</table>
+<h3>Energy &amp; Nuclear</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Ticker</th>
+<th style="text-align: right;">Close</th>
+<th style="text-align: right;">Day%</th>
+<th style="text-align: right;">CLV</th>
+<th style="text-align: right;">ATR(14)</th>
+<th style="text-align: right;">ATR Δ14d</th>
+<th style="text-align: right;">Vol/AvgVol(20)</th>
+<th style="text-align: right;">1D</th>
+<th style="text-align: right;">7D</th>
+<th style="text-align: right;">1M</th>
+<th style="text-align: right;">3M</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">CEG (Power)</td>
+<td style="text-align: right;">324.2</td>
+<td style="text-align: right;">+3.7%</td>
+<td style="text-align: right;">+0.8</td>
+<td style="text-align: right;">14.2</td>
+<td style="text-align: right;">+1.0%</td>
+<td style="text-align: right;">0.6x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+3.7%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+12.4%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+13.7%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-4.1%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">VST (Power)</td>
+<td style="text-align: right;">174.4</td>
+<td style="text-align: right;">+1.6%</td>
+<td style="text-align: right;">+0.8</td>
+<td style="text-align: right;">7.3</td>
+<td style="text-align: right;">-14.1%</td>
+<td style="text-align: right;">0.4x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+1.6%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+1.7%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+9.8%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+3.4%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">CCJ (Uranium)</td>
+<td style="text-align: right;">121.8</td>
+<td style="text-align: right;">+0.6%</td>
+<td style="text-align: right;">-0.7</td>
+<td style="text-align: right;">6.0</td>
+<td style="text-align: right;">-12.4%</td>
+<td style="text-align: right;">0.3x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+0.6%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+7.9%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+0.4%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+53.3%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">LEU (FuelCycle)</td>
+<td style="text-align: right;">211.1</td>
+<td style="text-align: right;">+1.9%</td>
+<td style="text-align: right;">+0.5</td>
+<td style="text-align: right;">22.7</td>
+<td style="text-align: right;">-26.6%</td>
+<td style="text-align: right;">0.3x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+1.9%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+6.0%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-25.1%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-12.7%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">OKLO (SMR)</td>
+<td style="text-align: right;">66.6</td>
+<td style="text-align: right;">+2.3%</td>
+<td style="text-align: right;">+0.3</td>
+<td style="text-align: right;">6.3</td>
+<td style="text-align: right;">-24.6%</td>
+<td style="text-align: right;">0.4x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+2.3%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+1.3%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-19.1%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-24.5%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">SMR (SMR)</td>
+<td style="text-align: right;">13.4</td>
+<td style="text-align: right;">-0.0%</td>
+<td style="text-align: right;">+0.5</td>
+<td style="text-align: right;">1.5</td>
+<td style="text-align: right;">-15.3%</td>
+<td style="text-align: right;">0.5x</td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-0.0%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-6.2%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-27.0%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-27.8%</span></td>
+</tr>
+</tbody>
+</table>
+<h3>Quantum</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Ticker</th>
+<th style="text-align: right;">Close</th>
+<th style="text-align: right;">Day%</th>
+<th style="text-align: right;">CLV</th>
+<th style="text-align: right;">ATR(14)</th>
+<th style="text-align: right;">ATR Δ14d</th>
+<th style="text-align: right;">Vol/AvgVol(20)</th>
+<th style="text-align: right;">1D</th>
+<th style="text-align: right;">7D</th>
+<th style="text-align: right;">1M</th>
+<th style="text-align: right;">3M</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">IONQ (Quantum)</td>
+<td style="text-align: right;">33.9</td>
+<td style="text-align: right;">+7.3%</td>
+<td style="text-align: right;">+0.7</td>
+<td style="text-align: right;">3.1</td>
+<td style="text-align: right;">-21.4%</td>
+<td style="text-align: right;">0.8x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+7.3%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-0.5%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-21.8%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-18.7%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">QBTS (Quantum)</td>
+<td style="text-align: right;">19.5</td>
+<td style="text-align: right;">+4.3%</td>
+<td style="text-align: right;">+0.5</td>
+<td style="text-align: right;">1.8</td>
+<td style="text-align: right;">-19.9%</td>
+<td style="text-align: right;">0.5x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+4.3%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-1.1%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-18.1%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-4.7%</span></td>
+</tr>
+</tbody>
+</table>
+<h3>Venezuela Oil</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Ticker</th>
+<th style="text-align: right;">Close</th>
+<th style="text-align: right;">Day%</th>
+<th style="text-align: right;">CLV</th>
+<th style="text-align: right;">ATR(14)</th>
+<th style="text-align: right;">ATR Δ14d</th>
+<th style="text-align: right;">Vol/AvgVol(20)</th>
+<th style="text-align: right;">1D</th>
+<th style="text-align: right;">7D</th>
+<th style="text-align: right;">1M</th>
+<th style="text-align: right;">3M</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">TNK (Tanker)</td>
+<td style="text-align: right;">74.3</td>
+<td style="text-align: right;">+0.7%</td>
+<td style="text-align: right;">+0.5</td>
+<td style="text-align: right;">2.3</td>
+<td style="text-align: right;">+4.9%</td>
+<td style="text-align: right;">0.7x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+0.7%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+5.4%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+21.0%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+19.4%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">INSW (Tanker)</td>
+<td style="text-align: right;">70.0</td>
+<td style="text-align: right;">+0.3%</td>
+<td style="text-align: right;">+0.4</td>
+<td style="text-align: right;">1.9</td>
+<td style="text-align: right;">-3.6%</td>
+<td style="text-align: right;">0.7x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+0.3%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+9.5%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+22.7%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+28.5%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">NAT (Tanker)</td>
+<td style="text-align: right;">5.0</td>
+<td style="text-align: right;">-0.0%</td>
+<td style="text-align: right;">+0.5</td>
+<td style="text-align: right;">0.1</td>
+<td style="text-align: right;">+3.4%</td>
+<td style="text-align: right;">0.7x</td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-0.0%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+10.1%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+23.8%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+29.9%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">FRO (Tanker)</td>
+<td style="text-align: right;">36.5</td>
+<td style="text-align: right;">-0.1%</td>
+<td style="text-align: right;">+0.9</td>
+<td style="text-align: right;">1.1</td>
+<td style="text-align: right;">+21.2%</td>
+<td style="text-align: right;">0.7x</td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-0.1%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+17.9%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+36.7%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+40.8%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">MPC (Refiner)</td>
+<td style="text-align: right;">193.7</td>
+<td style="text-align: right;">-0.8%</td>
+<td style="text-align: right;">-0.5</td>
+<td style="text-align: right;">6.3</td>
+<td style="text-align: right;">+1.0%</td>
+<td style="text-align: right;">0.3x</td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-0.8%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-4.7%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+12.2%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+1.6%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">VLO (Refiner)</td>
+<td style="text-align: right;">197.5</td>
+<td style="text-align: right;">-0.9%</td>
+<td style="text-align: right;">-0.2</td>
+<td style="text-align: right;">6.2</td>
+<td style="text-align: right;">-7.1%</td>
+<td style="text-align: right;">0.4x</td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-0.9%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-1.3%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+7.8%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+13.9%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">PSX (Refiner)</td>
+<td style="text-align: right;">150.5</td>
+<td style="text-align: right;">-2.5%</td>
+<td style="text-align: right;">-0.7</td>
+<td style="text-align: right;">4.4</td>
+<td style="text-align: right;">-0.5%</td>
+<td style="text-align: right;">0.5x</td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-2.5%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-5.8%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+7.2%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+12.6%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">REP (Integrated)</td>
+<td style="text-align: right;">18.8</td>
+<td style="text-align: right;">+0.9%</td>
+<td style="text-align: right;">+0.9</td>
+<td style="text-align: right;">0.4</td>
+<td style="text-align: right;">-0.1%</td>
+<td style="text-align: right;">0.6x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+0.9%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+10.1%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+19.2%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+21.1%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">CVX (Integrated)</td>
+<td style="text-align: right;">183.7</td>
+<td style="text-align: right;">-0.9%</td>
+<td style="text-align: right;">-0.3</td>
+<td style="text-align: right;">3.4</td>
+<td style="text-align: right;">-5.1%</td>
+<td style="text-align: right;">0.3x</td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-0.9%</span></td>
+<td style="text-align: right;"><span style="color:#b91c1c;">-0.0%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+9.7%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+22.5%</span></td>
+</tr>
+<tr>
+<td style="text-align: left;">MAU (Upstream)</td>
+<td style="text-align: right;">9.2</td>
+<td style="text-align: right;">+2.3%</td>
+<td style="text-align: right;">+0.9</td>
+<td style="text-align: right;">0.3</td>
+<td style="text-align: right;">+38.7%</td>
+<td style="text-align: right;">1.0x</td>
+<td style="text-align: right;"><span style="color:#11823b;">+2.3%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+20.6%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+40.3%</span></td>
+<td style="text-align: right;"><span style="color:#11823b;">+92.2%</span></td>
+</tr>
+</tbody>
+</table></body></html>
