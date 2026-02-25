@@ -44,18 +44,7 @@ jobs:
         run: |
           echo "### MSCI World classification refresh" >> "$GITHUB_STEP_SUMMARY"
           if [ -f docs/msci_world_classification_meta.json ]; then
-            python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
-            import json
-            p = 'docs/msci_world_classification_meta.json'
-            with open(p, 'r', encoding='utf-8') as f:
-                m = json.load(f)
-            print(f"- source_fund: {m.get('source_fund')}")
-            print(f"- source_as_of: {m.get('source_as_of')}")
-            print(f"- row_count: {m.get('row_count')}")
-            print(f"- unique_tickers: {m.get('unique_tickers')}")
-            print(f"- added_count: {m.get('added_count')}")
-            print(f"- removed_count: {m.get('removed_count')}")
-            PY
+            python -c "import json; m=json.load(open('docs/msci_world_classification_meta.json', encoding='utf-8')); print('\n'.join([f'- source_fund: {m.get(\"source_fund\")}', f'- source_as_of: {m.get(\"source_as_of\")}', f'- row_count: {m.get(\"row_count\")}', f'- unique_tickers: {m.get(\"unique_tickers\")}', f'- added_count: {m.get(\"added_count\")}', f'- removed_count: {m.get(\"removed_count\")}']))" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "- meta file not found" >> "$GITHUB_STEP_SUMMARY"
           fi
