@@ -1,12 +1,12 @@
 # Daily Report
 
-_Generated: **2026-02-25 13:57 CET**_
+_Generated: **2026-02-25 15:23 CET**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Headline: US stocks extended their late-month rebound as upbeat retail earnings met easing mortgage rates, even as housing demand stayed subdued. The Nasdaq 100 rose 1.1% and the S&P 500 gained 0.8% while the VIX fell 2.1%, continuing a steadier tone after a choppier few weeks (NDX -2.5% over 1M). Biggest movers were CEG (Power) up 6.4%, FRO (Tanker) up 4.1% and INSW (Tanker) up 4.1%, with no ≥4% decliners flagged.
+Headline: AI hardware optimism and an earnings beat from Lowe’s kept the focus on tech and guidance as investors worked through the day’s key watchpoints. The Nasdaq 100 rose 1.1% and the S&P 500 gained 0.8% while the Vix fell 3.9%, extending a steadier tone after this month’s choppier pullback (NDX -2.5% 1M). Biggest movers on the watchlist were SMR up 6.6%, CEG (Power) up 6.4% and SNPS (EDA) up 4.7%, with no ≥4% decliners flagged.
 
 **Key tape (multi-horizon):**
 
@@ -16,18 +16,18 @@ Headline: US stocks extended their late-month rebound as upbeat retail earnings 
 | S&P 500          | 6,890.07  | <span style="color:#11823b;">+0.77%</span> | <span style="color:#11823b;">+0.68%</span>  | <span style="color:#b91c1c;">-0.37%</span>  | <span style="color:#11823b;">+1.14%</span>  | <span style="color:#11823b;">+5.97%</span>   |
 | QQQ              | 607.87    | <span style="color:#11823b;">+1.07%</span> | <span style="color:#11823b;">+1.09%</span>  | <span style="color:#b91c1c;">-2.38%</span>  | <span style="color:#b91c1c;">-1.04%</span>  | <span style="color:#11823b;">+5.34%</span>   |
 | SPY              | 687.35    | <span style="color:#11823b;">+0.73%</span> | <span style="color:#11823b;">+0.66%</span>  | <span style="color:#b91c1c;">-0.27%</span>  | <span style="color:#11823b;">+1.13%</span>  | <span style="color:#11823b;">+5.92%</span>   |
-| STOXX Europe 600 | 632.22    | <span style="color:#11823b;">+0.49%</span> | <span style="color:#11823b;">+0.56%</span>  | <span style="color:#11823b;">+3.72%</span>  | <span style="color:#11823b;">+9.95%</span>  | <span style="color:#11823b;">+14.92%</span>  |
-| DAX              | 25,088.32 | <span style="color:#11823b;">+0.41%</span> | <span style="color:#b91c1c;">-0.75%</span>  | <span style="color:#11823b;">+0.62%</span>  | <span style="color:#11823b;">+5.56%</span>  | <span style="color:#11823b;">+4.96%</span>   |
-| CAC 40           | 8,552.70  | <span style="color:#11823b;">+0.39%</span> | <span style="color:#11823b;">+1.47%</span>  | <span style="color:#11823b;">+5.18%</span>  | <span style="color:#11823b;">+5.60%</span>  | <span style="color:#11823b;">+11.02%</span>  |
-| FTSE 100         | 10,780.50 | <span style="color:#11823b;">+0.94%</span> | <span style="color:#11823b;">+0.88%</span>  | <span style="color:#11823b;">+6.22%</span>  | <span style="color:#11823b;">+11.21%</span> | <span style="color:#11823b;">+17.34%</span>  |
-| VIX              | 19.13     | <span style="color:#b91c1c;">-2.15%</span> | <span style="color:#b91c1c;">-2.50%</span>  | <span style="color:#11823b;">+18.45%</span> | <span style="color:#11823b;">+11.29%</span> | <span style="color:#11823b;">+24.54%</span>  |
-| EUR/USD          | 1.18      | <span style="color:#b91c1c;">-0.05%</span> | <span style="color:#b91c1c;">-0.54%</span>  | <span style="color:#b91c1c;">-0.59%</span>  | <span style="color:#11823b;">+1.60%</span>  | <span style="color:#11823b;">+0.91%</span>   |
-| WTI Crude        | 66.12     | <span style="color:#11823b;">+0.75%</span> | <span style="color:#11823b;">+1.43%</span>  | <span style="color:#11823b;">+9.05%</span>  | <span style="color:#11823b;">+12.74%</span> | <span style="color:#11823b;">+3.30%</span>   |
-| Gold             | 5,202.10  | <span style="color:#11823b;">+0.90%</span> | <span style="color:#11823b;">+4.32%</span>  | <span style="color:#11823b;">+2.41%</span>  | <span style="color:#11823b;">+24.89%</span> | <span style="color:#11823b;">+49.76%</span>  |
-| Silver           | 91.14     | <span style="color:#11823b;">+4.21%</span> | <span style="color:#11823b;">+17.59%</span> | <span style="color:#b91c1c;">-20.80%</span> | <span style="color:#11823b;">+72.24%</span> | <span style="color:#11823b;">+126.72%</span> |
-| Coffee           | 285.65    | <span style="color:#b91c1c;">-0.90%</span> | <span style="color:#b91c1c;">-0.66%</span>  | <span style="color:#b91c1c;">-19.82%</span> | <span style="color:#b91c1c;">-30.58%</span> | <span style="color:#b91c1c;">-28.02%</span>  |
-| Cocoa            | 3,099.00  | <span style="color:#11823b;">+3.40%</span> | <span style="color:#b91c1c;">-3.94%</span>  | <span style="color:#b91c1c;">-28.73%</span> | <span style="color:#b91c1c;">-37.93%</span> | <span style="color:#b91c1c;">-59.41%</span>  |
-| Bitcoin          | 66,179.92 | <span style="color:#11823b;">+3.28%</span> | <span style="color:#b91c1c;">-0.37%</span>  | <span style="color:#b91c1c;">-25.02%</span> | <span style="color:#b91c1c;">-27.50%</span> | <span style="color:#b91c1c;">-38.95%</span>  |
+| STOXX Europe 600 | 633.34    | <span style="color:#11823b;">+0.67%</span> | <span style="color:#11823b;">+0.74%</span>  | <span style="color:#11823b;">+3.90%</span>  | <span style="color:#11823b;">+10.15%</span> | <span style="color:#11823b;">+15.12%</span>  |
+| DAX              | 25,147.69 | <span style="color:#11823b;">+0.65%</span> | <span style="color:#b91c1c;">-0.52%</span>  | <span style="color:#11823b;">+0.86%</span>  | <span style="color:#11823b;">+5.80%</span>  | <span style="color:#11823b;">+5.21%</span>   |
+| CAC 40           | 8,558.81  | <span style="color:#11823b;">+0.46%</span> | <span style="color:#11823b;">+1.54%</span>  | <span style="color:#11823b;">+5.26%</span>  | <span style="color:#11823b;">+5.67%</span>  | <span style="color:#11823b;">+11.10%</span>  |
+| FTSE 100         | 10,786.34 | <span style="color:#11823b;">+0.99%</span> | <span style="color:#11823b;">+0.94%</span>  | <span style="color:#11823b;">+6.28%</span>  | <span style="color:#11823b;">+11.27%</span> | <span style="color:#11823b;">+17.40%</span>  |
+| VIX              | 18.79     | <span style="color:#b91c1c;">-3.89%</span> | <span style="color:#b91c1c;">-4.23%</span>  | <span style="color:#11823b;">+16.35%</span> | <span style="color:#11823b;">+9.31%</span>  | <span style="color:#11823b;">+22.33%</span>  |
+| EUR/USD          | 1.18      | <span style="color:#b91c1c;">-0.07%</span> | <span style="color:#b91c1c;">-0.56%</span>  | <span style="color:#b91c1c;">-0.62%</span>  | <span style="color:#11823b;">+1.58%</span>  | <span style="color:#11823b;">+0.89%</span>   |
+| WTI Crude        | 65.90     | <span style="color:#11823b;">+0.41%</span> | <span style="color:#11823b;">+1.09%</span>  | <span style="color:#11823b;">+8.69%</span>  | <span style="color:#11823b;">+12.36%</span> | <span style="color:#11823b;">+2.95%</span>   |
+| Gold             | 5,206.30  | <span style="color:#11823b;">+0.98%</span> | <span style="color:#11823b;">+4.41%</span>  | <span style="color:#11823b;">+2.49%</span>  | <span style="color:#11823b;">+25.00%</span> | <span style="color:#11823b;">+49.88%</span>  |
+| Silver           | 91.38     | <span style="color:#11823b;">+4.49%</span> | <span style="color:#11823b;">+17.90%</span> | <span style="color:#b91c1c;">-20.59%</span> | <span style="color:#11823b;">+72.69%</span> | <span style="color:#11823b;">+127.31%</span> |
+| Coffee           | 282.40    | <span style="color:#b91c1c;">-2.03%</span> | <span style="color:#b91c1c;">-1.79%</span>  | <span style="color:#b91c1c;">-20.73%</span> | <span style="color:#b91c1c;">-31.37%</span> | <span style="color:#b91c1c;">-28.84%</span>  |
+| Cocoa            | 3,107.00  | <span style="color:#11823b;">+3.67%</span> | <span style="color:#b91c1c;">-3.69%</span>  | <span style="color:#b91c1c;">-28.54%</span> | <span style="color:#b91c1c;">-37.77%</span> | <span style="color:#b91c1c;">-59.31%</span>  |
+| Bitcoin          | 66,548.66 | <span style="color:#11823b;">+3.85%</span> | <span style="color:#11823b;">+0.19%</span>  | <span style="color:#b91c1c;">-24.61%</span> | <span style="color:#b91c1c;">-27.10%</span> | <span style="color:#b91c1c;">-38.61%</span>  |
 
 **Macro charts (5Y):**
 
@@ -38,11 +38,14 @@ Headline: US stocks extended their late-month rebound as upbeat retail earnings 
 
 **Session gainers:**
 
-| Ticker        | pct    |
+| Ticker            | pct    |
 | :--- | ---: |
-| CEG (Power)   | +6.41% |
-| FRO (Tanker)  | +4.08% |
-| INSW (Tanker) | +4.06% |
+| SMR (SMR)         | +6.59% |
+| CEG (Power)       | +6.41% |
+| SNPS (EDA)        | +4.73% |
+| TSM (Foundry/Mem) | +4.25% |
+| FRO (Tanker)      | +4.08% |
+| INSW (Tanker)     | +4.06% |
 
 **Session losers:** _None ≥ 4%_
 
@@ -78,14 +81,14 @@ _Logic: score each ticker by stage (CONFIRMED=3, EARLY=1) × direction (BREAKOUT
 
 | Category | Bias | CONF↑ | CONF↓ | EARLY↑ | EARLY↓ |
 | :--- | :--- | ---: | ---: | ---: | ---: |
-| AI compute & semis (incl. EDA) | Bullish | 0 | 0 | 3 | 0 |
-| Big Tech platforms | Mixed | 0 | 0 | 1 | 3 |
-| Consumer & retail (incl. luxury) | Mixed | 0 | 0 | 1 | 0 |
-| Fintech & financials | Mixed | 0 | 0 | 1 | 0 |
+| AI compute & semis (incl. EDA) | Mixed | 0 | 0 | 1 | 2 |
+| Big Tech platforms | Mixed | 0 | 0 | 0 | 0 |
+| Consumer & retail (incl. luxury) | Mixed | 0 | 0 | 0 | 1 |
+| Fintech & financials | Mixed | 0 | 0 | 0 | 2 |
 | Healthcare | Mixed | 0 | 0 | 0 | 0 |
-| Energy & Nuclear | Mixed | 0 | 0 | 0 | 2 |
-| Quantum | Mixed | 0 | 0 | 0 | 0 |
-| Venezuela Oil | Bullish | 1 | 0 | 2 | 0 |
+| Energy & Nuclear | Mixed | 0 | 0 | 0 | 1 |
+| Quantum | Mixed | 0 | 0 | 0 | 1 |
+| Venezuela Oil | Bullish | 1 | 0 | 0 | 0 |
 
 
 ### 4A) Early callouts (~80% complete)
@@ -94,40 +97,42 @@ _Close enough to pre-plan. “Close enough” = within 0.5 ATR of the trigger (n
 
 **NEW (today):**
 
-_None_
-
-**ONGOING:**
-
-| Ticker            | Signal                     |   Close |   Threshold |   Dist(ATR) | Day%   | Chart                                            |
+| Ticker            | Signal                          |   Close |   Threshold |   Dist(ATR) | Day%   | Chart                                                 |
 | :--- | :--- | ---: | ---: | ---: | ---: | :--- |
-| MSFT (Ecosystem)  | EARLY_BROADEN_BREAKDOWN    |  389    |    389.047  |       -0    | +1.18% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/MSFT_EARLY_BROADEN_BREAKDOWN.png)    |
-| CCJ (Uranium)     | EARLY_BROADEN_BREAKDOWN    |  121.08 |    121.432  |       -0.05 | +1.96% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/CCJ_EARLY_BROADEN_BREAKDOWN.png)     |
-| NVDA (Compute/IP) | EARLY_BROADEN_BREAKOUT     |  192.85 |    192.006  |        0.13 | +0.68% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/NVDA_EARLY_BROADEN_BREAKOUT.png)     |
-| PSX (Refiner)     | EARLY_WEDGE_UP_BREAKOUT    |  154.36 |    155.381  |       -0.23 | -0.32% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/PSX_EARLY_WEDGE_UP_BREAKOUT.png)     |
-| NVDA (Compute/IP) | EARLY_IHS_BREAKOUT         |  192.85 |    191.28   |        0.24 | +0.68% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/NVDA_EARLY_IHS_BREAKOUT.png)         |
-| BYDDY (Services)  | EARLY_RECT_BREAKOUT        |   12.76 |     12.8315 |       -0.24 | +1.11% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/BYDDY_EARLY_RECT_BREAKOUT.png)       |
-| AMAT (Equipment)  | EARLY_BROADEN_BREAKOUT     |  377.93 |    373.58   |        0.24 | +1.17% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/AMAT_EARLY_BROADEN_BREAKOUT.png)     |
-| AMZN (E-comm)     | EARLY_BROADEN_BREAKDOWN    |  208.56 |    210.613  |       -0.26 | +1.60% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/AMZN_EARLY_BROADEN_BREAKDOWN.png)    |
-| OKLO (SMR)        | EARLY_WEDGE_DOWN_BREAKDOWN |   65.06 |     63.2888 |        0.28 | +3.12% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/OKLO_EARLY_WEDGE_DOWN_BREAKDOWN.png) |
-| AVGO (Compute/IP) | EARLY_WEDGE_DOWN_BREAKOUT  |  325.49 |    321.136  |        0.28 | -1.47% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/AVGO_EARLY_WEDGE_DOWN_BREAKOUT.png)  |
-| CVX (Integrated)  | EARLY_WEDGE_UP_BREAKOUT    |  185.34 |    184.313  |        0.3  | +0.23% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/CVX_EARLY_WEDGE_UP_BREAKOUT.png)     |
-| AAPL (Ecosystem)  | EARLY_BROADEN_BREAKOUT     |  272.14 |    269.877  |        0.32 | +2.24% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/AAPL_EARLY_BROADEN_BREAKOUT.png)     |
-| AAPL (Ecosystem)  | EARLY_IHS_BREAKOUT         |  272.14 |    269.585  |        0.36 | +2.24% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/AAPL_EARLY_IHS_BREAKOUT.png)         |
-| META (Ads)        | EARLY_BROADEN_BREAKDOWN    |  639.3  |    647.317  |       -0.4  | +0.32% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/META_EARLY_BROADEN_BREAKDOWN.png)    |
-| ARR (Bank/Yield)  | EARLY_RECT_BREAKOUT        |   18.18 |     18.3693 |       -0.45 | +0.83% |                                                  |
+| CCJ (Uranium)     | EARLY_HS_TOP_BREAKDOWN          |  121.08 |    121.901  |       -0.13 | +1.96% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/CCJ_EARLY_HS_TOP_BREAKDOWN.png)           |
+| IONQ (Quantum)    | EARLY_DEAD_CAT_BOUNCE_BREAKDOWN |   31.62 |     30.85   |        0.26 | +2.73% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/IONQ_EARLY_DEAD_CAT_BOUNCE_BREAKDOWN.png) |
+| CDNS (EDA)        | EARLY_HS_TOP_BREAKDOWN          |  290.63 |    286.782  |        0.27 | +3.87% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/CDNS_EARLY_HS_TOP_BREAKDOWN.png)          |
+| NU (Fintech)      | EARLY_HS_TOP_BREAKDOWN          |   16.53 |     16.7762 |       -0.34 | +2.10% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/NU_EARLY_HS_TOP_BREAKDOWN.png)            |
+| AVGO (Compute/IP) | EARLY_HS_TOP_BREAKDOWN          |  325.49 |    319.825  |        0.36 | -1.47% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/AVGO_EARLY_HS_TOP_BREAKDOWN.png)          |
+| ARM (Compute/IP)  | EARLY_IHS_BREAKOUT              |  128.14 |    125.333  |        0.39 | +3.52% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/ARM_EARLY_IHS_BREAKOUT.png)               |
+| ANF (Brands)      | EARLY_HS_TOP_BREAKDOWN          |   94.99 |     92.5689 |        0.47 | +2.57% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/ANF_EARLY_HS_TOP_BREAKDOWN.png)           |
+| HOOD (Brokerage)  | EARLY_DEAD_CAT_BOUNCE_BREAKDOWN |   73.39 |     70.43   |        0.47 | +2.24% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/HOOD_EARLY_DEAD_CAT_BOUNCE_BREAKDOWN.png) |
 
-### 4B) Confirmed breakouts / breakdowns (watchlist + MSCI World)
+**What’s going on (NEW early callouts):**
 
-_Includes **CONFIRMED** only: close beyond trigger by ≥0.5 ATR AND Volume ≥1.25×AvgVol(20) AND CLV ≥+0.70 (breakout) / ≤−0.70 (breakdown). Categories keep watchlist custom buckets; non-watchlist MSCI names use S&P 500 11-sector labels._ 
+#### CCJ (Uranium) — `EARLY_HS_TOP_BREAKDOWN`
+- **Trigger (level):** 121.90  |  **Close:** 121.08  |  **Distance:** -0.13 ATR
+- Chart includes **SMA(50)** + **SMA(200)**, **volume**, plus trigger + confirmation (±0.5 ATR). HS/IHS is labeled (LS/H/RS) with neckline; Wedges include upper/lower trendlines with touch points.
+- **HS/IHS read:** neckline is the trigger; chart labels LS/H/RS and draws the neckline + confirmation band.
+<img src="https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/CCJ_EARLY_HS_TOP_BREAKDOWN.png" width="720" style="max-width:100%;height:auto;">
 
-**NEW (today):**
+#### IONQ (Quantum) — `EARLY_DEAD_CAT_BOUNCE_BREAKDOWN`
+- **Trigger (level):** 30.85  |  **Close:** 31.62  |  **Distance:** +0.26 ATR
+- Chart includes **SMA(50)** + **SMA(200)**, **volume**, plus trigger + confirmation (±0.5 ATR). HS/IHS is labeled (LS/H/RS) with neckline; Wedges include upper/lower trendlines with touch points.
+- **Setup:** watch for confirmation close beyond trigger by ≥ 0.5 ATR, or a clean retest/failure in the direction of the signal.
+<img src="https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/IONQ_EARLY_DEAD_CAT_BOUNCE_BREAKDOWN.png" width="720" style="max-width:100%;height:auto;">
 
-_None_
+#### CDNS (EDA) — `EARLY_HS_TOP_BREAKDOWN`
+- **Trigger (level):** 286.78  |  **Close:** 290.63  |  **Distance:** +0.27 ATR
+- Chart includes **SMA(50)** + **SMA(200)**, **volume**, plus trigger + confirmation (±0.5 ATR). HS/IHS is labeled (LS/H/RS) with neckline; Wedges include upper/lower trendlines with touch points.
+- **HS/IHS read:** neckline is the trigger; chart labels LS/H/RS and draws the neckline + confirmation band.
+<img src="https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/CDNS_EARLY_HS_TOP_BREAKDOWN.png" width="720" style="max-width:100%;height:auto;">
 
-**ONGOING:**
+#### NU (Fintech) — `EARLY_HS_TOP_BREAKDOWN`
+- **Trigger (level):** 16.78  |  **Close:** 16.53  |  **Distance:** -0.34 ATR
+- Chart includes **SMA(50)** + **SMA(200)**, **volume**, plus trigger + confirmation (±0.5 ATR). HS/IHS is labeled (LS/H/RS) with neckline; Wedges include upper/lower trendlines with touch points.
+- **HS/IHS read:** neckline is the trigger; chart labels LS/H/RS and draws the neckline + confirmation band.
+<img src="https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/NU_EARLY_HS_TOP_BREAKDOWN.png" width="720" style="max-width:100%;height:auto;">
 
-| Name of Company            | Ticker       | Country       | Category   | Signal                       |    Close |   Threshold |   Dist(ATR) | Day%   | Chart                                                 |
-| :--- | :--- | :--- | :--- | :--- | ---: | ---: | ---: | ---: | :--- |
-| CCL INDUSTRIES INC CLASS B | CCL-B        | Canada        |            | CONFIRMED_BROADEN_BREAKOUT   |    91.57 |    88.1312  |        1.95 | +0.83% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/CCL-B.TO_CONFIRMED_BROADEN_BREAKOUT.png)  |
-| FUJIKURA LTD               | 5803         | Japan         |            | CONFIRMED_BROADEN_BREAKOUT   | 26825    | 23689       |        2.07 | +6.49% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/5803.T_CONFIRMED_BROADEN_BREAKOUT.png)    |
-| NRG ENERGY INC             | NRG          | United States |            | CONFIRMED_BROADEN_BREAKOUT   |   184.03 |   150.211   |        4.16 | +4.25% | [chart](https://9
+#### AVGO (Compute/IP) — `EARLY_HS_TOP_BREAKDOWN`
+- **Trigger (level):** 319.82  |  **Close:** 325
