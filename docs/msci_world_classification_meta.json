@@ -1,0 +1,59 @@
+{
+  "generated_utc": "2026-02-25T11:54:37Z",
+  "source_fund": "IWDA",
+  "source_url": "https://www.ishares.com/uk/individual/en/products/251882/ishares-core-msci-world-ucits-etf-acc-fund/1506575576011.ajax?dataType=fund&fileName=IWDA_holdings&fileType=csv",
+  "source_as_of": null,
+  "row_count": 1243,
+  "unique_tickers": 1243,
+  "sector_counts": {
+    "Consumer Discretionary": 125,
+    "Consumer Staples": 91,
+    "Energy": 49,
+    "Financials": 232,
+    "Health Care": 118,
+    "Industrials": 255,
+    "Information Technology": 143,
+    "Materials": 87,
+    "Real Estate": 69,
+    "Utilities": 74
+  },
+  "mapping_confidence_counts": {
+    "high": 1140,
+    "low": 5,
+    "med": 98
+  },
+  "added_count": 1243,
+  "removed_count": 0,
+  "added_sample": [
+    "0001.HK",
+    "0002.HK",
+    "0003.HK",
+    "0004.HK",
+    "0006.HK",
+    "0012.HK",
+    "0016.HK",
+    "0019.HK",
+    "0027.HK",
+    "0066.HK",
+    "0083.HK",
+    "0288.HK",
+    "0388.HK",
+    "0669.HK",
+    "0823.HK",
+    "1038.HK",
+    "1113.HK",
+    "1299.HK",
+    "1308.HK",
+    "1605.T",
+    "1801.T",
+    "1802.T",
+    "1812.T",
+    "1878.T",
+    "1925.T"
+  ],
+  "removed_sample": [],
+  "notes": [
+    "Public-source proxy (iShares MSCI World ETF holdings), not a licensed direct MSCI constituent feed.",
+    "scan.py only requires Ticker/Company/Sector; extra columns are for audit/debug."
+  ]
+}
