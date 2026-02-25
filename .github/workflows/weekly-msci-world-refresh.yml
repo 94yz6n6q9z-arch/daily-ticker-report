@@ -42,21 +42,23 @@ jobs:
       - name: Show refresh summary
         if: always()
         run: |
-          echo "### MSCI World classification refresh" >> $GITHUB_STEP_SUMMARY
+          echo "### MSCI World classification refresh" >> "$GITHUB_STEP_SUMMARY"
           if [ -f docs/msci_world_classification_meta.json ]; then
-            python - <<'PY'
-import json
-p='docs/msci_world_classification_meta.json'
-with open(p,'r',encoding='utf-8') as f:
-    m=json.load(f)
-print(f"- source_fund: {m.get('source_fund')}")
-print(f"- source_as_of: {m.get('source_as_of')}")
-print(f"- row_count: {m.get('row_count')}")
-print(f"- unique_tickers: {m.get('unique_tickers')}")
-print(f"- added_count: {m.get('added_count')}")
-print(f"- removed_count: {m.get('removed_count')}")
-PY
-          fi | tee -a $GITHUB_STEP_SUMMARY
+            python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+            import json
+            p = 'docs/msci_world_classification_meta.json'
+            with open(p, 'r', encoding='utf-8') as f:
+                m = json.load(f)
+            print(f"- source_fund: {m.get('source_fund')}")
+            print(f"- source_as_of: {m.get('source_as_of')}")
+            print(f"- row_count: {m.get('row_count')}")
+            print(f"- unique_tickers: {m.get('unique_tickers')}")
+            print(f"- added_count: {m.get('added_count')}")
+            print(f"- removed_count: {m.get('removed_count')}")
+            PY
+          else
+            echo "- meta file not found" >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Commit and push if changed
         run: |
