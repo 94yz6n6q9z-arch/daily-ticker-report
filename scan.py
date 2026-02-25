@@ -3039,27 +3039,45 @@ def _classify_vs_level(
       3) CLV >= CLV_BREAKOUT_MIN for breakouts, <= CLV_BREAKDOWN_MAX for breakdowns (CLV in [-1..+1])
 
     EARLY is within EARLY_MULT * ATR of the trigger (pre-break 90% zone); if not CONFIRMED, we keep it EARLY.
+    Returns (prefix, distance_in_atr), where prefix in {"", "EARLY_", "CONFIRMED_"}.
     """
     if atr_val is None or atr_val <= 0 or math.isnan(atr_val):
-        atr_val = max(level * 0.01, 1e-6)
+        base = abs(level) if level is not None else abs(close)
+        atr_val = max(base * 0.01, 1e-6)
 
-    if vol_ratio is None or (isinstance(vol_ratio, float) and math.isnan(vol_ratio)):
+    # Normalize possibly-missing inputs
+    try:
+        if vol_ratio is None or (isinstance(vol_ratio, float) and math.isnan(vol_ratio)):
+            vol_ratio = 1.0
+    except Exception:
         vol_ratio = 1.0
-    if clv is None or (isinstance(clv, float) and math.isnan(clv)):
+    try:
+        if clv is None or (isinstance(clv, float) and math.isnan(clv)):
+            clv = 0.0
+    except Exception:
         clv = 0.0
 
-    dist_atr = (close - level) / atr_val
+    dist_atr = (float(close) - float(level)) / float(atr_val)
 
-    if direction == "BREAKOUT":
-        price_ok = close >= level + ATR_CONFIRM_MULT * atr_val
-        vol_ok = vol_ratio >= VOL_CONFIRM_MULT
-        clv_ok = clv >= CLV_BREAKOUT_MIN
+    if str(direction).upper() == "BREAKOUT":
+        price_ok = float(close) >= float(level) + ATR_CONFIRM_MULT * float(atr_val)
+        vol_ok = float(vol_ratio) >= VOL_CONFIRM_MULT
+        clv_ok = float(clv) >= CLV_BREAKOUT_MIN
         if price_ok and vol_ok and clv_ok:
-            return "CONFIRMED_", dist_atr
-        # "90% there": within 0.5 ATR of trigger (and geometry already validated upstream)
-        if abs(close - level) <= EARLY_MULT * atr_val:
-            return "EARLY_", dist_atr
-        return "", dist_atr
+            return "CONFIRMED_", float(dist_atr)
+        if abs(float(close) - float(level)) <= EARLY_MULT * float(atr_val):
+            return "EARLY_", float(dist_atr)
+        return "", float(dist_atr)
+
+    # BREAKDOWN (default branch for any non-BREAKOUT direction)
+    price_ok = float(close) <= float(level) - ATR_CONFIRM_MULT * float(atr_val)
+    vol_ok = float(vol_ratio) >= VOL_CONFIRM_MULT
+    clv_ok = float(clv) <= CLV_BREAKDOWN_MAX
+    if price_ok and vol_ok and clv_ok:
+        return "CONFIRMED_", float(dist_atr)
+    if abs(float(close) - float(level)) <= EARLY_MULT * float(atr_val):
+        return "EARLY_", float(dist_atr)
+    return "", float(dist_atr)
 
 
 def _bar_clv(d: pd.DataFrame, i: int) -> float:
@@ -3184,16 +3202,6 @@ def _validated_today(cand: PatternCandidate, d: pd.DataFrame, a_series: pd.Serie
             return False
     return True
 
-    # BREAKDOWN
-    price_ok = close <= level - ATR_CONFIRM_MULT * atr_val
-    vol_ok = vol_ratio >= VOL_CONFIRM_MULT
-    clv_ok = clv <= CLV_BREAKDOWN_MAX
-    if price_ok and vol_ok and clv_ok:
-        return "CONFIRMED_", dist_atr
-    if abs(close - level) <= EARLY_MULT * atr_val:
-        return "EARLY_", dist_atr
-    return "", dist_atr
-
 
 def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSignal]:
     sigs: List[LevelSignal] = []
@@ -3246,12 +3254,13 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
         # 1) VALIDATED: breakout/breakdown occurred 3 sessions ago and all confirmation gates held each session
         # 2) CONFIRMED: hard gates hold on the current bar
         # 3) EARLY: within 0.5 ATR of trigger, but missing at least one hard gate
-        dist_atr = (close - float(cand.level)) / (atr_val if np.isfinite(atr_val) and atr_val > 0 else max(float(cand.level) * 0.01, 1e-6))
+        curr_level = _level_at_bar(cand, d, len(d) - 1)
+        dist_atr = (close - float(curr_level)) / (atr_val if np.isfinite(atr_val) and atr_val > 0 else max(float(abs(curr_level)) * 0.01, 1e-6))
 
         if _validated_today(cand, d, a):
             prefix = "VALIDATED_"
         else:
-            prefix, dist_atr = _classify_vs_level(close, cand.level, atr_val, cand.direction, vol_ratio, clv)
+            prefix, dist_atr = _classify_vs_level(close, curr_level, atr_val, cand.direction, vol_ratio, clv)
             if not prefix:
                 continue
 
