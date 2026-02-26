@@ -4291,7 +4291,7 @@ def build_watchlist_performance_section_md(ohlcv: Dict[str, pd.DataFrame], secto
             sec = ""
         rows.append({
             "Ticker": t,
-            "Sector": cat,
+            "Sector": sec,
             "Last": last,
             "Day%": _pct_change_n(c, 1),
             "Week%": _pct_change_n(c, 5),
