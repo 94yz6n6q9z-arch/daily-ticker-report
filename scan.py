@@ -45,8 +45,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-# Watchlist performance table (grouped)
-from tools.watchlist_perf import build_watchlist_performance_section_md
+# Watchlist performance table (implemented locally)
 
 # ----------------------------
 # Default watchlist (user-defined)
@@ -68,6 +67,7 @@ WATCHLIST_44: List[str] = ["MELI","ARM","QBTS","IONQ","HOOD","PLTR","SNPS","AVGO
 WATCHLIST_GROUPS: Dict[str, List[str]] = {
     # EDA merged into this bucket
     "AI compute & semis (incl. EDA)": ["NVDA","ARM","AVGO","TSM","000660.KS","ASML","AMAT","LRCX","SNPS","CDNS"],
+    "AI software/data": ["PLTR"],
     # Treat AMZN as E-commerce platform (cluster with MELI)
     "Big Tech platforms": ["AMZN","MELI","GOOGL","META","AAPL","MSFT","NFLX"],
     "Consumer & retail (incl. luxury)": ["WMT","RRTL.DE","ANF","DECK","MC.PA","RMS.PA","CMG","DASH","BYDDY"],
@@ -90,6 +90,9 @@ SEGMENT_TAGS: Dict[str, str] = {
     "TSM": "Foundry/Mem", "000660.KS": "Foundry/Mem",
     "ASML": "Equipment", "AMAT": "Equipment", "LRCX": "Equipment",
     "SNPS": "EDA", "CDNS": "EDA",
+
+    # AI software/data
+    "PLTR": "AI SW/Data",
 
     # Big Tech platforms — 4 segments (AMZN grouped with MELI)
     "AMZN": "E-comm", "MELI": "E-comm",
@@ -150,10 +153,12 @@ def _display_name(t: str) -> str:
 TICKER_LABELS: Dict[str, str] = {t: f"{_display_name(t)} ({seg})" for t, seg in SEGMENT_TAGS.items()}
 
 def display_ticker(t: str) -> str:
-    # Use segment-tag label when available, otherwise strip exchange suffix (with overrides).
+    """Plain display for tickers in tables/headers (no segment tags)."""
+    return _display_name(t)
+
+def display_ticker_tagged(t: str) -> str:
+    """Optional: ticker with segment tag, e.g., NVDA (Compute/IP)."""
     return TICKER_LABELS.get(t, _display_name(t))
-
-
 # Segment order for clustering inside tables (rank 0..3 within each category)
 SEGMENT_ORDER: Dict[str, List[str]] = {
     "AI compute & semis (incl. EDA)": ["Compute/IP", "Foundry/Mem", "Equipment", "EDA"],
@@ -220,6 +225,24 @@ LOOKBACK_DAYS = 260
 # HS/IHS minimum formation duration (daily bars) to avoid short (3-4 week) false positives
 HS_MIN_BARS = 45
 HS_MIN_SIDE_BARS = 10
+# HS/IHS maximum formation duration (daily bars) to avoid stale multi-month patterns
+HS_MAX_BARS = 90
+# Maximum allowed lag between pattern completion (RS) and breakout/breakdown confirmation run start
+HS_MAX_BREAKOUT_LAG_BARS = 15
+
+# Lifecycle: CONFIRMED is only day 0..2 of a new confirmed run. Day 3 becomes VALIDATED if gates held, else expires.
+CONFIRMED_MAX_AGE_BARS = 2
+VALIDATED_MIN_AGE_BARS = 3
+# Keep VALIDATED ongoing for at most this many bars after the breakout day (unless you change it).
+VALIDATED_MAX_AGE_BARS = 30
+
+# Dead Cat Bounce: event must be an overnight gap-down of at least 10% (open vs prior close)
+DCB_MIN_GAP_PCT = 0.10
+
+# Chart window (timeline) for all signal charts
+CHART_WINDOW_DAYS = 190   # ~6 months
+CHART_MIN_BARS = 120
+
 DOWNLOAD_PERIOD = "3y"
 DOWNLOAD_INTERVAL = "1d"
 CHUNK_SIZE = 80
@@ -584,6 +607,89 @@ _SECTOR_CANONICAL_MAP: Dict[str, str] = {
     "utilities": "Utilities",
 }
 
+# ----------------------------
+# Watchlist sector overrides (S&P 500 11-sector taxonomy)
+# ----------------------------
+# Used when the local MSCI/Sector classification CSV does not contain a ticker.
+# We still prefer the CSV when available.
+WATCHLIST_SECTOR_OVERRIDES: Dict[str, str] = {
+    # Information Technology (incl. semis, EDA, quantum, software/data)
+    "NVDA": "Information Technology",
+    "ARM": "Information Technology",
+    "AVGO": "Information Technology",
+    "TSM": "Information Technology",
+    "000660.KS": "Information Technology",
+    "ASML": "Information Technology",
+    "AMAT": "Information Technology",
+    "LRCX": "Information Technology",
+    "SNPS": "Information Technology",
+    "CDNS": "Information Technology",
+    "IONQ": "Information Technology",
+    "QBTS": "Information Technology",
+    "PLTR": "Information Technology",
+
+    # Communication Services
+    "GOOGL": "Communication Services",
+    "META": "Communication Services",
+    "NFLX": "Communication Services",
+    "RRTL.DE": "Communication Services",
+
+    # Consumer Discretionary
+    "AMZN": "Consumer Discretionary",
+    "MELI": "Consumer Discretionary",
+    "DASH": "Consumer Discretionary",
+    "CMG": "Consumer Discretionary",
+    "ANF": "Consumer Discretionary",
+    "DECK": "Consumer Discretionary",
+    "BYDDY": "Consumer Discretionary",
+    "MC.PA": "Consumer Discretionary",
+    "RMS.PA": "Consumer Discretionary",
+
+    # Consumer Staples
+    "WMT": "Consumer Staples",
+
+    # Financials
+    "HOOD": "Financials",
+    "NU": "Financials",
+    "PGR": "Financials",
+    "MUV2.DE": "Financials",
+    "UCG.MI": "Financials",
+
+    # Real Estate
+    "ARR": "Real Estate",
+
+    # Health Care
+    "ISRG": "Health Care",
+    "LLY": "Health Care",
+    "NVO": "Health Care",
+
+    # Utilities (power & generators)
+    "VST": "Utilities",
+    "CEG": "Utilities",
+    "OKLO": "Utilities",
+    "SMR": "Utilities",
+
+    # Materials / Industrials (uranium & fuel-cycle; best-effort mapping)
+    "CCJ": "Materials",
+    "LEU": "Industrials",
+
+    # Energy (oil & refiners)
+    "CVX": "Energy",
+    "REP.MC": "Energy",
+    "MAU.PA": "Energy",
+    "MPC": "Energy",
+    "PSX": "Energy",
+    "VLO": "Energy",
+
+    # Industrials (shipping / transport)
+    "NAT": "Industrials",
+    "INSW": "Industrials",
+    "TNK": "Industrials",
+    "FRO": "Industrials",
+}
+
+WATCHLIST_SECTOR_BY_TICKER: Dict[str, str] = { _clean_ticker(k): v for k, v in WATCHLIST_SECTOR_OVERRIDES.items() }
+
 WATCHLIST_CATEGORY_BY_TICKER: Dict[str, str] = {}
 for _cat_name, _tickers in WATCHLIST_GROUPS.items():
     for _t in _tickers:
@@ -653,26 +759,42 @@ def get_msci_world_tickers() -> List[str]:
     return sorted({str(x).strip() for x in df["Ticker"].astype(str).tolist() if str(x).strip()})
 
 
-def build_category_resolver(msci_df: pd.DataFrame):
-    msci_sector = {}
+def build_sector_resolver(msci_df: pd.DataFrame):
+    """Resolve ticker -> S&P 11-sector label.
+
+    Preference order:
+      1) local MSCI/Sector classification CSV (more accurate when available)
+      2) WATCHLIST_SECTOR_OVERRIDES fallback
+      3) "Unclassified"
+    """
+    msci_sector: Dict[str, str] = {}
     if msci_df is not None and not msci_df.empty and "Ticker" in msci_df.columns:
         for _, r in msci_df.iterrows():
             t = str(r.get("Ticker", "")).strip()
             s = str(r.get("Sector", "")).strip()
             if t and s:
                 msci_sector[t] = s
+
     def _resolve(ticker: str) -> str:
         t = str(ticker or "").strip()
         if not t:
             return ""
-        if t in WATCHLIST_CATEGORY_BY_TICKER:
-            return WATCHLIST_CATEGORY_BY_TICKER[t]
         base = _base_ticker(t)
-        if base in WATCHLIST_CATEGORY_BY_TICKER:
-            return WATCHLIST_CATEGORY_BY_TICKER[base]
-        return msci_sector.get(t, msci_sector.get(base, "Unclassified"))
+
+        s = msci_sector.get(t) or msci_sector.get(base)
+        if s:
+            return s
+
+        s2 = WATCHLIST_SECTOR_BY_TICKER.get(t) or WATCHLIST_SECTOR_BY_TICKER.get(base)
+        if s2:
+            return s2
+
+        return "Unclassified"
 
     return _resolve
+
+# Backward-compatible alias (older code paths)
+build_sector_resolver = build_sector_resolver
 
 def _infer_country_from_ticker(ticker: str) -> str:
     t = str(ticker or "").strip().upper()
@@ -1758,9 +1880,9 @@ def build_watchlist_pulse_section_md(
     md = []
     md.append("### 4) Watchlist emerging chart trends")
     md.append("")
-    md.append("_Logic: score each ticker by stage (CONFIRMED=3, EARLY=1) × direction (BREAKOUT=+1, BREAKDOWN=-1), then aggregate by category._")
+    md.append("_Logic: score each ticker by stage (CONFIRMED=3, EARLY=1) × direction (BREAKOUT=+1, BREAKDOWN=-1), then aggregate by sector._")
     md.append("")
-    md.append("| Category | Bias | VALID↑ | VALID↓ | CONF↑ | CONF↓ | EARLY↑ | EARLY↓ |")
+    md.append("| Sector | Bias | VALID↑ | VALID↓ | CONF↑ | CONF↓ | EARLY↑ | EARLY↓ |")
     md.append("| :--- | :--- | ---: | ---: | ---: | ---: | ---: | ---: |")
     for cat, s in cat_stats.items():
         sc = s["score"]
@@ -2255,6 +2377,9 @@ class LevelSignal:
     close: float
     atr: float
     dist_atr: float
+    stage_status: Optional[str] = None
+    stage_age_bars: Optional[int] = None
+    breakout_start: Optional[str] = None
     pct_today: Optional[float] = None
     chart_path: Optional[str] = None
     vp_hvn_runway_pct: Optional[float] = None
@@ -2792,7 +2917,7 @@ def _pick_recent_hs_triplet(
                     continue
 
                 # Minimum formation duration (avoid 3-4 week HS/IHS false positives)
-                if (p3 - p1) < HS_MIN_BARS or dL < HS_MIN_SIDE_BARS or dR < HS_MIN_SIDE_BARS:
+                if (p3 - p1) < HS_MIN_BARS or (p3 - p1) > HS_MAX_BARS or dL < HS_MIN_SIDE_BARS or dR < HS_MIN_SIDE_BARS:
                     continue
 
                 # Pattern ATR context
@@ -3121,7 +3246,7 @@ def detect_structure_candidates(df: pd.DataFrame) -> List[PatternCandidate]:
 def detect_dead_cat_bounce(df: pd.DataFrame) -> Optional[PatternCandidate]:
     """
     Deterministic DCB detector:
-      - gap-down event (strict gap OR >3% gap-down open)
+      - gap-down event: overnight gap-down open >= 10% vs prior close (DCB_MIN_GAP_PCT)
       - plunge >=20% from pre-event high to event low within 1-3 days
       - event volume >=1.5x avg20
       - bounce retrace 10%-60%
@@ -3149,11 +3274,8 @@ def detect_dead_cat_bounce(df: pd.DataFrame) -> Optional[PatternCandidate]:
         if i < 1:
             continue
         prev_low = float(L[i - 1]); prev_close = float(C[i - 1])
-
-        strict_gap = float(H[i]) < prev_low
         gap_pct = (float(O[i]) / prev_close - 1.0) if prev_close != 0 else 0.0
-        fallback_gap = gap_pct <= -0.03
-        if not (strict_gap or fallback_gap):
+        if not (gap_pct <= -DCB_MIN_GAP_PCT):
             continue
 
         pre0 = max(0, i - 10)
@@ -3449,31 +3571,66 @@ def _is_confirmed_bar(
     return bool(price_ok and clv_ok and vol_ok)
 
 
-def _validated_today(cand: PatternCandidate, d: pd.DataFrame, a_series: pd.Series) -> bool:
-    """Validated = confirmed breakout day occurred 3 sessions ago, and all 4 bars
-    (breakout day + next 3 sessions incl. today) keep ALL 3 confirmation gates:
-    - price beyond trigger by >=0.5 ATR
-    - CLV >=0.7 (<=-0.7 for breakdown)
-    - volume >=1.25x prior-20 average
+def _confirm_run_start(cand: PatternCandidate, d: pd.DataFrame, a_series: pd.Series) -> Optional[int]:
+    """Return the index (in d) of the first bar of the current CONFIRMED run, or None.
+
+    A CONFIRMED run is a consecutive sequence of bars where ALL 3 confirmation gates hold:
+      - close beyond trigger by >= 0.5 ATR(14)
+      - CLV >= +0.70 (breakout) / <= -0.70 (breakdown)
+      - Volume >= 1.25x AvgVol(20)
+
+    This is used to deterministically label signals as NEW/ONGOING and to transition to VALIDATED.
     """
     n = len(d)
-    if n < 30:
-        return False
-    # breakout day is exactly 3 sessions before today
-    j = n - 4
-    if j < 1:
-        return False
-    # breakout day must be confirmed
-    if not _is_confirmed_bar(cand, d, a_series, j):
-        return False
-    # prior day should NOT already be a confirmed breakout (avoid stale trends)
-    if _is_confirmed_bar(cand, d, a_series, j - 1):
-        return False
-    # all bars from j..n-1 must be confirmed (gates remain)
-    for k in range(j, n):
-        if not _is_confirmed_bar(cand, d, a_series, k):
-            return False
-    return True
+    if n < 5:
+        return None
+    if not _is_confirmed_bar(cand, d, a_series, n - 1):
+        return None
+    j = n - 1
+    while j > 0 and _is_confirmed_bar(cand, d, a_series, j - 1):
+        j -= 1
+    return int(j)
+
+
+def _stage_from_confirm_run(
+    cand: PatternCandidate,
+    d: pd.DataFrame,
+    a_series: pd.Series,
+    run_start: int,
+) -> Tuple[str, str, int]:
+    """Deterministically classify a signal after a CONFIRMED run is present.
+
+    - CONFIRMED is only for age 0..CONFIRMED_MAX_AGE_BARS (0..2).
+    - On age == VALIDATED_MIN_AGE_BARS (3), if the breakout day + next 3 bars are all CONFIRMED -> VALIDATED_NEW.
+    - After that -> VALIDATED_ONGOING (until VALIDATED_MAX_AGE_BARS), otherwise expires.
+    - If the run reaches age >= 3 but the first 4 bars did NOT all pass gates -> EXPIRED (removed).
+    """
+    n = len(d)
+    age = int((n - 1) - int(run_start))
+
+    # If the run is old enough to validate, it must have validated exactly on day 3 or it expires.
+    if age >= VALIDATED_MIN_AGE_BARS:
+        ok = True
+        for k in range(int(run_start), int(run_start) + VALIDATED_MIN_AGE_BARS + 1):
+            if k >= n or not _is_confirmed_bar(cand, d, a_series, k):
+                ok = False
+                break
+        if not ok:
+            return ("EXPIRED", "EXPIRED", age)
+
+        # Cap how long we keep VALIDATED ongoing (config knob)
+        if age > VALIDATED_MAX_AGE_BARS:
+            return ("EXPIRED", "EXPIRED", age)
+
+        status = "NEW" if age == VALIDATED_MIN_AGE_BARS else "ONGOING"
+        return ("VALIDATED", status, age)
+
+    # Otherwise still in the short CONFIRMED window (0..2)
+    if age > CONFIRMED_MAX_AGE_BARS:
+        return ("EXPIRED", "EXPIRED", age)
+
+    status = "NEW" if age == 0 else "ONGOING"
+    return ("CONFIRMED", status, age)
 
 
 def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSignal]:
@@ -3527,22 +3684,59 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
             continue
         seen.add(key)
 
-                # Stage logic:
-        # 1) VALIDATED: breakout/breakdown occurred 3 sessions ago and all confirmation gates held each session
-        # 2) CONFIRMED: hard gates hold on the current bar
-        # 3) EARLY: within 0.5 ATR of trigger, but missing at least one hard gate
+                        # Stage logic (deterministic lifecycle):
+        # - EARLY: within 0.5 ATR of trigger (pre-break), regardless of volume/CLV gates
+        # - CONFIRMED: breakout/breakdown day is the start of a run where ALL 3 gates hold
+        #             (price beyond trigger by >=0.5 ATR, CLV >=+0.70 / <=-0.70, Vol >=1.25x AvgVol20)
+        #             CONFIRMED is only valid for age 0..2 (NEW today, then ONGOING for 1-2 days).
+        # - VALIDATED: once the confirmed run reaches age 3 and gates held for breakout day + next 3 sessions.
+        #             After that it remains VALIDATED_ONGOING (capped by VALIDATED_MAX_AGE_BARS) while price stays
+        #             on the correct side of the trigger; otherwise it expires.
         curr_level = _level_at_bar(cand, d, len(d) - 1)
-        dist_atr = (close - float(curr_level)) / (atr_val if np.isfinite(atr_val) and atr_val > 0 else max(float(abs(curr_level)) * 0.01, 1e-6))
+        level_now = float(curr_level)
+        dist_atr = (close - level_now) / (atr_val if np.isfinite(atr_val) and atr_val > 0 else max(float(abs(level_now)) * 0.01, 1e-6))
 
         vp_runway_pct = None
         vp_zone_low = None
         vp_zone_high = None
 
-        if _validated_today(cand, d, a):
-            prefix = "VALIDATED_"
+        stage_status = None
+        stage_age_bars = None
+        breakout_start = None
+
+        run_start = _confirm_run_start(cand, d, a)
+        if run_start is not None:
+            # HS/IHS: breakout must occur soon after the pattern completes (avoid months-late neckline breaks)
+            if cand.pattern in ("HS_TOP", "IHS"):
+                meta = cand.meta if isinstance(cand.meta, dict) else {}
+                p_end = int(meta.get("pattern_end_i", -1)) if isinstance(meta, dict) else -1
+                if p_end >= 0 and (int(run_start) - int(p_end)) > HS_MAX_BREAKOUT_LAG_BARS:
+                    continue
+
+            stage, status, age = _stage_from_confirm_run(cand, d, a, int(run_start))
+            if stage == "EXPIRED":
+                continue
+
+            # Keep VALIDATED only while price stays on the correct side of the trigger (no volume/CLV required after validation)
+            if stage == "VALIDATED":
+                if cand.direction == "BREAKOUT" and float(close) < float(level_now):
+                    continue
+                if cand.direction != "BREAKOUT" and float(close) > float(level_now):
+                    continue
+
+            prefix = f"{stage}_"
+            stage_status = status
+            stage_age_bars = int(age)
+
+            try:
+                breakout_start = str(d.index[int(run_start)].date()) if isinstance(d.index, pd.DatetimeIndex) else None
+            except Exception:
+                breakout_start = None
+
         else:
-            prefix, dist_atr = _classify_vs_level(close, curr_level, atr_val, cand.direction, vol_ratio, clv)
-            if not prefix:
+            # Not confirmed today -> can only be EARLY (pre-break) or nothing.
+            prefix, dist_atr = _classify_vs_level(close, level_now, atr_val, cand.direction, vol_ratio, clv)
+            if prefix != "EARLY_":
                 continue
 
         # VP runway (distance to nearest opposing HVN) for CONFIRMED + VALIDATED
@@ -3555,8 +3749,7 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
             except Exception:
                 vp_runway_pct, vp_zone_low, vp_zone_high = None, None, None
 
-
-        # Dead-cat-bounce EARLY must be fresh (event-driven) or we suppress it
+# Dead-cat-bounce EARLY must be fresh (event-driven) or we suppress it
         if cand.pattern == "DEAD_CAT_BOUNCE" and prefix == "EARLY_":
             meta = cand.meta if isinstance(cand.meta, dict) else {}
             age_low = int(meta.get("age_from_event_low_bars", 999))
@@ -3569,10 +3762,13 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
             signal=f"{prefix}{cand.pattern}_{cand.direction}",
             pattern=cand.pattern,
             direction=cand.direction,
-            level=float(cand.level),
+            level=float(level_now),
             close=close,
             atr=atr_val,
             dist_atr=float(dist_atr),
+            stage_status=stage_status,
+            stage_age_bars=stage_age_bars,
+            breakout_start=breakout_start,
             pct_today=pct_today,
             vp_hvn_runway_pct=vp_runway_pct,
             vp_hvn_zone_low=vp_zone_low,
@@ -3858,7 +4054,7 @@ def _annotate_from_signal_meta(ax, sig: LevelSignal) -> bool:
 
     return used
 
-def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal) -> Optional[str]:
+def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal, name_resolver=None) -> Optional[str]:
     """
     Chart output (last ~1Y, with indicators):
       - Close (line)
@@ -3875,11 +4071,18 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal) -> Option
     out_path = IMG_DIR / fname
     IMG_DIR.mkdir(parents=True, exist_ok=True)
 
+    # Display label for charts: Company (TICKER)
+    try:
+        nm = str(name_resolver(ticker) or "").strip() if callable(name_resolver) else ""
+    except Exception:
+        nm = ""
+    label = f"{nm} ({ticker})" if nm and nm.upper() != str(ticker).upper() else str(ticker)
+
     def placeholder(reason: str) -> str:
         fig = plt.figure(figsize=(10.5, 5.0))
         ax = fig.add_subplot(111)
         ax.axis("off")
-        ax.text(0.02, 0.75, f"{display_ticker(ticker)}", fontsize=16, weight="bold", transform=ax.transAxes)
+        ax.text(0.02, 0.75, f"{label}", fontsize=16, weight="bold", transform=ax.transAxes)
         ax.text(0.02, 0.58, f"{sig.signal}", fontsize=12, transform=ax.transAxes)
         ax.text(0.02, 0.40, "Chart unavailable", fontsize=12, transform=ax.transAxes)
         ax.text(0.02, 0.25, f"Reason: {reason}", fontsize=10, transform=ax.transAxes)
@@ -3931,10 +4134,10 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal) -> Option
 
         # Plot window = last ~1 year
         last_dt = d_full.index.max()
-        cutoff = last_dt - pd.Timedelta(days=370)
+        cutoff = last_dt - pd.Timedelta(days=CHART_WINDOW_DAYS)
         d = d_full.loc[d_full.index >= cutoff].copy()
         if len(d) < 80:
-            d = d_full.tail(260).copy()
+            d = d_full.tail(CHART_MIN_BARS).copy()
 
         # Indicators (computed on d_full so SMA200 works)
         sma50_full = d_full["Close"].rolling(50).mean()
@@ -3997,7 +4200,7 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal) -> Option
         axv.bar(d.index, vol, width=1.0)
         axv.set_ylabel("Vol")
 
-        title = f"{display_ticker(ticker)} | {sig.signal}"
+        title = f"{label} | {sig.signal}"
         ax.set_title(title)
         ax.set_ylabel("Close")
         axv.set_xlabel("Date")
@@ -4038,21 +4241,90 @@ def blurb_for_new_signal(sig: LevelSignal) -> str:
     return "\n".join(lines)
 # Reporting utilities
 # ----------------------------
+
+def _pct_change_n(c: pd.Series, n: int) -> Optional[float]:
+    c = pd.to_numeric(c, errors="coerce").dropna()
+    if len(c) <= n:
+        return None
+    prev = float(c.iloc[-1 - n])
+    last = float(c.iloc[-1])
+    if prev == 0:
+        return None
+    return (last / prev - 1.0) * 100.0
+
+
+def _pct_ytd(c: pd.Series) -> Optional[float]:
+    c = pd.to_numeric(c, errors="coerce").dropna()
+    if c.empty:
+        return None
+    try:
+        year = datetime.now().year
+        start = pd.Timestamp(year=year, month=1, day=1)
+        c_y = c[c.index >= start]
+        if c_y.empty:
+            return None
+        base = float(c_y.iloc[0])
+        last = float(c.iloc[-1])
+        if base == 0:
+            return None
+        return (last / base - 1.0) * 100.0
+    except Exception:
+        return None
+
+
+def build_watchlist_performance_section_md(ohlcv: Dict[str, pd.DataFrame], sector_resolver) -> str:
+    """Section 6: Watchlist performance (single table) including Sector."""
+    rows: List[Dict[str, Any]] = []
+    for t in WATCHLIST_44:
+        df = ohlcv.get(t)
+        if df is None or df.empty or "Close" not in df.columns:
+            continue
+        c = df["Close"].dropna()
+        if c.empty:
+            continue
+        last = float(c.iloc[-1])
+        sec = ""
+        try:
+            sec = str(sector_resolver(t) or "")
+        except Exception:
+            sec = ""
+        rows.append({
+            "Ticker": t,
+            "Sector": sec,
+            "Last": last,
+            "Day%": _pct_change_n(c, 1),
+            "Week%": _pct_change_n(c, 5),
+            "Month%": _pct_change_n(c, 21),
+            "3M%": _pct_change_n(c, 63),
+            "YTD%": _pct_ytd(c),
+        })
+
+    dfp = pd.DataFrame(rows)
+    if dfp.empty:
+        return "\n## Watchlist performance\n\n<em>None</em>\n"
+
+    dfp["_ytd"] = pd.to_numeric(dfp["YTD%"], errors="coerce")
+    dfp = dfp.sort_values(by=["Sector", "_ytd", "Ticker"], ascending=[True, False, True]).drop(columns=["_ytd"])
+
+    cols = ["Ticker", "Sector", "Last", "Day%", "Week%", "Month%", "3M%", "YTD%"]
+    return "\n## Watchlist performance\n\n" + html_table_from_df(dfp, cols=cols, max_rows=200) + "\n"
+
+
 def signals_to_df(
     signals: List[LevelSignal],
-    category_resolver=None,
+    sector_resolver=None,
     name_resolver=None,
     country_resolver=None,
 ) -> pd.DataFrame:
-    cols = ["Name of Company", "Ticker", "Country", "Signal", "Pattern", "Dir", "Category", "Close", "Level", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"]
+    cols = ["Name of Company", "Ticker", "Country", "Signal", "Pattern", "Dir", "Sector", "Close", "Level", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"]
     if not signals:
         return pd.DataFrame(columns=cols)
     rows = []
     for s in signals:
         cat = ""
         try:
-            if callable(category_resolver):
-                cat = str(category_resolver(s.ticker) or "")
+            if callable(sector_resolver):
+                cat = str(sector_resolver(s.ticker) or "")
         except Exception:
             cat = ""
         name = ""
@@ -4074,7 +4346,7 @@ def signals_to_df(
             "Signal": s.signal,
             "Pattern": s.pattern,
             "Dir": s.direction,
-            "Category": cat,
+            "Sector": sec,
             "Close": s.close,
             "Level": s.level,
             "Dist(ATR)": s.dist_atr,
@@ -4103,13 +4375,20 @@ def md_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 30) -> s
         d["CLV"] = pd.to_numeric(d["CLV"], errors="coerce").map(lambda x: f"{x:+.2f}" if pd.notna(x) else "")
     if "Day%" in d.columns:
         d["Day%"] = pd.to_numeric(d["Day%"], errors="coerce").map(lambda x: f"{x:+.2f}%" if pd.notna(x) else "")
+    
+    # Additional performance columns (watchlist section)
+    for pc in ["Week%", "Month%", "3M%", "YTD%"]:
+        if pc in d.columns:
+            d[pc] = pd.to_numeric(d[pc], errors="coerce").map(lambda x: f"{x:+.2f}%" if pd.notna(x) else "")
+    if "Last" in d.columns:
+        d["Last"] = pd.to_numeric(d["Last"], errors="coerce").map(lambda x: f"{x:,.2f}" if pd.notna(x) else "")
     if "Chart" in d.columns:
         d["Chart"] = d["Chart"].apply(lambda p: f"[chart]({p})" if isinstance(p, str) and p else "")
 
     out = d[cols]
 
     # Alignment: textual columns left, numeric-ish columns right
-    left_cols = {"Name of Company", "Name", "Ticker", "Country", "Category", "Signal", "Pattern", "Dir", "Chart", "Instrument", "Symbol", "symbol"}
+    left_cols = {"Name of Company", "Name", "Ticker", "Country", "Sector", "Signal", "Pattern", "Dir", "Chart", "Instrument", "Symbol", "symbol"}
     aligns = tuple("left" if c in left_cols else "right" for c in cols)
 
     return df_to_markdown_aligned(out, aligns=aligns, index=False)
@@ -4135,6 +4414,13 @@ def html_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 80) ->
     if "Day%" in d.columns:
         d["Day%"] = pd.to_numeric(d["Day%"], errors="coerce").map(lambda x: f"{x:+.2f}%" if pd.notna(x) else "")
 
+    
+    # Additional performance columns (watchlist section)
+    for pc in ["Week%", "Month%", "3M%", "YTD%"]:
+        if pc in d.columns:
+            d[pc] = pd.to_numeric(d[pc], errors="coerce").map(lambda x: f"{x:+.2f}%" if pd.notna(x) else "")
+    if "Last" in d.columns:
+        d["Last"] = pd.to_numeric(d["Last"], errors="coerce").map(lambda x: f"{x:,.2f}" if pd.notna(x) else "")
     if "Chart" in d.columns:
         def _mk(p):
             if isinstance(p, str) and p:
@@ -4143,19 +4429,19 @@ def html_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 80) ->
         d["Chart"] = d["Chart"].apply(_mk)
 
     widths = {
-        "Name of Company": 20,
-        "Ticker": 8,
-        "Country": 6,
-        "Signal": 17,
-        "Pattern": 6,
-        "Dir": 5,
-        "Category": 10,
-        "Close": 5,
-        "Level": 5,
-        "Threshold": 5,
-        "Dist(ATR)": 5,
-        "HVN Runway%": 5,
-        "Day%": 5,
+        "Name of Company": 29,
+        "Ticker": 6,
+        "Country": 5,
+        "Sector": 12,
+        "Signal": 18,
+        "Pattern": 5,
+        "Dir": 3,
+        "Close": 3,
+        "Level": 3,
+        "Threshold": 3,
+        "Dist(ATR)": 3,
+        "HVN Runway%": 4,
+        "Day%": 3,
         "Chart": 3,
     }
 
@@ -4314,7 +4600,7 @@ def main():
         print(f"[msci] no extra tickers loaded from {MSCI_WORLD_CLASSIFICATION_CSV} (4B remains base universe only)")
 
     tech_scan_universe = sorted(set(base_universe + msci_tickers))
-    category_for_ticker = build_category_resolver(msci_df)
+    sector_resolver = build_sector_resolver(msci_df)
     company_name_for_ticker, country_for_ticker = build_company_country_resolvers(msci_df)
 
     now = dt.datetime.now(dt.timezone.utc)
@@ -4472,7 +4758,7 @@ def main():
     for s in (validated_sorted + confirmed_sorted):
         if trig_charts >= trig_chart_cap:
             continue
-        s.chart_path = plot_signal_chart(s.ticker, ohlcv.get(s.ticker), s)
+        s.chart_path = plot_signal_chart(s.ticker, ohlcv.get(s.ticker), s, name_resolver=company_name_for_ticker)
         trig_charts += 1
 
     # Charts: EARLY only for base universe
@@ -4482,16 +4768,23 @@ def main():
             continue
         if early_charts >= MAX_CHARTS_EARLY:
             continue
-        s.chart_path = plot_signal_chart(s.ticker, ohlcv.get(s.ticker), s)
+        s.chart_path = plot_signal_chart(s.ticker, ohlcv.get(s.ticker), s, name_resolver=company_name_for_ticker)
         early_charts += 1
-# State diff
+# State diff (used only for EARLY "NEW" labeling + a changelog of signal IDs)
     state = load_state()
-    prev = {"signals": state.get("signals", [])}
-    cur_ids = [f"{s.ticker}|{s.signal}" for s in all_signals]
-    state["signals"] = cur_ids
+    prev_all = {"signals": state.get("signals", [])}
+    prev_early = {"signals": state.get("early", [])}
+
+    cur_all_ids = [f"{s.ticker}|{s.signal}" for s in all_signals]
+    cur_early_ids = [f"{s.ticker}|{s.signal}" for s in early_sorted]
+
+    state["signals"] = cur_all_ids
+    state["early"] = cur_early_ids
     save_state(state)
-    new_ids, ended_ids = diff_new_ended(prev, {"signals": cur_ids})
-    new_set = set(new_ids)
+
+    new_ids, ended_ids = diff_new_ended(prev_all, {"signals": cur_all_ids})
+    new_early_ids, _ended_early_ids = diff_new_ended(prev_early, {"signals": cur_early_ids})
+    new_set = set(new_early_ids)
 
     def mark_new(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
         if df is None or df.empty:
@@ -4502,12 +4795,20 @@ def main():
         d_old = d[~d["_id"].isin(new_set)].drop(columns=["_id"])
         return d_new, d_old
 
-    df_early = signals_to_df(early_sorted, category_resolver=category_for_ticker, name_resolver=company_name_for_ticker, country_resolver=country_for_ticker)
-    df_conf = signals_to_df(confirmed_sorted, category_resolver=category_for_ticker, name_resolver=company_name_for_ticker, country_resolver=country_for_ticker)
-    df_val = signals_to_df(validated_sorted, category_resolver=category_for_ticker, name_resolver=company_name_for_ticker, country_resolver=country_for_ticker)
+        # EARLY new/ongoing is diffed vs last run (pre-break proximity is transient).
+    df_early = signals_to_df(early_sorted, sector_resolver=sector_resolver, name_resolver=company_name_for_ticker, country_resolver=country_for_ticker)
     df_early_new, df_early_old = mark_new(df_early)
-    df_conf_new, df_conf_old = mark_new(df_conf)
-    df_val_new, df_val_old = mark_new(df_val)
+
+    # CONFIRMED / VALIDATED new/ongoing is deterministic (based on breakout-day age), independent of whether the script ran.
+    conf_new = [s for s in confirmed_sorted if getattr(s, "stage_status", None) == "NEW"]
+    conf_old = [s for s in confirmed_sorted if getattr(s, "stage_status", None) == "ONGOING"]
+    val_new = [s for s in validated_sorted if getattr(s, "stage_status", None) == "NEW"]
+    val_old = [s for s in validated_sorted if getattr(s, "stage_status", None) == "ONGOING"]
+
+    df_conf_new = signals_to_df(conf_new, sector_resolver=sector_resolver, name_resolver=company_name_for_ticker, country_resolver=country_for_ticker)
+    df_conf_old = signals_to_df(conf_old, sector_resolver=sector_resolver, name_resolver=company_name_for_ticker, country_resolver=country_for_ticker)
+    df_val_new = signals_to_df(val_new, sector_resolver=sector_resolver, name_resolver=company_name_for_ticker, country_resolver=country_for_ticker)
+    df_val_old = signals_to_df(val_old, sector_resolver=sector_resolver, name_resolver=company_name_for_ticker, country_resolver=country_for_ticker)
 
     # Assemble markdown
     md: List[str] = []
@@ -4620,16 +4921,16 @@ def main():
     df_conf_new_tbl = df_conf_new.copy()
     if "Level" in df_conf_new_tbl.columns and "Threshold" not in df_conf_new_tbl.columns:
         df_conf_new_tbl["Threshold"] = df_conf_new_tbl["Level"]
-    if not df_conf_new_tbl.empty and "Category" in df_conf_new_tbl.columns:
-        df_conf_new_tbl = df_conf_new_tbl.sort_values(["Category", "Signal", "Dist(ATR)"], na_position="last")
-    md.append(html_table_from_df(df_conf_new_tbl, cols=["Name of Company", "Ticker", "Country", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"], max_rows=80))
+    if not df_conf_new_tbl.empty and "Sector" in df_conf_new_tbl.columns:
+        df_conf_new_tbl = df_conf_new_tbl.sort_values(["Sector", "Signal", "Dist(ATR)"], na_position="last")
+    md.append(html_table_from_df(df_conf_new_tbl, cols=["Name of Company", "Ticker", "Country", "Sector", "Signal", "Close", "Threshold", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"], max_rows=80))
     md.append("\n**ONGOING:**\n")
     df_conf_old_tbl = df_conf_old.copy()
     if "Level" in df_conf_old_tbl.columns and "Threshold" not in df_conf_old_tbl.columns:
         df_conf_old_tbl["Threshold"] = df_conf_old_tbl["Level"]
-    if not df_conf_old_tbl.empty and "Category" in df_conf_old_tbl.columns:
-        df_conf_old_tbl = df_conf_old_tbl.sort_values(["Category", "Signal", "Dist(ATR)"], na_position="last")
-    md.append(html_table_from_df(df_conf_old_tbl, cols=["Name of Company", "Ticker", "Country", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"], max_rows=160))
+    if not df_conf_old_tbl.empty and "Sector" in df_conf_old_tbl.columns:
+        df_conf_old_tbl = df_conf_old_tbl.sort_values(["Sector", "Signal", "Dist(ATR)"], na_position="last")
+    md.append(html_table_from_df(df_conf_old_tbl, cols=["Name of Company", "Ticker", "Country", "Sector", "Signal", "Close", "Threshold", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"], max_rows=160))
     md.append("")
 
     # 5) Catalysts
@@ -4640,16 +4941,16 @@ def main():
     df_val_new_tbl = df_val_new.copy()
     if "Level" in df_val_new_tbl.columns and "Threshold" not in df_val_new_tbl.columns:
         df_val_new_tbl["Threshold"] = df_val_new_tbl["Level"]
-    if not df_val_new_tbl.empty and "Category" in df_val_new_tbl.columns:
-        df_val_new_tbl = df_val_new_tbl.sort_values(["Category", "Signal", "HVN Runway%", "Dist(ATR)"], ascending=[True, True, False, True], na_position="last")
-    md.append(html_table_from_df(df_val_new_tbl, cols=["Name of Company", "Ticker", "Country", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"], max_rows=80))
+    if not df_val_new_tbl.empty and "Sector" in df_val_new_tbl.columns:
+        df_val_new_tbl = df_val_new_tbl.sort_values(["Sector", "Signal", "HVN Runway%", "Dist(ATR)"], ascending=[True, True, False, True], na_position="last")
+    md.append(html_table_from_df(df_val_new_tbl, cols=["Name of Company", "Ticker", "Country", "Sector", "Signal", "Close", "Threshold", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"], max_rows=80))
     md.append("\n**ONGOING:**\n")
     df_val_old_tbl = df_val_old.copy()
     if "Level" in df_val_old_tbl.columns and "Threshold" not in df_val_old_tbl.columns:
         df_val_old_tbl["Threshold"] = df_val_old_tbl["Level"]
-    if not df_val_old_tbl.empty and "Category" in df_val_old_tbl.columns:
-        df_val_old_tbl = df_val_old_tbl.sort_values(["Category", "Signal", "HVN Runway%", "Dist(ATR)"], ascending=[True, True, False, True], na_position="last")
-    md.append(html_table_from_df(df_val_old_tbl, cols=["Name of Company", "Ticker", "Country", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"], max_rows=80))
+    if not df_val_old_tbl.empty and "Sector" in df_val_old_tbl.columns:
+        df_val_old_tbl = df_val_old_tbl.sort_values(["Sector", "Signal", "HVN Runway%", "Dist(ATR)"], ascending=[True, True, False, True], na_position="last")
+    md.append(html_table_from_df(df_val_old_tbl, cols=["Name of Company", "Ticker", "Country", "Sector", "Signal", "Close", "Threshold", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"], max_rows=80))
     md.append("")
     md.append("## 5) Needle-moving catalysts (RSS digest)\n")
     md.append("_Linked digest for drill-down._\n")
@@ -4672,7 +4973,7 @@ def main():
     else:
         md.append("\n**Ended signals:** _None_\n")
     # Section 6: Full watchlist performance (grouped)
-    md.append(build_watchlist_performance_section_md(WATCHLIST_GROUPS, ticker_labels=TICKER_LABELS, ticker_segment_rank=TICKER_SEGMENT_RANK))
+    md.append(build_watchlist_performance_section_md(ohlcv, sector_resolver))
 
     md_text = "\n".join(md).strip() + "\n"
 
