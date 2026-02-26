@@ -3274,6 +3274,7 @@ def detect_dead_cat_bounce(df: pd.DataFrame) -> Optional[PatternCandidate]:
         if i < 1:
             continue
         prev_low = float(L[i - 1]); prev_close = float(C[i - 1])
+        strict_gap = float(H[i]) < prev_low  # meta only (legacy); not used for gating anymore
         gap_pct = (float(O[i]) / prev_close - 1.0) if prev_close != 0 else 0.0
         if not (gap_pct <= -DCB_MIN_GAP_PCT):
             continue
