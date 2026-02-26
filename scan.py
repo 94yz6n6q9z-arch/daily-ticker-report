@@ -18,6 +18,7 @@ NEW (this update):
 - Force RIGHT alignment for numeric figure columns in all markdown tables
   (Key tape, Movers, Technical trigger tables) by patching the markdown
   alignment row to use ---: on numeric columns.
+- Added VP runway metric for CONFIRMED + VALIDATED signals: distance to nearest opposing HVN (%).
 """
 
 from __future__ import annotations
@@ -228,6 +229,22 @@ USER_AGENT = (
 )
 
 FIELDS = ["Open", "High", "Low", "Close", "Volume"]
+
+# Volume Profile (VP) runway gate — deterministic, daily OHLCV approximation
+# Purpose: after a signal becomes VALIDATED, estimate remaining runway to the
+# nearest significant opposing High-Volume Node (HVN) and display it as %.
+VP_ENABLE_RUNWAY = True
+VP_CONTEXT_BARS = 180          # context window used to build the volume-at-price profile
+VP_MIN_CONTEXT_BARS = 80       # minimum bars required to compute a stable VP runway
+VP_BINS_MIN = 32
+VP_BINS_MAX = 96
+VP_BIN_ATR_FRACTION = 0.25     # target price-bin size ~= 0.25 * median ATR (context)
+VP_BIN_PCT_FLOOR = 0.0025      # but never smaller than 0.25% of price
+VP_SMOOTH_KERNEL = np.array([1.0, 2.0, 3.0, 2.0, 1.0], dtype=float)
+VP_PEAK_REL_MAX_MIN = 0.18     # peak must be >= 18% of max smoothed profile
+VP_CLUSTER_FLOOR_FRAC_PEAK = 0.35
+VP_CLUSTER_FLOOR_REL_MAX = 0.08
+VP_MIN_CLUSTER_MASS_FRAC = 0.05  # node must contain >= 5% of profile volume
 
 
 # ----------------------------
@@ -2234,6 +2251,9 @@ class LevelSignal:
     dist_atr: float
     pct_today: Optional[float] = None
     chart_path: Optional[str] = None
+    vp_hvn_runway_pct: Optional[float] = None
+    vp_hvn_zone_low: Optional[float] = None
+    vp_hvn_zone_high: Optional[float] = None
     meta: Optional[Dict[str, Any]] = None
 
 
@@ -2275,6 +2295,249 @@ def _median_atr(df: pd.DataFrame, start: int = 0, end: Optional[int] = None) -> 
     if pd.notna(mc):
         return max(mc * 0.01, 1e-6)
     return 1e-6
+
+
+
+
+def _vp_context_slice(d: pd.DataFrame, end_idx: Optional[int] = None, lookback: int = VP_CONTEXT_BARS) -> pd.DataFrame:
+    if d is None or d.empty:
+        return pd.DataFrame()
+    n = len(d)
+    if end_idx is None:
+        end_idx = n - 1
+    end_idx = int(max(0, min(end_idx, n - 1)))
+    start_idx = max(0, end_idx - int(lookback) + 1)
+    out = d.iloc[start_idx : end_idx + 1].copy()
+    return out
+
+
+def _vp_build_histogram_daily(context: pd.DataFrame) -> Optional[Dict[str, Any]]:
+    """Build a deterministic daily-OHLCV volume-at-price approximation.
+
+    Implementation choice (speed + consistency): weight each bar's typical price (HLC3)
+    by traded volume. This is an approximation (not tick-level volume profile), but it is
+    stable enough for cross-sectional screening and backtests.
+    """
+    if context is None or context.empty:
+        return None
+    req = [c for c in ("High", "Low", "Close", "Volume") if c in context.columns]
+    if len(req) < 4:
+        return None
+
+    c = context.dropna(subset=["High", "Low", "Close", "Volume"]).copy()
+    if len(c) < VP_MIN_CONTEXT_BARS:
+        return None
+
+    hi = pd.to_numeric(c["High"], errors="coerce").to_numpy(dtype=float)
+    lo = pd.to_numeric(c["Low"], errors="coerce").to_numpy(dtype=float)
+    cl = pd.to_numeric(c["Close"], errors="coerce").to_numpy(dtype=float)
+    vol = pd.to_numeric(c["Volume"], errors="coerce").to_numpy(dtype=float)
+
+    mask = np.isfinite(hi) & np.isfinite(lo) & np.isfinite(cl) & np.isfinite(vol) & (vol > 0)
+    if mask.sum() < VP_MIN_CONTEXT_BARS:
+        return None
+
+    hi = hi[mask]
+    lo = lo[mask]
+    cl = cl[mask]
+    vol = vol[mask]
+    tp = (hi + lo + cl) / 3.0
+
+    pmin = float(np.nanmin(lo))
+    pmax = float(np.nanmax(hi))
+    if not np.isfinite(pmin) or not np.isfinite(pmax) or pmax <= pmin:
+        return None
+
+    try:
+        a_ctx = atr(c, ATR_N)
+        med_atr = float(pd.to_numeric(a_ctx, errors="coerce").dropna().median()) if a_ctx is not None else float("nan")
+    except Exception:
+        med_atr = float("nan")
+
+    last_close = float(cl[-1]) if len(cl) else float("nan")
+    if not np.isfinite(last_close) or last_close <= 0:
+        last_close = max((pmin + pmax) / 2.0, 1e-6)
+
+    bin_size = float("nan")
+    if np.isfinite(med_atr) and med_atr > 0:
+        bin_size = max(med_atr * VP_BIN_ATR_FRACTION, last_close * VP_BIN_PCT_FLOOR)
+    else:
+        bin_size = max(last_close * VP_BIN_PCT_FLOOR, (pmax - pmin) / 50.0)
+
+    price_range = max(pmax - pmin, 1e-9)
+    bins_n = int(math.ceil(price_range / max(bin_size, 1e-9)))
+    bins_n = int(max(VP_BINS_MIN, min(VP_BINS_MAX, bins_n)))
+
+    edges = np.linspace(pmin, pmax, bins_n + 1)
+    hist_raw, _ = np.histogram(tp, bins=edges, weights=vol)
+    if hist_raw.size == 0 or not np.isfinite(hist_raw).any() or np.nansum(hist_raw) <= 0:
+        return None
+
+    k = VP_SMOOTH_KERNEL.astype(float)
+    if np.nansum(k) <= 0:
+        k = np.array([1.0], dtype=float)
+    k = k / np.nansum(k)
+    hist_smooth = np.convolve(hist_raw.astype(float), k, mode="same")
+    centers = (edges[:-1] + edges[1:]) / 2.0
+
+    return {
+        "edges": edges,
+        "centers": centers,
+        "hist_raw": hist_raw.astype(float),
+        "hist_smooth": hist_smooth.astype(float),
+        "total_vol": float(np.nansum(hist_raw)),
+        "bin_size": float((edges[1] - edges[0]) if len(edges) >= 2 else np.nan),
+    }
+
+
+def _vp_detect_hvn_zones(profile: Optional[Dict[str, Any]]) -> List[Dict[str, float]]:
+    if not profile:
+        return []
+    raw = np.asarray(profile.get("hist_raw", []), dtype=float)
+    sm = np.asarray(profile.get("hist_smooth", []), dtype=float)
+    edges = np.asarray(profile.get("edges", []), dtype=float)
+    centers = np.asarray(profile.get("centers", []), dtype=float)
+    total_vol = float(profile.get("total_vol", 0.0) or 0.0)
+
+    if raw.size < 3 or sm.size != raw.size or centers.size != raw.size or edges.size != raw.size + 1 or total_vol <= 0:
+        return []
+
+    sm = np.nan_to_num(sm, nan=0.0, posinf=0.0, neginf=0.0)
+    raw = np.nan_to_num(raw, nan=0.0, posinf=0.0, neginf=0.0)
+    sm_max = float(np.max(sm)) if sm.size else 0.0
+    if sm_max <= 0:
+        return []
+
+    # Candidate peaks: local maxima in smoothed profile above relative threshold
+    peaks: List[int] = []
+    peak_floor = VP_PEAK_REL_MAX_MIN * sm_max
+    for i in range(1, len(sm) - 1):
+        if sm[i] < peak_floor:
+            continue
+        if sm[i] >= sm[i - 1] and sm[i] >= sm[i + 1]:
+            if sm[i] > sm[i - 1] or sm[i] > sm[i + 1]:
+                peaks.append(i)
+
+    if not peaks:
+        i = int(np.argmax(sm))
+        peaks = [i] if sm[i] > 0 else []
+    if not peaks:
+        return []
+
+    zones: List[Dict[str, float]] = []
+    for p in peaks:
+        peak_val = float(sm[p])
+        floor_val = max(VP_CLUSTER_FLOOR_FRAC_PEAK * peak_val, VP_CLUSTER_FLOOR_REL_MAX * sm_max)
+
+        l = p
+        while l - 1 >= 0 and sm[l - 1] >= floor_val:
+            l -= 1
+        r = p
+        while r + 1 < len(sm) and sm[r + 1] >= floor_val:
+            r += 1
+
+        mass = float(np.sum(raw[l:r + 1]))
+        mass_frac = mass / total_vol if total_vol > 0 else 0.0
+        if mass_frac < VP_MIN_CLUSTER_MASS_FRAC:
+            continue
+
+        zones.append({
+            "peak": float(centers[p]),
+            "peak_val": float(raw[p]),
+            "smooth_peak": peak_val,
+            "low": float(edges[l]),
+            "high": float(edges[r + 1]),
+            "mass": mass,
+            "mass_frac": float(mass_frac),
+            "i_l": float(l),
+            "i_r": float(r),
+            "i_p": float(p),
+        })
+
+    if not zones:
+        return []
+
+    # Merge overlapping zones (keep stronger peak and combine mass/range)
+    zones = sorted(zones, key=lambda z: (z["low"], z["high"]))
+    merged: List[Dict[str, float]] = []
+    for z in zones:
+        if not merged or z["low"] > merged[-1]["high"]:
+            merged.append(dict(z))
+            continue
+        m = merged[-1]
+        # overlap -> merge ranges and mass; keep stronger peak label
+        m["low"] = min(m["low"], z["low"])
+        m["high"] = max(m["high"], z["high"])
+        m["mass"] = float(m.get("mass", 0.0) + z.get("mass", 0.0))
+        m["mass_frac"] = float(m.get("mass_frac", 0.0) + z.get("mass_frac", 0.0))
+        if z.get("smooth_peak", 0.0) > m.get("smooth_peak", 0.0):
+            for k in ("peak", "peak_val", "smooth_peak", "i_p"):
+                m[k] = z.get(k, m.get(k))
+
+    return merged
+
+
+def _vp_nearest_opposing_hvn_zone(d: pd.DataFrame, close: float, direction: str, end_idx: Optional[int] = None) -> Optional[Dict[str, float]]:
+    if not VP_ENABLE_RUNWAY:
+        return None
+    context = _vp_context_slice(d, end_idx=end_idx, lookback=VP_CONTEXT_BARS)
+    profile = _vp_build_histogram_daily(context)
+    zones = _vp_detect_hvn_zones(profile)
+    if not zones:
+        return None
+
+    direction = str(direction or "").upper()
+    if direction == "BREAKOUT":
+        # opposing node is the first significant overhead HVN zone. Use zone lower bound as the wall start.
+        overhead = [z for z in zones if float(z.get("high", np.nan)) > close]
+        if not overhead:
+            return None
+        overhead.sort(key=lambda z: (max(float(z.get("low", np.inf)), close) - close, float(z.get("low", np.inf))))
+        return overhead[0]
+    elif direction == "BREAKDOWN":
+        below = [z for z in zones if float(z.get("low", np.nan)) < close]
+        if not below:
+            return None
+        # nearest opposing support below: zone upper bound closest below current price
+        below.sort(key=lambda z: (close - min(float(z.get("high", -np.inf)), close), -float(z.get("high", -np.inf))))
+        return below[0]
+    return None
+
+
+def _vp_runway_to_hvn_pct(d: pd.DataFrame, close: float, direction: str, end_idx: Optional[int] = None) -> Tuple[Optional[float], Optional[Dict[str, float]]]:
+    """Return signed runway % in the signal direction to nearest opposing HVN zone.
+
+    Longs (BREAKOUT):  ((zone_low  - close) / close) * 100
+    Shorts (BREAKDOWN):((close - zone_high) / close) * 100
+
+    Positive => runway remains. Negative => price is already inside/past the HVN wall.
+    """
+    try:
+        close = float(close)
+    except Exception:
+        return None, None
+    if not np.isfinite(close) or close <= 0:
+        return None, None
+
+    z = _vp_nearest_opposing_hvn_zone(d, close=close, direction=direction, end_idx=end_idx)
+    if not z:
+        return None, None
+
+    direction = str(direction or "").upper()
+    try:
+        if direction == "BREAKOUT":
+            wall = float(z.get("low"))
+            pct = ((wall - close) / close) * 100.0
+        elif direction == "BREAKDOWN":
+            wall = float(z.get("high"))
+            pct = ((close - wall) / close) * 100.0
+        else:
+            return None, z
+        if not np.isfinite(pct):
+            return None, z
+        return float(pct), z
+    except Exception:
+        return None, z
 
 
 def _pivot_tolerance(df: pd.DataFrame, start: int = 0, end: Optional[int] = None) -> float:
@@ -3257,12 +3520,25 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
         curr_level = _level_at_bar(cand, d, len(d) - 1)
         dist_atr = (close - float(curr_level)) / (atr_val if np.isfinite(atr_val) and atr_val > 0 else max(float(abs(curr_level)) * 0.01, 1e-6))
 
+        vp_runway_pct = None
+        vp_zone_low = None
+        vp_zone_high = None
         if _validated_today(cand, d, a):
             prefix = "VALIDATED_"
         else:
             prefix, dist_atr = _classify_vs_level(close, curr_level, atr_val, cand.direction, vol_ratio, clv)
             if not prefix:
                 continue
+
+        # VP runway/HVN zone for execution-quality context on CONFIRMED + VALIDATED signals.
+        if prefix in ("CONFIRMED_", "VALIDATED_"):
+            try:
+                vp_runway_pct, _z = _vp_runway_to_hvn_pct(d, close=close, direction=cand.direction, end_idx=len(d) - 1)
+                if isinstance(_z, dict):
+                    vp_zone_low = _safe_float(_z.get("low"))
+                    vp_zone_high = _safe_float(_z.get("high"))
+            except Exception:
+                vp_runway_pct, vp_zone_low, vp_zone_high = None, None, None
 
         # Dead-cat-bounce EARLY must be fresh (event-driven) or we suppress it
         if cand.pattern == "DEAD_CAT_BOUNCE" and prefix == "EARLY_":
@@ -3282,6 +3558,9 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
             atr=atr_val,
             dist_atr=float(dist_atr),
             pct_today=pct_today,
+            vp_hvn_runway_pct=vp_runway_pct,
+            vp_hvn_zone_low=vp_zone_low,
+            vp_hvn_zone_high=vp_zone_high,
             meta=cand.meta if isinstance(cand.meta, dict) else None,
         ))
 
@@ -3675,6 +3954,27 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal) -> Option
         ax.text(d.index[-1], sig.level, " Trigger", va="bottom")
         ax.text(d.index[-1], confirm, " Confirm (±0.5 ATR)", va="bottom")
 
+        # Optional VP HVN zone overlay (execution runway context) for CONFIRMED/VALIDATED rows.
+        hvn_lo = _safe_float(getattr(sig, "vp_hvn_zone_low", None))
+        hvn_hi = _safe_float(getattr(sig, "vp_hvn_zone_high", None))
+        hvn_runway = _safe_float(getattr(sig, "vp_hvn_runway_pct", None))
+        if np.isfinite(hvn_lo) and np.isfinite(hvn_hi):
+            zlo, zhi = (min(hvn_lo, hvn_hi), max(hvn_lo, hvn_hi))
+            ax.axhspan(zlo, zhi, alpha=0.10)
+            try:
+                if direction >= 0:
+                    ylab = zhi
+                    va = "bottom"
+                else:
+                    ylab = zlo
+                    va = "top"
+                label = " Opposing HVN zone"
+                if np.isfinite(hvn_runway):
+                    label += f" ({hvn_runway:+.2f}%)"
+                ax.text(d.index[-1], ylab, label, va=va)
+            except Exception:
+                pass
+
         # Pattern markings
         close = d["Close"].astype(float).values
         high = d["High"].astype(float).values
@@ -3697,9 +3997,17 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal) -> Option
         ax.annotate("Close", (d.index[-1], close[-1]),
                     xytext=(d.index[-1], close[-1]),
                     textcoords="data")
-
         # Trade-prep box
-        box = f"Trigger: {sig.level:.2f}\\nConfirm: {confirm:.2f}\\nDist: {sig.dist_atr:+.2f} ATR"
+        box_lines = [
+            f"Trigger: {sig.level:.2f}",
+            f"Confirm: {confirm:.2f}",
+            f"Dist: {sig.dist_atr:+.2f} ATR",
+        ]
+        if np.isfinite(hvn_lo) and np.isfinite(hvn_hi):
+            box_lines.append(f"HVN: {min(hvn_lo,hvn_hi):.2f}–{max(hvn_lo,hvn_hi):.2f}")
+        if np.isfinite(hvn_runway):
+            box_lines.append(f"Runway to HVN: {hvn_runway:+.2f}%")
+        box = "\n".join(box_lines)
         ax.text(0.02, 0.02, box, transform=ax.transAxes, fontsize=9, va="bottom",
                 bbox=dict(boxstyle="round", fc="white", ec="black", lw=0.6))
 
@@ -3755,7 +4063,7 @@ def signals_to_df(
     name_resolver=None,
     country_resolver=None,
 ) -> pd.DataFrame:
-    cols = ["Name of Company", "Ticker", "Country", "Signal", "Pattern", "Dir", "Category", "Close", "Level", "Dist(ATR)", "Day%", "Chart"]
+    cols = ["Name of Company", "Ticker", "Country", "Signal", "Pattern", "Dir", "Category", "Close", "Level", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"]
     if not signals:
         return pd.DataFrame(columns=cols)
     rows = []
@@ -3789,6 +4097,7 @@ def signals_to_df(
             "Close": s.close,
             "Level": s.level,
             "Dist(ATR)": s.dist_atr,
+            "HVN Runway%": s.vp_hvn_runway_pct if s.vp_hvn_runway_pct is not None else np.nan,
             "Day%": s.pct_today if s.pct_today is not None else np.nan,
             "Chart": s.chart_path or ""
         })
@@ -3805,6 +4114,8 @@ def md_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 30) -> s
             d[c] = pd.to_numeric(d[c], errors="coerce").map(lambda x: f"{x:.2f}" if pd.notna(x) else "")
     if "Dist(ATR)" in d.columns:
         d["Dist(ATR)"] = pd.to_numeric(d["Dist(ATR)"], errors="coerce").map(lambda x: f"{x:+.2f}" if pd.notna(x) else "")
+    if "HVN Runway%" in d.columns:
+        d["HVN Runway%"] = pd.to_numeric(d["HVN Runway%"], errors="coerce").map(lambda x: f"{x:+.2f}%" if pd.notna(x) else "")
     if "Vol/AvgVol20" in d.columns:
         d["Vol/AvgVol20"] = pd.to_numeric(d["Vol/AvgVol20"], errors="coerce").map(lambda x: f"{x:.2f}×" if pd.notna(x) else "")
     if "CLV" in d.columns:
@@ -4248,41 +4559,51 @@ def main():
     md.append("")
 
     md.append("### 4B) Confirmed breakouts / breakdowns (watchlist + MSCI World)\n")
-    md.append("_Includes **CONFIRMED** only: close beyond trigger by ≥0.5 ATR AND Volume ≥1.25×AvgVol(20) AND CLV ≥+0.70 (breakout) / ≤−0.70 (breakdown). Categories keep watchlist custom buckets; non-watchlist MSCI names use S&P 500 11-sector labels._ \n")
+    md.append("_Includes **CONFIRMED** only: close beyond trigger by ≥0.5 ATR AND Volume ≥1.25×AvgVol(20) AND CLV ≥+0.70 (breakout) / ≤−0.70 (breakdown). **HVN Runway%** = distance from current price to the nearest significant opposing Volume-Profile HVN zone (daily OHLCV approximation), expressed as % in the signal direction. Categories keep watchlist custom buckets; non-watchlist MSCI names use S&P 500 11-sector labels._ \n")
     md.append("**NEW (today):**\n")
     df_conf_new_tbl = df_conf_new.copy()
     if "Level" in df_conf_new_tbl.columns and "Threshold" not in df_conf_new_tbl.columns:
         df_conf_new_tbl["Threshold"] = df_conf_new_tbl["Level"]
     if not df_conf_new_tbl.empty and "Category" in df_conf_new_tbl.columns:
-        df_conf_new_tbl = df_conf_new_tbl.sort_values(["Category", "Signal", "Dist(ATR)"], na_position="last")
-    md.append(md_table_from_df(df_conf_new_tbl, cols=["Name of Company", "Ticker", "Country", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "Day%", "Chart"], max_rows=80))
+        sort_cols = ["Category", "Signal", "Dist(ATR)"]
+        ascending = [True, True, True]
+        if "HVN Runway%" in df_conf_new_tbl.columns:
+            sort_cols = ["Category", "Signal", "HVN Runway%", "Dist(ATR)"]
+            ascending = [True, True, False, True]
+        df_conf_new_tbl = df_conf_new_tbl.sort_values(sort_cols, ascending=ascending, na_position="last")
+    md.append(md_table_from_df(df_conf_new_tbl, cols=["Name of Company", "Ticker", "Country", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"], max_rows=80))
     md.append("\n**ONGOING:**\n")
     df_conf_old_tbl = df_conf_old.copy()
     if "Level" in df_conf_old_tbl.columns and "Threshold" not in df_conf_old_tbl.columns:
         df_conf_old_tbl["Threshold"] = df_conf_old_tbl["Level"]
     if not df_conf_old_tbl.empty and "Category" in df_conf_old_tbl.columns:
-        df_conf_old_tbl = df_conf_old_tbl.sort_values(["Category", "Signal", "Dist(ATR)"], na_position="last")
-    md.append(md_table_from_df(df_conf_old_tbl, cols=["Name of Company", "Ticker", "Country", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "Day%", "Chart"], max_rows=160))
+        sort_cols = ["Category", "Signal", "Dist(ATR)"]
+        ascending = [True, True, True]
+        if "HVN Runway%" in df_conf_old_tbl.columns:
+            sort_cols = ["Category", "Signal", "HVN Runway%", "Dist(ATR)"]
+            ascending = [True, True, False, True]
+        df_conf_old_tbl = df_conf_old_tbl.sort_values(sort_cols, ascending=ascending, na_position="last")
+    md.append(md_table_from_df(df_conf_old_tbl, cols=["Name of Company", "Ticker", "Country", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"], max_rows=160))
     md.append("")
 
     # 5) Catalysts
     md.append("")
     md.append("### 4C) Validated breakouts / breakdowns (3-session anti-whipsaw)\n")
-    md.append("_Includes **VALIDATED** only: breakout/breakdown occurred **3 sessions ago** AND for the breakout day + the next 3 sessions (incl. today) ALL 3 confirmation gates held on **each** session: (1) CLV >= +0.70 / <= -0.70, (2) Volume >= 1.25x AvgVol(20), (3) Close beyond trigger by >= 0.5 ATR(14)._\n")
+    md.append("_Includes **VALIDATED** only: breakout/breakdown occurred **3 sessions ago** AND for the breakout day + the next 3 sessions (incl. today) ALL 3 confirmation gates held on **each** session: (1) CLV >= +0.70 / <= -0.70, (2) Volume >= 1.25x AvgVol(20), (3) Close beyond trigger by >= 0.5 ATR(14). **HVN Runway%** = distance from current price to the nearest significant opposing Volume-Profile HVN zone (daily OHLCV approximation), expressed as % in the signal direction._\n")
     md.append("**NEW (today):**\n")
     df_val_new_tbl = df_val_new.copy()
     if "Level" in df_val_new_tbl.columns and "Threshold" not in df_val_new_tbl.columns:
         df_val_new_tbl["Threshold"] = df_val_new_tbl["Level"]
     if not df_val_new_tbl.empty and "Category" in df_val_new_tbl.columns:
-        df_val_new_tbl = df_val_new_tbl.sort_values(["Category", "Signal", "Dist(ATR)"], na_position="last")
-    md.append(md_table_from_df(df_val_new_tbl, cols=["Name of Company", "Ticker", "Country", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "Day%", "Chart"], max_rows=80))
+        df_val_new_tbl = df_val_new_tbl.sort_values(["Category", "Signal", "HVN Runway%", "Dist(ATR)"], ascending=[True, True, False, True], na_position="last")
+    md.append(md_table_from_df(df_val_new_tbl, cols=["Name of Company", "Ticker", "Country", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"], max_rows=80))
     md.append("\n**ONGOING:**\n")
     df_val_old_tbl = df_val_old.copy()
     if "Level" in df_val_old_tbl.columns and "Threshold" not in df_val_old_tbl.columns:
         df_val_old_tbl["Threshold"] = df_val_old_tbl["Level"]
     if not df_val_old_tbl.empty and "Category" in df_val_old_tbl.columns:
-        df_val_old_tbl = df_val_old_tbl.sort_values(["Category", "Signal", "Dist(ATR)"], na_position="last")
-    md.append(md_table_from_df(df_val_old_tbl, cols=["Name of Company", "Ticker", "Country", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "Day%", "Chart"], max_rows=80))
+        df_val_old_tbl = df_val_old_tbl.sort_values(["Category", "Signal", "HVN Runway%", "Dist(ATR)"], ascending=[True, True, False, True], na_position="last")
+    md.append(md_table_from_df(df_val_old_tbl, cols=["Name of Company", "Ticker", "Country", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"], max_rows=80))
     md.append("")
     md.append("## 5) Needle-moving catalysts (RSS digest)\n")
     md.append("_Linked digest for drill-down._\n")
