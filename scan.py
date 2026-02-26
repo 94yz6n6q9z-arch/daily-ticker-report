@@ -18,7 +18,7 @@ NEW (this update):
 - Force RIGHT alignment for numeric figure columns in all markdown tables
   (Key tape, Movers, Technical trigger tables) by patching the markdown
   alignment row to use ---: on numeric columns.
-- Added VP runway metric for CONFIRMED + VALIDATED signals: distance to nearest opposing HVN (%).
+- Added VP runway metric for VALIDATED signals: distance to nearest opposing HVN (%).
 """
 
 from __future__ import annotations
@@ -216,6 +216,10 @@ CLV_BREAKOUT_MIN = 0.70   # CLV in [-1..+1] must be >= +0.70 for breakout confir
 CLV_BREAKDOWN_MAX = -0.70  # CLV in [-1..+1] must be <= -0.70 for breakdown confirmation
 
 LOOKBACK_DAYS = 260
+
+# HS/IHS minimum formation duration (daily bars) to avoid short (3-4 week) false positives
+HS_MIN_BARS = 45
+HS_MIN_SIDE_BARS = 10
 DOWNLOAD_PERIOD = "3y"
 DOWNLOAD_INTERVAL = "1d"
 CHUNK_SIZE = 80
@@ -667,6 +671,8 @@ def build_category_resolver(msci_df: pd.DataFrame):
         if base in WATCHLIST_CATEGORY_BY_TICKER:
             return WATCHLIST_CATEGORY_BY_TICKER[base]
         return msci_sector.get(t, msci_sector.get(base, "Unclassified"))
+
+    return _resolve
 
 def _infer_country_from_ticker(ticker: str) -> str:
     t = str(ticker or "").strip().upper()
@@ -2785,6 +2791,10 @@ def _pick_recent_hs_triplet(
                 if ratio < 0.5 or ratio > 2.0:
                     continue
 
+                # Minimum formation duration (avoid 3-4 week HS/IHS false positives)
+                if (p3 - p1) < HS_MIN_BARS or dL < HS_MIN_SIDE_BARS or dR < HS_MIN_SIDE_BARS:
+                    continue
+
                 # Pattern ATR context
                 start_i = p1
                 end_i = p3 + 1
@@ -3471,7 +3481,11 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
     if df is None or df.empty or len(df) < 80:
         return sigs
 
-    d = df.dropna(subset=["Close", "High", "Low"]).copy()
+    # IMPORTANT: use the same lookback slice for detection + level evaluation so meta indices stay aligned.
+    d0 = df.dropna(subset=["Close", "High", "Low"]).copy()
+    if len(d0) < 80:
+        return sigs
+    d = d0.tail(LOOKBACK_DAYS).copy()
     if len(d) < 80:
         return sigs
 
@@ -3523,6 +3537,7 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
         vp_runway_pct = None
         vp_zone_low = None
         vp_zone_high = None
+
         if _validated_today(cand, d, a):
             prefix = "VALIDATED_"
         else:
@@ -3530,7 +3545,7 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
             if not prefix:
                 continue
 
-        # VP runway/HVN zone for execution-quality context on CONFIRMED + VALIDATED signals.
+        # VP runway (distance to nearest opposing HVN) for CONFIRMED + VALIDATED
         if prefix in ("CONFIRMED_", "VALIDATED_"):
             try:
                 vp_runway_pct, _z = _vp_runway_to_hvn_pct(d, close=close, direction=cand.direction, end_idx=len(d) - 1)
@@ -3539,6 +3554,7 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
                     vp_zone_high = _safe_float(_z.get("high"))
             except Exception:
                 vp_runway_pct, vp_zone_low, vp_zone_high = None, None, None
+
 
         # Dead-cat-bounce EARLY must be fresh (event-driven) or we suppress it
         if cand.pattern == "DEAD_CAT_BOUNCE" and prefix == "EARLY_":
@@ -3954,27 +3970,6 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal) -> Option
         ax.text(d.index[-1], sig.level, " Trigger", va="bottom")
         ax.text(d.index[-1], confirm, " Confirm (±0.5 ATR)", va="bottom")
 
-        # Optional VP HVN zone overlay (execution runway context) for CONFIRMED/VALIDATED rows.
-        hvn_lo = _safe_float(getattr(sig, "vp_hvn_zone_low", None))
-        hvn_hi = _safe_float(getattr(sig, "vp_hvn_zone_high", None))
-        hvn_runway = _safe_float(getattr(sig, "vp_hvn_runway_pct", None))
-        if np.isfinite(hvn_lo) and np.isfinite(hvn_hi):
-            zlo, zhi = (min(hvn_lo, hvn_hi), max(hvn_lo, hvn_hi))
-            ax.axhspan(zlo, zhi, alpha=0.10)
-            try:
-                if direction >= 0:
-                    ylab = zhi
-                    va = "bottom"
-                else:
-                    ylab = zlo
-                    va = "top"
-                label = " Opposing HVN zone"
-                if np.isfinite(hvn_runway):
-                    label += f" ({hvn_runway:+.2f}%)"
-                ax.text(d.index[-1], ylab, label, va=va)
-            except Exception:
-                pass
-
         # Pattern markings
         close = d["Close"].astype(float).values
         high = d["High"].astype(float).values
@@ -3982,13 +3977,7 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal) -> Option
 
         used_meta_annotation = _annotate_from_signal_meta(ax, sig)
         if not used_meta_annotation:
-            # Fallbacks for legacy signals / older state entries
-            if "HS_TOP" in sig.signal or "H&S_TOP" in sig.signal:
-                _annotate_hs_top_dt(ax, d.index.to_list(), close, low)
-                ax.text(d.index[int(len(d)*0.05)], sig.level, "Neckline", va="bottom")
-            if "IHS" in sig.signal:
-                _annotate_ihs_dt(ax, d.index.to_list(), close, high)
-                ax.text(d.index[int(len(d)*0.05)], sig.level, "Neckline", va="bottom")
+            # Minimal fallbacks: avoid drawing helper pivot labels (R1/R2/T1/T2) and extra lines.
             if "WEDGE" in sig.signal:
                 _annotate_wedge(ax, d.index.to_list(), high, low, lookback=min(140, len(d)))
 
@@ -3997,17 +3986,9 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal) -> Option
         ax.annotate("Close", (d.index[-1], close[-1]),
                     xytext=(d.index[-1], close[-1]),
                     textcoords="data")
+
         # Trade-prep box
-        box_lines = [
-            f"Trigger: {sig.level:.2f}",
-            f"Confirm: {confirm:.2f}",
-            f"Dist: {sig.dist_atr:+.2f} ATR",
-        ]
-        if np.isfinite(hvn_lo) and np.isfinite(hvn_hi):
-            box_lines.append(f"HVN: {min(hvn_lo,hvn_hi):.2f}–{max(hvn_lo,hvn_hi):.2f}")
-        if np.isfinite(hvn_runway):
-            box_lines.append(f"Runway to HVN: {hvn_runway:+.2f}%")
-        box = "\n".join(box_lines)
+        box = f"Trigger: {sig.level:.2f}\\nConfirm: {confirm:.2f}\\nDist: {sig.dist_atr:+.2f} ATR"
         ax.text(0.02, 0.02, box, transform=ax.transAxes, fontsize=9, va="bottom",
                 bbox=dict(boxstyle="round", fc="white", ec="black", lw=0.6))
 
@@ -4132,6 +4113,81 @@ def md_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 30) -> s
     aligns = tuple("left" if c in left_cols else "right" for c in cols)
 
     return df_to_markdown_aligned(out, aligns=aligns, index=False)
+
+
+def html_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 80) -> str:
+    """Fixed-width HTML table for GitHub Pages (cleaner than Markdown tables)."""
+    if df is None or df.empty:
+        return "<em>None</em>"
+    d = df.copy().head(max_rows)
+
+    for c in ["Close", "Level", "Threshold"]:
+        if c in d.columns:
+            d[c] = pd.to_numeric(d[c], errors="coerce").map(lambda x: f"{x:.2f}" if pd.notna(x) else "")
+    if "Dist(ATR)" in d.columns:
+        d["Dist(ATR)"] = pd.to_numeric(d["Dist(ATR)"], errors="coerce").map(lambda x: f"{x:+.2f}" if pd.notna(x) else "")
+    if "HVN Runway%" in d.columns:
+        d["HVN Runway%"] = pd.to_numeric(d["HVN Runway%"], errors="coerce").map(lambda x: f"{x:+.2f}%" if pd.notna(x) else "")
+    if "Vol/AvgVol20" in d.columns:
+        d["Vol/AvgVol20"] = pd.to_numeric(d["Vol/AvgVol20"], errors="coerce").map(lambda x: f"{x:.2f}×" if pd.notna(x) else "")
+    if "CLV" in d.columns:
+        d["CLV"] = pd.to_numeric(d["CLV"], errors="coerce").map(lambda x: f"{x:+.2f}" if pd.notna(x) else "")
+    if "Day%" in d.columns:
+        d["Day%"] = pd.to_numeric(d["Day%"], errors="coerce").map(lambda x: f"{x:+.2f}%" if pd.notna(x) else "")
+
+    if "Chart" in d.columns:
+        def _mk(p):
+            if isinstance(p, str) and p:
+                return f'<a href="{p}">chart</a>'
+            return ""
+        d["Chart"] = d["Chart"].apply(_mk)
+
+    widths = {
+        "Name of Company": 20,
+        "Ticker": 8,
+        "Country": 6,
+        "Signal": 17,
+        "Pattern": 6,
+        "Dir": 5,
+        "Category": 10,
+        "Close": 5,
+        "Level": 5,
+        "Threshold": 5,
+        "Dist(ATR)": 5,
+        "HVN Runway%": 5,
+        "Day%": 5,
+        "Chart": 3,
+    }
+
+    cols_use = [c for c in cols if c in d.columns]
+    if not cols_use:
+        return "<em>None</em>"
+
+    colgroup = "<colgroup>" + "".join([f'<col style="width:{widths.get(c, 6)}%">' for c in cols_use]) + "</colgroup>"
+    thead = "<thead><tr>" + "".join([f"<th>{c}</th>" for c in cols_use]) + "</tr></thead>"
+
+    num_cols = {"Close","Level","Threshold","Dist(ATR)","HVN Runway%","Vol/AvgVol20","CLV","Day%"}
+    rows_html = []
+    for _, r in d[cols_use].iterrows():
+        tds = []
+        for c in cols_use:
+            v = r.get(c, "")
+            cls = "num" if c in num_cols else "txt"
+            tds.append(f'<td class="{cls}">{"" if v is None else v}</td>')
+        rows_html.append("<tr>" + "".join(tds) + "</tr>")
+    tbody = "<tbody>" + "".join(rows_html) + "</tbody>"
+
+    style = (
+        "<style>"
+        "table.tblfix{table-layout:fixed;width:100%;border-collapse:collapse;margin:8px 0;}"
+        "table.tblfix th,table.tblfix td{border:1px solid #e5e7eb;padding:6px 8px;vertical-align:top;"
+        "overflow-wrap:anywhere;word-break:break-word;white-space:normal;}"
+        "table.tblfix th{background:#f6f8fa;font-weight:600;}"
+        "table.tblfix td.num{text-align:right;font-variant-numeric:tabular-nums;}"
+        "</style>"
+    )
+
+    return style + f'<div style="overflow-x:auto"><table class="tblfix">{colgroup}{thead}{tbody}</table></div>'
 
 
 def enrich_confirmed_rules(df: pd.DataFrame, ohlcv: Dict[str, pd.DataFrame]) -> pd.DataFrame:
@@ -4559,31 +4615,21 @@ def main():
     md.append("")
 
     md.append("### 4B) Confirmed breakouts / breakdowns (watchlist + MSCI World)\n")
-    md.append("_Includes **CONFIRMED** only: close beyond trigger by ≥0.5 ATR AND Volume ≥1.25×AvgVol(20) AND CLV ≥+0.70 (breakout) / ≤−0.70 (breakdown). **HVN Runway%** = distance from current price to the nearest significant opposing Volume-Profile HVN zone (daily OHLCV approximation), expressed as % in the signal direction. Categories keep watchlist custom buckets; non-watchlist MSCI names use S&P 500 11-sector labels._ \n")
+    md.append("_Includes **CONFIRMED** only: close beyond trigger by ≥0.5 ATR AND Volume ≥1.25×AvgVol(20) AND CLV ≥+0.70 (breakout) / ≤−0.70 (breakdown). Categories keep watchlist custom buckets; non-watchlist MSCI names use S&P 500 11-sector labels._ \n")
     md.append("**NEW (today):**\n")
     df_conf_new_tbl = df_conf_new.copy()
     if "Level" in df_conf_new_tbl.columns and "Threshold" not in df_conf_new_tbl.columns:
         df_conf_new_tbl["Threshold"] = df_conf_new_tbl["Level"]
     if not df_conf_new_tbl.empty and "Category" in df_conf_new_tbl.columns:
-        sort_cols = ["Category", "Signal", "Dist(ATR)"]
-        ascending = [True, True, True]
-        if "HVN Runway%" in df_conf_new_tbl.columns:
-            sort_cols = ["Category", "Signal", "HVN Runway%", "Dist(ATR)"]
-            ascending = [True, True, False, True]
-        df_conf_new_tbl = df_conf_new_tbl.sort_values(sort_cols, ascending=ascending, na_position="last")
-    md.append(md_table_from_df(df_conf_new_tbl, cols=["Name of Company", "Ticker", "Country", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"], max_rows=80))
+        df_conf_new_tbl = df_conf_new_tbl.sort_values(["Category", "Signal", "Dist(ATR)"], na_position="last")
+    md.append(html_table_from_df(df_conf_new_tbl, cols=["Name of Company", "Ticker", "Country", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"], max_rows=80))
     md.append("\n**ONGOING:**\n")
     df_conf_old_tbl = df_conf_old.copy()
     if "Level" in df_conf_old_tbl.columns and "Threshold" not in df_conf_old_tbl.columns:
         df_conf_old_tbl["Threshold"] = df_conf_old_tbl["Level"]
     if not df_conf_old_tbl.empty and "Category" in df_conf_old_tbl.columns:
-        sort_cols = ["Category", "Signal", "Dist(ATR)"]
-        ascending = [True, True, True]
-        if "HVN Runway%" in df_conf_old_tbl.columns:
-            sort_cols = ["Category", "Signal", "HVN Runway%", "Dist(ATR)"]
-            ascending = [True, True, False, True]
-        df_conf_old_tbl = df_conf_old_tbl.sort_values(sort_cols, ascending=ascending, na_position="last")
-    md.append(md_table_from_df(df_conf_old_tbl, cols=["Name of Company", "Ticker", "Country", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"], max_rows=160))
+        df_conf_old_tbl = df_conf_old_tbl.sort_values(["Category", "Signal", "Dist(ATR)"], na_position="last")
+    md.append(html_table_from_df(df_conf_old_tbl, cols=["Name of Company", "Ticker", "Country", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"], max_rows=160))
     md.append("")
 
     # 5) Catalysts
@@ -4596,14 +4642,14 @@ def main():
         df_val_new_tbl["Threshold"] = df_val_new_tbl["Level"]
     if not df_val_new_tbl.empty and "Category" in df_val_new_tbl.columns:
         df_val_new_tbl = df_val_new_tbl.sort_values(["Category", "Signal", "HVN Runway%", "Dist(ATR)"], ascending=[True, True, False, True], na_position="last")
-    md.append(md_table_from_df(df_val_new_tbl, cols=["Name of Company", "Ticker", "Country", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"], max_rows=80))
+    md.append(html_table_from_df(df_val_new_tbl, cols=["Name of Company", "Ticker", "Country", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"], max_rows=80))
     md.append("\n**ONGOING:**\n")
     df_val_old_tbl = df_val_old.copy()
     if "Level" in df_val_old_tbl.columns and "Threshold" not in df_val_old_tbl.columns:
         df_val_old_tbl["Threshold"] = df_val_old_tbl["Level"]
     if not df_val_old_tbl.empty and "Category" in df_val_old_tbl.columns:
         df_val_old_tbl = df_val_old_tbl.sort_values(["Category", "Signal", "HVN Runway%", "Dist(ATR)"], ascending=[True, True, False, True], na_position="last")
-    md.append(md_table_from_df(df_val_old_tbl, cols=["Name of Company", "Ticker", "Country", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"], max_rows=80))
+    md.append(html_table_from_df(df_val_old_tbl, cols=["Name of Company", "Ticker", "Country", "Category", "Signal", "Close", "Threshold", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"], max_rows=80))
     md.append("")
     md.append("## 5) Needle-moving catalysts (RSS digest)\n")
     md.append("_Linked digest for drill-down._\n")
