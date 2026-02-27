@@ -238,8 +238,7 @@ HS_MIN_SIDE_BARS = 10
 # HS/IHS maximum formation duration (daily bars) to avoid stale multi-month patterns
 HS_MAX_BARS = 90
 # Maximum allowed lag between pattern completion (RS) and breakout/breakdown confirmation run start
-HS_MAX_BREAKOUT_LAG_BARS = 15
-
+HS_MAX_BREAKOUT_LAG_BARS = 30
 # Lifecycle: CONFIRMED is only day 0..1 of a new confirmed run. Day 2 becomes VALIDATED if the validation window holds.
 CONFIRMED_MAX_AGE_BARS = 2
 VALIDATED_MIN_AGE_BARS = 3
@@ -254,7 +253,7 @@ CHART_MIN_BARS = 120
 
 
 # EARLY callouts must be fresh: pattern completion must be recent (prevents old formations resurfacing)
-EARLY_MAX_AGE_FROM_PATTERN_END_BARS = 20
+EARLY_MAX_AGE_FROM_PATTERN_END_BARS = 30
 DOWNLOAD_PERIOD = "3y"
 DOWNLOAD_INTERVAL = "1d"
 CHUNK_SIZE = 80
@@ -3071,6 +3070,16 @@ def _pick_recent_hs_triplet(
                     t2 = min(between2, key=lambda k: float(d["Low"].iloc[k]))
                     n1 = float(d["Low"].iloc[t1]); n2 = float(d["Low"].iloc[t2])
                     head_gap_quality = min(px2 - px1, px2 - px3)
+
+                # Sanity: ensure shoulders are on the correct side of the intervening troughs/highs
+                # HS_TOP: LS and RS (highs) must be above T1/T2 (lows)
+                # IHS: LS and RS (lows) must be below R1/R2 (highs)
+                if inverse:
+                    if not (px1 < n1 and px3 < n2):
+                        continue
+                else:
+                    if not (px1 > n1 and px3 > n2):
+                        continue
 
                 # Prior trend label enforcement
                 trend = _trend_context_label(c, p1, atr_med)
