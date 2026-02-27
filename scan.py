@@ -230,9 +230,9 @@ HS_MAX_BARS = 90
 # Maximum allowed lag between pattern completion (RS) and breakout/breakdown confirmation run start
 HS_MAX_BREAKOUT_LAG_BARS = 15
 
-# Lifecycle: CONFIRMED is only day 0..2 of a new confirmed run. Day 3 becomes VALIDATED if gates held, else expires.
-CONFIRMED_MAX_AGE_BARS = 2
-VALIDATED_MIN_AGE_BARS = 3
+# Lifecycle: CONFIRMED is only day 0..1 of a new confirmed run. Day 2 becomes VALIDATED if the validation window holds.
+CONFIRMED_MAX_AGE_BARS = 1
+VALIDATED_MIN_AGE_BARS = 2
 # Keep VALIDATED ongoing for at most this many bars after the breakout day (unless you change it).
 VALIDATED_MAX_AGE_BARS = 30
 
@@ -2141,6 +2141,66 @@ def fetch_session_movers_yahoo() -> Tuple[pd.DataFrame, pd.DataFrame]:
     return pick_table(gain_urls), pick_table(lose_urls)
 
 
+def yahoo_quote(symbols: List[str]) -> List[Dict]:
+    """Fetch Yahoo Finance quote data (regular + pre/post market) via the public quote endpoint."""
+    if not symbols:
+        return []
+    out: List[Dict] = []
+    CH = 100
+    for i in range(0, len(symbols), CH):
+        chunk = symbols[i:i+CH]
+        sym_str = ",".join([str(s).strip() for s in chunk if str(s).strip()])
+        if not sym_str:
+            continue
+        url = f"https://query1.finance.yahoo.com/v7/finance/quote?symbols={sym_str}"
+        try:
+            req = Request(url, headers={"User-Agent": USER_AGENT})
+            with urlopen(req, timeout=20) as r:
+                data = json.loads(r.read().decode("utf-8", errors="ignore"))
+            res = (((data or {}).get("quoteResponse") or {}).get("result")) or []
+            if isinstance(res, list):
+                out.extend([x for x in res if isinstance(x, dict)])
+        except Exception:
+            continue
+    return out
+
+
+def fetch_watchlist_afterhours_movers_yahoo(symbols: List[str]) -> pd.DataFrame:
+    """Compute AFTER-HOURS % moves for a given symbol list using Yahoo quote data.
+
+    Uses postMarketChangePercent when available; otherwise skips that symbol.
+    Output schema: ['symbol','pct']
+    """
+    q = yahoo_quote(symbols or [])
+    rows = []
+    for it in q:
+        try:
+            sym = str(it.get("symbol") or "").strip()
+            if not sym:
+                continue
+            pct = it.get("postMarketChangePercent")
+            if pct is None:
+                continue
+            pct_f = float(pct)
+
+            reg_t = it.get("regularMarketTime")
+            post_t = it.get("postMarketTime")
+            if reg_t is not None and post_t is not None:
+                try:
+                    if int(post_t) < int(reg_t):
+                        continue
+                except Exception:
+                    pass
+
+            rows.append({"symbol": sym, "pct": pct_f})
+        except Exception:
+            continue
+
+    if not rows:
+        return pd.DataFrame(columns=["symbol","pct"])
+    return pd.DataFrame(rows, columns=["symbol","pct"])
+
+
 def fetch_afterhours_movers() -> Tuple[pd.DataFrame, pd.DataFrame]:
     gain = pd.DataFrame()
     lose = pd.DataFrame()
@@ -3572,6 +3632,153 @@ def _is_confirmed_bar(
     return bool(price_ok and clv_ok and vol_ok)
 
 
+def _is_price_ok_bar(cand: PatternCandidate, d: pd.DataFrame, a_series: pd.Series, i: int) -> bool:
+    """Price-only gate: close beyond trigger by >= ATR_CONFIRM_MULT * ATR (directional)."""
+    close_i = _safe_float(d["Close"].iloc[i])
+    atr_i = _safe_float(a_series.iloc[i]) if i < len(a_series) else float('nan')
+    if not np.isfinite(atr_i) or atr_i <= 0:
+        atr_i = max(close_i * 0.01, 1e-6)
+    level_i = _safe_float(_level_at_bar(cand, d, i))
+    if cand.direction == "BREAKOUT":
+        return bool(close_i >= level_i + ATR_CONFIRM_MULT * atr_i)
+    return bool(close_i <= level_i - ATR_CONFIRM_MULT * atr_i)
+
+
+def _validated_run_start_after_last_failure(
+    cand: PatternCandidate,
+    d: pd.DataFrame,
+    a_series: pd.Series,
+    end_idx: int,
+) -> Optional[int]:
+    """Find breakout/breakdown start for VALIDATED lifecycle.
+
+    - Find last bar where price was on the wrong side of the trigger (close < level for breakout; close > level for breakdown).
+    - After that, take the first bar that satisfies the price-only confirm gate (>= 0.5 ATR beyond trigger).
+
+    This avoids requiring elevated Volume/CLV on *every* subsequent day.
+    """
+    n = len(d)
+    if n < 10:
+        return None
+    end_idx = int(min(max(end_idx, 0), n - 1))
+
+    lookback = int(min(n - 1, VALIDATED_MAX_AGE_BARS + 60))
+    start_scan = max(0, end_idx - lookback)
+
+    last_wrong = None
+    for i in range(end_idx, start_scan - 1, -1):
+        close_i = _safe_float(d["Close"].iloc[i])
+        level_i = _safe_float(_level_at_bar(cand, d, i))
+        if cand.direction == "BREAKOUT":
+            if close_i < level_i:
+                last_wrong = i
+                break
+        else:
+            if close_i > level_i:
+                last_wrong = i
+                break
+
+    start_search = (last_wrong + 1) if last_wrong is not None else start_scan
+
+    for i in range(start_search, end_idx + 1):
+        try:
+            if _is_price_ok_bar(cand, d, a_series, i):
+                return int(i)
+        except Exception:
+            continue
+    return None
+
+
+def _validation_window_ok(
+    cand: PatternCandidate,
+    d: pd.DataFrame,
+    a_series: pd.Series,
+    run_start: int,
+) -> bool:
+    """3-session anti-whipsaw validation.
+
+    Over the first VALIDATE_BARS bars starting at run_start:
+      - Price-only gate must hold on ALL bars.
+      - Volume and CLV gates must hold on >= 2 of 3 bars each.
+
+    Keeps the initial move high-quality but allows one "cooling" day.
+    """
+    n = len(d)
+    rs = int(run_start)
+    if rs < 0 or rs + VALIDATE_BARS - 1 >= n:
+        return False
+
+    vol_ok_cnt = 0
+    clv_ok_cnt = 0
+
+    for k in range(rs, rs + VALIDATE_BARS):
+        if not _is_price_ok_bar(cand, d, a_series, k):
+            return False
+        clv_k = _bar_clv(d, k)
+        vr_k = _bar_vol_ratio(d, k)
+        if cand.direction == "BREAKOUT":
+            if clv_k >= CLV_BREAKOUT_MIN:
+                clv_ok_cnt += 1
+        else:
+            if clv_k <= CLV_BREAKDOWN_MAX:
+                clv_ok_cnt += 1
+        if vr_k >= VOL_CONFIRM_MULT:
+            vol_ok_cnt += 1
+
+    need = 2 if VALIDATE_BARS >= 3 else max(1, VALIDATE_BARS)
+    return bool(vol_ok_cnt >= need and clv_ok_cnt >= need)
+
+
+def _validated_stage(
+    cand: PatternCandidate,
+    d: pd.DataFrame,
+    a_series: pd.Series,
+    end_idx: int,
+) -> Optional[Tuple[str, str, int, int]]:
+    """Return (stage,status,age,run_start) for VALIDATED if applicable, else None."""
+    n = len(d)
+    end_idx = int(min(max(end_idx, 0), n - 1))
+
+    run_start = _validated_run_start_after_last_failure(cand, d, a_series, end_idx)
+    if run_start is None:
+        return None
+
+    age = int(end_idx - int(run_start))
+    if age < VALIDATED_MIN_AGE_BARS or age > VALIDATED_MAX_AGE_BARS:
+        return None
+
+    if not _validation_window_ok(cand, d, a_series, int(run_start)):
+        return None
+
+    # Exit rules (deterministic):
+    # 1) Hard: cross back through the trigger.
+    # 2) Soft: 2 consecutive closes on the wrong side of EMA20.
+    close_now = _safe_float(d["Close"].iloc[end_idx])
+    level_now = _safe_float(_level_at_bar(cand, d, end_idx))
+
+    try:
+        ema20 = d["Close"].ewm(span=20, adjust=False).mean()
+        ema_now = _safe_float(ema20.iloc[end_idx])
+        ema_prev = _safe_float(ema20.iloc[end_idx - 1]) if end_idx - 1 >= 0 else float('nan')
+        close_prev = _safe_float(d["Close"].iloc[end_idx - 1]) if end_idx - 1 >= 0 else float('nan')
+    except Exception:
+        ema_now = float('nan'); ema_prev = float('nan'); close_prev = float('nan')
+
+    if cand.direction == "BREAKOUT":
+        if close_now < level_now:
+            return None
+        if np.isfinite(ema_now) and np.isfinite(ema_prev) and close_now < ema_now and close_prev < ema_prev:
+            return None
+    else:
+        if close_now > level_now:
+            return None
+        if np.isfinite(ema_now) and np.isfinite(ema_prev) and close_now > ema_now and close_prev > ema_prev:
+            return None
+
+    status = "NEW" if age == VALIDATED_MIN_AGE_BARS else "ONGOING"
+    return ("VALIDATED", status, age, int(run_start))
+
+
 def _confirm_run_start(cand: PatternCandidate, d: pd.DataFrame, a_series: pd.Series) -> Optional[int]:
     """Return the index (in d) of the first bar of the current CONFIRMED run, or None.
 
@@ -3685,7 +3892,7 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
             continue
         seen.add(key)
 
-                        # Stage logic (deterministic lifecycle):
+        # Stage logic (deterministic lifecycle):
         # - EARLY: within 0.5 ATR of trigger (pre-break), regardless of volume/CLV gates
         # - CONFIRMED: breakout/breakdown day is the start of a run where ALL 3 gates hold
         #             (price beyond trigger by >=0.5 ATR, CLV >=+0.70 / <=-0.70, Vol >=1.25x AvgVol20)
@@ -3705,8 +3912,19 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
         stage_age_bars = None
         breakout_start = None
 
-        run_start = _confirm_run_start(cand, d, a)
-        if run_start is not None:
+        run_start = _confirm_run_start(cand, d, a)  # (kept for CONFIRMED-only)
+        # Prefer VALIDATED lifecycle (can remain active even if today is not "fully confirmed")
+        vinfo = _validated_stage(cand, d, a, len(d) - 1)
+        if vinfo is not None:
+            stage, status, age, rs = vinfo
+            prefix = f"{stage}_"
+            stage_status = status
+            stage_age_bars = int(age)
+            try:
+                breakout_start = str(d.index[int(rs)].date()) if isinstance(d.index, pd.DatetimeIndex) else None
+            except Exception:
+                breakout_start = None
+        elif run_start is not None:
             # HS/IHS: breakout must occur soon after the pattern completes (avoid months-late neckline breaks)
             if cand.pattern in ("HS_TOP", "IHS"):
                 meta = cand.meta if isinstance(cand.meta, dict) else {}
@@ -3714,33 +3932,23 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
                 if p_end >= 0 and (int(run_start) - int(p_end)) > HS_MAX_BREAKOUT_LAG_BARS:
                     continue
 
-            stage, status, age = _stage_from_confirm_run(cand, d, a, int(run_start))
-            if stage == "EXPIRED":
+            age = int((len(d) - 1) - int(run_start))
+            if age > CONFIRMED_MAX_AGE_BARS:
                 continue
 
-            # Keep VALIDATED only while price stays on the correct side of the trigger (no volume/CLV required after validation)
-            if stage == "VALIDATED":
-                if cand.direction == "BREAKOUT" and float(close) < float(level_now):
-                    continue
-                if cand.direction != "BREAKOUT" and float(close) > float(level_now):
-                    continue
-
-            prefix = f"{stage}_"
-            stage_status = status
+            prefix = "CONFIRMED_"
+            stage_status = "NEW" if age == 0 else "ONGOING"
             stage_age_bars = int(age)
-
             try:
                 breakout_start = str(d.index[int(run_start)].date()) if isinstance(d.index, pd.DatetimeIndex) else None
             except Exception:
                 breakout_start = None
-
         else:
             # Not confirmed today -> can only be EARLY (pre-break) or nothing.
             prefix, dist_atr = _classify_vs_level(close, level_now, atr_val, cand.direction, vol_ratio, clv)
             if prefix != "EARLY_":
                 continue
-
-        # VP runway (distance to nearest opposing HVN) for CONFIRMED + VALIDATED
+# VP runway (distance to nearest opposing HVN) for CONFIRMED + VALIDATED
         if prefix in ("CONFIRMED_", "VALIDATED_"):
             try:
                 vp_runway_pct, _z = _vp_runway_to_hvn_pct(d, close=close, direction=cand.direction, end_idx=len(d) - 1)
@@ -4396,9 +4604,14 @@ def md_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 30) -> s
 
 
 def html_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 80) -> str:
-    """Fixed-width HTML table for GitHub Pages (cleaner than Markdown tables)."""
+    """HTML table for GitHub Pages (auto layout; no forced column widths).
+
+    Fixed column widths + forced word-breaking looked bad (especially on mobile).
+    This version lets the browser size columns naturally and enables horizontal scrolling.
+    """
     if df is None or df.empty:
         return "<em>None</em>"
+
     d = df.copy().head(max_rows)
 
     for c in ["Close", "Level", "Threshold"]:
@@ -4415,7 +4628,6 @@ def html_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 80) ->
     if "Day%" in d.columns:
         d["Day%"] = pd.to_numeric(d["Day%"], errors="coerce").map(lambda x: f"{x:+.2f}%" if pd.notna(x) else "")
 
-    
     # Additional performance columns (watchlist section)
     for pc in ["Week%", "Month%", "3M%", "YTD%"]:
         if pc in d.columns:
@@ -4429,52 +4641,39 @@ def html_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 80) ->
             return ""
         d["Chart"] = d["Chart"].apply(_mk)
 
-    widths = {
-        "Name of Company": 29,
-        "Ticker": 6,
-        "Country": 5,
-        "Sector": 12,
-        "Signal": 18,
-        "Pattern": 5,
-        "Dir": 3,
-        "Close": 3,
-        "Level": 3,
-        "Threshold": 3,
-        "Dist(ATR)": 3,
-        "HVN Runway%": 4,
-        "Day%": 3,
-        "Chart": 3,
-    }
-
     cols_use = [c for c in cols if c in d.columns]
     if not cols_use:
         return "<em>None</em>"
 
-    colgroup = "<colgroup>" + "".join([f'<col style="width:{widths.get(c, 6)}%">' for c in cols_use]) + "</colgroup>"
+    num_cols = {"Close","Level","Threshold","Dist(ATR)","HVN Runway%","Vol/AvgVol20","CLV","Day%","Week%","Month%","3M%","YTD%","Last"}
+
     thead = "<thead><tr>" + "".join([f"<th>{c}</th>" for c in cols_use]) + "</tr></thead>"
 
-    num_cols = {"Close","Level","Threshold","Dist(ATR)","HVN Runway%","Vol/AvgVol20","CLV","Day%"}
     rows_html = []
     for _, r in d[cols_use].iterrows():
         tds = []
         for c in cols_use:
             v = r.get(c, "")
             cls = "num" if c in num_cols else "txt"
+            if c in ("Name of Company", "Name"):
+                cls = "wrap"  # allow long company names to wrap
             tds.append(f'<td class="{cls}">{"" if v is None else v}</td>')
         rows_html.append("<tr>" + "".join(tds) + "</tr>")
     tbody = "<tbody>" + "".join(rows_html) + "</tbody>"
 
     style = (
         "<style>"
-        "table.tblfix{table-layout:fixed;width:100%;border-collapse:collapse;margin:8px 0;}"
-        "table.tblfix th,table.tblfix td{border:1px solid #e5e7eb;padding:6px 8px;vertical-align:top;"
-        "overflow-wrap:anywhere;word-break:break-word;white-space:normal;}"
-        "table.tblfix th{background:#f6f8fa;font-weight:600;}"
-        "table.tblfix td.num{text-align:right;font-variant-numeric:tabular-nums;}"
+        "table.tblauto{table-layout:auto;width:100%;border-collapse:collapse;margin:8px 0;}"
+        "table.tblauto th,table.tblauto td{border:1px solid #e5e7eb;padding:6px 8px;vertical-align:top;}"
+        "table.tblauto th{background:#f6f8fa;font-weight:600;white-space:nowrap;}"
+        "table.tblauto td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}"
+        "table.tblauto td.txt{white-space:nowrap;}"
+        "table.tblauto td.wrap{white-space:normal;}"
         "</style>"
     )
 
-    return style + f'<div style="overflow-x:auto"><table class="tblfix">{colgroup}{thead}{tbody}</table></div>'
+    return style + f'<div style="overflow-x:auto"><table class="tblauto">{thead}{tbody}</table></div>'
+
 
 
 def enrich_confirmed_rules(df: pd.DataFrame, ohlcv: Dict[str, pd.DataFrame]) -> pd.DataFrame:
@@ -4680,10 +4879,11 @@ def main():
     session_all = pd.DataFrame(session_rows, columns=["symbol", "pct"])
     session_gf = session_all[session_all["pct"] >= MOVER_THRESHOLD_PCT].sort_values("pct", ascending=False)
     session_lf = session_all[session_all["pct"] <= -MOVER_THRESHOLD_PCT].sort_values("pct", ascending=True)
-
-    ah_g, ah_l = fetch_afterhours_movers()
-    ah_gf = filter_movers(ah_g)
-    ah_lf = filter_movers(ah_l)
+    # After-hours movers (watchlist) via Yahoo quote endpoint (postMarketChangePercent)
+    ah_all = fetch_watchlist_afterhours_movers_yahoo(mover_universe)
+    ah_all = filter_movers(ah_all)
+    ah_gf = ah_all[ah_all['pct'] >= MOVER_THRESHOLD_PCT].sort_values('pct', ascending=False)
+    ah_lf = ah_all[ah_all['pct'] <= -MOVER_THRESHOLD_PCT].sort_values('pct', ascending=True)
 
     # Watchlist movers (>|4%|, incl. after-hours) for executive summary
     wl_set = set(custom)
