@@ -129,14 +129,6 @@
   "WMT": [
     "TRIGGER_WEDGE_BREAKOUT"
   ],
-  "signals": [
-    "SMR|EARLY_RECT_BOTTOM_BREAKDOWN",
-    "VST|EARLY_IHS_BREAKOUT",
-    "VST|EARLY_RECT_BOTTOM_BREAKOUT"
-  ],
-  "early": [
-    "VST|EARLY_RECT_BOTTOM_BREAKOUT",
-    "SMR|EARLY_RECT_BOTTOM_BREAKDOWN",
-    "VST|EARLY_IHS_BREAKOUT"
-  ]
+  "signals": [],
+  "early": []
 }
