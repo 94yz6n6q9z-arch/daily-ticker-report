@@ -50,7 +50,7 @@ import matplotlib.pyplot as plt
 # ----------------------------
 # Default watchlist (user-defined)
 # ----------------------------
-# Ensures your full 44-ticker watchlist is ALWAYS included when MODE=custom.
+# Ensures your full  watchlist is ALWAYS included when MODE=custom.
 # You can disable this by setting USE_DEFAULT_WATCHLIST=0 in the environment.
 WATCHLIST_44: List[str] = ["MELI","ARM","QBTS","IONQ","HOOD","PLTR","SNPS","AVGO","CDNS","AMAT",
     "NFLX","LRCX","TSM","DASH","ISRG","MUV2.DE","PGR","CMG","ANF","DECK",
@@ -64,6 +64,16 @@ WATCHLIST_44: List[str] = ["MELI","ARM","QBTS","IONQ","HOOD","PLTR","SNPS","AVGO
 # ----------------------------
 # Watchlist categories (for Section 6)
 # ----------------------------
+
+# Commodities (Yahoo Finance continuous futures symbols)
+COMMODITY_TICKERS: List[str] = ["GC=F", "SI=F", "KC=F", "CC=F"]
+COMMODITY_NAME_OVERRIDES: Dict[str, str] = {
+    "GC=F": "Gold",
+    "SI=F": "Silver",
+    "KC=F": "Coffee",
+    "CC=F": "Cocoa",
+}
+
 WATCHLIST_GROUPS: Dict[str, List[str]] = {
     # EDA merged into this bucket
     "AI compute & semis (incl. EDA)": ["NVDA","ARM","AVGO","TSM","000660.KS","ASML","AMAT","LRCX","SNPS","CDNS"],
@@ -78,6 +88,7 @@ WATCHLIST_GROUPS: Dict[str, List[str]] = {
     # Single quantum bucket (no sub-splitting)
     "Quantum": ["IONQ","QBTS"],
     "Venezuela Oil": ["NAT","INSW","TNK","FRO","MPC","PSX","VLO","CVX","REP.MC","MAU.PA"],
+    "Commodities": COMMODITY_TICKERS,
 }
 
 # One-level-deeper subsegments (max 4 per category), implemented as ticker tags (no extra tables).
@@ -534,7 +545,7 @@ def get_nasdaq100_tickers() -> List[str]:
 
 def get_custom_tickers() -> List[str]:
     tickers = {_clean_ticker(x) for x in read_lines(CUSTOM_TICKERS_PATH)}
-    # Always include the default 44-ticker watchlist unless explicitly disabled.
+    # Always include the default  watchlist unless explicitly disabled.
     if os.environ.get("USE_DEFAULT_WATCHLIST", "1").strip().lower() not in ("0", "false", "no"):
         tickers.update(WATCHLIST_44)
 
@@ -764,6 +775,9 @@ def build_sector_resolver(msci_df: pd.DataFrame):
         if s2:
             return s2
 
+        if t in COMMODITY_TICKERS or base in COMMODITY_TICKERS:
+            return "Commodities"
+
         return "Unclassified"
 
     return _resolve
@@ -826,6 +840,9 @@ def build_company_country_resolvers(msci_df: pd.DataFrame):
         if not t:
             return ""
         base = _base_ticker(t)
+        if t in COMMODITY_NAME_OVERRIDES or base in COMMODITY_NAME_OVERRIDES:
+            return COMMODITY_NAME_OVERRIDES.get(t) or COMMODITY_NAME_OVERRIDES.get(base) or ""
+
         return msci_company.get(t) or msci_company.get(base) or _display_name(t)
 
     def _country(ticker: str) -> str:
@@ -833,6 +850,9 @@ def build_company_country_resolvers(msci_df: pd.DataFrame):
         if not t:
             return ""
         base = _base_ticker(t)
+        if t in COMMODITY_TICKERS or base in COMMODITY_TICKERS:
+            return ""
+
         return msci_country.get(t) or msci_country.get(base) or _infer_country_from_ticker(t)
 
     return _name, _country
@@ -2453,16 +2473,16 @@ def earnings_section_md(watchlist: List[str], days: int = 14) -> str:
         import pandas as pd  # type: ignore
         df = get_watchlist_earnings_next_days(watchlist, days=days)
         if df is None or df.empty:
-            return f"## 3) Earnings next {days} days (watchlist)\n\n_None from watchlist in the next {days} days._\n"
+            return f"## 3) Earnings next {days} days (your watchlist)\n\n_None from watchlist in the next {days} days._\n"
 
         # Render as markdown table (right-align numeric)
         md = []
-        md.append(f"## 3) Earnings next {days} days (watchlist)\n")
-        md.append("_Upcoming earnings dates for your 44-ticker watchlist._\n")
+        md.append(f"## 3) Earnings next {days} days (your watchlist)\n")
+        md.append("_Upcoming earnings dates for your  watchlist._\n")
         md.append(md_table_from_df(df, cols=["Ticker", "Earnings Date", "Days"]))
         return "\n".join(md) + "\n"
     except Exception:
-        return f"## 3) Earnings next {days} days (watchlist)\n\n_(Failed to fetch earnings calendar.)_\n"
+        return f"## 3) Earnings next {days} days (your watchlist)\n\n_(Failed to fetch earnings calendar.)_\n"
 
 
 
@@ -3758,24 +3778,56 @@ def _is_confirmed_bar(
     d: pd.DataFrame,
     a_series: pd.Series,
     i: int,
+    atr_mult: float = ATR_CONFIRM_MULT,
 ) -> bool:
-    close_i = float(d["Close"].iloc[i])
-    atr_i = float(a_series.iloc[i]) if i < len(a_series) and np.isfinite(a_series.iloc[i]) else float("nan")
-    if not np.isfinite(atr_i) or atr_i <= 0:
-        atr_i = max(close_i * 0.01, 1e-6)
-    level_i = _level_at_bar(cand, d, i)
-    clv_i = _bar_clv(d, i)
-    vol_ratio_i = _bar_vol_ratio(d, i)
+    """Return True if bar i satisfies the 3 hard confirmation gates."""
+    try:
+        i = int(i)
+        if i < 0 or i >= len(d):
+            return False
 
-    if cand.direction == "BREAKOUT":
-        price_ok = close_i >= level_i + ATR_CONFIRM_MULT * atr_i
-        clv_ok = clv_i >= CLV_BREAKOUT_MIN
-    else:
-        price_ok = close_i <= level_i - ATR_CONFIRM_MULT * atr_i
-        clv_ok = clv_i <= CLV_BREAKDOWN_MAX
-    vol_ok = vol_ratio_i >= VOL_CONFIRM_MULT
-    return bool(price_ok and clv_ok and vol_ok)
+        level = _safe_float(_level_at_bar(cand, d, i))
+        close = _safe_float(d["Close"].iloc[i])
+        if math.isnan(level) or math.isnan(close):
+            return False
 
+        atr_v = _safe_float(a_series.iloc[i]) if a_series is not None and len(a_series) > i else float("nan")
+        if math.isnan(atr_v) or atr_v <= 0:
+            return False
+
+        dist = (close - level) / atr_v
+        if cand.direction == "BREAKOUT":
+            if dist < atr_mult:
+                return False
+        else:
+            if dist > -atr_mult:
+                return False
+
+        clv = _clv_at_bar(d, i)
+        if cand.direction == "BREAKOUT":
+            if clv < CLV_BREAKOUT_MIN:
+                return False
+        else:
+            if clv > CLV_BREAKDOWN_MAX:
+                return False
+
+        if "Volume" not in d.columns:
+            return False
+        v = _safe_float(d["Volume"].iloc[i])
+        if math.isnan(v) or v <= 0:
+            return False
+        if i >= 21:
+            avg20 = float(pd.to_numeric(d["Volume"].iloc[i-21:i-1], errors="coerce").mean())
+        else:
+            avg20 = float(pd.to_numeric(d["Volume"].iloc[:i], errors="coerce").tail(20).mean()) if i > 1 else float("nan")
+        if math.isnan(avg20) or avg20 <= 0:
+            return False
+        if v < VOL_CONFIRM_MULT * avg20:
+            return False
+
+        return True
+    except Exception:
+        return False
 
 def _is_price_ok_bar(cand: PatternCandidate, d: pd.DataFrame, a_series: pd.Series, i: int) -> bool:
     """Price-only gate: close beyond trigger by >= ATR_CONFIRM_MULT * ATR (directional)."""
@@ -3858,7 +3910,7 @@ def _validation_window_ok(
     if rs < 0 or rs + VALIDATE_BARS - 1 >= n:
         return False
     for k in range(rs, rs + VALIDATE_BARS):
-        if not _is_confirmed_bar(cand, d, a_series, k):
+        if not _is_confirmed_bar(cand, d, a_series, k, atr_mult=ATR_CONFIRM_MULT):
             return False
     return True
 
@@ -3957,7 +4009,7 @@ def _stage_from_confirm_run(
     if age >= VALIDATED_MIN_AGE_BARS:
         ok = True
         for k in range(int(run_start), int(run_start) + VALIDATED_MIN_AGE_BARS + 1):
-            if k >= n or not _is_confirmed_bar(cand, d, a_series, k):
+            if k >= n or not _is_confirmed_bar(cand, d, a_series, k, atr_mult=ATR_CONFIRM_MULT):
                 ok = False
                 break
         if not ok:
@@ -5038,6 +5090,8 @@ def main():
     args = ap.parse_args()
 
     custom = get_custom_tickers()
+    # Extend universe to commodities (no country; sector=Commodities)
+    custom = sorted(set(custom + COMMODITY_TICKERS))
     watchlist_set = set(custom)
 
     # Base universe (unchanged behavior for movers/early callouts)
@@ -5142,7 +5196,31 @@ def main():
     session_lf = session_all[session_all["pct"] <= -MOVER_THRESHOLD_PCT].sort_values("pct", ascending=True)
     # After-hours movers (watchlist) via Yahoo quote endpoint (postMarketChangePercent)
     ah_all = fetch_watchlist_afterhours_movers_yahoo(mover_universe)
+
+    # Fallback: if Yahoo returns no extended-hours data for some tickers, supplement from StockAnalysis after-hours tables.
+    try:
+        fb_gain, fb_lose = fetch_afterhours_movers()
+        fb = pd.concat([fb_gain, fb_lose], ignore_index=True) if (fb_gain is not None and fb_lose is not None) else pd.DataFrame()
+        if fb is not None and not fb.empty:
+            # fb schema: ['_symbol','_pct'] (pct already signed in losers table on StockAnalysis)
+            fb2 = fb.copy()
+            fb2["symbol"] = fb2["_symbol"].astype(str).str.strip()
+            fb2["pct"] = pd.to_numeric(fb2["_pct"], errors="coerce")
+            fb2 = fb2.dropna(subset=["pct"])
+            # Keep only our mover universe symbols
+            fb2 = fb2[fb2["symbol"].isin(set(mover_universe))][["symbol","pct"]]
+            if ah_all is None or ah_all.empty:
+                ah_all = fb2
+            else:
+                have = set(ah_all["symbol"].astype(str))
+                fb2 = fb2[~fb2["symbol"].isin(have)]
+                if not fb2.empty:
+                    ah_all = pd.concat([ah_all, fb2], ignore_index=True)
+    except Exception:
+        pass
+
     ah_all = filter_movers(ah_all)
+
     ah_gf = ah_all[ah_all['pct'] >= MOVER_THRESHOLD_PCT].sort_values('pct', ascending=False)
     ah_lf = ah_all[ah_all['pct'] <= -MOVER_THRESHOLD_PCT].sort_values('pct', ascending=True)
 
