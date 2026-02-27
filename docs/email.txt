@@ -1,33 +1,33 @@
 # Daily Report
 
-_Generated: **2026-02-27 12:55 CET**_
+_Generated: **2026-02-27 16:45 CET**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Headline: AI-linked tech slid as investors digested Nvidia’s latest earnings read-through and CoreWeave’s weaker revenue guidance, keeping the tape stuck in its choppy, risk-sensitive pattern of recent weeks. The Nasdaq 100 fell 1.16% and the S&P 500 lost 0.54% while the Vix jumped 8.21%, extending the past month’s uneasy tone (NDX -3.49% 1M). Biggest movers on the watchlist were IONQ up 21.70% and NAT up 7.14%, while NU fell 9.55% and NVDA dropped 5.46%.
+Headline: Hot PPI inflation and a fresh burst of AI dealmaking kept pressure on equities as investors weighed rates risk against still-frothy tech narratives. The Nasdaq 100 fell 0.3% and the S&P 500 slid 0.5% as the VIX jumped 10.5%, extending a choppy, risk-sensitive tape of the past month (NDX -4.1% 1M). On the watchlist, NFLX rose 8.9% and SI=F gained 7.4%, while QBTS sank 10.3%, IONQ dropped 7.5% and OKLO fell 7.2%.
 
 **Key tape (multi-horizon):**
 
-| Instrument       | Last      | 1D                                         | 7D                                         | 1M                                          | 3M                                          | 6M                                           |
+| Instrument       | Last      | 1D                                          | 7D                                          | 1M                                          | 3M                                          | 6M                                           |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Nasdaq 100       | 25,034.37 | <span style="color:#b91c1c;">-1.16%</span> | <span style="color:#11823b;">+0.96%</span> | <span style="color:#b91c1c;">-3.49%</span>  | <span style="color:#b91c1c;">-1.57%</span>  | <span style="color:#11823b;">+6.91%</span>   |
-| S&P 500          | 6,908.86  | <span style="color:#b91c1c;">-0.54%</span> | <span style="color:#11823b;">+0.68%</span> | <span style="color:#b91c1c;">-1.00%</span>  | <span style="color:#11823b;">+0.87%</span>  | <span style="color:#11823b;">+6.94%</span>   |
-| QQQ              | 609.24    | <span style="color:#b91c1c;">-1.21%</span> | <span style="color:#11823b;">+0.96%</span> | <span style="color:#b91c1c;">-3.47%</span>  | <span style="color:#b91c1c;">-1.62%</span>  | <span style="color:#11823b;">+6.81%</span>   |
-| SPY              | 689.30    | <span style="color:#b91c1c;">-0.56%</span> | <span style="color:#11823b;">+0.70%</span> | <span style="color:#b91c1c;">-0.89%</span>  | <span style="color:#11823b;">+0.86%</span>  | <span style="color:#11823b;">+6.86%</span>   |
-| STOXX Europe 600 | 633.93    | <span style="color:#11823b;">+0.12%</span> | <span style="color:#11823b;">+0.53%</span> | <span style="color:#11823b;">+4.18%</span>  | <span style="color:#11823b;">+9.98%</span>  | <span style="color:#11823b;">+15.23%</span>  |
-| DAX              | 25,302.79 | <span style="color:#11823b;">+0.05%</span> | <span style="color:#11823b;">+0.17%</span> | <span style="color:#11823b;">+1.93%</span>  | <span style="color:#11823b;">+6.15%</span>  | <span style="color:#11823b;">+5.86%</span>   |
-| CAC 40           | 8,610.77  | <span style="color:#b91c1c;">-0.12%</span> | <span style="color:#11823b;">+1.12%</span> | <span style="color:#11823b;">+6.74%</span>  | <span style="color:#11823b;">+6.01%</span>  | <span style="color:#11823b;">+11.77%</span>  |
-| FTSE 100         | 10,886.86 | <span style="color:#11823b;">+0.37%</span> | <span style="color:#11823b;">+1.87%</span> | <span style="color:#11823b;">+7.21%</span>  | <span style="color:#11823b;">+12.00%</span> | <span style="color:#11823b;">+18.50%</span>  |
-| VIX              | 20.16     | <span style="color:#11823b;">+8.21%</span> | <span style="color:#11823b;">+5.61%</span> | <span style="color:#11823b;">+23.30%</span> | <span style="color:#11823b;">+23.30%</span> | <span style="color:#11823b;">+31.25%</span>  |
-| EUR/USD          | 1.18      | <span style="color:#b91c1c;">-0.09%</span> | <span style="color:#11823b;">+0.30%</span> | <span style="color:#b91c1c;">-1.77%</span>  | <span style="color:#11823b;">+1.77%</span>  | <span style="color:#11823b;">+1.06%</span>   |
-| WTI Crude        | 66.74     | <span style="color:#11823b;">+2.35%</span> | <span style="color:#11823b;">+0.53%</span> | <span style="color:#11823b;">+5.58%</span>  | <span style="color:#11823b;">+13.99%</span> | <span style="color:#11823b;">+4.26%</span>   |
-| Gold             | 5,194.00  | <span style="color:#11823b;">+0.34%</span> | <span style="color:#11823b;">+2.66%</span> | <span style="color:#b91c1c;">-2.03%</span>  | <span style="color:#11823b;">+23.13%</span> | <span style="color:#11823b;">+49.52%</span>  |
-| Silver           | 90.25     | <span style="color:#11823b;">+3.74%</span> | <span style="color:#11823b;">+9.68%</span> | <span style="color:#b91c1c;">-20.21%</span> | <span style="color:#11823b;">+59.89%</span> | <span style="color:#11823b;">+124.50%</span> |
-| Coffee           | 278.25    | <span style="color:#b91c1c;">-2.71%</span> | <span style="color:#b91c1c;">-3.49%</span> | <span style="color:#b91c1c;">-20.73%</span> | <span style="color:#b91c1c;">-32.63%</span> | <span style="color:#b91c1c;">-29.89%</span>  |
-| Cocoa            | 2,963.00  | <span style="color:#b91c1c;">-0.37%</span> | <span style="color:#b91c1c;">-3.80%</span> | <span style="color:#b91c1c;">-28.60%</span> | <span style="color:#b91c1c;">-45.17%</span> | <span style="color:#b91c1c;">-61.19%</span>  |
-| Bitcoin          | 66,053.22 | <span style="color:#b91c1c;">-2.08%</span> | <span style="color:#b91c1c;">-2.87%</span> | <span style="color:#b91c1c;">-25.94%</span> | <span style="color:#b91c1c;">-27.30%</span> | <span style="color:#b91c1c;">-38.97%</span>  |
+| Nasdaq 100       | 24,966.53 | <span style="color:#b91c1c;">-0.27%</span>  | <span style="color:#b91c1c;">-0.18%</span>  | <span style="color:#b91c1c;">-4.06%</span>  | <span style="color:#b91c1c;">-1.84%</span>  | <span style="color:#11823b;">+6.62%</span>   |
+| S&P 500          | 6,874.47  | <span style="color:#b91c1c;">-0.50%</span>  | <span style="color:#b91c1c;">-0.51%</span>  | <span style="color:#b91c1c;">-1.48%</span>  | <span style="color:#11823b;">+0.37%</span>  | <span style="color:#11823b;">+6.41%</span>   |
+| QQQ              | 607.88    | <span style="color:#b91c1c;">-0.22%</span>  | <span style="color:#b91c1c;">-0.15%</span>  | <span style="color:#b91c1c;">-4.00%</span>  | <span style="color:#b91c1c;">-1.84%</span>  | <span style="color:#11823b;">+6.57%</span>   |
+| SPY              | 685.92    | <span style="color:#b91c1c;">-0.49%</span>  | <span style="color:#b91c1c;">-0.51%</span>  | <span style="color:#b91c1c;">-1.37%</span>  | <span style="color:#11823b;">+0.37%</span>  | <span style="color:#11823b;">+6.34%</span>   |
+| STOXX Europe 600 | 633.25    | <span style="color:#11823b;">+0.01%</span>  | <span style="color:#11823b;">+0.43%</span>  | <span style="color:#11823b;">+4.07%</span>  | <span style="color:#11823b;">+9.86%</span>  | <span style="color:#11823b;">+15.11%</span>  |
+| DAX              | 25,269.96 | <span style="color:#b91c1c;">-0.08%</span>  | <span style="color:#11823b;">+0.04%</span>  | <span style="color:#11823b;">+1.80%</span>  | <span style="color:#11823b;">+6.01%</span>  | <span style="color:#11823b;">+5.72%</span>   |
+| CAC 40           | 8,581.75  | <span style="color:#b91c1c;">-0.45%</span>  | <span style="color:#11823b;">+0.78%</span>  | <span style="color:#11823b;">+6.39%</span>  | <span style="color:#11823b;">+5.65%</span>  | <span style="color:#11823b;">+11.39%</span>  |
+| FTSE 100         | 10,901.14 | <span style="color:#11823b;">+0.50%</span>  | <span style="color:#11823b;">+2.00%</span>  | <span style="color:#11823b;">+7.35%</span>  | <span style="color:#11823b;">+12.15%</span> | <span style="color:#11823b;">+18.65%</span>  |
+| VIX              | 20.59     | <span style="color:#11823b;">+10.52%</span> | <span style="color:#11823b;">+7.86%</span>  | <span style="color:#11823b;">+25.93%</span> | <span style="color:#11823b;">+25.93%</span> | <span style="color:#11823b;">+34.05%</span>  |
+| EUR/USD          | 1.18      | <span style="color:#11823b;">+0.01%</span>  | <span style="color:#11823b;">+0.40%</span>  | <span style="color:#b91c1c;">-1.68%</span>  | <span style="color:#11823b;">+1.86%</span>  | <span style="color:#11823b;">+1.15%</span>   |
+| WTI Crude        | 66.61     | <span style="color:#11823b;">+2.15%</span>  | <span style="color:#11823b;">+0.33%</span>  | <span style="color:#11823b;">+5.38%</span>  | <span style="color:#11823b;">+13.77%</span> | <span style="color:#11823b;">+4.06%</span>   |
+| Gold             | 5,245.20  | <span style="color:#11823b;">+1.33%</span>  | <span style="color:#11823b;">+3.67%</span>  | <span style="color:#b91c1c;">-1.06%</span>  | <span style="color:#11823b;">+24.34%</span> | <span style="color:#11823b;">+51.00%</span>  |
+| Silver           | 93.07     | <span style="color:#11823b;">+6.99%</span>  | <span style="color:#11823b;">+13.12%</span> | <span style="color:#b91c1c;">-17.71%</span> | <span style="color:#11823b;">+64.89%</span> | <span style="color:#11823b;">+131.53%</span> |
+| Coffee           | 281.40    | <span style="color:#b91c1c;">-1.61%</span>  | <span style="color:#b91c1c;">-2.39%</span>  | <span style="color:#b91c1c;">-19.83%</span> | <span style="color:#b91c1c;">-31.86%</span> | <span style="color:#b91c1c;">-29.09%</span>  |
+| Cocoa            | 2,907.00  | <span style="color:#b91c1c;">-2.25%</span>  | <span style="color:#b91c1c;">-5.62%</span>  | <span style="color:#b91c1c;">-29.95%</span> | <span style="color:#b91c1c;">-46.21%</span> | <span style="color:#b91c1c;">-61.93%</span>  |
+| Bitcoin          | 65,993.36 | <span style="color:#b91c1c;">-2.17%</span>  | <span style="color:#b91c1c;">-2.96%</span>  | <span style="color:#b91c1c;">-26.00%</span> | <span style="color:#b91c1c;">-27.36%</span> | <span style="color:#b91c1c;">-39.03%</span>  |
 
 **Macro charts (5Y):**
 
@@ -38,32 +38,28 @@ Headline: AI-linked tech slid as investors digested Nvidia’s latest earnings r
 
 **Session gainers:**
 
-| Ticker   | pct     |
+| Ticker   | pct    |
 | :--- | ---: |
-| IONQ     | +21.70% |
-| NAT      | +7.14%  |
-| INSW     | +4.30%  |
-| DASH     | +4.25%  |
-| OKLO     | +4.15%  |
+| NFLX     | +8.90% |
+| SI=F     | +7.43% |
 
 **Session losers:**
 
-| Ticker   | pct    |
+| Ticker   | pct     |
 | :--- | ---: |
-| NU       | -9.55% |
-| NVDA     | -5.46% |
-| AMAT     | -4.87% |
-| BYDDY    | -4.58% |
-| LRCX     | -4.17% |
-| ASML     | -4.11% |
+| QBTS     | -10.30% |
+| IONQ     | -7.49%  |
+| OKLO     | -7.23%  |
+| NVDA     | -5.46%  |
+| MPC      | -4.85%  |
 
 **After-hours gainers:** _None ≥ 4%_
 
 **After-hours losers:** _None ≥ 4%_
 
-## 3) Earnings next 14 days (watchlist)
+## 3) Earnings next 14 days (your watchlist)
 
-_Upcoming earnings dates for your 44-ticker watchlist._
+_Upcoming earnings dates for your  watchlist._
 
 | Ticker   | Earnings Date   |   Days |
 | :--- | ---: | ---: |
@@ -87,9 +83,10 @@ _Logic: score each ticker by stage (EARLY=1, CONFIRMED=3, VALIDATED=4) × direct
 | Consumer & retail (incl. luxury) | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
 | Fintech & financials | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
 | Healthcare | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
-| Energy & Nuclear | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
+| Energy & Nuclear | Mixed | 1 | 1 | 0 | 0 | 0 | 0 |
 | Quantum | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
-| Venezuela Oil | Bullish | 0 | 0 | 2 | 0 | 0 | 0 |
+| Venezuela Oil | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
+| Commodities | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
 
 
 ### 4A) Early callouts (~90% complete)
@@ -98,16 +95,36 @@ _Close enough to pre-plan. “Close enough” = within 0.5 ATR of the trigger (n
 
 **NEW (today):**
 
-_None_
+| Ticker   | Signal                      |   Close |   Threshold |   Dist(ATR) | Day%   | Chart                                            |
+| :--- | :--- | ---: | ---: | ---: | ---: | :--- |
+| VST      | EARLY_RECT_BOTTOM_BREAKOUT  |  174.68 |    173.323  |        0.19 | -1.21% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/VST_EARLY_RECT_BOTTOM_BREAKOUT.png)  |
+| SMR      | EARLY_RECT_BOTTOM_BREAKDOWN |   13.22 |     12.9496 |        0.22 | -0.83% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/SMR_EARLY_RECT_BOTTOM_BREAKDOWN.png) |
+| VST      | EARLY_IHS_BREAKOUT          |  174.68 |    177.285  |       -0.36 | -1.21% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/VST_EARLY_IHS_BREAKOUT.png)          |
+
+**What’s going on (NEW early callouts):**
+
+#### VST — `EARLY_RECT_BOTTOM_BREAKOUT`
+- **Trigger (level):** 173.32  |  **Close:** 174.68  |  **Distance:** +0.19 ATR
+- Chart includes **SMA(50)** + **SMA(200)**, **volume**, plus trigger + confirmation (±0.5 ATR). HS/IHS is labeled (LS/H/RS) with neckline; Wedges include upper/lower trendlines with touch points.
+- **Setup:** watch for confirmation close beyond trigger by ≥ 0.5 ATR, or a clean retest/failure in the direction of the signal.
+<img src="https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/VST_EARLY_RECT_BOTTOM_BREAKOUT.png" width="720" style="max-width:100%;height:auto;">
+
+#### SMR — `EARLY_RECT_BOTTOM_BREAKDOWN`
+- **Trigger (level):** 12.95  |  **Close:** 13.22  |  **Distance:** +0.22 ATR
+- Chart includes **SMA(50)** + **SMA(200)**, **volume**, plus trigger + confirmation (±0.5 ATR). HS/IHS is labeled (LS/H/RS) with neckline; Wedges include upper/lower trendlines with touch points.
+- **Setup:** watch for confirmation close beyond trigger by ≥ 0.5 ATR, or a clean retest/failure in the direction of the signal.
+<img src="https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/SMR_EARLY_RECT_BOTTOM_BREAKDOWN.png" width="720" style="max-width:100%;height:auto;">
+
+#### VST — `EARLY_IHS_BREAKOUT`
+- **Trigger (level):** 177.29  |  **Close:** 174.68  |  **Distance:** -0.36 ATR
+- Chart includes **SMA(50)** + **SMA(200)**, **volume**, plus trigger + confirmation (±0.5 ATR). HS/IHS is labeled (LS/H/RS) with neckline; Wedges include upper/lower trendlines with touch points.
+- **HS/IHS read:** neckline is the trigger; chart labels LS/H/RS and draws the neckline + confirmation band.
+<img src="https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/VST_EARLY_IHS_BREAKOUT.png" width="720" style="max-width:100%;height:auto;">
+
 
 **ONGOING:**
 
 _None_
-
-**Ended today (EARLY):**
-
-- AMZN|EARLY_HS_TOP_BREAKDOWN
-
 
 ### 4B) Confirmed breakouts / breakdowns (watchlist + MSCI World)
 
@@ -115,4 +132,58 @@ _Includes **CONFIRMED** only: close beyond trigger by ≥0.5 ATR AND Volume ≥1
 
 **NEW (today):**
 
-<style>table.tblauto{table-layout:auto;width:100%;border-collapse:collapse;margin:8px 0;}table.tblauto th,table.tblauto td{border:1px solid #e5e7eb;padding:6px 8px;vertical-align:top;}table.tblauto th{background:#f6f8fa;font-weight:600;white-space:nowrap;}table.tblauto td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}table.tblauto td.txt{white-space:nowrap;}table.tblauto td.wrap{white-space:normal;}</style><div style="overflow-x:auto"><table class="tblauto"><thead><tr><th>Name of Company</th><th>Ticker</th><th>Country</th><th>Sector</th><th>Signal</th><th>Close</th><th>Threshold</th><th>Dist(ATR)</th><th>HVN Runway%</th><th>Day%</th><th>Chart</th></tr></thead><tbody><tr><td class="wrap">ISUZU MOTORS LTD</td><td class="txt">7202.T</td><td class="txt">Japan</td><td class="txt">Consumer Discretionary</td><td class="txt">CONFIRMED_MOMO_TREND_BREAKOUT</td><td class="num">2,918.50</td><td class="num">2,760.58</td><td class="num">+1.61</td><td class="num"></td><td class="num">+2.1%</td><td class="txt"><a href="img/7202.T_CONFIRMED_MOMO_TREND_BREAKOUT.png">chart</a></td></tr><tr><td class="wrap">SEKISUI HOUSE LTD</td><td class="txt">1928.T</td><td class="txt">Japan</td><td class="txt">Consumer Discretionary</td><td class="txt">CONFIRMED_MOMO_TREND_BREAKOUT</td><td class="num">3,826.00</td><td class="num">3,700.07</td><td class="num">+2.12</td><td class="num">-3.01%</td><td class="num">+0.7%</td><td class="txt"><a href="img/1928.T_CONFIRMED_MOMO_TREND_BREAKOUT.png">chart</a></td></tr><tr><td class="wrap">IDEMITSU KOSAN LTD</td><td class="txt">5019.T</td><td class="txt">Japan</td><td class="txt">Energy</td><td class="txt">CONFIRMED_MOMO_TREND_BREAKOUT</td><td class="num">1,491.00</td><td class="num">1,384.57</td><td class="num">+2.56</td><td class="num"></td><td class="num">+6.2%</td><td class="txt"><a href="img/5019.T_CONFIRMED_MOMO_TREND_BREAKOUT.png">chart</a></td></tr><tr><td class="wrap">BOC HONG KONG HOLDINGS LTD</td><td class="txt">2388.HK</td><td class="txt">Hong Kong</td><td class="txt">Financials</td><td class="txt">CONFIRMED_MOMO_TREND_BREAKOUT</td><td class="num">44.90</td><td class="num">42.81</td><td class="num">+2.50</td><td class="num"></td><td class="num">+2.3%</td><td class="txt"><a href="img/2388.HK_CONFIRMED_MOMO_TREND_BREAKOUT.png">chart</a></td></tr><tr><td class="wrap">JAPAN EXCHANGE GROUP INC</td><td class="txt">8697.T</td><td class="txt">Japan</td><td class="txt">Financials</td><td class="txt">CONFIRMED_MOMO_TREND_BREAKOUT</td><td class="num">2,135.50</td><td class="num">1,871.81</td><td class="num">+3.82</td><td class="num"></td><td class="num">+3.5%</td><td class="txt"><a href="img/8697.T_CONFIRMED_MOMO_TREND_BREAKOUT.png">chart</a></td></tr><tr><td class="wrap">JAPAN EXCHANGE GROUP INC</td><td class="txt">8697.T</td><td class="txt">Japan</td><td class="txt">Financials</td><td class="txt">CONFIRMED_RECT_TOP_BREAKOUT</td><td class="num">2,135.50</td><td class="num">1,862.97</td><td class="num">+3.95</td><td class="num"></td><td class="num">+3.5%</td><td class="txt"><a href="img/8697.T_CONFIRMED_RECT_TOP_BREAKOUT.png">chart</a></td></tr><tr><td class="wrap">DAI NIPPON PRINTING LTD</td><td class="txt">7912.T</td><td class="txt">Japan</td><td class="txt">Industrials</td><td class="txt">CONFIRMED_MOMO_TREND_BREAKOUT</td><td class="num">3,250.00</td><td class="num">3,049.84</td><td class="num">+2.32</td><td class="num"></td><td class="num">+2.0%</td><td class="txt"><a href="img/7912.T_CONFIRMED_MOMO_TREND_BREAKOUT.png">chart</a></td></tr><tr><td class="wrap">JARDINE MATHESON HOLDINGS LTD</td><td class="txt">J36.SI</td><td class="txt">Hong Kong</td><td class="txt">Industrials</td><td class="txt">CONFIRMED_MOMO_TREND_BREAKOUT</td><td class="num">82.50</td><td class="num">77.76</td><td class="num">+2.35</td><td class="num"></td><td class="num">+2.5%</td><td class="txt"><a href="img/J36.SI_CONFIRMED_MOMO_TREND_BREAKOUT.png">chart</a></td></tr><tr><td class="wrap">OBAYASHI CORP</td><td class="txt">1802.T</td><td class="txt">Japan</td><td class="txt">Industrials</td><td class="txt">CONFIRMED_MOMO_TREND_BREAKOUT</td><td class="num">4,416.00</td><td class="num">4,037.94</td><td class="num">+2.43</td><td class="num"></td><td class="num">+4.4%<
+<em>None</em>
+
+**ONGOING:**
+
+<em>None</em>
+
+**Ended today (CONFIRMED):**
+
+- 0016.HK|CONFIRMED_MOMO_TREND_BREAKOUT
+- 1113.HK|CONFIRMED_MOMO_TREND_BREAKOUT
+- 1308.HK|CONFIRMED_MOMO_TREND_BREAKOUT
+- 1801.T|CONFIRMED_MOMO_TREND_BREAKOUT
+- 1802.T|CONFIRMED_MOMO_TREND_BREAKOUT
+- 1928.T|CONFIRMED_MOMO_TREND_BREAKOUT
+- 2388.HK|CONFIRMED_MOMO_TREND_BREAKOUT
+- 3407.T|CONFIRMED_MOMO_TREND_BREAKOUT
+- 4188.T|CONFIRMED_MOMO_TREND_BREAKOUT
+- 5019.T|CONFIRMED_MOMO_TREND_BREAKOUT
+- 5201.T|CONFIRMED_MOMO_TREND_BREAKOUT
+- 7202.T|CONFIRMED_MOMO_TREND_BREAKOUT
+- 7911.T|CONFIRMED_MOMO_TREND_BREAKOUT
+- 7911.T|CONFIRMED_RECT_TOP_BREAKOUT
+- 7912.T|CONFIRMED_MOMO_TREND_BREAKOUT
+- 8697.T|CONFIRMED_MOMO_TREND_BREAKOUT
+- 8697.T|CONFIRMED_RECT_TOP_BREAKOUT
+- 9005.T|CONFIRMED_MOMO_TREND_BREAKOUT
+- 9104.T|CONFIRMED_MOMO_TREND_BREAKOUT
+- INSW|CONFIRMED_MOMO_TREND_BREAKOUT
+- J36.SI|CONFIRMED_MOMO_TREND_BREAKOUT
+- NAT|CONFIRMED_MOMO_TREND_BREAKOUT
+
+
+
+### 4C) Validated breakouts / breakdowns (3-session anti-whipsaw)
+
+_Includes **VALIDATED** only: breakout/breakdown occurred **3 sessions ago** AND for the breakout day + the next 3 sessions (incl. today) ALL 3 confirmation gates held on **each** session: (1) CLV >= +0.70 / <= -0.70, (2) Volume >= 1.25x AvgVol(20), (3) Close beyond trigger by >= 0.5 ATR(14). **HVN Runway%** = distance from current price to the nearest significant opposing Volume-Profile HVN zone (daily OHLCV approximation), expressed as % in the signal direction._
+
+**NEW (today):**
+
+<em>None</em>
+
+**ONGOING:**
+
+<em>None</em>
+
+**Ended today (VALIDATED):**
+
+- BS6.SI|VALIDATED_MOMO_TREND_BREAKOUT
+
+
+## 5) Needle-moving catalysts (RSS digest)
+
+_Linked digest for drill-down._
+
+- [OpenAI announces $110 billion funding round with backing from Amazon, Nvidia, SoftBank](https://ww
