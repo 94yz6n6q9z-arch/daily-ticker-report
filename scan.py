@@ -234,7 +234,7 @@ HS_MAX_BREAKOUT_LAG_BARS = 15
 CONFIRMED_MAX_AGE_BARS = 1
 VALIDATED_MIN_AGE_BARS = 2
 # Keep VALIDATED ongoing for at most this many bars after the breakout day (unless you change it).
-VALIDATED_MAX_AGE_BARS = 30
+VALIDATED_MAX_AGE_BARS = 90
 
 # Dead Cat Bounce: event must be an overnight gap-down of at least 10% (open vs prior close)
 DCB_MIN_GAP_PCT = 0.10
@@ -2142,34 +2142,76 @@ def fetch_session_movers_yahoo() -> Tuple[pd.DataFrame, pd.DataFrame]:
 
 
 def yahoo_quote(symbols: List[str]) -> List[Dict]:
-    """Fetch Yahoo Finance quote data (regular + pre/post market) via the public quote endpoint."""
+    """Fetch Yahoo Finance quote data (regular + extended hours) via the public quote endpoint.
+
+    Robustness:
+      - URL-encodes symbols safely
+      - Retries on transient HTTP errors (429/5xx)
+      - Falls back to per-symbol requests if a chunk fails
+    """
     if not symbols:
         return []
-    out: List[Dict] = []
-    CH = 100
-    for i in range(0, len(symbols), CH):
-        chunk = symbols[i:i+CH]
-        sym_str = ",".join([str(s).strip() for s in chunk if str(s).strip()])
-        if not sym_str:
-            continue
-        url = f"https://query1.finance.yahoo.com/v7/finance/quote?symbols={sym_str}"
-        try:
-            req = Request(url, headers={"User-Agent": USER_AGENT})
-            with urlopen(req, timeout=20) as r:
-                data = json.loads(r.read().decode("utf-8", errors="ignore"))
-            res = (((data or {}).get("quoteResponse") or {}).get("result")) or []
-            if isinstance(res, list):
-                out.extend([x for x in res if isinstance(x, dict)])
-        except Exception:
-            continue
-    return out
+    from urllib.parse import quote
+    import time
 
+    def _fetch(sym_list: List[str]) -> List[Dict]:
+        if not sym_list:
+            return []
+        sym_str = ",".join([str(s).strip() for s in sym_list if str(s).strip()])
+        if not sym_str:
+            return []
+        # Keep commas unescaped; escape everything else safely.
+        url = "https://query1.finance.yahoo.com/v7/finance/quote?symbols=" + quote(sym_str, safe=",")
+        req = Request(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"})
+        with urlopen(req, timeout=20) as r:
+            data = json.loads(r.read().decode("utf-8", errors="ignore"))
+        res = (((data or {}).get("quoteResponse") or {}).get("result")) or []
+        if isinstance(res, list):
+            return [x for x in res if isinstance(x, dict)]
+        return []
+
+    out: List[Dict] = []
+    CH = 50  # smaller chunks are less likely to be throttled
+    for i in range(0, len(symbols), CH):
+        chunk = symbols[i:i + CH]
+        ok = False
+        for attempt in range(3):
+            try:
+                out.extend(_fetch(chunk))
+                ok = True
+                break
+            except HTTPError as e:
+                # transient throttling / gateway errors
+                if getattr(e, "code", None) in (429, 502, 503, 504):
+                    time.sleep(0.6 + 0.7 * attempt)
+                    continue
+                break
+            except Exception:
+                time.sleep(0.3 + 0.4 * attempt)
+                continue
+
+        if not ok and len(chunk) > 1:
+            # Fallback: per-symbol
+            for s in chunk:
+                try:
+                    out.extend(_fetch([s]))
+                except Exception:
+                    continue
+
+    return out
 
 def fetch_watchlist_afterhours_movers_yahoo(symbols: List[str]) -> pd.DataFrame:
     """Compute AFTER-HOURS % moves for a given symbol list using Yahoo quote data.
 
-    Uses postMarketChangePercent when available; otherwise skips that symbol.
-    Output schema: ['symbol','pct']
+    Primary:
+      - postMarketChangePercent (if provided)
+
+    Fallbacks (when Yahoo omits the percent field):
+      - derive % from postMarketPrice vs regularMarketPrice
+      - use postMarketChange vs regularMarketPrice
+      - if post-market fields are missing (e.g., premarket run), fall back to preMarket* fields
+
+    Output schema: ['symbol','pct'] where pct is in percent points (e.g., +10.2 for +10.2%).
     """
     q = yahoo_quote(symbols or [])
     rows = []
@@ -2178,28 +2220,54 @@ def fetch_watchlist_afterhours_movers_yahoo(symbols: List[str]) -> pd.DataFrame:
             sym = str(it.get("symbol") or "").strip()
             if not sym:
                 continue
+
+            reg_price = it.get("regularMarketPrice")
+            post_price = it.get("postMarketPrice")
+            pre_price = it.get("preMarketPrice")
+
             pct = it.get("postMarketChangePercent")
+            source = "postMarketChangePercent"
+
+            if pct is None:
+                # Compute from prices (preferred)
+                if post_price is not None and reg_price not in (None, 0, 0.0):
+                    pct = (float(post_price) / float(reg_price) - 1.0) * 100.0
+                    source = "postMarketPrice/regularMarketPrice"
+                else:
+                    chg = it.get("postMarketChange")
+                    if chg is not None and reg_price not in (None, 0, 0.0):
+                        pct = (float(chg) / float(reg_price)) * 100.0
+                        source = "postMarketChange/regularMarketPrice"
+
+            # If still missing, allow pre-market as a last resort (keeps the section useful if the job runs early)
+            if pct is None:
+                pct = it.get("preMarketChangePercent")
+                source = "preMarketChangePercent"
+                if pct is None and pre_price is not None and reg_price not in (None, 0, 0.0):
+                    pct = (float(pre_price) / float(reg_price) - 1.0) * 100.0
+                    source = "preMarketPrice/regularMarketPrice"
+
             if pct is None:
                 continue
+
             pct_f = float(pct)
 
-            reg_t = it.get("regularMarketTime")
-            post_t = it.get("postMarketTime")
-            if reg_t is not None and post_t is not None:
-                try:
-                    if int(post_t) < int(reg_t):
-                        continue
-                except Exception:
-                    pass
+            # Defensive: if Yahoo returns a fractional (0.10) instead of percent (10.0), recompute from prices.
+            if abs(pct_f) <= 1.0 and post_price is not None and reg_price not in (None, 0, 0.0):
+                alt = (float(post_price) / float(reg_price) - 1.0) * 100.0
+                if abs(alt) >= 1.0 and abs(alt) > abs(pct_f) * 5:
+                    pct_f = float(alt)
+                    source = "postMarketPrice/regularMarketPrice(recomputed)"
 
-            rows.append({"symbol": sym, "pct": pct_f})
+            rows.append({"symbol": sym, "pct": pct_f, "_src": source})
         except Exception:
             continue
 
     if not rows:
-        return pd.DataFrame(columns=["symbol","pct"])
-    return pd.DataFrame(rows, columns=["symbol","pct"])
-
+        return pd.DataFrame(columns=["symbol", "pct"])
+    df = pd.DataFrame(rows)
+    # Keep the canonical schema; keep debug source only if explicitly requested.
+    return df[["symbol", "pct"]]
 
 def fetch_afterhours_movers() -> Tuple[pd.DataFrame, pd.DataFrame]:
     gain = pd.DataFrame()
@@ -3464,6 +3532,85 @@ def detect_dead_cat_bounce(df: pd.DataFrame) -> Optional[PatternCandidate]:
     return PatternCandidate(pattern="DEAD_CAT_BOUNCE", direction="BREAKDOWN", level=float(best["trigger"]), meta=meta)
 
 
+def detect_momo_trend(df: pd.DataFrame) -> Optional[PatternCandidate]:
+    """Deterministic 'straight-up' momentum trend detector.
+
+    Why this exists:
+      Some names trend relentlessly higher without forming a clean triangle/HS/rectangle.
+      We still want them to show up as VALIDATED/CONFIRMED when demand is persistent.
+
+    Definition (all must hold):
+      1) Trend: EMA20 > EMA50 and EMA20 rising (EMA20[t] > EMA20[t-5])
+      2) Strength: close within 0.25 ATR of the prior 60-day high
+      3) Momentum: 20-day return >= 8% OR (close - close_20d_ago) >= 6 * ATR_median
+      4) Extension: close >= EMA20 + 0.5 ATR (same confirm distance as other patterns)
+
+    Trigger level used for gating is dynamic EMA20 (meta['dynamic_level']='EMA20').
+    Direction: BREAKOUT
+    """
+    d = df.dropna(subset=["Open", "High", "Low", "Close"]).copy()
+    if len(d) < 90:
+        return None
+
+    # Focus on the recent window for stability.
+    look = d.tail(260).copy()
+    if len(look) < 90:
+        return None
+
+    c = pd.to_numeric(look["Close"], errors="coerce")
+    h = pd.to_numeric(look["High"], errors="coerce")
+    if c.dropna().shape[0] < 90 or h.dropna().shape[0] < 90:
+        return None
+
+    ema20 = c.ewm(span=20, adjust=False).mean()
+    ema50 = c.ewm(span=50, adjust=False).mean()
+
+    close_now = float(c.iloc[-1])
+    if not np.isfinite(close_now) or close_now <= 0:
+        return None
+
+    a = atr(look, n=ATR_N)
+    atr_now = float(a.iloc[-1]) if len(a) and np.isfinite(a.iloc[-1]) and float(a.iloc[-1]) > 0 else max(close_now * 0.01, 1e-6)
+    a_med = float(pd.to_numeric(a.dropna(), errors="coerce").median()) if not a.dropna().empty else atr_now
+
+    # 1) Trend
+    if not (np.isfinite(ema20.iloc[-1]) and np.isfinite(ema50.iloc[-1])):
+        return None
+    if float(ema20.iloc[-1]) <= float(ema50.iloc[-1]):
+        return None
+    if len(ema20) < 6 or float(ema20.iloc[-1]) <= float(ema20.iloc[-6]):
+        return None
+
+    # 2) Strength vs prior 60-day high (exclude the current bar)
+    if len(h) < 61:
+        return None
+    prior60_high = float(h.rolling(60).max().shift(1).iloc[-1])
+    if not np.isfinite(prior60_high) or prior60_high <= 0:
+        return None
+    if close_now < (prior60_high - 0.25 * atr_now):
+        return None
+
+    # 3) Momentum
+    if len(c) < 21 or not np.isfinite(c.iloc[-21]) or float(c.iloc[-21]) <= 0:
+        return None
+    ret20 = (close_now / float(c.iloc[-21]) - 1.0)
+    if not (ret20 >= 0.08 or (close_now - float(c.iloc[-21])) >= 6.0 * a_med):
+        return None
+
+    # 4) Extension above EMA20 (keeps it "on fire" rather than a gentle drift)
+    if close_now < float(ema20.iloc[-1]) + 0.5 * atr_now:
+        return None
+
+    meta: Dict[str, Any] = {
+        "annot_type": "momo",
+        "dynamic_level": "EMA20",
+        "prior60_high": prior60_high,
+        "ret20_pct": float(ret20 * 100.0),
+    }
+    # cand.level is a placeholder; gating uses the dynamic EMA20 via _level_at_bar.
+    return PatternCandidate(pattern="MOMO_TREND", direction="BREAKOUT", level=float(ema20.iloc[-1]), meta=meta)
+
+
 def detect_pattern_candidates(df: pd.DataFrame) -> List[PatternCandidate]:
     out: List[PatternCandidate] = []
     hs = detect_hs_top(df)
@@ -3475,7 +3622,15 @@ def detect_pattern_candidates(df: pd.DataFrame) -> List[PatternCandidate]:
     dcb = detect_dead_cat_bounce(df)
     if dcb:
         out.append(dcb)
+
+    # Geometry-based band structures (triangles / broadening)
     out.extend(detect_structure_candidates(df))
+
+    # Momentum trend (straight-up) — deterministic, for names that trend without clean geometry
+    momo = detect_momo_trend(df)
+    if momo:
+        out.append(momo)
+
     return out
 
 
@@ -3573,6 +3728,21 @@ def _level_at_bar(cand: PatternCandidate, d: pd.DataFrame, i: int) -> float:
     # Default to static level
     lvl = float(cand.level)
     meta = cand.meta if isinstance(cand.meta, dict) else {}
+
+    # Dynamic trigger levels (used for MOMO_TREND and future indicators).
+    # When set, we ignore cand.level and compute the level from the OHLCV series.
+    try:
+        dyn = str(meta.get("dynamic_level", "")).strip().lower()
+    except Exception:
+        dyn = ""
+    if dyn == "ema20":
+        try:
+            ema20 = d["Close"].astype(float).ewm(span=20, adjust=False).mean()
+            if 0 <= int(i) < len(ema20) and np.isfinite(ema20.iloc[int(i)]):
+                return float(ema20.iloc[int(i)])
+        except Exception:
+            pass
+
     lines = meta.get("lines") if isinstance(meta, dict) else None
     if not isinstance(lines, list) or not lines:
         return lvl
