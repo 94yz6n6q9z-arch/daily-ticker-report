@@ -1,12 +1,12 @@
 # Daily Report
 
-_Generated: **2026-02-27 00:33 CET**_
+_Generated: **2026-02-27 01:18 CET**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Headline: Tech slid as investors weighed fresh AI-policy friction after Anthropic pushed back against Pentagon threats. The Nasdaq 100 fell 1.16% and the S&P 500 lost 0.54% while the VIX rose 3.90%, extending a choppy few weeks for growth stocks (NDX -3.49% over 1M); biggest movers were IONQ up 21.70% and SK Hynix up 7.96%, while NU fell 9.55% and NVDA dropped 5.46%.
+Headline: Tech and AI sentiment soured as Nvidia’s slide dragged Wall Street lower, even as pockets of single-stock strength persisted. The Nasdaq 100 fell 1.16% and the S&P 500 lost 0.54% while the VIX rose 3.90%, extending a choppier three-to-four-week tape for growth shares (NDX -3.49% over 1M). Biggest movers were IONQ up 21.70% and SK Hynix up 7.96%, while NU fell 9.55% and NVDA dropped 5.46%.
 
 **Key tape (multi-horizon):**
 
@@ -21,13 +21,13 @@ Headline: Tech slid as investors weighed fresh AI-policy friction after Anthropi
 | CAC 40           | 8,620.93  | <span style="color:#11823b;">+0.72%</span> | <span style="color:#11823b;">+2.65%</span>  | <span style="color:#11823b;">+5.74%</span>  | <span style="color:#11823b;">+6.13%</span>  | <span style="color:#11823b;">+11.90%</span>  |
 | FTSE 100         | 10,846.70 | <span style="color:#11823b;">+0.37%</span> | <span style="color:#11823b;">+2.07%</span>  | <span style="color:#11823b;">+6.26%</span>  | <span style="color:#11823b;">+11.59%</span> | <span style="color:#11823b;">+18.06%</span>  |
 | VIX              | 18.63     | <span style="color:#11823b;">+3.90%</span> | <span style="color:#b91c1c;">-7.91%</span>  | <span style="color:#11823b;">+13.94%</span> | <span style="color:#11823b;">+13.94%</span> | <span style="color:#11823b;">+21.29%</span>  |
-| EUR/USD          | 1.18      | <span style="color:#11823b;">+0.25%</span> | <span style="color:#11823b;">+0.14%</span>  | <span style="color:#b91c1c;">-0.60%</span>  | <span style="color:#11823b;">+1.77%</span>  | <span style="color:#11823b;">+1.06%</span>   |
-| WTI Crude        | 65.28     | <span style="color:#b91c1c;">-0.21%</span> | <span style="color:#b91c1c;">-1.73%</span>  | <span style="color:#11823b;">+4.63%</span>  | <span style="color:#11823b;">+11.49%</span> | <span style="color:#11823b;">+1.98%</span>   |
-| Gold             | 5,202.80  | <span style="color:#b91c1c;">-0.07%</span> | <span style="color:#11823b;">+4.56%</span>  | <span style="color:#11823b;">+2.42%</span>  | <span style="color:#11823b;">+23.34%</span> | <span style="color:#11823b;">+49.78%</span>  |
-| Silver           | 88.64     | <span style="color:#b91c1c;">-2.53%</span> | <span style="color:#11823b;">+14.28%</span> | <span style="color:#b91c1c;">-16.00%</span> | <span style="color:#11823b;">+57.04%</span> | <span style="color:#11823b;">+120.50%</span> |
+| EUR/USD          | 1.18      | <span style="color:#b91c1c;">-0.07%</span> | <span style="color:#11823b;">+0.32%</span>  | <span style="color:#b91c1c;">-1.76%</span>  | <span style="color:#11823b;">+1.78%</span>  | <span style="color:#11823b;">+1.07%</span>   |
+| WTI Crude        | 65.27     | <span style="color:#b91c1c;">-0.23%</span> | <span style="color:#b91c1c;">-1.75%</span>  | <span style="color:#11823b;">+4.62%</span>  | <span style="color:#11823b;">+11.48%</span> | <span style="color:#11823b;">+1.97%</span>   |
+| Gold             | 5,198.20  | <span style="color:#b91c1c;">-0.16%</span> | <span style="color:#11823b;">+4.47%</span>  | <span style="color:#11823b;">+2.33%</span>  | <span style="color:#11823b;">+23.23%</span> | <span style="color:#11823b;">+49.64%</span>  |
+| Silver           | 88.88     | <span style="color:#b91c1c;">-2.27%</span> | <span style="color:#11823b;">+14.58%</span> | <span style="color:#b91c1c;">-15.78%</span> | <span style="color:#11823b;">+57.45%</span> | <span style="color:#11823b;">+121.08%</span> |
 | Coffee           | 281.45    | <span style="color:#b91c1c;">-2.38%</span> | <span style="color:#b91c1c;">-2.07%</span>  | <span style="color:#b91c1c;">-23.36%</span> | <span style="color:#b91c1c;">-31.85%</span> | <span style="color:#b91c1c;">-29.08%</span>  |
 | Cocoa            | 3,064.00  | <span style="color:#11823b;">+3.62%</span> | <span style="color:#11823b;">+3.23%</span>  | <span style="color:#b91c1c;">-30.88%</span> | <span style="color:#b91c1c;">-43.30%</span> | <span style="color:#b91c1c;">-59.87%</span>  |
-| Bitcoin          | 67,588.91 | <span style="color:#b91c1c;">-0.55%</span> | <span style="color:#11823b;">+0.94%</span>  | <span style="color:#b91c1c;">-24.14%</span> | <span style="color:#b91c1c;">-25.66%</span> | <span style="color:#b91c1c;">-37.88%</span>  |
+| Bitcoin          | 67,385.96 | <span style="color:#b91c1c;">-0.84%</span> | <span style="color:#b91c1c;">-0.91%</span>  | <span style="color:#b91c1c;">-24.44%</span> | <span style="color:#b91c1c;">-25.83%</span> | <span style="color:#b91c1c;">-37.74%</span>  |
 
 **Macro charts (5Y):**
 
@@ -113,11 +113,11 @@ _Includes **CONFIRMED** only: close beyond trigger by ≥0.5 ATR AND Volume ≥1
 
 **NEW (today):**
 
-<style>table.tblfix{table-layout:fixed;width:100%;border-collapse:collapse;margin:8px 0;}table.tblfix th,table.tblfix td{border:1px solid #e5e7eb;padding:6px 8px;vertical-align:top;overflow-wrap:anywhere;word-break:break-word;white-space:normal;}table.tblfix th{background:#f6f8fa;font-weight:600;}table.tblfix td.num{text-align:right;font-variant-numeric:tabular-nums;}</style><div style="overflow-x:auto"><table class="tblfix"><colgroup><col style="width:29%"><col style="width:6%"><col style="width:5%"><col style="width:12%"><col style="width:18%"><col style="width:3%"><col style="width:3%"><col style="width:3%"><col style="width:4%"><col style="width:3%"><col style="width:3%"></colgroup><thead><tr><th>Name of Company</th><th>Ticker</th><th>Country</th><th>Sector</th><th>Signal</th><th>Close</th><th>Threshold</th><th>Dist(ATR)</th><th>HVN Runway%</th><th>Day%</th><th>Chart</th></tr></thead><tbody><tr><td class="txt">MUENCHENER RUECKVERSICHERUNGS-GESE</td><td class="txt">MUV2.DE</td><td class="txt">Germany</td><td class="txt">Financials</td><td class="txt">CONFIRMED_IHS_BREAKOUT</td><td class="num">548.60</td><td class="num">539.39</td><td class="num">+0.95</td><td class="num">-7.72%</td><td class="num">-0.72%</td><td class="txt"><a href="img/MUV2.DE_CONFIRMED_IHS_BREAKOUT.png">chart</a></td></tr><tr><td class="txt">NIPPON YUSEN</td><td class="txt">9101.T</td><td class="txt">Japan</td><td class="txt">Industrials</td><td class="txt">CONFIRMED_RECT_BREAKOUT</td><td class="num">5380.00</td><td class="num">5288.59</td><td class="num">+0.97</td><td class="num">-10.49%</td><td class="num">+2.52%</td><td class="txt"><a href="img/9101.T_CONFIRMED_RECT_BREAKOUT.png">chart</a></td></tr></tbody></table></div>
+<style>table.tblauto{table-layout:auto;width:100%;border-collapse:collapse;margin:8px 0;}table.tblauto th,table.tblauto td{border:1px solid #e5e7eb;padding:6px 8px;vertical-align:top;}table.tblauto th{background:#f6f8fa;font-weight:600;white-space:nowrap;}table.tblauto td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}table.tblauto td.txt{white-space:nowrap;}table.tblauto td.wrap{white-space:normal;}</style><div style="overflow-x:auto"><table class="tblauto"><thead><tr><th>Name of Company</th><th>Ticker</th><th>Country</th><th>Sector</th><th>Signal</th><th>Close</th><th>Threshold</th><th>Dist(ATR)</th><th>HVN Runway%</th><th>Day%</th><th>Chart</th></tr></thead><tbody><tr><td class="wrap">MUENCHENER RUECKVERSICHERUNGS-GESE</td><td class="txt">MUV2.DE</td><td class="txt">Germany</td><td class="txt">Financials</td><td class="txt">CONFIRMED_IHS_BREAKOUT</td><td class="num">548.60</td><td class="num">539.39</td><td class="num">+0.95</td><td class="num">-7.72%</td><td class="num">-0.72%</td><td class="txt"><a href="img/MUV2.DE_CONFIRMED_IHS_BREAKOUT.png">chart</a></td></tr><tr><td class="wrap">TOPPAN HOLDINGS INC</td><td class="txt">7911.T</td><td class="txt">Japan</td><td class="txt">Industrials</td><td class="txt">CONFIRMED_RECT_TOP_BREAKOUT</td><td class="num">5144.00</td><td class="num">4522.03</td><td class="num">+3.45</td><td class="num">-2.94%</td><td class="num">+0.00%</td><td class="txt"><a href="img/7911.T_CONFIRMED_RECT_TOP_BREAKOUT.png">chart</a></td></tr><tr><td class="wrap">FUJITSU LTD</td><td class="txt">6702.T</td><td class="txt">Japan</td><td class="txt">Information Technology</td><td class="txt">CONFIRMED_HS_TOP_BREAKDOWN</td><td class="num">3546.00</td><td class="num">3796.57</td><td class="num">-1.73</td><td class="num">-25.24%</td><td class="num">+0.00%</td><td class="txt"><a href="img/6702.T_CONFIRMED_HS_TOP_BREAKDOWN.png">chart</a></td></tr></tbody></table></div>
 
 **ONGOING:**
 
-<em>None</em>
+<style>table.tblauto{table-layout:auto;width:100%;border-collapse:collapse;margin:8px 0;}table.tblauto th,table.tblauto td{border:1px solid #e5e7eb;padding:6px 8px;vertical-align:top;}table.tblauto th{background:#f6f8fa;font-weight:600;white-space:nowrap;}table.tblauto td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}table.tblauto td.txt{white-space:nowrap;}table.tblauto td.wrap{white-space:normal;}</style><div style="overflow-x:auto"><table class="tblauto"><thead><tr><th>Name of Company</th><th>Ticker</th><th>Country</th><th>Sector</th><th>Signal</th><th>Close</th><th>Threshold</th><th>Dist(ATR)</th><th>HVN Runway%</th><th>Day%</th><th>Chart</th></tr></thead><tbody><tr><td class="wrap">NIPPON YUSEN</td><td class="txt">9101.T</td><td class="txt">Japan</td><td class="txt">Industrials</td><td class="txt">CONFIRMED_RECT_BREAKOUT</td><td class="num">5380.00</td><td class="num">5289.23</td><td class="num">+1.15</td><td class="num">-10.49%</td><td class="num">+0.00%</td><td class="txt"><a href="img/9101.T_CONFIRMED_RECT_BREAKOUT.png">chart</a></td></tr></tbody></table></div>
 
 
 ### 4C) Validated breakouts / breakdowns (3-session anti-whipsaw)
@@ -130,17 +130,4 @@ _Includes **VALIDATED** only: breakout/breakdown occurred **3 sessions ago** AND
 
 **ONGOING:**
 
-<em>None</em>
-
-## 5) Needle-moving catalysts (RSS digest)
-
-_Linked digest for drill-down._
-
-- [Netflix drops out of bidding for Warner Bros. in the wake of Paramount’s improved offer](https://www.marketwatch.com/story/warner-bros-discovery-deems-paramounts-bid-superior-putting-netflix-in-the-hot-seat-a1fcea7c?mod=mw_rss_topstories) — MarketWatch Top Stories
-- [Netflix ditches deal for Warner Bros. Discovery after Paramount’s offer is deemed superior](https://www.cnbc.com/2026/02/26/warner-bros-discovery-paramount-skydance-deal-superior-netflix.html) — CNBC Top News
-- [CoreWeave’s stock drops as losses swell and interest expenses climb](https://www.marketwatch.com/story/coreweaves-stock-drops-as-losses-swell-and-interest-expenses-climb-9a09e137?mod=mw_rss_topstories) — MarketWatch Top Stories
-- [Anthropic CEO Amodei says Pentagon's threats 'do not change our position' on AI](https://www.cnbc.com/2026/02/26/anthropic-pentagon-ai-amodei.html) — CNBC Top News
-- [Is it OK to wear pajamas on your next flight? A viral post sparks debate.](https://www.marketwatch.com/story/is-it-ok-to-wear-pajamas-on-your-next-flight-a-viral-post-sparks-debate-29bad4de?mod=mw_rss_topstories) — MarketWatch Top Stories
-- [Dell’s stock soars, as record earnings signal the company is managing memory shortages well](https://www.marketwatch.com/story/dells-stock-soars-as-record-earnings-signal-the-company-is-managing-memory-shortages-well-41620e00?mod=mw_rss_topstories) — MarketWatch Top Stories
-- [Anthropic rejects Pentagon’s ‘final offer’ for military use of AI](https://www.ft.com/content/11d27612-d6c5-4cf7-94dd-f65603549b7f) — Financial Times
-- [CoreWeave beats revenue projections as backlog swe
+<style>table.tblauto{table-layout:auto;width:100%;border-collapse:collapse;margin:8px 0;}table.tblauto th,table.tblauto td{border:1px solid #e5e7eb;padding:6px 8px;vertical-align:top;}table.tblauto th{background:#f6f8fa;font-weight:600;white-space:nowrap;}table.tblauto td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;
