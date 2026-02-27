@@ -212,7 +212,7 @@ MOVER_THRESHOLD_PCT = 4.0
 ATR_N = 14
 ATR_CONFIRM_MULT = 0.5     # confirmed breakout/breakdown threshold
 EARLY_MULT = 0.5           # early callout threshold (within 0.5 ATR)
-VALIDATE_BARS = 3         # validated requires 3 sessions post-break with confirmation gates holding
+VALIDATE_BARS = 4         # validated requires breakout day + next 3 sessions all holding confirmation gates
 DCB_EARLY_MAX_BARS = 5     # dead-cat-bounce EARLY expires after 5 bars from event low (fresh shock only)
 DCB_EARLY_MAX_FROM_BOUNCE = 4  # ...and max 4 bars from bounce high
 
@@ -220,8 +220,7 @@ VOL_CONFIRM_MULT = 1.25   # volume must be >= 1.25x AvgVol(20) for CONFIRMED
 CLV_BREAKOUT_MIN = 0.70   # CLV in [-1..+1] must be >= +0.70 for breakout confirmation
 CLV_BREAKDOWN_MAX = -0.70  # CLV in [-1..+1] must be <= -0.70 for breakdown confirmation
 
-LOOKBACK_DAYS = 260
-
+LOOKBACK_DAYS = 190
 # HS/IHS minimum formation duration (daily bars) to avoid short (3-4 week) false positives
 HS_MIN_BARS = 45
 HS_MIN_SIDE_BARS = 10
@@ -231,11 +230,10 @@ HS_MAX_BARS = 90
 HS_MAX_BREAKOUT_LAG_BARS = 15
 
 # Lifecycle: CONFIRMED is only day 0..1 of a new confirmed run. Day 2 becomes VALIDATED if the validation window holds.
-CONFIRMED_MAX_AGE_BARS = 1
-VALIDATED_MIN_AGE_BARS = 2
+CONFIRMED_MAX_AGE_BARS = 2
+VALIDATED_MIN_AGE_BARS = 3
 # Keep VALIDATED ongoing for at most this many bars after the breakout day (unless you change it).
-VALIDATED_MAX_AGE_BARS = 90
-
+VALIDATED_MAX_AGE_BARS = 30
 # Dead Cat Bounce: event must be an overnight gap-down of at least 10% (open vs prior close)
 DCB_MIN_GAP_PCT = 0.10
 
@@ -243,6 +241,9 @@ DCB_MIN_GAP_PCT = 0.10
 CHART_WINDOW_DAYS = 190   # ~6 months
 CHART_MIN_BARS = 120
 
+
+# EARLY callouts must be fresh: pattern completion must be recent (prevents old formations resurfacing)
+EARLY_MAX_AGE_FROM_PATTERN_END_BARS = 20
 DOWNLOAD_PERIOD = "3y"
 DOWNLOAD_INTERVAL = "1d"
 CHUNK_SIZE = 80
@@ -428,26 +429,22 @@ def parse_rss(url: str, source_name: str, limit: int = 10) -> List[Dict[str, str
 
 
 
-def fetch_rss_headlines(limit_total: int = 18, max_age_hours: int = 48) -> List[Dict[str, str]]:
-    """Fetch a diversified set of free headline feeds for daily context.
+def fetch_rss_headlines(limit_total: int = 14) -> List[Dict[str, str]]:
+    """Fetch RSS headlines from a small set of popular sources.
 
-    - Best-effort: failures return fewer items (never crash the report).
-    - De-dupes by title.
-    - Filters to recent items when pubDate is parseable.
+    Note: Financial Times dropped (paywall/open issues). Yahoo Finance included via multiple feeds for robustness.
     """
-    from email.utils import parsedate_to_datetime
-    from datetime import datetime, timezone, timedelta
-
     feeds = [
-        ("Financial Times", "https://www.ft.com/?format=rss"),
-        ("Yahoo Finance", "https://finance.yahoo.com/rss/topstories"),
+        ("Yahoo Finance Top Stories", "https://finance.yahoo.com/rss/topstories"),
+        ("Yahoo Finance — S&P 500", "https://feeds.finance.yahoo.com/rss/2.0/headline?s=%5EGSPC&region=US&lang=en-US"),
+        ("Yahoo Finance — Nasdaq", "https://feeds.finance.yahoo.com/rss/2.0/headline?s=%5EIXIC&region=US&lang=en-US"),
         ("CNBC Top News", "https://www.cnbc.com/id/100003114/device/rss/rss.html"),
         ("CNBC Markets", "https://www.cnbc.com/id/15839069/device/rss/rss.html"),
-        # Investing.com provides multiple RSS feeds under /rss/news_*.rss (some may be region-locked).
-        ("Investing.com", "https://www.investing.com/rss/news_25.rss"),
         ("Reuters Business", "https://feeds.reuters.com/reuters/businessNews"),
         ("Reuters Top News", "https://feeds.reuters.com/reuters/topNews"),
         ("MarketWatch Top Stories", "https://feeds.marketwatch.com/marketwatch/topstories"),
+        ("WSJ Markets", "https://feeds.a.dj.com/rss/RSSMarketsMain.xml"),
+        ("The Guardian Business", "https://www.theguardian.com/uk/business/rss"),
     ]
 
     all_items: List[Dict[str, str]] = []
@@ -465,42 +462,20 @@ def fetch_rss_headlines(limit_total: int = 18, max_age_hours: int = 48) -> List[
         seen.add(key)
         uniq.append(it)
 
-    # Filter by recency when possible
-    now = datetime.now(timezone.utc)
-    cutoff = now - timedelta(hours=max_age_hours)
+    # Simple relevancy: keep items that look finance/markets related first.
+    def score(it: Dict[str, str]) -> int:
+        txt = ((it.get("title", "") or "") + " " + (it.get("summary", "") or "")).lower()
+        hits = 0
+        for k in ["earnings","guidance","fed","rates","inflation","jobs","cpi","pce","bond","yield","oil","opec",
+                  "ai","chip","semiconductor","nvidia","tesla","apple","amazon","microsoft","google","meta",
+                  "crypto","bitcoin","geopolit","sanction","tariff","china","europe","ukraine","gaza"]:
+            if k in txt:
+                hits += 1
+        return hits
 
-    def _ts(it: Dict[str, str]) -> float:
-        pub = (it.get("pubDate") or "").strip()
-        if not pub:
-            return 0.0
-        try:
-            dt = parsedate_to_datetime(pub)
-            if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
-            return dt.timestamp()
-        except Exception:
-            return 0.0
+    uniq.sort(key=score, reverse=True)
+    return uniq[:limit_total]
 
-    recent: List[Dict[str, str]] = []
-    for it in uniq:
-        ts = _ts(it)
-        if ts == 0.0:
-            # keep undated items (some feeds omit pubDate)
-            recent.append(it)
-        else:
-            if datetime.fromtimestamp(ts, tz=timezone.utc) >= cutoff:
-                recent.append(it)
-
-    # Sort newest-first when possible (undated items fall to bottom)
-    recent.sort(key=_ts, reverse=True)
-
-    return recent[:limit_total]
-
-
-
-# ----------------------------
-# Universe
-# ----------------------------
 def _clean_ticker(t: str) -> str:
     t = str(t).strip()
     # Wikipedia uses BRK.B -> Yahoo uses BRK-B
@@ -1880,15 +1855,18 @@ def build_watchlist_pulse_section_md(
     md = []
     md.append("### 4) Watchlist emerging chart trends")
     md.append("")
-    md.append("_Logic: score each ticker by stage (CONFIRMED=3, EARLY=1) × direction (BREAKOUT=+1, BREAKDOWN=-1), then aggregate by sector._")
+    md.append("_Logic: score each ticker by stage (EARLY=1, CONFIRMED=3, VALIDATED=4) × direction (BREAKOUT=+1, BREAKDOWN=-1), then aggregate by sector._")
     md.append("")
-    md.append("| Sector | Bias | VALID↑ | VALID↓ | CONF↑ | CONF↓ | EARLY↑ | EARLY↓ |")
+    # Order: EARLY -> CONFIRMED -> VALIDATED
+    md.append("| Sector | Bias | EARLY↑ | EARLY↓ | CONF↑ | CONF↓ | VALID↑ | VALID↓ |")
     md.append("| :--- | :--- | ---: | ---: | ---: | ---: | ---: | ---: |")
     for cat, s in cat_stats.items():
         sc = s["score"]
         bias = "Bullish" if sc >= 3 else "Bearish" if sc <= -3 else "Mixed"
         c = s["counts"]
-        md.append(f"| {cat} | {bias} | {c['CONF_UP']} | {c['CONF_DN']} | {c['EARLY_UP']} | {c['EARLY_DN']} |")
+        md.append(
+            f"| {cat} | {bias} | {c.get('EARLY_UP',0)} | {c.get('EARLY_DN',0)} | {c.get('CONF_UP',0)} | {c.get('CONF_DN',0)} | {c.get('VALID_UP',0)} | {c.get('VALID_DN',0)} |"
+        )
     md.append("")
     # Table-only by user preference (no narrative bullets below the table).
     md.append("")
@@ -1936,13 +1914,6 @@ def write_email_assets(
     lines.append("Watchlist movers (>|4%|, incl. after-hours):")
     lines.append(f"Session: {fmt_movers(watchlist_movers.get('session', []))}")
     lines.append(f"After-hours: {fmt_movers(watchlist_movers.get('after_hours', []))}")
-    lines.append("")
-    lines.append("New signals (today):")
-    if new_ids:
-        for s in new_ids[:25]:
-            lines.append(f"- {s}")
-    else:
-        lines.append("None")
     lines.append("")
     lines.append("Ended signals (today):")
     if ended_ids:
@@ -2327,14 +2298,18 @@ def fetch_afterhours_movers() -> Tuple[pd.DataFrame, pd.DataFrame]:
 
 def filter_movers(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Always returns schema ['symbol','pct'].
+    Always returns schema ['symbol','pct'] and preserves an existing numeric 'pct' column
+    (e.g., Yahoo quote-based after-hours movers).
     """
     if df is None or df.empty:
         return pd.DataFrame(columns=["symbol", "pct"])
 
     out = df.copy()
 
-    if "_pct" in out.columns:
+    # Preserve existing pct when present
+    if "pct" in out.columns and "_pct" not in out.columns:
+        out["pct"] = pd.to_numeric(out["pct"], errors="coerce")
+    elif "_pct" in out.columns:
         out["pct"] = pd.to_numeric(out["_pct"], errors="coerce")
     else:
         pct_col = None
@@ -2372,9 +2347,9 @@ def filter_movers(df: pd.DataFrame) -> pd.DataFrame:
     if out.empty:
         return pd.DataFrame(columns=["symbol", "pct"])
 
-    out = out.sort_values("pct", ascending=False)
+    # Sort by absolute move (biggest first)
+    out = out.sort_values("pct", ascending=False, key=lambda s: s.abs())
     return out[["symbol", "pct"]].head(30)
-
 
 def movers_table(df: pd.DataFrame, title: str) -> str:
     if df is None or df.empty:
@@ -3865,39 +3840,27 @@ def _validation_window_ok(
     a_series: pd.Series,
     run_start: int,
 ) -> bool:
-    """3-session anti-whipsaw validation.
+    """Strict 3-session anti-whipsaw validation (as agreed).
 
-    Over the first VALIDATE_BARS bars starting at run_start:
-      - Price-only gate must hold on ALL bars.
-      - Volume and CLV gates must hold on >= 2 of 3 bars each.
+    VALIDATED requires:
+      breakout/breakdown occurred 3 sessions ago AND for the breakout day + the next 3 sessions
+      (4 bars total, day0..day3), ALL 3 confirmation gates hold on EVERY bar.
 
-    Keeps the initial move high-quality but allows one "cooling" day.
+    Gates per bar:
+      - price beyond trigger by >= 0.5 ATR(14)
+      - CLV >= +0.70 (breakout) / <= -0.70 (breakdown)
+      - Volume >= 1.25x AvgVol(20) (prior-20 mean)
+
+    This prevents stale CONFIRMED signals.
     """
     n = len(d)
     rs = int(run_start)
     if rs < 0 or rs + VALIDATE_BARS - 1 >= n:
         return False
-
-    vol_ok_cnt = 0
-    clv_ok_cnt = 0
-
     for k in range(rs, rs + VALIDATE_BARS):
-        if not _is_price_ok_bar(cand, d, a_series, k):
+        if not _is_confirmed_bar(cand, d, a_series, k):
             return False
-        clv_k = _bar_clv(d, k)
-        vr_k = _bar_vol_ratio(d, k)
-        if cand.direction == "BREAKOUT":
-            if clv_k >= CLV_BREAKOUT_MIN:
-                clv_ok_cnt += 1
-        else:
-            if clv_k <= CLV_BREAKDOWN_MAX:
-                clv_ok_cnt += 1
-        if vr_k >= VOL_CONFIRM_MULT:
-            vol_ok_cnt += 1
-
-    need = 2 if VALIDATE_BARS >= 3 else max(1, VALIDATE_BARS)
-    return bool(vol_ok_cnt >= need and clv_ok_cnt >= need)
-
+    return True
 
 def _validated_stage(
     cand: PatternCandidate,
@@ -3905,49 +3868,53 @@ def _validated_stage(
     a_series: pd.Series,
     end_idx: int,
 ) -> Optional[Tuple[str, str, int, int]]:
-    """Return (stage,status,age,run_start) for VALIDATED if applicable, else None."""
+    """Return (stage,status,age,run_start) for VALIDATED if applicable, else None.
+
+    Deterministic & time-bounded:
+      - Find the most recent run start rs such that bars rs..rs+3 are ALL confirmed (strict window).
+      - VALIDATED_NEW: age == 3
+      - VALIDATED_ONGOING: age > 3 up to VALIDATED_MAX_AGE_BARS,
+        provided price remains on the correct side of the trigger.
+      - If a run never validates by day 3, it expires (not shown).
+    """
     n = len(d)
+    if n < VALIDATE_BARS + 2:
+        return None
     end_idx = int(min(max(end_idx, 0), n - 1))
 
-    run_start = _validated_run_start_after_last_failure(cand, d, a_series, end_idx)
-    if run_start is None:
+    # scan window: last VALIDATED_MAX_AGE_BARS + buffer
+    max_scan_back = int(min(n - 1, VALIDATED_MAX_AGE_BARS + VALIDATE_BARS + 20))
+    start_scan = max(0, end_idx - max_scan_back)
+
+    rs_found = None
+    for rs in range(end_idx - VALIDATED_MIN_AGE_BARS, start_scan - 1, -1):
+        rs = int(rs)
+        if rs < 0 or rs + VALIDATE_BARS - 1 >= n:
+            continue
+        # must be a run start (previous bar not confirmed)
+        if rs - 1 >= 0 and _is_confirmed_bar(cand, d, a_series, rs - 1):
+            continue
+        if _validation_window_ok(cand, d, a_series, rs):
+            rs_found = rs
+            break
+
+    if rs_found is None:
         return None
 
-    age = int(end_idx - int(run_start))
+    age = int(end_idx - int(rs_found))
     if age < VALIDATED_MIN_AGE_BARS or age > VALIDATED_MAX_AGE_BARS:
         return None
 
-    if not _validation_window_ok(cand, d, a_series, int(run_start)):
-        return None
-
-    # Exit rules (deterministic):
-    # 1) Hard: cross back through the trigger.
-    # 2) Soft: 2 consecutive closes on the wrong side of EMA20.
+    # ongoing validity: still beyond trigger
     close_now = _safe_float(d["Close"].iloc[end_idx])
     level_now = _safe_float(_level_at_bar(cand, d, end_idx))
-
-    try:
-        ema20 = d["Close"].ewm(span=20, adjust=False).mean()
-        ema_now = _safe_float(ema20.iloc[end_idx])
-        ema_prev = _safe_float(ema20.iloc[end_idx - 1]) if end_idx - 1 >= 0 else float('nan')
-        close_prev = _safe_float(d["Close"].iloc[end_idx - 1]) if end_idx - 1 >= 0 else float('nan')
-    except Exception:
-        ema_now = float('nan'); ema_prev = float('nan'); close_prev = float('nan')
-
-    if cand.direction == "BREAKOUT":
-        if close_now < level_now:
-            return None
-        if np.isfinite(ema_now) and np.isfinite(ema_prev) and close_now < ema_now and close_prev < ema_prev:
-            return None
-    else:
-        if close_now > level_now:
-            return None
-        if np.isfinite(ema_now) and np.isfinite(ema_prev) and close_now > ema_now and close_prev > ema_prev:
-            return None
+    if cand.direction == "BREAKOUT" and close_now < level_now:
+        return None
+    if cand.direction != "BREAKOUT" and close_now > level_now:
+        return None
 
     status = "NEW" if age == VALIDATED_MIN_AGE_BARS else "ONGOING"
-    return ("VALIDATED", status, age, int(run_start))
-
+    return ("VALIDATED", status, age, int(rs_found))
 
 def _confirm_run_start(cand: PatternCandidate, d: pd.DataFrame, a_series: pd.Series) -> Optional[int]:
     """Return the index (in d) of the first bar of the current CONFIRMED run, or None.
@@ -4020,7 +3987,13 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
     d0 = df.dropna(subset=["Close", "High", "Low"]).copy()
     if len(d0) < 80:
         return sigs
-    d = d0.tail(LOOKBACK_DAYS).copy()
+    # Detection lookback: align with chart window (~6 months). Use calendar-days window when possible.
+    if isinstance(d0.index, pd.DatetimeIndex):
+        cutoff = d0.index[-1] - pd.Timedelta(days=CHART_WINDOW_DAYS)
+        d = d0.loc[d0.index >= cutoff].copy()
+    else:
+        d = d0.tail(LOOKBACK_DAYS).copy()
+
     if len(d) < 80:
         return sigs
 
@@ -4118,6 +4091,20 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
             prefix, dist_atr = _classify_vs_level(close, level_now, atr_val, cand.direction, vol_ratio, clv)
             if prefix != "EARLY_":
                 continue
+
+            # EARLY must be fresh: pattern completion must be recent (prevents stale formations resurfacing).
+            if cand.pattern != "DEAD_CAT_BOUNCE":
+                meta = cand.meta if isinstance(cand.meta, dict) else {}
+                p_end = meta.get("pattern_end_i", meta.get("end_i", None))
+                try:
+                    if p_end is not None:
+                        p_end_i = int(p_end)
+                        age_from_end = int((len(d) - 1) - p_end_i)
+                        if age_from_end > EARLY_MAX_AGE_FROM_PATTERN_END_BARS:
+                            continue
+                except Exception:
+                    pass
+
 # VP runway (distance to nearest opposing HVN) for CONFIRMED + VALIDATED
         if prefix in ("CONFIRMED_", "VALIDATED_"):
             try:
@@ -4651,43 +4638,135 @@ def _pct_ytd(c: pd.Series) -> Optional[float]:
         return None
 
 
-def build_watchlist_performance_section_md(ohlcv: Dict[str, pd.DataFrame], sector_resolver) -> str:
-    """Section 6: Watchlist performance (single table) including Sector."""
-    rows: List[Dict[str, Any]] = []
-    for t in WATCHLIST_44:
-        df = ohlcv.get(t)
-        if df is None or df.empty or "Close" not in df.columns:
-            continue
-        c = df["Close"].dropna()
-        if c.empty:
-            continue
-        last = float(c.iloc[-1])
-        sec = ""
+def build_watchlist_performance_section_md(
+    ohlcv: Dict[str, pd.DataFrame],
+    sector_resolver,
+    name_resolver=None,
+    country_resolver=None,
+) -> str:
+    """Section 6: Watchlist performance (all tickers) — grouped by watchlist segments.
+
+    Columns (as requested):
+      Name of Company | Ticker | Country | Sector | Close | Day% | CLV | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M
+    """
+    md: List[str] = []
+    md.append("## 6) Watchlist performance (all tickers)\n")
+    md.append("Columns: **Name of Company | Ticker | Country | Sector | Close | Day% | CLV | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M**\n")
+
+    def _safe_name(t: str) -> str:
+        if callable(name_resolver):
+            try:
+                return str(name_resolver(t) or "")
+            except Exception:
+                return ""
+        return ""
+
+    def _safe_country(t: str) -> str:
+        if callable(country_resolver):
+            try:
+                return str(country_resolver(t) or "")
+            except Exception:
+                return ""
+        return ""
+
+    def _safe_sector(t: str) -> str:
+        if callable(sector_resolver):
+            try:
+                return str(sector_resolver(t) or "")
+            except Exception:
+                return ""
+        return ""
+
+    def _clv_bar(df: pd.DataFrame) -> float:
         try:
-            sec = str(sector_resolver(t) or "")
+            hi = float(df["High"].iloc[-1]); lo = float(df["Low"].iloc[-1]); cl = float(df["Close"].iloc[-1])
+            if hi > lo:
+                v = (2.0*cl - hi - lo) / (hi - lo)
+                return float(max(-1.0, min(1.0, v)))
         except Exception:
-            sec = ""
-        rows.append({
-            "Ticker": t,
-            "Sector": sec,
-            "Last": last,
-            "Day%": _pct_change_n(c, 1),
-            "Week%": _pct_change_n(c, 5),
-            "Month%": _pct_change_n(c, 21),
-            "3M%": _pct_change_n(c, 63),
-            "YTD%": _pct_ytd(c),
-        })
+            pass
+        return float("nan")
 
-    dfp = pd.DataFrame(rows)
-    if dfp.empty:
-        return "\n## Watchlist performance\n\n<em>None</em>\n"
+    def _vol_ratio(df: pd.DataFrame) -> float:
+        try:
+            v = float(df["Volume"].iloc[-1])
+            if len(df) >= 21:
+                avg20_prior = float(df["Volume"].iloc[-21:-1].mean())
+            else:
+                avg20_prior = float(df["Volume"].tail(20).mean())
+            if avg20_prior and np.isfinite(avg20_prior) and np.isfinite(v):
+                return float(v / avg20_prior)
+        except Exception:
+            pass
+        return float("nan")
 
-    dfp["_ytd"] = pd.to_numeric(dfp["YTD%"], errors="coerce")
-    dfp = dfp.sort_values(by=["Sector", "_ytd", "Ticker"], ascending=[True, False, True]).drop(columns=["_ytd"])
+    def _pct_n(series: pd.Series, n: int) -> float:
+        try:
+            s = series.dropna()
+            if len(s) <= n:
+                return float("nan")
+            return float((float(s.iloc[-1]) / float(s.iloc[-(n+1)]) - 1.0) * 100.0)
+        except Exception:
+            return float("nan")
 
-    cols = ["Ticker", "Sector", "Last", "Day%", "Week%", "Month%", "3M%", "YTD%"]
-    return "\n## Watchlist performance\n\n" + html_table_from_df(dfp, cols=cols, max_rows=200) + "\n"
+    def _atr_delta14(df: pd.DataFrame) -> float:
+        try:
+            a = atr(df, ATR_N).dropna()
+            if len(a) < 15:
+                return float("nan")
+            a_now = float(a.iloc[-1])
+            a_prev = float(a.iloc[-15])
+            if a_prev and np.isfinite(a_prev) and np.isfinite(a_now):
+                return float((a_now / a_prev - 1.0) * 100.0)
+        except Exception:
+            pass
+        return float("nan")
 
+    # Keep the original segment order from WATCHLIST_GROUPS
+    for seg, tickers in WATCHLIST_GROUPS.items():
+        rows: List[Dict[str, Any]] = []
+        for t in tickers:
+            df = ohlcv.get(t)
+            if df is None or df.empty:
+                continue
+            d = df.dropna(subset=["Open","High","Low","Close"]).copy()
+            if d.empty:
+                continue
+            close_s = d["Close"].astype(float)
+            close_last = float(close_s.iloc[-1])
+            rows.append({
+                "Name of Company": _safe_name(t),
+                "Ticker": t,
+                "Country": _safe_country(t),
+                "Sector": _safe_sector(t),
+                "Close": close_last,
+                "Day%": _pct_n(close_s, 1),
+                "CLV": _clv_bar(d),
+                "ATR(14)": float(atr(d, ATR_N).dropna().iloc[-1]) if not atr(d, ATR_N).dropna().empty else float("nan"),
+                "ATR Δ14d": _atr_delta14(d),
+                "Vol/AvgVol20": _vol_ratio(d),
+                "1D": _pct_n(close_s, 1),
+                "7D": _pct_n(close_s, 5),
+                "1M": _pct_n(close_s, 21),
+                "3M": _pct_n(close_s, 63),
+            })
+
+        md.append(f"### {seg}\n")
+        if not rows:
+            md.append("<em>None</em>\n")
+            continue
+
+        dfp = pd.DataFrame(rows)
+        # Sort: strongest 1M then 3M within segment
+        dfp["_1m"] = pd.to_numeric(dfp["1M"], errors="coerce")
+        dfp["_3m"] = pd.to_numeric(dfp["3M"], errors="coerce")
+        dfp = dfp.sort_values(by=["_1m","_3m","Ticker"], ascending=[False, False, True]).drop(columns=["_1m","_3m"])
+
+        cols = ["Name of Company","Ticker","Country","Sector","Close","Day%","CLV","ATR(14)","ATR Δ14d","Vol/AvgVol20","1D","7D","1M","3M"]
+        md.append(html_table_from_df(dfp, cols=cols, max_rows=200))
+        md.append("")
+
+    return "\n".join(md)
 
 def signals_to_df(
     signals: List[LevelSignal],
@@ -4774,36 +4853,47 @@ def md_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 30) -> s
 
 
 def html_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 80) -> str:
-    """HTML table for GitHub Pages (auto layout; no forced column widths).
+    """HTML table for GitHub Pages (auto layout; horizontal scroll).
 
-    Fixed column widths + forced word-breaking looked bad (especially on mobile).
-    This version lets the browser size columns naturally and enables horizontal scrolling.
+    Formats common numeric columns used across the report.
     """
     if df is None or df.empty:
         return "<em>None</em>"
 
     d = df.copy().head(max_rows)
 
-    for c in ["Close", "Level", "Threshold"]:
+    # Price-like columns
+    for c in ["Close", "Level", "Threshold", "Last", "ATR(14)"]:
         if c in d.columns:
-            d[c] = pd.to_numeric(d[c], errors="coerce").map(lambda x: f"{x:.2f}" if pd.notna(x) else "")
+            d[c] = pd.to_numeric(d[c], errors="coerce").map(lambda x: f"{x:,.2f}" if pd.notna(x) else "")
+
+    # Distance columns
     if "Dist(ATR)" in d.columns:
         d["Dist(ATR)"] = pd.to_numeric(d["Dist(ATR)"], errors="coerce").map(lambda x: f"{x:+.2f}" if pd.notna(x) else "")
+
+    # HVN runway
     if "HVN Runway%" in d.columns:
         d["HVN Runway%"] = pd.to_numeric(d["HVN Runway%"], errors="coerce").map(lambda x: f"{x:+.2f}%" if pd.notna(x) else "")
-    if "Vol/AvgVol20" in d.columns:
-        d["Vol/AvgVol20"] = pd.to_numeric(d["Vol/AvgVol20"], errors="coerce").map(lambda x: f"{x:.2f}×" if pd.notna(x) else "")
+
+    # Volume ratio
+    for vc in ["Vol/AvgVol20", "Vol/AvgVol(20)"]:
+        if vc in d.columns:
+            d[vc] = pd.to_numeric(d[vc], errors="coerce").map(lambda x: f"{x:.2f}×" if pd.notna(x) else "")
+
+    # CLV
     if "CLV" in d.columns:
         d["CLV"] = pd.to_numeric(d["CLV"], errors="coerce").map(lambda x: f"{x:+.2f}" if pd.notna(x) else "")
-    if "Day%" in d.columns:
-        d["Day%"] = pd.to_numeric(d["Day%"], errors="coerce").map(lambda x: f"{x:+.2f}%" if pd.notna(x) else "")
 
-    # Additional performance columns (watchlist section)
-    for pc in ["Week%", "Month%", "3M%", "YTD%"]:
+    # Percent columns
+    for pc in ["Day%", "1D", "7D", "1M", "3M", "Week%", "Month%", "YTD%"]:
         if pc in d.columns:
-            d[pc] = pd.to_numeric(d[pc], errors="coerce").map(lambda x: f"{x:+.2f}%" if pd.notna(x) else "")
-    if "Last" in d.columns:
-        d["Last"] = pd.to_numeric(d["Last"], errors="coerce").map(lambda x: f"{x:,.2f}" if pd.notna(x) else "")
+            d[pc] = pd.to_numeric(d[pc], errors="coerce").map(lambda x: f"{x:+.1f}%" if pd.notna(x) else "")
+
+    # ATR delta percent
+    if "ATR Δ14d" in d.columns:
+        d["ATR Δ14d"] = pd.to_numeric(d["ATR Δ14d"], errors="coerce").map(lambda x: f"{x:+.1f}%" if pd.notna(x) else "")
+
+    # Chart links
     if "Chart" in d.columns:
         def _mk(p):
             if isinstance(p, str) and p:
@@ -4815,7 +4905,10 @@ def html_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 80) ->
     if not cols_use:
         return "<em>None</em>"
 
-    num_cols = {"Close","Level","Threshold","Dist(ATR)","HVN Runway%","Vol/AvgVol20","CLV","Day%","Week%","Month%","3M%","YTD%","Last"}
+    num_cols = {
+        "Close","Last","Level","Threshold","Dist(ATR)","HVN Runway%","Vol/AvgVol20","Vol/AvgVol(20)","CLV",
+        "Day%","1D","7D","1M","3M","Week%","Month%","YTD%","ATR(14)","ATR Δ14d"
+    }
 
     thead = "<thead><tr>" + "".join([f"<th>{c}</th>" for c in cols_use]) + "</tr></thead>"
 
@@ -4826,7 +4919,7 @@ def html_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 80) ->
             v = r.get(c, "")
             cls = "num" if c in num_cols else "txt"
             if c in ("Name of Company", "Name"):
-                cls = "wrap"  # allow long company names to wrap
+                cls = "wrap"
             tds.append(f'<td class="{cls}">{"" if v is None else v}</td>')
         rows_html.append("<tr>" + "".join(tds) + "</tr>")
     tbody = "<tbody>" + "".join(rows_html) + "</tbody>"
@@ -4843,8 +4936,6 @@ def html_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 80) ->
     )
 
     return style + f'<div style="overflow-x:auto"><table class="tblauto">{thead}{tbody}</table></div>'
-
-
 
 def enrich_confirmed_rules(df: pd.DataFrame, ohlcv: Dict[str, pd.DataFrame]) -> pd.DataFrame:
     """Add confirmation-gate diagnostics to CONFIRMED tables.
@@ -5154,6 +5245,20 @@ def main():
     save_state(state)
 
     new_ids, ended_ids = diff_new_ended(prev_all, {"signals": cur_all_ids})
+    # Group ended signals by stage prefix and show them inside Section 4 (no separate changelog).
+    ended_by_stage = {"EARLY": [], "CONFIRMED": [], "VALIDATED": []}
+    for _x in ended_ids:
+        try:
+            _t, _sig = _x.split("|", 1)
+        except Exception:
+            _sig = str(_x)
+        if str(_sig).startswith("EARLY_"):
+            ended_by_stage["EARLY"].append(_x)
+        elif str(_sig).startswith("CONFIRMED_"):
+            ended_by_stage["CONFIRMED"].append(_x)
+        elif str(_sig).startswith("VALIDATED_"):
+            ended_by_stage["VALIDATED"].append(_x)
+
     new_early_ids, _ended_early_ids = diff_new_ended(prev_early, {"signals": cur_early_ids})
     new_set = set(new_early_ids)
 
@@ -5237,7 +5342,7 @@ def main():
         ticker_labels=TICKER_LABELS,
     ))
 
-    md.append("### 4A) Early callouts (~80% complete)\n")
+    md.append("### 4A) Early callouts (~90% complete)\n")
     md.append("_Close enough to pre-plan. “Close enough” = within 0.5 ATR of the trigger (neckline/boundary). No SOFT tier — anything not CONFIRMED stays in EARLY._\n")
     md.append("**NEW (today):**\n")
     df_early_new_tbl = df_early_new.copy()
@@ -5284,10 +5389,16 @@ def main():
     if "Level" in df_early_old_tbl.columns and "Threshold" not in df_early_old_tbl.columns:
         df_early_old_tbl["Threshold"] = df_early_old_tbl["Level"]
     md.append(md_table_from_df(df_early_old_tbl, cols=["Ticker", "Signal", "Close", "Threshold", "Dist(ATR)", "Day%", "Chart"], max_rows=80))
+    if ended_by_stage.get("EARLY"):
+        md.append("\n**Ended today (EARLY):**\n")
+        for x in ended_by_stage["EARLY"][:120]:
+            md.append(f"- {x}")
+        md.append("")
+
     md.append("")
 
     md.append("### 4B) Confirmed breakouts / breakdowns (watchlist + MSCI World)\n")
-    md.append("_Includes **CONFIRMED** only: close beyond trigger by ≥0.5 ATR AND Volume ≥1.25×AvgVol(20) AND CLV ≥+0.70 (breakout) / ≤−0.70 (breakdown). Categories keep watchlist custom buckets; non-watchlist MSCI names use S&P 500 11-sector labels._ \n")
+    md.append("_Includes **CONFIRMED** only: close beyond trigger by ≥0.5 ATR AND Volume ≥1.25×AvgVol(20) AND CLV ≥+0.70 (breakout) / ≤−0.70 (breakdown). All tickers use S&P 500 11-sector labels (Sector)._ \n")
     md.append("**NEW (today):**\n")
     df_conf_new_tbl = df_conf_new.copy()
     if "Level" in df_conf_new_tbl.columns and "Threshold" not in df_conf_new_tbl.columns:
@@ -5302,6 +5413,12 @@ def main():
     if not df_conf_old_tbl.empty and "Sector" in df_conf_old_tbl.columns:
         df_conf_old_tbl = df_conf_old_tbl.sort_values(["Sector", "Signal", "Dist(ATR)"], na_position="last")
     md.append(html_table_from_df(df_conf_old_tbl, cols=["Name of Company", "Ticker", "Country", "Sector", "Signal", "Close", "Threshold", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"], max_rows=160))
+    if ended_by_stage.get("CONFIRMED"):
+        md.append("\n**Ended today (CONFIRMED):**\n")
+        for x in ended_by_stage["CONFIRMED"][:120]:
+            md.append(f"- {x}")
+        md.append("")
+
     md.append("")
 
     # 5) Catalysts
@@ -5322,29 +5439,26 @@ def main():
     if not df_val_old_tbl.empty and "Sector" in df_val_old_tbl.columns:
         df_val_old_tbl = df_val_old_tbl.sort_values(["Sector", "Signal", "HVN Runway%", "Dist(ATR)"], ascending=[True, True, False, True], na_position="last")
     md.append(html_table_from_df(df_val_old_tbl, cols=["Name of Company", "Ticker", "Country", "Sector", "Signal", "Close", "Threshold", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"], max_rows=80))
+    if ended_by_stage.get("VALIDATED"):
+        md.append("\n**Ended today (VALIDATED):**\n")
+        for x in ended_by_stage["VALIDATED"][:120]:
+            md.append(f"- {x}")
+        md.append("")
+
     md.append("")
     md.append("## 5) Needle-moving catalysts (RSS digest)\n")
     md.append("_Linked digest for drill-down._\n")
     md.append(format_rss_digest(rss_items, max_items=10))
     md.append("")
 
-    # Changelog
-    md.append("## Changelog\n")
-    if new_ids:
-        md.append("**New signals:**\n")
-        for x in new_ids[:120]:
-            md.append(f"- {x}")
-    else:
-        md.append("**New signals:** _None_\n")
+    # Section 6: Watchlist performance
+    md.append(build_watchlist_performance_section_md(
+        ohlcv,
+        sector_resolver,
+        name_resolver=company_name_for_ticker,
+        country_resolver=country_for_ticker,
+    ))
 
-    if ended_ids:
-        md.append("\n**Ended signals:**\n")
-        for x in ended_ids[:120]:
-            md.append(f"- {x}")
-    else:
-        md.append("\n**Ended signals:** _None_\n")
-    # Section 6: Full watchlist performance (grouped)
-    md.append(build_watchlist_performance_section_md(ohlcv, sector_resolver))
 
     md_text = "\n".join(md).strip() + "\n"
 
