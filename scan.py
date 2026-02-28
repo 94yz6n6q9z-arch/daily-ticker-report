@@ -3256,7 +3256,7 @@ def _pick_recent_hs_triplet(
                 # Time symmetry
                 dL = max(1, p2 - p1); dR = max(1, p3 - p2)
                 ratio = dL / dR
-                if ratio < 0.5 or ratio > 2.0:
+                if ratio < 0.33 or ratio > 3.0:
                     bump('time_symmetry')
                     continue
 
@@ -6013,11 +6013,11 @@ def main():
             best = info.get("Best") or {}
             nm = company_name_for_ticker(ft)
             nm_disp = (NAME_OVERRIDES.get(ft) or nm or ft).upper()
-            md.append(f"**{nm_disp} ({ft})**\\n")
+            md.append(f"**{nm_disp} ({ft})**\n")
 
             top_list = info.get("Top") or []
             hs_seen = any((isinstance(r, dict) and r.get("pattern") in ("HS_TOP", "IHS")) for r in top_list)
-            md.append(f"- HS/IHS detected today: **{'YES' if hs_seen else 'NO'}**\\n")
+            md.append(f"- HS/IHS detected today: **{'YES' if hs_seen else 'NO'}**\n")
 
             if not hs_seen:
                 exp_top: Dict[str, Any] = {}
@@ -6042,12 +6042,12 @@ def main():
                     top = items[:8]
                     return ", ".join([f"{k}:{v}" for k, v in top]) if top else "None"
 
-                md.append(f"- HS_TOP reject summary: {_fmt(exp_top)}\\n")
-                md.append(f"- IHS reject summary: {_fmt(exp_inv)}\\n")
+                md.append(f"- HS_TOP reject summary: {_fmt(exp_top)}\n")
+                md.append(f"- IHS reject summary: {_fmt(exp_inv)}\n")
                 if "highs" in exp_top or "lows" in exp_top:
-                    md.append(f"- Swings (HS_TOP): highs={exp_top.get('highs','?')} lows={exp_top.get('lows','?')}\\n")
+                    md.append(f"- Swings (HS_TOP): highs={exp_top.get('highs','?')} lows={exp_top.get('lows','?')}\n")
                 if "highs" in exp_inv or "lows" in exp_inv:
-                    md.append(f"- Swings (IHS): highs={exp_inv.get('highs','?')} lows={exp_inv.get('lows','?')}\\n")
+                    md.append(f"- Swings (IHS): highs={exp_inv.get('highs','?')} lows={exp_inv.get('lows','?')}\n")
 
             if best and best.get("pattern"):
                 patt = str(best.get("pattern", ""))
@@ -6060,7 +6060,7 @@ def main():
                 lvl = float(best.get("level", 0.0)) if best.get("level") is not None else float("nan")
                 meta = best.get("meta")
 
-                md.append(f"- Best candidate: **{patt} / {direc}** | Dist(ATR) **{dist:+.2f}** | Gates: Price **{'Y' if price_ok else 'N'}**, CLV **{'Y' if clv_ok else 'N'}**, Vol **{'Y' if vol_ok else 'N'}** | HS lag **{hs_lag}**\\n")
+                md.append(f"- Best candidate: **{patt} / {direc}** | Dist(ATR) **{dist:+.2f}** | Gates: Price **{'Y' if price_ok else 'N'}**, CLV **{'Y' if clv_ok else 'N'}**, Vol **{'Y' if vol_ok else 'N'}** | HS lag **{hs_lag}**\n")
 
                 sig = LevelSignal(
                     ticker=ft,
@@ -6090,10 +6090,10 @@ def main():
 
             sig.chart_path = plot_signal_chart(ft, df_ft, sig, name_resolver=company_name_for_ticker)
             if getattr(sig, "chart_path", ""):
-                md.append(f"<img src='{sig.chart_path}' width='980' style='max-width:980px;height:auto;'>\\n")
-            md.append("\\n")
+                md.append(f"<img src='{sig.chart_path}' width='980' style='max-width:980px;height:auto;'>\n")
+            md.append("\n")
         except Exception as e:
-            md.append(f"**{ft}** — focus analysis failed: `{e}`\\n\\n")
+            md.append(f"**{ft}** — focus analysis failed: `{e}`\n\n")
 
     md.append(build_watchlist_pulse_section_md(
         df_early_new=df_early_new,
