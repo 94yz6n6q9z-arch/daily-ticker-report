@@ -1,12 +1,12 @@
 # Daily Report
 
-_Generated: **2026-02-28 16:58 CET**_
+_Generated: **2026-02-28 18:25 CET**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Headline: AI disruption fears that first hit software are now pressuring financial stocks, keeping investors defensive. The Nasdaq 100 fell 0.3% and the S&P 500 slid 0.4% as the Vix jumped 6.6%, extending a choppy late-month pullback after a weak few weeks (NDX -4.1% over 1M). Biggest movers were Netflix up 13.8% and Silver up 6.5%, while Oklo fell 8.9% and D-Wave Quantum dropped 6.8%.
+Headline: Investors stayed defensive as markets weighed reaction to Iran alongside a fresh bout of AI-driven pressure on software and fears it could spread to financial stocks, with Berkshire and an Apple event also in focus. The Nasdaq 100 fell 0.3% and the S&P 500 slid 0.4% while the VIX jumped 6.6%, extending the choppy, risk-averse tone of the past month (NDX -4.1% 1M); biggest movers were Netflix up 13.8% and Nordic American Tankers up 6.1%, while Oklo fell 8.9% and IonQ dropped 6.1%.
 
 **Key tape (multi-horizon):**
 
@@ -25,7 +25,7 @@ Headline: AI disruption fears that first hit software are now pressuring financi
 | Silver           | 92.68     | <span style="color:#11823b;">+6.53%</span> | <span style="color:#11823b;">+12.64%</span> | <span style="color:#b91c1c;">-18.06%</span> | <span style="color:#11823b;">+64.20%</span> | <span style="color:#11823b;">+130.55%</span> |
 | Coffee           | 284.60    | <span style="color:#b91c1c;">-0.49%</span> | <span style="color:#b91c1c;">-1.28%</span>  | <span style="color:#b91c1c;">-18.92%</span> | <span style="color:#b91c1c;">-31.09%</span> | <span style="color:#b91c1c;">-28.29%</span>  |
 | Cocoa            | 2,798.00  | <span style="color:#b91c1c;">-5.92%</span> | <span style="color:#b91c1c;">-9.16%</span>  | <span style="color:#b91c1c;">-32.58%</span> | <span style="color:#b91c1c;">-48.22%</span> | <span style="color:#b91c1c;">-63.35%</span>  |
-| Bitcoin          | 64,866.14 | <span style="color:#b91c1c;">-1.54%</span> | <span style="color:#b91c1c;">-4.61%</span>  | <span style="color:#b91c1c;">-23.29%</span> | <span style="color:#b91c1c;">-28.24%</span> | <span style="color:#b91c1c;">-40.63%</span>  |
+| Bitcoin          | 64,950.39 | <span style="color:#b91c1c;">-1.41%</span> | <span style="color:#b91c1c;">-4.49%</span>  | <span style="color:#b91c1c;">-23.19%</span> | <span style="color:#b91c1c;">-28.15%</span> | <span style="color:#b91c1c;">-40.55%</span>  |
 
 **Macro charts (5Y):**
 
@@ -39,7 +39,6 @@ Headline: AI disruption fears that first hit software are now pressuring financi
 | Ticker   | pct     |
 | :--- | ---: |
 | NFLX     | +13.77% |
-| SI=F     | +6.53%  |
 | NAT      | +6.11%  |
 | INSW     | +4.16%  |
 
@@ -48,7 +47,6 @@ Headline: AI disruption fears that first hit software are now pressuring financi
 | Ticker   | pct    |
 | :--- | ---: |
 | OKLO     | -8.86% |
-| QBTS     | -6.75% |
 | IONQ     | -6.14% |
 | CC=F     | -5.92% |
 | HOOD     | -4.53% |
@@ -73,18 +71,19 @@ _Upcoming earnings dates for your  watchlist._
 
 ### Signal engine health (diagnostics)
 
-- Tickers scanned: **1277**; usable OHLCV: **769**
+- Tickers scanned: **1277**; usable OHLCV: **665**
 
-- Candidates found: **243** (top patterns: IHS:71, HS_TOP:55, MOMO_TREND:49, RECT:22, RECT_TOP:16, RECT_BOTTOM:14, DEAD_CAT_BOUNCE:12, DESC_TRIANGLE:4)
+- Candidates found: **210** (top patterns: IHS:64, HS_TOP:44, MOMO_TREND:41, RECT:22, RECT_TOP:14, RECT_BOTTOM:12, DEAD_CAT_BOUNCE:11, DESC_TRIANGLE:2)
 
-- Live signals: EARLY **22**, CONFIRMED **0**, VALIDATED **0** (total 22)
+- Live signals: EARLY **19**, CONFIRMED **0**, VALIDATED **0** (total 19)
 
-- Geometry restored today: HS/IHS **115**, Band **0**
+- Geometry restored today: HS/IHS **109**, Band **0**
 
 
 
-### Focus tickers deep-dive (always shown)
-
+### Focus tickers deep-dive (always shown)\n
+**NU** — focus analysis failed: `name '_clv_at_bar' is not defined`\n\n
+**CEG** — focus analysis failed: `name '_clv_at_bar' is not defined`\n\n
 ### 4A) Watchlist emerging chart trends
 
 _Logic: score each ticker by stage (EARLY=1, CONFIRMED=3, VALIDATED=4) × direction (BREAKOUT=+1, BREAKDOWN=-1), then aggregate by sector._
@@ -146,16 +145,16 @@ _Includes **VALIDATED** only: breakout/breakdown occurred **3 sessions ago** AND
 
 _Linked digest for drill-down._
 
+- [Stock Market Week: Reaction To Iran, Berkshire Earnings, Apple Event](https://www.investors.com/research/investing-action-plan/stock-market-week-reaction-to-iran-berkshire-earnings-apple-event/?src=A00220&yptr=yahoo) — Yahoo Finance Top Stories
 - [Trump said tariffs could someday 'substantially replace' income taxes. What policy experts say](https://www.cnbc.com/2026/02/27/trump-tariffs-income-taxes.html) — CNBC Top News
 - [Google wants Intrinsic to be 'Android of robotics' as it pushes into physical AI](https://www.cnbc.com/2026/02/28/google-wants-intrinsic-to-be-android-for-robots-moves-into-physical-ai.html) — CNBC Top News
-- [Any chance of a Fed interest-rate cut in 2026 is ‘evaporating before our very eyes’ with Iran war set to stoke oil prices](https://www.marketwatch.com/story/any-chance-the-fed-cuts-rates-this-year-is-evaporating-before-our-very-eyes-as-iran-tensions-raise-oil-prices-18978691?mod=mw_rss_topstories) — MarketWatch Top Stories
 - [Stocks Sink in Broad AI Rout Sparked by China's DeepSeek](https://www.wsj.com/articles/nikkei-may-rise-as-weak-yen-raises-earnings-hopes-776a8056?mod=rss_markets_main) — WSJ Markets
 - [The real winners of Trump’s global tariff war: law firms, hedge funds and AI](https://www.theguardian.com/us-news/2026/feb/28/trump-tariffs-refunds-law-firms) — The Guardian Business
-- [Medicare 101: New book explains what most of us don't know about healthcare in retirement](https://finance.yahoo.com/news/medicare-101-new-book-explains-what-most-of-us-dont-know-about-healthcare-in-retirement-153033448.html) — Yahoo Finance Top Stories
 - [Berkshire Hathaway operating earnings fell nearly 30% in Warren Buffett's final quarter as CEO](https://www.cnbc.com/2026/02/28/berkshire-hathaway-brka-q4-2025-earnings.html) — CNBC Top News
+- [Anthropic's Claude hits No. 2 on Apple's top free apps list after Pentagon rejection](https://www.cnbc.com/2026/02/28/anthropics-claude-apple-apps.html) — CNBC Top News
 - [OpenAI strikes deal with Pentagon, hours after rival Anthropic was blacklisted by Trump](https://www.cnbc.com/2026/02/27/openai-strikes-deal-with-pentagon-hours-after-rival-anthropic-was-blacklisted-by-trump.html) — CNBC Top News
 - [AI just leveled up and there are no guardrails anymore](https://www.cnbc.com/2026/02/28/ai-selloff-politics-agents.html) — CNBC Top News
-- [Pentagon-Anthropic AI standoff is real-time testing balance of power in future of warfare](https://www.cnbc.com/2026/02/27/defense-anthropic-ai-war-risks-hegseth-amodei.html) — CNBC Top News
+- [Berkshire CEO Abel praises Kraft Heinz for turnaround on planned split](https://www.cnbc.com/2026/02/14/berkshire-ceo-abel-praises-kraft-heinz-for-turnaround-on-planned-split.html) — CNBC Markets
 
 ## 6) Watchlist performance (all tickers)
 
@@ -163,4 +162,4 @@ Columns: **Name of Company | Ticker | Country | Sector | Close | Day% | CLV | AT
 
 ### AI compute & semis (incl. EDA)
 
-<style>table.tblauto{table-layout:auto;width:100%;border-collapse:collapse;margin:8px 0;}table.tblauto th,table.tblauto td{border:1px solid #e5e7eb;padding:6px 8px;vertical-align:top;}table.tblauto th{background:#f6f8fa;font-weight:600;white-space:nowrap;}table.tblauto td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}table.tblauto td.txt{white-space:nowrap;}table.tblauto td.wrap{white-space:normal;}</style><div style="overflow-x:auto"><table class="tblauto"><thead><tr><th>Name of Company</th><th>Ticker</th><th>Country</th><th>Sector</th><th>Close</th><th>Day%</th><th>CLV</th><th>ATR(14)</th><th>ATR Δ14d</th><th>Vol/AvgVol20</th><th>1D</th><th>7D</th><th>1M</th><th>3M</th></tr></thead><tbody><tr><td class="wrap">SK HYNIX</td><td class="txt">000660.KS</td><td class="txt">South Korea</td><td class="txt">Information Technology</td><td class="num">1,061,000.00</td><td class="num">-3.5%</td><td class="num">-0.46</td><td class="num">47,714.29</td><td class="num">+5.2%</td><td class="num">1.32×</td><td class="num">-3.5%</td><td class="num">+11.8%
+<style>table.tblauto{table-layout:auto;width:100%;border-collapse:collapse;margin:8px 0;}table.tblauto th,table.tblauto td{border:1px solid #e5e7eb;padding:6px 8px;vertical-align:top;}table.tblauto th{background:#f6f8fa;font-weight:600;white-space:nowrap;}table.tblauto td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}table.tblauto td.txt{white-space:nowrap;}table.tblauto td.wrap{white-space:normal;}</style><div style="overflow-x:auto"><table class="tblauto"><thead><tr><th>Name of Company</th><th>Ticker</th><th>Country</th><th>Sector</th><th>Close</th><th>Day%</th><th>CLV</th><th>ATR(14)</th><th>ATR Δ14d</th><th>Vol/AvgVol20</th><th>1D</th><th>7D</th><th>1M</th><th>3M</th></tr></thead><tbody><tr><td class="wrap">SK HYNIX</td><td class="txt">000660.KS</td><td class="txt">South Korea</td><td class="txt">Information Technology</td><td class="num">1,061,000.00</td><td class="num">-3.5%</td><td class="num">-0.46</td><td class="num">47,714.29</td><td class="num">+5.2%</td><td class="num">1.32×</td><
