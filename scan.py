@@ -283,7 +283,9 @@ DOWNLOAD_PERIOD = "3y"
 DOWNLOAD_INTERVAL = "1d"
 CHUNK_SIZE = 80
 
-MAX_CHARTS_EARLY = 14
+MAX_CHARTS_EARLY = 30
+MAX_CHARTS_CONFIRMED = 15
+MAX_CHARTS_VALIDATED = 5
 MAX_CHARTS_TRIGGERED = 18
 
 USER_AGENT = (
@@ -5732,21 +5734,25 @@ def main():
     confirmed_sorted = sorted(confirmed, key=rank_signal)
     early_sorted = sorted(early, key=rank_signal)
 
-    # Charts: VALIDATED and CONFIRMED first (include MSCI names shown in 4B).
-    trig_chart_cap = max(int(MAX_CHARTS_TRIGGERED), 260)
-    trig_charts = 0
-    for s in (validated_sorted + confirmed_sorted):
-        if trig_charts >= trig_chart_cap:
+    # Charts: VALIDATED (cap) then CONFIRMED (cap)
+    val_charts = 0
+    for s in validated_sorted:
+        if val_charts >= int(MAX_CHARTS_VALIDATED):
             continue
         s.chart_path = plot_signal_chart(s.ticker, ohlcv.get(s.ticker), s, name_resolver=company_name_for_ticker)
-        trig_charts += 1
+        val_charts += 1
 
-    # Charts: EARLY only for base universe
+    conf_charts = 0
+    for s in confirmed_sorted:
+        if conf_charts >= int(MAX_CHARTS_CONFIRMED):
+            continue
+        s.chart_path = plot_signal_chart(s.ticker, ohlcv.get(s.ticker), s, name_resolver=company_name_for_ticker)
+        conf_charts += 1
+
+    # Charts: EARLY across all tickers (cap to keep report readable)
     early_charts = 0
     for s in early_sorted:
-        if s.ticker not in base_set:
-            continue
-        if early_charts >= MAX_CHARTS_EARLY:
+        if early_charts >= int(MAX_CHARTS_EARLY):
             continue
         s.chart_path = plot_signal_chart(s.ticker, ohlcv.get(s.ticker), s, name_resolver=company_name_for_ticker)
         early_charts += 1
@@ -5906,64 +5912,67 @@ def main():
 
     # Emerging chart trends (watchlist pulse) — before early callouts
 
-    # Focus tickers deep-dive (always include charts + gate diagnosis)
-    try:
-        md.append("### Focus tickers deep-dive (always shown)\n")
-        for ft in FOCUS_TICKERS:
+    # Focus tickers deep-dive (always shown) — NU + CEG with explicit “why not detected” + charts
+    md.append("### Focus tickers deep-dive (always shown)\\n")
+    for ft in FOCUS_TICKERS:
+        try:
             df_ft = ohlcv.get(ft)
             if df_ft is None or df_ft.empty:
-                md.append(f"**{ft}** — no data\n")
+                md.append(f"**{ft}** — no data\\n\\n")
                 continue
 
-            info = _debug_gates_for_ticker(ft, df_ft, state=state, max_candidates=10)
+            info = _debug_gates_for_ticker(ft, df_ft, state=state, max_candidates=12)
             best = info.get("Best") or {}
             nm = company_name_for_ticker(ft)
             nm_disp = (NAME_OVERRIDES.get(ft) or nm or ft).upper()
-            md.append(f"**{nm_disp} ({ft})**\n")
+            md.append(f"**{nm_disp} ({ft})**\\n")
 
             top_list = info.get("Top") or []
-            hs_seen = any((r.get("pattern") in ("HS_TOP","IHS")) for r in top_list if isinstance(r, dict))
-            md.append(f"- HS/IHS detected today: **{'YES' if hs_seen else 'NO'}**\n")
+            hs_seen = any((isinstance(r, dict) and r.get("pattern") in ("HS_TOP", "IHS")) for r in top_list)
+            md.append(f"- HS/IHS detected today: **{'YES' if hs_seen else 'NO'}**\\n")
+
             if not hs_seen:
+                exp_top: Dict[str, Any] = {}
+                exp_inv: Dict[str, Any] = {}
                 try:
-                    exp_top: Dict[str, Any] = {}
-                    exp_inv: Dict[str, Any] = {}
                     _ = detect_hs_top(df_ft, explain=exp_top)
+                except Exception:
+                    pass
+                try:
                     _ = detect_inverse_hs(df_ft, explain=exp_inv)
-
-                    def _fmt_reasons(exp: Dict[str, Any]) -> str:
-                        # show the most frequent rule failures
-                        items = []
-                        for k, v in exp.items():
-                            if k in ("highs","lows"):
-                                continue
-                            if isinstance(v, (int, float)) and v:
-                                items.append((k, int(v)))
-                        items.sort(key=lambda x: x[1], reverse=True)
-                        top = items[:6]
-                        return ", ".join([f"{k}:{v}" for k, v in top]) if top else "No specific counters (likely no candidate loops reached)."
-
-                    md.append("- HS_TOP detect explain (top rejects): " + _fmt_reasons(exp_top) + "\n")
-                    md.append("- IHS detect explain (top rejects): " + _fmt_reasons(exp_inv) + "\n")
-                    if isinstance(exp_top, dict) and ("highs" in exp_top or "lows" in exp_top):
-                        md.append(f"- Swings (HS_TOP): highs={exp_top.get('highs','?')} lows={exp_top.get('lows','?')}\n")
-                    if isinstance(exp_inv, dict) and ("highs" in exp_inv or "lows" in exp_inv):
-                        md.append(f"- Swings (IHS): highs={exp_inv.get('highs','?')} lows={exp_inv.get('lows','?')}\n")
                 except Exception:
                     pass
 
+                def _fmt(exp: Dict[str, Any]) -> str:
+                    items = []
+                    for k, v in exp.items():
+                        if k in ("highs", "lows"):
+                            continue
+                        if isinstance(v, (int, float)) and v:
+                            items.append((k, int(v)))
+                    items.sort(key=lambda x: x[1], reverse=True)
+                    top = items[:8]
+                    return ", ".join([f"{k}:{v}" for k, v in top]) if top else "None"
+
+                md.append(f"- HS_TOP reject summary: {_fmt(exp_top)}\\n")
+                md.append(f"- IHS reject summary: {_fmt(exp_inv)}\\n")
+                if "highs" in exp_top or "lows" in exp_top:
+                    md.append(f"- Swings (HS_TOP): highs={exp_top.get('highs','?')} lows={exp_top.get('lows','?')}\\n")
+                if "highs" in exp_inv or "lows" in exp_inv:
+                    md.append(f"- Swings (IHS): highs={exp_inv.get('highs','?')} lows={exp_inv.get('lows','?')}\\n")
+
             if best and best.get("pattern"):
-                patt = str(best.get("pattern",""))
-                direc = str(best.get("dir",""))
+                patt = str(best.get("pattern", ""))
+                direc = str(best.get("dir", ""))
                 dist = float(best.get("distATR", float("nan")))
                 price_ok = bool(best.get("price_ok"))
                 clv_ok = bool(best.get("clv_ok"))
                 vol_ok = bool(best.get("vol_ok"))
-                hs_lag = str(best.get("hs_lag",""))
-                lvl = float(best.get("level", 0.0)) if best.get("level") is not None else 0.0
+                hs_lag = str(best.get("hs_lag", ""))
+                lvl = float(best.get("level", 0.0)) if best.get("level") is not None else float("nan")
                 meta = best.get("meta")
 
-                md.append(f"- Best candidate: **{patt} / {direc}** | Dist(ATR) **{dist:+.2f}** | Gates: Price **{'Y' if price_ok else 'N'}**, CLV **{'Y' if clv_ok else 'N'}**, Vol **{'Y' if vol_ok else 'N'}** | HS lag **{hs_lag}**\n")
+                md.append(f"- Best candidate: **{patt} / {direc}** | Dist(ATR) **{dist:+.2f}** | Gates: Price **{'Y' if price_ok else 'N'}**, CLV **{'Y' if clv_ok else 'N'}**, Vol **{'Y' if vol_ok else 'N'}** | HS lag **{hs_lag}**\\n")
 
                 sig = LevelSignal(
                     ticker=ft,
@@ -5977,14 +5986,26 @@ def main():
                     pct_today=float(info.get("Day%", float("nan"))),
                     meta=meta if isinstance(meta, dict) else None,
                 )
-                sig.chart_path = plot_signal_chart(ft, df_ft, sig, name_resolver=company_name_for_ticker)
-                if sig.chart_path:
-                    md.append(f"<img src='{sig.chart_path}' width='980' style='max-width:980px;height:auto;'>\n")
             else:
-                md.append("- No candidate detected in current engine.\n")
-            md.append("\n")
-    except Exception:
-        pass
+                sig = LevelSignal(
+                    ticker=ft,
+                    signal="FOCUS_NO_CANDIDATE",
+                    pattern="",
+                    direction="",
+                    level=float("nan"),
+                    close=float(info.get("Close", float("nan"))),
+                    atr=float(info.get("ATR", float("nan"))),
+                    dist_atr=float("nan"),
+                    pct_today=float(info.get("Day%", float("nan"))),
+                    meta=None,
+                )
+
+            sig.chart_path = plot_signal_chart(ft, df_ft, sig, name_resolver=company_name_for_ticker)
+            if getattr(sig, "chart_path", ""):
+                md.append(f"<img src='{sig.chart_path}' width='980' style='max-width:980px;height:auto;'>\\n")
+            md.append("\\n")
+        except Exception as e:
+            md.append(f"**{ft}** — focus analysis failed: `{e}`\\n\\n")
 
     md.append(build_watchlist_pulse_section_md(
         df_early_new=df_early_new,
