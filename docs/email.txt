@@ -1,151 +1,16 @@
 # Daily Report
 
-_Generated: **2026-02-27 22:55 CET**_
+## ERROR
 
-## 1) Market recap & positioning
+The run crashed. Traceback:
 
-**Executive summary:**
+```text
+Traceback (most recent call last):
+  File "/home/runner/work/daily-ticker-report/daily-ticker-report/scan.py", line 5867, in <module>
+    main()
+  File "/home/runner/work/daily-ticker-report/daily-ticker-report/scan.py", line 5514, in main
+    for t in base_universe:
+        ^
+UnboundLocalError: cannot access local variable 'debug' where it is not associated with a value
 
-Headline: Tech and policy uncertainty kept investors defensive as AI headlines and earnings chatter competed with tariff talk. The Nasdaq 100 fell 0.3% and the S&P 500 slid 0.4% while the VIX jumped 6.6%, extending the choppy, risk-averse tone of the past month (NDX -4.1% 1M). Netflix surged 13.8% and Nordic American Tankers rose 6.1%, while Oklo sank 8.9% and Quantum Computing fell 6.8%.
-
-**Key tape (multi-horizon):**
-
-| Instrument       | Last      | 1D                                         | 7D                                          | 1M                                          | 3M                                          | 6M                                           |
-| :--- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Nasdaq 100       | 24,960.04 | <span style="color:#b91c1c;">-0.30%</span> | <span style="color:#b91c1c;">-0.21%</span>  | <span style="color:#b91c1c;">-4.08%</span>  | <span style="color:#b91c1c;">-1.87%</span>  | <span style="color:#11823b;">+6.60%</span>   |
-| S&P 500          | 6,878.88  | <span style="color:#b91c1c;">-0.43%</span> | <span style="color:#b91c1c;">-0.44%</span>  | <span style="color:#b91c1c;">-1.42%</span>  | <span style="color:#11823b;">+0.43%</span>  | <span style="color:#11823b;">+6.48%</span>   |
-| QQQ              | 607.29    | <span style="color:#b91c1c;">-0.32%</span> | <span style="color:#b91c1c;">-0.25%</span>  | <span style="color:#b91c1c;">-4.09%</span>  | <span style="color:#b91c1c;">-1.93%</span>  | <span style="color:#11823b;">+6.47%</span>   |
-| SPY              | 685.99    | <span style="color:#b91c1c;">-0.48%</span> | <span style="color:#b91c1c;">-0.50%</span>  | <span style="color:#b91c1c;">-1.36%</span>  | <span style="color:#11823b;">+0.38%</span>  | <span style="color:#11823b;">+6.35%</span>   |
-| STOXX Europe 600 | 633.85    | <span style="color:#11823b;">+0.11%</span> | <span style="color:#11823b;">+0.52%</span>  | <span style="color:#11823b;">+4.16%</span>  | <span style="color:#11823b;">+9.96%</span>  | <span style="color:#11823b;">+15.22%</span>  |
-| DAX              | 25,284.26 | <span style="color:#b91c1c;">-0.02%</span> | <span style="color:#11823b;">+0.09%</span>  | <span style="color:#11823b;">+1.86%</span>  | <span style="color:#11823b;">+6.07%</span>  | <span style="color:#11823b;">+5.78%</span>   |
-| CAC 40           | 8,580.75  | <span style="color:#b91c1c;">-0.47%</span> | <span style="color:#11823b;">+0.77%</span>  | <span style="color:#11823b;">+6.37%</span>  | <span style="color:#11823b;">+5.64%</span>  | <span style="color:#11823b;">+11.38%</span>  |
-| FTSE 100         | 10,910.55 | <span style="color:#11823b;">+0.59%</span> | <span style="color:#11823b;">+2.09%</span>  | <span style="color:#11823b;">+7.45%</span>  | <span style="color:#11823b;">+12.24%</span> | <span style="color:#11823b;">+18.76%</span>  |
-| VIX              | 19.86     | <span style="color:#11823b;">+6.60%</span> | <span style="color:#11823b;">+4.03%</span>  | <span style="color:#11823b;">+21.47%</span> | <span style="color:#11823b;">+21.47%</span> | <span style="color:#11823b;">+29.30%</span>  |
-| EUR/USD          | 1.18      | <span style="color:#11823b;">+0.01%</span> | <span style="color:#11823b;">+0.40%</span>  | <span style="color:#b91c1c;">-1.68%</span>  | <span style="color:#11823b;">+1.86%</span>  | <span style="color:#11823b;">+1.15%</span>   |
-| WTI Crude        | 67.39     | <span style="color:#11823b;">+3.34%</span> | <span style="color:#11823b;">+1.51%</span>  | <span style="color:#11823b;">+6.61%</span>  | <span style="color:#11823b;">+15.10%</span> | <span style="color:#11823b;">+5.28%</span>   |
-| Gold             | 5,293.00  | <span style="color:#11823b;">+2.25%</span> | <span style="color:#11823b;">+4.62%</span>  | <span style="color:#b91c1c;">-0.16%</span>  | <span style="color:#11823b;">+25.48%</span> | <span style="color:#11823b;">+52.37%</span>  |
-| Silver           | 94.37     | <span style="color:#11823b;">+8.47%</span> | <span style="color:#11823b;">+14.69%</span> | <span style="color:#b91c1c;">-16.57%</span> | <span style="color:#11823b;">+67.19%</span> | <span style="color:#11823b;">+134.75%</span> |
-| Coffee           | 280.05    | <span style="color:#b91c1c;">-2.08%</span> | <span style="color:#b91c1c;">-2.86%</span>  | <span style="color:#b91c1c;">-20.21%</span> | <span style="color:#b91c1c;">-32.19%</span> | <span style="color:#b91c1c;">-29.43%</span>  |
-| Cocoa            | 2,898.00  | <span style="color:#b91c1c;">-2.56%</span> | <span style="color:#b91c1c;">-5.91%</span>  | <span style="color:#b91c1c;">-30.17%</span> | <span style="color:#b91c1c;">-46.37%</span> | <span style="color:#b91c1c;">-62.04%</span>  |
-| Bitcoin          | 65,542.48 | <span style="color:#b91c1c;">-2.83%</span> | <span style="color:#b91c1c;">-3.62%</span>  | <span style="color:#b91c1c;">-26.51%</span> | <span style="color:#b91c1c;">-27.86%</span> | <span style="color:#b91c1c;">-39.45%</span>  |
-
-**Macro charts (5Y):**
-
-<table><tr><td style='padding-right:12px;'><img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/macro_vix_5y.png' width='414' style='width:414px;max-width:414px;height:auto;'></td><td><img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/macro_eurusd_5y.png' width='414' style='width:414px;max-width:414px;height:auto;'></td></tr></table>
-
-
-## 2) Biggest movers (≥ 4%)
-
-**Session gainers:**
-
-| Ticker   | pct     |
-| :--- | ---: |
-| NFLX     | +13.77% |
-| NAT      | +6.11%  |
-| INSW     | +4.16%  |
-
-**Session losers:**
-
-| Ticker   | pct    |
-| :--- | ---: |
-| OKLO     | -8.86% |
-| QBTS     | -6.75% |
-| IONQ     | -6.14% |
-| HOOD     | -4.53% |
-| NVDA     | -4.16% |
-
-**After-hours gainers:** _None ≥ 4%_
-
-**After-hours losers:** _None ≥ 4%_
-
-## 3) Earnings next 14 days (your watchlist)
-
-_Upcoming earnings dates for your  watchlist._
-
-| Ticker   | Earnings Date   |   Days |
-| :--- | ---: | ---: |
-| FRO      | 2026-02-27      |      0 |
-| ANF      | 2026-03-04      |      5 |
-| AVGO     | 2026-03-04      |      5 |
-| MAU      | 2026-03-12      |     13 |
-| RRTL     | 2026-03-12      |     13 |
-
-## 4) Technical triggers
-
-### 4) Watchlist emerging chart trends
-
-_Logic: score each ticker by stage (EARLY=1, CONFIRMED=3, VALIDATED=4) × direction (BREAKOUT=+1, BREAKDOWN=-1), then aggregate by sector._
-
-| Sector | Bias | EARLY↑ | EARLY↓ | CONF↑ | CONF↓ | VALID↑ | VALID↓ |
-| :--- | :--- | ---: | ---: | ---: | ---: | ---: | ---: |
-| AI compute & semis (incl. EDA) | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
-| AI software/data | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
-| Big Tech platforms | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
-| Consumer & retail (incl. luxury) | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
-| Fintech & financials | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
-| Healthcare | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
-| Energy & Nuclear | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
-| Quantum | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
-| Venezuela Oil | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
-| Commodities | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
-
-
-### 4A) Early callouts (~90% complete)
-
-_Close enough to pre-plan. “Close enough” = within 0.5 ATR of the trigger (neckline/boundary). No SOFT tier — anything not CONFIRMED stays in EARLY._
-
-**NEW (today):**
-
-_None_
-
-**ONGOING:**
-
-_None_
-
-### 4B) Confirmed breakouts / breakdowns (watchlist + MSCI World)
-
-_Includes **CONFIRMED** only: close beyond trigger by ≥0.5 ATR AND Volume ≥1.25×AvgVol(20) AND CLV ≥+0.70 (breakout) / ≤−0.70 (breakdown). All tickers use S&P 500 11-sector labels (Sector)._ 
-
-**NEW (today):**
-
-<em>None</em>
-
-**ONGOING:**
-
-<em>None</em>
-
-
-### 4C) Validated breakouts / breakdowns (3-session anti-whipsaw)
-
-_Includes **VALIDATED** only: breakout/breakdown occurred **3 sessions ago** AND for the breakout day + the next 3 sessions (incl. today) ALL 3 confirmation gates held on **each** session: (1) CLV >= +0.70 / <= -0.70, (2) Volume >= 1.25x AvgVol(20), (3) Close beyond trigger by >= 0.5 ATR(14). **HVN Runway%** = distance from current price to the nearest significant opposing Volume-Profile HVN zone (daily OHLCV approximation), expressed as % in the signal direction._
-
-**NEW (today):**
-
-<em>None</em>
-
-**ONGOING:**
-
-<em>None</em>
-
-## 5) Needle-moving catalysts (RSS digest)
-
-_Linked digest for drill-down._
-
-- [Trump orders federal agencies to stop using Anthropic AI tech 'immediately'](https://www.cnbc.com/2026/02/27/trump-anthropic-ai-pentagon.html) — CNBC Top News
-- [Trump said tariffs could someday 'substantially replace' income taxes. What policy experts say](https://www.cnbc.com/2026/02/27/trump-tariffs-income-taxes.html) — CNBC Top News
-- [Are Jack Dorsey's aggressive job cuts the start of an AI jobs apocalypse? Economists weigh in](https://www.cnbc.com/2026/02/27/are-dorseys-giant-job-cuts-the-start-of-an-ai-jobs-apocalypse-economists-weigh-in.html) — CNBC Top News
-- [The bond market has been doing something strange despite a hot inflation report](https://www.marketwatch.com/story/the-bond-market-has-been-doing-something-strange-despite-a-hot-inflation-report-8670c7da?mod=mw_rss_topstories) — MarketWatch Top Stories
-- [Stocks Sink in Broad AI Rout Sparked by China's DeepSeek](https://www.wsj.com/articles/nikkei-may-rise-as-weak-yen-raises-earnings-hopes-776a8056?mod=rss_markets_main) — WSJ Markets
-- [Sainsbury’s to cut 300 jobs as it restructures tech team and Argos deliveries](https://www.theguardian.com/business/2026/feb/27/sainsburys-to-cut-300-jobs-as-it-restructures-tech-team-and-argos-deliveries) — The Guardian Business
-- [Jack Dorsey to cut 4,000 jobs due to AI advances at Square parent Block](https://www.theguardian.com/technology/2026/feb/27/block-ai-layoffs-jack-dorsey) — The Guardian Business
-- [Mastercard In Crosshairs: Citrini Models AI Agents Bypassing Interchange As Stablecoins Threaten Card Economics](https://finance.yahoo.com/news/mastercard-crosshairs-citrini-models-ai-143110931.html) — Yahoo Finance Top Stories
-- [Advanced Drainage Systems, Inc. (WMS) Builds Momentum in Manufacturing and Infrastructure Solutions](https://finance.yahoo.com/news/advanced-drainage-systems-inc-wms-143217239.html) — Yahoo Finance Top Stories
-- [Teleflex (TFX) Q4 2025 Earnings Call Transcript](https://finance.yahoo.com/news/teleflex-tfx-q4-2025-earnings-143242036.html) — Yahoo Finance Top Stories
-
-## 6) Watchlist performance (all tickers)
-
-Columns: **Name of Company | Ticker | Country | Sector | Close | Day% | CLV | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M**
-
-### AI compute & semis (incl. EDA)
-
-<style>table.tblauto{table-layout:auto;width:100%;border-collapse:collapse;margin:8px 0;}table.tblauto th,table.tblauto td{border:1px solid #e5e7eb;padding:6px 8px;vertical-align:top;}table.tblauto th{background:#f6f8fa;font-weight:600;white-space:nowrap;}table.tblauto td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}table.tblauto td.txt{white-space:nowrap;}table.tblauto td.wrap{white-space:normal;}</style><div style="overflow-x:auto"><table class="tblauto"><thead><tr><th>Name of Company</th><th>Ticker</th><th>Country</th><th>Sector</th><th>Close</th><th>Day%</th><th>CLV</th><th>ATR(14)</th><th>ATR Δ14d</th><th>Vol/AvgVol20</th><th>1D</th><th>7D</th><th>1M</th><th>3M</th></tr></thead><tbody><tr><td class="wrap">SK Hynix</td><td class="txt">000660.KS</td><td class="txt">South Korea</td><td class="txt">Information Technology</td><td class="num">1,061,000.00</td><td class="num">-3.5%</td><td class="num">-0.46</td><td class="num">47,714.29</td><td class="num">+5.2%</td><td class="num">1.32×</td><td class="num">-3.5%</td><td class="num">+11.8%</td><td class="num">+44.2%</td><td class="num">+104.0%</td></tr><tr><td class="wrap">ARM</td><td class="txt">ARM</td><td class="txt">United States</td><td class="txt">Information Technology</td><td class="num">127.45</td><td class="num">-1.4%</td><td class="num">-0.00</td><td class="num">5.86</td><td class="num">-18.7%</td><td cla
+```
