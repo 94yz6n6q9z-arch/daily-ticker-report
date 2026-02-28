@@ -95,6 +95,15 @@ NAME_OVERRIDES = {
     "REP.MC": "REPSOL",
     "PSX": "PHILLIPS 66",
     "QBTS": "D-WAVE QUANTUM INC.",
+    "TSM": "TSMC",
+    "NFLX": "NETFLIX",
+    "GOOGL": "GOOGLE",
+    "UCG": "UNI CREDIT S.P.A.",
+    "UCG.MI": "UNI CREDIT S.P.A.",
+    "ARR": "ARMOUR RESIDENTIAL REIT",
+    "NU": "NU HOLDINGS LTD.",
+    "SMR": "NUSCALE POWER CORP.",
+    "TNK": "TEEKAY TANKERS LTD.",
 }
 
 WATCHLIST_GROUPS: Dict[str, List[str]] = {
@@ -2889,11 +2898,12 @@ def _swing_points_ohlc(
     df: pd.DataFrame,
     window: int = 3,
     prominence_atr_mult: float = 0.5,
+    allow_tie_low_2dp: bool = False,
 ) -> Tuple[List[int], List[int]]:
     """
     Deterministic pivots on High/Low with prominence filter:
     - swing high: local max in [i-window, i+window], unique, prominence >= 0.5 ATR
-    - swing low: local min analogously
+    - swing low: local min analogously (optionally allow ties at 2dp for HS neckline shelves)
     """
     dd = df.dropna(subset=["High", "Low", "Close"]).copy()
     if dd.empty or len(dd) < (2 * window + 5):
@@ -2926,10 +2936,25 @@ def _swing_points_ohlc(
                 highs.append(i)
 
         # Low pivot
-        if lo[i] == np.min(lwin) and np.sum(lwin == lo[i]) == 1:
-            prominence = float(np.max(hwin) - lo[i])
-            if prominence >= float(prominence_atr_mult * atr_i):
-                lows.append(i)
+        if lo[i] == np.min(lwin):
+            ok_unique = (np.sum(lwin == lo[i]) == 1)
+            ok_tie = False
+            if (not ok_unique) and allow_tie_low_2dp:
+                # HS exception: allow shelf/plateau lows (ties) if they match at 2 decimals.
+                # Keep exactly ONE deterministic representative: the earliest bar in the tied-min set.
+                try:
+                    min2 = round(float(np.min(lwin)), 2)
+                    ties = [j for j, v in enumerate(lwin) if round(float(v), 2) == min2]
+                    if ties:
+                        chosen_global = (i - window) + int(ties[0])
+                        ok_tie = (i == chosen_global) and (round(float(lo[i]), 2) == min2)
+                except Exception:
+                    ok_tie = False
+
+            if ok_unique or ok_tie:
+                prominence = float(np.max(hwin) - lo[i])
+                if prominence >= float(prominence_atr_mult * atr_i):
+                    lows.append(i)
 
     return highs, lows
 
@@ -3200,8 +3225,8 @@ def _pick_recent_hs_triplet(
         if isinstance(explain, dict):
             explain[k] = int(explain.get(k, 0)) + 1
 
-    piv_hi = highs_idx[-16:]
-    piv_lo = lows_idx[-16:]
+    piv_hi = highs_idx[-32:]
+    piv_lo = lows_idx[-32:]
     if inverse:
         pivots_primary = piv_lo
         pivots_between = piv_hi
@@ -3329,7 +3354,7 @@ def detect_hs_top(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None) ->
             explain['len_lt_120'] = int(explain.get('len_lt_120', 0)) + 1
         return None
     c = d["Close"].astype(float)
-    highs_idx, lows_idx = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5)
+    highs_idx, lows_idx = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
     if len(highs_idx) < 3 or len(lows_idx) < 2:
         if isinstance(explain, dict):
             explain['not_enough_swings'] = int(explain.get('not_enough_swings', 0)) + 1
@@ -3378,7 +3403,7 @@ def detect_inverse_hs(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None
             explain['len_lt_120'] = int(explain.get('len_lt_120', 0)) + 1
         return None
     c = d["Close"].astype(float)
-    highs_idx, lows_idx = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5)
+    highs_idx, lows_idx = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
     if len(lows_idx) < 3 or len(highs_idx) < 2:
         if isinstance(explain, dict):
             explain['not_enough_swings'] = int(explain.get('not_enough_swings', 0)) + 1
@@ -3435,7 +3460,7 @@ def _detect_band_structure(df: pd.DataFrame) -> Optional[Dict[str, Any]]:
     if len(d) < 100:
         return None
     c = d["Close"].astype(float)
-    highs_idx, lows_idx = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5)
+    highs_idx, lows_idx = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
     if len(highs_idx) < 4 or len(lows_idx) < 4:
         return None
 
