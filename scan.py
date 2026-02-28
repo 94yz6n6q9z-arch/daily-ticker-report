@@ -930,15 +930,40 @@ def extract_ohlcv_from_download(data: pd.DataFrame, ticker: str) -> Optional[pd.
 
 
 def yf_download_chunk(tickers: List[str]) -> Dict[str, pd.DataFrame]:
+    """Deterministic OHLCV downloader.
+    - Sort tickers for stable ordering.
+    - Disable threads for stability.
+    - Retry missing tickers individually (common source of 'disappearing' rows).
+    """
     out: Dict[str, pd.DataFrame] = {}
     if not tickers:
         return out
+
+    tickers = [str(t).strip() for t in tickers if str(t).strip()]
+    tickers = sorted(dict.fromkeys(tickers))  # stable unique
+
+    def _download_one(t: str) -> Optional[pd.DataFrame]:
+        try:
+            data = yf.download(
+                tickers=[t],
+                period=DOWNLOAD_PERIOD,
+                interval=DOWNLOAD_INTERVAL,
+                group_by="ticker",
+                auto_adjust=False,
+                threads=False,
+                progress=False,
+            )
+            df = extract_ohlcv_from_download(data, t)
+            return df if df is not None and not df.empty else None
+        except Exception:
+            return None
 
     for i in range(0, len(tickers), CHUNK_SIZE):
         chunk = tickers[i:i + CHUNK_SIZE]
         if not chunk:
             continue
 
+        data = None
         try:
             data = yf.download(
                 tickers=chunk,
@@ -946,21 +971,27 @@ def yf_download_chunk(tickers: List[str]) -> Dict[str, pd.DataFrame]:
                 interval=DOWNLOAD_INTERVAL,
                 group_by="ticker",
                 auto_adjust=False,
-                threads=True,
+                threads=False,
                 progress=False,
             )
         except Exception:
-            continue
+            data = None
 
-        if data is None or data.empty:
-            continue
+        if data is not None and not getattr(data, "empty", True):
+            for t in chunk:
+                df = extract_ohlcv_from_download(data, t)
+                if df is not None and not df.empty:
+                    out[t] = df
 
-        for t in chunk:
-            df = extract_ohlcv_from_download(data, t)
+        # retry missing tickers individually (stabilizes watchlist & commodities)
+        missing = [t for t in chunk if t not in out]
+        for t in missing:
+            df = _download_one(t)
             if df is not None and not df.empty:
                 out[t] = df
 
     return out
+
 
 
 def pct_change_last(df: pd.DataFrame) -> Optional[float]:
@@ -968,6 +999,21 @@ def pct_change_last(df: pd.DataFrame) -> Optional[float]:
     if len(c) < 2:
         return None
     return float((c.iloc[-1] / c.iloc[-2] - 1.0) * 100.0)
+
+def _clv_at_bar(d: pd.DataFrame, i: int) -> float:
+    """Close Location Value in [-1,+1] for bar i."""
+    try:
+        h = float(d["High"].iloc[i])
+        l = float(d["Low"].iloc[i])
+        c = float(d["Close"].iloc[i])
+        rng = h - l
+        if rng <= 0:
+            return 0.0
+        return float(((c - l) - (h - c)) / rng)
+    except Exception:
+        return float("nan")
+
+
 
 
 def atr(df: pd.DataFrame, n: int = ATR_N) -> pd.Series:
@@ -2983,12 +3029,29 @@ def _after_close_cutoff_berlin(now: Optional[dt.datetime] = None) -> bool:
 
 
 def _latest_completed_close_df(d: pd.DataFrame) -> pd.DataFrame:
-    """Return df sliced to the latest completed daily close (drop today's partial bar if before cutoff)."""
+    """Return df sliced to the latest completed daily close.
+    Rule:
+      - If the last bar date is BEFORE today (Berlin), it is already a completed close -> keep it (weekends/holidays stable).
+      - If the last bar date is today and Berlin time < 22:10 -> drop the last bar (intraday partial daily bar).
+      - Otherwise keep.
+    """
     if d is None or d.empty:
         return d
-    if _after_close_cutoff_berlin():
+    if not isinstance(d.index, pd.DatetimeIndex):
         return d
-    return d.iloc[:-1].copy() if len(d) > 1 else d
+    try:
+        tz = ZoneInfo("Europe/Berlin")
+        now = dt.datetime.now(tz)
+        today = now.date()
+        last_date = pd.Timestamp(d.index[-1]).date()
+        if last_date < today:
+            return d
+        # last_date == today (or future)
+        if last_date == today and (now.hour, now.minute) < (22, 10):
+            return d.iloc[:-1].copy() if len(d) > 1 else d
+        return d
+    except Exception:
+        return d
 
 
 
@@ -5209,7 +5272,7 @@ def build_watchlist_performance_section_md(
             close_last = float(close_s.iloc[-1])
             rows.append({
                 "Name of Company": _safe_name(t),
-                "Ticker": t,
+                "Ticker": display_ticker(t),
                 "Country": _safe_country(t),
                 "Sector": _safe_sector(t),
                 "Close": close_last,
@@ -5272,7 +5335,7 @@ def signals_to_df(
             country = ""
         rows.append({
             "Name of Company": name,
-            "Ticker": s.ticker,
+            "Ticker": display_ticker(s.ticker),
             "Country": country,
             "Signal": s.signal,
             "Pattern": s.pattern,
@@ -5703,7 +5766,7 @@ def main():
             debug['tickers_usable'] += 1
         all_signals.extend(compute_signals_for_ticker(t, df, state=state, debug=debug))
 
-    # MSCI expansion: CONFIRMED + VALIDATED only (4B), no EARLY noise outside the watchlist/base universe
+    # MSCI expansion: include EARLY as well (to tune rules on a larger universe)
     if msci_tickers:
         for t in msci_tickers:
             debug['tickers_scanned'] += 1
@@ -5714,7 +5777,7 @@ def main():
                 debug['tickers_usable'] += 1
             sigs = compute_signals_for_ticker(t, df, state=state, debug=debug)
             if sigs:
-                all_signals.extend([s for s in sigs if s.signal.startswith("CONFIRMED_") or s.signal.startswith("VALIDATED_")])
+                all_signals.extend(sigs)
 
     validated = [s for s in all_signals if s.signal.startswith("VALIDATED_")]
     confirmed = [s for s in all_signals if s.signal.startswith("CONFIRMED_")]
@@ -5886,7 +5949,7 @@ def main():
             best = info.get("Best") or {}
             big_rows.append({
                 "Name of Company": company_name_for_ticker(t),
-                "Ticker": t,
+                "Ticker": display_ticker(t),
                 "Close": float(dtmp["Close"].iloc[-1]),
                 "Day%": daypct,
                 "BestPattern": str(best.get("pattern","")),
@@ -5913,12 +5976,12 @@ def main():
     # Emerging chart trends (watchlist pulse) — before early callouts
 
     # Focus tickers deep-dive (always shown) — NU + CEG with explicit “why not detected” + charts
-    md.append("### Focus tickers deep-dive (always shown)\\n")
+    md.append("### Focus tickers deep-dive (always shown)\n")
     for ft in FOCUS_TICKERS:
         try:
             df_ft = ohlcv.get(ft)
             if df_ft is None or df_ft.empty:
-                md.append(f"**{ft}** — no data\\n\\n")
+                md.append(f"**{ft}** — no data\n\n")
                 continue
 
             info = _debug_gates_for_ticker(ft, df_ft, state=state, max_candidates=12)
