@@ -239,6 +239,7 @@ HS_MIN_SIDE_BARS = 10
 HS_MAX_BARS = 90
 # Maximum allowed lag between pattern completion (RS) and breakout/breakdown confirmation run start
 HS_MAX_BREAKOUT_LAG_BARS = 30
+HS_GEOM_CARRY_BARS = 30  # persist HS/IHS geometry up to 30 bars to survive pivot re-picks on big bars
 # Lifecycle: CONFIRMED is only day 0..1 of a new confirmed run. Day 2 becomes VALIDATED if the validation window holds.
 CONFIRMED_MAX_AGE_BARS = 2
 VALIDATED_MIN_AGE_BARS = 3
@@ -2960,6 +2961,78 @@ def _line_meta(df: pd.DataFrame, i1: int, y1: float, i2: int, y2: float, label: 
     }
 
 
+
+def _reindex_meta_to_df(meta: Dict[str, Any], d: pd.DataFrame) -> Optional[Dict[str, Any]]:
+    """Re-map meta indices onto the current df slice using timestamps in meta ("t","t1","t2")."""
+    if meta is None or not isinstance(meta, dict) or d is None or d.empty:
+        return None
+    if not isinstance(d.index, pd.DatetimeIndex):
+        return None
+
+    date_to_pos: Dict[str, int] = {}
+    for pos, ts in enumerate(d.index):
+        try:
+            date_to_pos[pd.Timestamp(ts).date().isoformat()] = int(pos)
+        except Exception:
+            pass
+
+    def _pos_from_iso(iso: Any) -> Optional[int]:
+        try:
+            t = pd.to_datetime(str(iso), utc=True, errors="coerce")
+            if pd.isna(t):
+                t = pd.to_datetime(str(iso), errors="coerce")
+            if pd.isna(t):
+                return None
+            k = t.date().isoformat()
+            return int(date_to_pos[k]) if k in date_to_pos else None
+        except Exception:
+            return None
+
+    m = json.loads(json.dumps(meta))
+
+    pts = m.get("points")
+    if isinstance(pts, list):
+        for p in pts:
+            if not isinstance(p, dict):
+                continue
+            pos = _pos_from_iso(p.get("t"))
+            if pos is None:
+                return None
+            p["i"] = int(pos)
+
+    lns = m.get("lines")
+    if isinstance(lns, list):
+        for ln in lns:
+            if not isinstance(ln, dict):
+                continue
+            p1 = _pos_from_iso(ln.get("t1"))
+            p2 = _pos_from_iso(ln.get("t2"))
+            if p1 is None or p2 is None:
+                return None
+            ln["i1"] = int(p1)
+            ln["i2"] = int(p2)
+
+    # pattern start/end from LS/RS points if present
+    if isinstance(pts, list):
+        ls_i = None
+        rs_i = None
+        for p in pts:
+            if not isinstance(p, dict):
+                continue
+            lab = str(p.get("label", "")).strip().upper()
+            if lab == "LS":
+                ls_i = int(p.get("i"))
+            if lab == "RS":
+                rs_i = int(p.get("i"))
+        if ls_i is not None:
+            m["pattern_start_i"] = int(ls_i)
+        if rs_i is not None:
+            m["pattern_end_i"] = int(rs_i)
+
+    return m
+
+
+
 def _build_band_pattern_meta(
     df: pd.DataFrame,
     pattern: str,
@@ -4039,7 +4112,7 @@ def _stage_from_confirm_run(
     return ("CONFIRMED", status, age)
 
 
-def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSignal]:
+def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Dict[str, Any]] = None, debug: Optional[Dict[str, Any]] = None) -> List[LevelSignal]:
     sigs: List[LevelSignal] = []
     if df is None or df.empty or len(df) < 80:
         return sigs
@@ -4087,6 +4160,63 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
         clv = 0.0
 
     candidates = detect_pattern_candidates(d)
+
+    # Debug: candidate counts
+    if isinstance(debug, dict):
+        debug["cand_total"] = int(debug.get("cand_total", 0)) + int(len(candidates))
+        byp = debug.setdefault("cand_by_pattern", {})
+        for cnd in candidates:
+            k = str(getattr(cnd, "pattern", ""))
+            byp[k] = int(byp.get(k, 0)) + 1
+
+    # HS/IHS geometry carry-forward: survive pivot re-picks on big bars.
+    if isinstance(state, dict):
+        hs_geom = state.setdefault("hs_geom", {})
+        mem = hs_geom.get(ticker)
+        have_hs_today = any(getattr(cnd, "pattern", "") in ("HS_TOP", "IHS") for cnd in candidates)
+
+        if (not have_hs_today) and isinstance(mem, dict):
+            try:
+                asof = mem.get("asof")
+                age_ok = True
+                if isinstance(d.index, pd.DatetimeIndex) and asof is not None:
+                    asof_dt = pd.to_datetime(str(asof), utc=True, errors="coerce")
+                    if pd.isna(asof_dt):
+                        asof_dt = pd.to_datetime(str(asof), errors="coerce")
+                    if not pd.isna(asof_dt):
+                        asof_key = asof_dt.date().isoformat()
+                        date_keys = [pd.Timestamp(x).date().isoformat() for x in d.index]
+                        if asof_key in date_keys:
+                            age = int(len(date_keys) - 1 - date_keys.index(asof_key))
+                            age_ok = age <= HS_GEOM_CARRY_BARS
+                        else:
+                            age_ok = False
+                if age_ok:
+                    meta2 = _reindex_meta_to_df(mem.get("meta", {}), d)
+                    if meta2 is not None:
+                        candidates.append(PatternCandidate(
+                            pattern=str(mem.get("pattern", "")),
+                            direction=str(mem.get("direction", "")),
+                            level=float(mem.get("level", 0.0)),
+                            meta=meta2,
+                        ))
+                else:
+                    hs_geom.pop(ticker, None)
+            except Exception:
+                pass
+
+        # update memory if HS/IHS candidate exists today
+        try:
+            best = next(cnd for cnd in candidates if getattr(cnd, "pattern", "") in ("HS_TOP", "IHS"))
+            hs_geom[ticker] = {
+                "pattern": best.pattern,
+                "direction": best.direction,
+                "level": float(best.level),
+                "meta": best.meta,
+                "asof": _iso_ts(d.index[-1]),
+            }
+        except Exception:
+            pass
 
     # De-duplicate candidates (same pattern/dir/trigger rounded)
     seen = set()
@@ -4215,7 +4345,121 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame) -> List[LevelSigna
             filtered.append(s)
         sigs = filtered
 
+    # Debug: stage counts
+    if isinstance(debug, dict):
+        for s in sigs:
+            sid = str(getattr(s, "signal", ""))
+            if sid.startswith("EARLY_"):
+                debug["signals_early"] = int(debug.get("signals_early", 0)) + 1
+            elif sid.startswith("CONFIRMED_"):
+                debug["signals_conf"] = int(debug.get("signals_conf", 0)) + 1
+            elif sid.startswith("VALIDATED_"):
+                debug["signals_val"] = int(debug.get("signals_val", 0)) + 1
+        debug["signals_total"] = int(debug.get("signals_total", 0)) + int(len(sigs))
+
     return sigs
+
+
+def _debug_gates_for_ticker(ticker: str, df0: pd.DataFrame, state: Optional[Dict[str, Any]] = None, max_candidates: int = 6) -> Dict[str, Any]:
+    """Diagnostics for a ticker: last-bar metrics and why it did/didn't confirm."""
+    out: Dict[str, Any] = {"Ticker": ticker}
+    if df0 is None or df0.empty:
+        out["note"] = "no data"
+        return out
+    d0 = df0.dropna(subset=["Open", "High", "Low", "Close"]).copy()
+    if d0.empty or len(d0) < 5:
+        out["note"] = "insufficient bars"
+        return out
+
+    if isinstance(d0.index, pd.DatetimeIndex):
+        cutoff = d0.index[-1] - pd.Timedelta(days=CHART_WINDOW_DAYS)
+        d = d0.loc[d0.index >= cutoff].copy()
+    else:
+        d = d0.tail(LOOKBACK_DAYS).copy()
+    if d.empty or len(d) < 5:
+        out["note"] = "empty slice"
+        return out
+
+    end = len(d) - 1
+    close = float(d["Close"].iloc[end])
+    out["LastDate"] = str(pd.Timestamp(d.index[end]).date())
+    out["Close"] = close
+    try:
+        out["Day%"] = (float(d["Close"].iloc[end]) / float(d["Close"].iloc[end-1]) - 1.0) * 100.0
+    except Exception:
+        out["Day%"] = float("nan")
+
+    out["CLV"] = _clv_at_bar(d, end)
+    try:
+        v = float(d["Volume"].iloc[end]) if "Volume" in d.columns else float("nan")
+        avg20 = float(pd.to_numeric(d["Volume"].iloc[max(0, end-21):end], errors="coerce").tail(20).mean()) if "Volume" in d.columns else float("nan")
+        out["VolRatio"] = v / avg20 if avg20 and np.isfinite(avg20) and np.isfinite(v) else float("nan")
+    except Exception:
+        out["VolRatio"] = float("nan")
+
+    a = atr(d, ATR_N).astype(float)
+    atr_v = float(a.iloc[end]) if len(a) and np.isfinite(a.iloc[end]) else float("nan")
+    out["ATR"] = atr_v
+
+    candidates = detect_pattern_candidates(d)
+
+    if isinstance(state, dict):
+        mem = state.get("hs_geom", {}).get(ticker)
+        have_hs = any(getattr(cnd, "pattern", "") in ("HS_TOP","IHS") for cnd in candidates)
+        if (not have_hs) and isinstance(mem, dict):
+            meta2 = _reindex_meta_to_df(mem.get("meta", {}), d)
+            if meta2 is not None:
+                candidates.append(PatternCandidate(
+                    pattern=str(mem.get("pattern","")),
+                    direction=str(mem.get("direction","")),
+                    level=float(mem.get("level",0.0)),
+                    meta=meta2
+                ))
+
+    out["Cand#"] = len(candidates)
+
+    rows = []
+    for cnd in candidates[:max_candidates]:
+        try:
+            lvl = float(_level_at_bar(cnd, d, end))
+            dist = (close - lvl) / atr_v if atr_v and np.isfinite(atr_v) else float("nan")
+            price_ok = (dist >= ATR_CONFIRM_MULT) if cnd.direction == "BREAKOUT" else (dist <= -ATR_CONFIRM_MULT)
+            clv_ok = (out["CLV"] >= CLV_BREAKOUT_MIN) if cnd.direction == "BREAKOUT" else (out["CLV"] <= CLV_BREAKDOWN_MAX)
+            vol_ok = (out["VolRatio"] >= VOL_CONFIRM_MULT) if np.isfinite(out["VolRatio"]) else False
+
+            hs_lag = ""
+            if cnd.pattern in ("HS_TOP","IHS"):
+                try:
+                    pe = int((cnd.meta or {}).get("pattern_end_i"))
+                    hs_lag = str(int(end - pe))
+                except Exception:
+                    hs_lag = ""
+
+            rows.append({
+                "pattern": cnd.pattern,
+                "dir": cnd.direction,
+                "distATR": dist,
+                "price_ok": price_ok,
+                "clv_ok": clv_ok,
+                "vol_ok": vol_ok,
+                "hs_lag": hs_lag,
+            })
+        except Exception:
+            continue
+
+    best = None
+    best_score = -1
+    for r in rows:
+        sc = int(r["price_ok"]) + int(r["clv_ok"]) + int(r["vol_ok"])
+        if sc > best_score:
+            best_score = sc
+            best = r
+
+    out["Best"] = best
+    out["Top"] = rows
+    return out
+
+
 
 
 # ----------------------------
@@ -5268,18 +5512,24 @@ def main():
     # Watchlist/base universe: keep EARLY + CONFIRMED + VALIDATED (drives 4A + watchlist trend table)
     base_set = set(base_universe)
     for t in base_universe:
+        debug['tickers_scanned'] += 1
         df = ohlcv.get(t)
         if df is None or df.empty:
             continue
-        all_signals.extend(compute_signals_for_ticker(t, df))
+        if len(df) >= 80:
+            debug['tickers_usable'] += 1
+        all_signals.extend(compute_signals_for_ticker(t, df, state=state, debug=debug))
 
     # MSCI expansion: CONFIRMED + VALIDATED only (4B), no EARLY noise outside the watchlist/base universe
     if msci_tickers:
         for t in msci_tickers:
+            debug['tickers_scanned'] += 1
             df = ohlcv.get(t)
             if df is None or df.empty:
                 continue
-            sigs = compute_signals_for_ticker(t, df)
+            if len(df) >= 80:
+                debug['tickers_usable'] += 1
+            sigs = compute_signals_for_ticker(t, df, state=state, debug=debug)
             if sigs:
                 all_signals.extend([s for s in sigs if s.signal.startswith("CONFIRMED_") or s.signal.startswith("VALIDATED_")])
 
@@ -5321,6 +5571,7 @@ def main():
         early_charts += 1
 # State diff (used only for EARLY "NEW" labeling + a changelog of signal IDs)
     state = load_state()
+    debug: Dict[str, Any] = {'tickers_scanned': 0, 'tickers_usable': 0, 'cand_total': 0, 'cand_by_pattern': {}, 'signals_early': 0, 'signals_conf': 0, 'signals_val': 0, 'signals_total': 0}
     prev_all = {"signals": state.get("signals", [])}
     prev_early = {"signals": state.get("early", [])}
 
@@ -5428,6 +5679,60 @@ def main():
         watchlist_groups=WATCHLIST_GROUPS,
         ticker_labels=TICKER_LABELS,
     ))
+
+
+    # ----------------------------
+    # Signal engine health (diagnostics)
+    # ----------------------------
+    try:
+        cand_total = int(debug.get("cand_total", 0))
+        sig_total = int(debug.get("signals_total", 0))
+        byp = debug.get("cand_by_pattern", {}) if isinstance(debug.get("cand_by_pattern", {}), dict) else {}
+        top_pats = sorted([(k, int(v)) for k, v in byp.items()], key=lambda x: x[1], reverse=True)[:8]
+        top_pats_str = ", ".join([f"{k}:{v}" for k, v in top_pats]) if top_pats else "None"
+
+        md.append("## 4) Signal engine health (diagnostics)\n")
+        md.append(f"- Tickers scanned: **{int(debug.get('tickers_scanned', 0))}**; usable OHLCV: **{int(debug.get('tickers_usable', 0))}**\n")
+        md.append(f"- Candidates found: **{cand_total}** (top patterns: {top_pats_str})\n")
+        md.append(f"- Live signals: EARLY **{int(debug.get('signals_early', 0))}**, CONFIRMED **{int(debug.get('signals_conf', 0))}**, VALIDATED **{int(debug.get('signals_val', 0))}** (total {sig_total})\n")
+        md.append("\n")
+
+        big_rows: List[Dict[str, Any]] = []
+        for t in WATCHLIST_44:
+            df = ohlcv.get(t)
+            if df is None or df.empty:
+                continue
+            dtmp = df.dropna(subset=["Close"]).copy()
+            if len(dtmp) < 2:
+                continue
+            daypct = (float(dtmp["Close"].iloc[-1]) / float(dtmp["Close"].iloc[-2]) - 1.0) * 100.0
+            if abs(daypct) < 7.0:
+                continue
+            info = _debug_gates_for_ticker(t, df, state=state, max_candidates=6)
+            best = info.get("Best") or {}
+            big_rows.append({
+                "Name of Company": company_name_for_ticker(t),
+                "Ticker": t,
+                "Close": float(dtmp["Close"].iloc[-1]),
+                "Day%": daypct,
+                "BestPattern": str(best.get("pattern","")),
+                "Dir": str(best.get("dir","")),
+                "Dist(ATR)": float(best.get("distATR", float("nan"))) if best else float("nan"),
+                "PriceGate": "Y" if best and best.get("price_ok") else "N",
+                "CLVGate": "Y" if best and best.get("clv_ok") else "N",
+                "VolGate": "Y" if best and best.get("vol_ok") else "N",
+                "HS lag": str(best.get("hs_lag","")),
+                "Cand#": int(info.get("Cand#", 0)),
+            })
+        if big_rows:
+            md.append("### Watchlist big movers diagnostics (|Day%| ≥ 7%)\n")
+            df_dbg = pd.DataFrame(big_rows)
+            md.append(html_table_from_df(df_dbg, cols=[
+                "Name of Company","Ticker","Close","Day%","BestPattern","Dir","Dist(ATR)","PriceGate","CLVGate","VolGate","HS lag","Cand#"
+            ], max_rows=30))
+            md.append("\n")
+    except Exception:
+        pass
 
     md.append("### 4A) Early callouts (~90% complete)\n")
     md.append("_Close enough to pre-plan. “Close enough” = within 0.5 ATR of the trigger (neckline/boundary). No SOFT tier — anything not CONFIRMED stays in EARLY._\n")
