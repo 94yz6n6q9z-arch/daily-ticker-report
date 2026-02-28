@@ -75,6 +75,28 @@ COMMODITY_NAME_OVERRIDES: Dict[str, str] = {
     "CC=F": "Cocoa",
 }
 
+# Force these tickers to always appear with charts + gate diagnosis in Section 4 (even if no live signal)
+FOCUS_TICKERS = ["NU", "CEG"]
+
+# Display name overrides (Section 6 + readability). Values should be FULL CAPS.
+NAME_OVERRIDES = {
+    "PLTR": "PALANTIR TECHNOLOGIES",
+    "RRTL.DE": "RTL GROUP",
+    "BYDDY": "BYD",
+    "ANF": "ABERCROMBIE & FITCH",
+    "MUV2.DE": "MUNICH RE",
+    "NVO": "NOVO NORDISK",
+    "CCJ": "CAMECO CORPORATION",
+    "LEU": "CENTRUS ENERGY",
+    "NAT": "NORDIC AMERICAN TANKERS",
+    "FRO": "FRONTLINE PLC",
+    "MAU.PA": "MAUREL & PROM S.A.",
+    "INSW": "INTERNATIONAL SEAWAYS",
+    "REP.MC": "REPSOL",
+    "PSX": "PHILLIPS 66",
+    "QBTS": "D-WAVE QUANTUM INC.",
+}
+
 WATCHLIST_GROUPS: Dict[str, List[str]] = {
     # EDA merged into this bucket
     "AI compute & semis (incl. EDA)": ["NVDA","ARM","AVGO","TSM","000660.KS","ASML","AMAT","LRCX","SNPS","CDNS"],
@@ -1038,10 +1060,7 @@ def fetch_market_snapshot_multi() -> pd.DataFrame:
     instruments = [
         ("Nasdaq 100", "^NDX"),
         ("S&P 500", "^GSPC"),
-        ("QQQ", "QQQ"),
-        ("SPY", "SPY"),
-
-        ("STOXX Europe 600", "^STOXX"),
+                        ("STOXX Europe 600", "^STOXX"),
         ("DAX", "^GDAXI"),
         ("CAC 40", "^FCHI"),
         ("FTSE 100", "^FTSE"),
@@ -1875,7 +1894,7 @@ def build_watchlist_pulse_section_md(
         cat_stats[cat] = {"score": score, "counts": counts, "top": top}
 
     md = []
-    md.append("### 4) Watchlist emerging chart trends")
+    md.append("### 4A) Watchlist emerging chart trends")
     md.append("")
     md.append("_Logic: score each ticker by stage (EARLY=1, CONFIRMED=3, VALIDATED=4) × direction (BREAKOUT=+1, BREAKDOWN=-1), then aggregate by sector._")
     md.append("")
@@ -3104,12 +3123,18 @@ def _pick_recent_hs_triplet(
     c: pd.Series,
     d: pd.DataFrame,
     inverse: bool = False,
+    explain: Optional[Dict[str, int]] = None,
 ) -> Optional[Tuple[int, int, int, int, int, float, float, float]]:
     """
     Returns (p1, p2, p3, t1, t2, px1, px2, px3) for H&S/IHS candidate if rules pass.
     """
     if len(highs_idx) + len(lows_idx) < 5:
         return None
+
+    def bump(k: str) -> None:
+        if isinstance(explain, dict):
+            explain[k] = int(explain.get(k, 0)) + 1
+
     piv_hi = highs_idx[-16:]
     piv_lo = lows_idx[-16:]
     if inverse:
@@ -3133,6 +3158,7 @@ def _pick_recent_hs_triplet(
                 between1 = [x for x in pivots_between if p1 < x < p2]
                 between2 = [x for x in pivots_between if p2 < x < p3]
                 if not between1 or not between2:
+                    bump('missing_between')
                     continue
 
                 px1 = float(c.iloc[p1]); px2 = float(c.iloc[p2]); px3 = float(c.iloc[p3])
@@ -3141,10 +3167,12 @@ def _pick_recent_hs_triplet(
                 dL = max(1, p2 - p1); dR = max(1, p3 - p2)
                 ratio = dL / dR
                 if ratio < 0.5 or ratio > 2.0:
+                    bump('time_symmetry')
                     continue
 
                 # Minimum formation duration (avoid 3-4 week HS/IHS false positives)
                 if (p3 - p1) < HS_MIN_BARS or (p3 - p1) > HS_MAX_BARS or dL < HS_MIN_SIDE_BARS or dR < HS_MIN_SIDE_BARS:
+                    bump('duration_or_sidebars')
                     continue
 
                 # Pattern ATR context
@@ -3158,8 +3186,10 @@ def _pick_recent_hs_triplet(
                 # Head / shoulders geometry
                 if inverse:
                     if not (px2 <= min(px1, px3) - min_head_gap):
+                        bump('head_gap')
                         continue
                     if abs(px1 - px3) > shoulder_tol:
+                        bump('shoulder_mismatch')
                         continue
                     # Highest highs between shoulders/head define neckline points
                     t1 = max(between1, key=lambda k: float(d["High"].iloc[k]))
@@ -3168,29 +3198,49 @@ def _pick_recent_hs_triplet(
                     head_gap_quality = min(px1 - px2, px3 - px2)
                 else:
                     if not (px2 >= max(px1, px3) + min_head_gap):
+                        bump('head_gap')
                         continue
                     if abs(px1 - px3) > shoulder_tol:
+                        bump('shoulder_mismatch')
                         continue
                     t1 = min(between1, key=lambda k: float(d["Low"].iloc[k]))
                     t2 = min(between2, key=lambda k: float(d["Low"].iloc[k]))
                     n1 = float(d["Low"].iloc[t1]); n2 = float(d["Low"].iloc[t2])
                     head_gap_quality = min(px2 - px1, px2 - px3)
 
+                # Head must be the extreme close between LS and RS (avoid picking a non-peak head due to pivot jitter)
+                try:
+                    seg = c.iloc[int(p1):int(p3)+1]
+                    if inverse:
+                        if px2 > float(seg.min()) * (1.0 + 1e-6):
+                            bump('head_not_extreme')
+                            continue
+                    else:
+                        if px2 < float(seg.max()) * (1.0 - 1e-6):
+                            bump('head_not_extreme')
+                            continue
+                except Exception:
+                    pass
+
                 # Sanity: ensure shoulders are on the correct side of the intervening troughs/highs
                 # HS_TOP: LS and RS (highs) must be above T1/T2 (lows)
                 # IHS: LS and RS (lows) must be below R1/R2 (highs)
                 if inverse:
                     if not (px1 < n1 and px3 < n2):
+                        bump('shoulder_vs_reaction')
                         continue
                 else:
                     if not (px1 > n1 and px3 > n2):
+                        bump('shoulder_vs_reaction')
                         continue
 
                 # Prior trend label enforcement
                 trend = _trend_context_label(c, p1, atr_med)
                 if inverse and trend != "BOTTOM":
+                    bump('trend_label')
                     continue
                 if (not inverse) and trend != "TOP":
+                    bump('trend_label')
                     continue
 
                 # Score: recency + symmetry + prominence
@@ -3205,17 +3255,26 @@ def _pick_recent_hs_triplet(
     return best
 
 
-def detect_hs_top(df: pd.DataFrame) -> Optional[PatternCandidate]:
+def detect_hs_top(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None) -> Optional[PatternCandidate]:
     d = df.tail(LOOKBACK_DAYS).dropna(subset=["Open", "High", "Low", "Close"]).copy()
+    d = _latest_completed_close_df(d)
+
     if len(d) < 120:
+        if isinstance(explain, dict):
+            explain['len_lt_120'] = int(explain.get('len_lt_120', 0)) + 1
         return None
     c = d["Close"].astype(float)
     highs_idx, lows_idx = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5)
     if len(highs_idx) < 3 or len(lows_idx) < 2:
+        if isinstance(explain, dict):
+            explain['not_enough_swings'] = int(explain.get('not_enough_swings', 0)) + 1
+            explain['highs'] = int(len(highs_idx)); explain['lows'] = int(len(lows_idx))
         return None
 
-    hs = _pick_recent_hs_triplet(highs_idx, lows_idx, c, d, inverse=False)
+    hs = _pick_recent_hs_triplet(highs_idx, lows_idx, c, d, inverse=False, explain=explain)
     if hs is None:
+        if isinstance(explain, dict):
+            explain['no_triplet'] = int(explain.get('no_triplet', 0)) + 1
         return None
     p1, p2, p3, t1, t2, px1, px2, px3 = hs
 
@@ -3245,17 +3304,26 @@ def detect_hs_top(df: pd.DataFrame) -> Optional[PatternCandidate]:
     return PatternCandidate(pattern="HS_TOP", direction="BREAKDOWN", level=float(neckline_now), meta=meta)
 
 
-def detect_inverse_hs(df: pd.DataFrame) -> Optional[PatternCandidate]:
+def detect_inverse_hs(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None) -> Optional[PatternCandidate]:
     d = df.tail(LOOKBACK_DAYS).dropna(subset=["Open", "High", "Low", "Close"]).copy()
+    d = _latest_completed_close_df(d)
+
     if len(d) < 120:
+        if isinstance(explain, dict):
+            explain['len_lt_120'] = int(explain.get('len_lt_120', 0)) + 1
         return None
     c = d["Close"].astype(float)
     highs_idx, lows_idx = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5)
     if len(lows_idx) < 3 or len(highs_idx) < 2:
+        if isinstance(explain, dict):
+            explain['not_enough_swings'] = int(explain.get('not_enough_swings', 0)) + 1
+            explain['highs'] = int(len(highs_idx)); explain['lows'] = int(len(lows_idx))
         return None
 
-    ihs = _pick_recent_hs_triplet(highs_idx, lows_idx, c, d, inverse=True)
+    ihs = _pick_recent_hs_triplet(highs_idx, lows_idx, c, d, inverse=True, explain=explain)
     if ihs is None:
+        if isinstance(explain, dict):
+            explain['no_triplet'] = int(explain.get('no_triplet', 0)) + 1
         return None
     p1, p2, p3, r1, r2, px1, px2, px3 = ihs
 
@@ -4521,10 +4589,12 @@ def _debug_gates_for_ticker(ticker: str, df0: pd.DataFrame, state: Optional[Dict
                 "pattern": cnd.pattern,
                 "dir": cnd.direction,
                 "distATR": dist,
+                "level": lvl,
                 "price_ok": price_ok,
                 "clv_ok": clv_ok,
                 "vol_ok": vol_ok,
                 "hs_lag": hs_lag,
+                "meta": cnd.meta,
             })
         except Exception:
             continue
@@ -5041,12 +5111,26 @@ def build_watchlist_performance_section_md(
     md.append("Columns: **Name of Company | Ticker | Country | Sector | Close | Day% | CLV | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M**\n")
 
     def _safe_name(t: str) -> str:
+        # Name overrides (full caps) + commodities display names
+        try:
+            if t in NAME_OVERRIDES:
+                return str(NAME_OVERRIDES[t]).upper()
+            base = _base_ticker(t)
+            if base in NAME_OVERRIDES:
+                return str(NAME_OVERRIDES[base]).upper()
+            if t in COMMODITY_NAME_OVERRIDES:
+                return str(COMMODITY_NAME_OVERRIDES[t]).upper()
+            if base in COMMODITY_NAME_OVERRIDES:
+                return str(COMMODITY_NAME_OVERRIDES[base]).upper()
+        except Exception:
+            pass
+
         if callable(name_resolver):
             try:
-                return str(name_resolver(t) or "")
+                return str(name_resolver(t) or "").upper()
             except Exception:
                 return ""
-        return ""
+        return 
 
     def _safe_country(t: str) -> str:
         if callable(country_resolver):
@@ -5632,7 +5716,7 @@ def main():
 
     validated = [s for s in all_signals if s.signal.startswith("VALIDATED_")]
     confirmed = [s for s in all_signals if s.signal.startswith("CONFIRMED_")]
-    early = [s for s in all_signals if s.signal.startswith("EARLY_") and s.ticker in base_set]
+    early = [s for s in all_signals if s.signal.startswith("EARLY_")]
 
     def rank_signal(s: LevelSignal) -> Tuple[int, float]:
         # Higher priority: VALIDATED > CONFIRMED > EARLY; tie-break by proximity to trigger
@@ -5764,20 +5848,7 @@ def main():
     # 4) Technical triggers
     md.append("## 4) Technical triggers\n")
 
-    # Emerging chart trends (watchlist pulse) — before early callouts
-    md.append(build_watchlist_pulse_section_md(
-        df_early_new=df_early_new,
-        df_early_old=df_early_old,
-        df_conf_new=df_conf_new,
-        df_conf_old=df_conf_old,
-        df_val_new=df_val_new,
-        df_val_old=df_val_old,
-        watchlist_groups=WATCHLIST_GROUPS,
-        ticker_labels=TICKER_LABELS,
-    ))
-
-
-    # ----------------------------
+# ----------------------------
     # Signal engine health (diagnostics)
     # ----------------------------
     try:
@@ -5787,7 +5858,7 @@ def main():
         top_pats = sorted([(k, int(v)) for k, v in byp.items()], key=lambda x: x[1], reverse=True)[:8]
         top_pats_str = ", ".join([f"{k}:{v}" for k, v in top_pats]) if top_pats else "None"
 
-        md.append("## 4) Signal engine health (diagnostics)\n")
+        md.append("### Signal engine health (diagnostics)\n")
         md.append(f"- Tickers scanned: **{int(debug.get('tickers_scanned', 0))}**; usable OHLCV: **{int(debug.get('tickers_usable', 0))}**\n")
         md.append(f"- Candidates found: **{cand_total}** (top patterns: {top_pats_str})\n")
         md.append(f"- Live signals: EARLY **{int(debug.get('signals_early', 0))}**, CONFIRMED **{int(debug.get('signals_conf', 0))}**, VALIDATED **{int(debug.get('signals_val', 0))}** (total {sig_total})\n")
@@ -5803,7 +5874,7 @@ def main():
             if len(dtmp) < 2:
                 continue
             daypct = (float(dtmp["Close"].iloc[-1]) / float(dtmp["Close"].iloc[-2]) - 1.0) * 100.0
-            if abs(daypct) < 7.0:
+            if abs(daypct) < 7.0 and t not in FOCUS_TICKERS:
                 continue
             info = _debug_gates_for_ticker(t, df, state=state, max_candidates=6)
             best = info.get("Best") or {}
@@ -5831,7 +5902,103 @@ def main():
     except Exception:
         pass
 
-    md.append("### 4A) Early callouts (~90% complete)\n")
+
+
+    # Emerging chart trends (watchlist pulse) — before early callouts
+
+    # Focus tickers deep-dive (always include charts + gate diagnosis)
+    try:
+        md.append("### Focus tickers deep-dive (always shown)\n")
+        for ft in FOCUS_TICKERS:
+            df_ft = ohlcv.get(ft)
+            if df_ft is None or df_ft.empty:
+                md.append(f"**{ft}** — no data\n")
+                continue
+
+            info = _debug_gates_for_ticker(ft, df_ft, state=state, max_candidates=10)
+            best = info.get("Best") or {}
+            nm = company_name_for_ticker(ft)
+            nm_disp = (NAME_OVERRIDES.get(ft) or nm or ft).upper()
+            md.append(f"**{nm_disp} ({ft})**\n")
+
+            top_list = info.get("Top") or []
+            hs_seen = any((r.get("pattern") in ("HS_TOP","IHS")) for r in top_list if isinstance(r, dict))
+            md.append(f"- HS/IHS detected today: **{'YES' if hs_seen else 'NO'}**\n")
+            if not hs_seen:
+                try:
+                    exp_top: Dict[str, Any] = {}
+                    exp_inv: Dict[str, Any] = {}
+                    _ = detect_hs_top(df_ft, explain=exp_top)
+                    _ = detect_inverse_hs(df_ft, explain=exp_inv)
+
+                    def _fmt_reasons(exp: Dict[str, Any]) -> str:
+                        # show the most frequent rule failures
+                        items = []
+                        for k, v in exp.items():
+                            if k in ("highs","lows"):
+                                continue
+                            if isinstance(v, (int, float)) and v:
+                                items.append((k, int(v)))
+                        items.sort(key=lambda x: x[1], reverse=True)
+                        top = items[:6]
+                        return ", ".join([f"{k}:{v}" for k, v in top]) if top else "No specific counters (likely no candidate loops reached)."
+
+                    md.append("- HS_TOP detect explain (top rejects): " + _fmt_reasons(exp_top) + "\n")
+                    md.append("- IHS detect explain (top rejects): " + _fmt_reasons(exp_inv) + "\n")
+                    if isinstance(exp_top, dict) and ("highs" in exp_top or "lows" in exp_top):
+                        md.append(f"- Swings (HS_TOP): highs={exp_top.get('highs','?')} lows={exp_top.get('lows','?')}\n")
+                    if isinstance(exp_inv, dict) and ("highs" in exp_inv or "lows" in exp_inv):
+                        md.append(f"- Swings (IHS): highs={exp_inv.get('highs','?')} lows={exp_inv.get('lows','?')}\n")
+                except Exception:
+                    pass
+
+            if best and best.get("pattern"):
+                patt = str(best.get("pattern",""))
+                direc = str(best.get("dir",""))
+                dist = float(best.get("distATR", float("nan")))
+                price_ok = bool(best.get("price_ok"))
+                clv_ok = bool(best.get("clv_ok"))
+                vol_ok = bool(best.get("vol_ok"))
+                hs_lag = str(best.get("hs_lag",""))
+                lvl = float(best.get("level", 0.0)) if best.get("level") is not None else 0.0
+                meta = best.get("meta")
+
+                md.append(f"- Best candidate: **{patt} / {direc}** | Dist(ATR) **{dist:+.2f}** | Gates: Price **{'Y' if price_ok else 'N'}**, CLV **{'Y' if clv_ok else 'N'}**, Vol **{'Y' if vol_ok else 'N'}** | HS lag **{hs_lag}**\n")
+
+                sig = LevelSignal(
+                    ticker=ft,
+                    signal=f"FOCUS_{patt}_{direc}",
+                    pattern=patt,
+                    direction=direc,
+                    level=lvl,
+                    close=float(info.get("Close", float("nan"))),
+                    atr=float(info.get("ATR", float("nan"))),
+                    dist_atr=dist,
+                    pct_today=float(info.get("Day%", float("nan"))),
+                    meta=meta if isinstance(meta, dict) else None,
+                )
+                sig.chart_path = plot_signal_chart(ft, df_ft, sig, name_resolver=company_name_for_ticker)
+                if sig.chart_path:
+                    md.append(f"<img src='{sig.chart_path}' width='980' style='max-width:980px;height:auto;'>\n")
+            else:
+                md.append("- No candidate detected in current engine.\n")
+            md.append("\n")
+    except Exception:
+        pass
+
+    md.append(build_watchlist_pulse_section_md(
+        df_early_new=df_early_new,
+        df_early_old=df_early_old,
+        df_conf_new=df_conf_new,
+        df_conf_old=df_conf_old,
+        df_val_new=df_val_new,
+        df_val_old=df_val_old,
+        watchlist_groups=WATCHLIST_GROUPS,
+        ticker_labels=TICKER_LABELS,
+    ))
+
+
+    md.append("### 4B) Early callouts (~90% complete)\n")
     md.append("_Close enough to pre-plan. “Close enough” = within 0.5 ATR of the trigger (neckline/boundary). No SOFT tier — anything not CONFIRMED stays in EARLY._\n")
     md.append("**NEW (today):**\n")
     df_early_new_tbl = df_early_new.copy()
@@ -5886,7 +6053,7 @@ def main():
 
     md.append("")
 
-    md.append("### 4B) Confirmed breakouts / breakdowns (watchlist + MSCI World)\n")
+    md.append("### 4C) Confirmed breakouts / breakdowns (watchlist + MSCI World)\n")
     md.append("_Includes **CONFIRMED** only: close beyond trigger by ≥0.5 ATR AND Volume ≥1.25×AvgVol(20) AND CLV ≥+0.70 (breakout) / ≤−0.70 (breakdown). All tickers use S&P 500 11-sector labels (Sector)._ \n")
     md.append("**NEW (today):**\n")
     df_conf_new_tbl = df_conf_new.copy()
@@ -5912,7 +6079,7 @@ def main():
 
     # 5) Catalysts
     md.append("")
-    md.append("### 4C) Validated breakouts / breakdowns (3-session anti-whipsaw)\n")
+    md.append("### 4D) Validated breakouts / breakdowns (3-session anti-whipsaw)\n")
     md.append("_Includes **VALIDATED** only: breakout/breakdown occurred **3 sessions ago** AND for the breakout day + the next 3 sessions (incl. today) ALL 3 confirmation gates held on **each** session: (1) CLV >= +0.70 / <= -0.70, (2) Volume >= 1.25x AvgVol(20), (3) Close beyond trigger by >= 0.5 ATR(14). **HVN Runway%** = distance from current price to the nearest significant opposing Volume-Profile HVN zone (daily OHLCV approximation), expressed as % in the signal direction._\n")
     md.append("**NEW (today):**\n")
     df_val_new_tbl = df_val_new.copy()
