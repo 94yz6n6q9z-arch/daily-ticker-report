@@ -200,7 +200,7 @@
     "ARR": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 17.190286363874154,
+      "level": 17.18085779462541,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -261,7 +261,7 @@
     "AVGO": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 289.84112703347506,
+      "level": 290.205051084108,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -322,7 +322,7 @@
     "BYDDY": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 13.168000284830738,
+      "level": 13.162000274658212,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -342,11 +342,11 @@
             "i": 86
           },
           {
-            "t": "2026-02-20T00:00:00",
-            "p": 12.40999984741211,
+            "t": "2026-01-26T00:00:00",
+            "p": 12.630000114440918,
             "label": "RS",
             "kind": "point",
-            "i": 125
+            "i": 107
           },
           {
             "t": "2025-12-02T00:00:00",
@@ -375,7 +375,7 @@
           }
         ],
         "pattern_start_i": 53,
-        "pattern_end_i": 125,
+        "pattern_end_i": 107,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-02-26T00:00:00"
@@ -383,7 +383,7 @@
     "CC=F": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 5856.363636363634,
+      "level": 5863.787878787876,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -505,7 +505,7 @@
     "CMG": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 40.88969456065785,
+      "level": 40.910906704989344,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -566,7 +566,7 @@
     "FRO": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 21.05469298849301,
+      "level": 21.05714198521206,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -749,7 +749,7 @@
     "MELI": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 2313.333333333334,
+      "level": 2097.8676920572925,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -762,18 +762,18 @@
             "i": 40
           },
           {
-            "t": "2025-12-17T00:00:00",
-            "p": 1916.280029296875,
+            "t": "2025-11-20T00:00:00",
+            "p": 1899.75,
             "label": "H",
             "kind": "point",
-            "i": 82
+            "i": 64
           },
           {
-            "t": "2026-02-17T00:00:00",
-            "p": 1975.510009765625,
+            "t": "2026-01-20T00:00:00",
+            "p": 2034.8199462890625,
             "label": "RS",
             "kind": "point",
-            "i": 122
+            "i": 103
           },
           {
             "t": "2025-10-30T00:00:00",
@@ -783,87 +783,87 @@
             "i": 49
           },
           {
-            "t": "2026-01-28T00:00:00",
-            "p": 2342.0,
+            "t": "2026-01-06T00:00:00",
+            "p": 2239.949951171875,
             "label": "R2",
             "kind": "point",
-            "i": 109
+            "i": 94
           }
         ],
         "lines": [
           {
             "t1": "2025-10-30T00:00:00",
             "y1": 2428.0,
-            "t2": "2026-01-28T00:00:00",
-            "y2": 2342.0,
+            "t2": "2026-01-06T00:00:00",
+            "y2": 2239.949951171875,
             "label": "Neckline",
             "i1": 49,
-            "i2": 109
+            "i2": 94
           }
         ],
         "pattern_start_i": 40,
-        "pattern_end_i": 122,
+        "pattern_end_i": 103,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-02-26T00:00:00"
     },
     "MUV2.DE": {
-      "pattern": "HS_TOP",
-      "direction": "BREAKDOWN",
-      "level": 489.95484185987897,
+      "pattern": "IHS",
+      "direction": "BREAKOUT",
+      "level": 539.9200195312501,
       "meta": {
         "annot_type": "hs",
-        "variant": "top",
+        "variant": "inverse",
         "points": [
           {
-            "t": "2025-11-14T00:00:00",
-            "p": 546.7999877929688,
-            "label": "LS",
-            "kind": "point",
-            "i": 61
-          },
-          {
-            "t": "2025-12-29T00:00:00",
-            "p": 560.7999877929688,
-            "label": "H",
-            "kind": "point",
-            "i": 89
-          },
-          {
-            "t": "2026-02-13T00:00:00",
-            "p": 530.5999755859375,
-            "label": "RS",
-            "kind": "point",
-            "i": 121
-          },
-          {
             "t": "2025-12-05T00:00:00",
-            "p": 523.4000244140625,
-            "label": "T1",
+            "p": 531.5999755859375,
+            "label": "LS",
             "kind": "point",
             "i": 76
           },
           {
             "t": "2026-01-26T00:00:00",
-            "p": 504.20001220703125,
-            "label": "T2",
+            "p": 506.79998779296875,
+            "label": "H",
             "kind": "point",
             "i": 107
+          },
+          {
+            "t": "2026-02-18T00:00:00",
+            "p": 531.7999877929688,
+            "label": "RS",
+            "kind": "point",
+            "i": 124
+          },
+          {
+            "t": "2025-12-12T00:00:00",
+            "p": 565.5999755859375,
+            "label": "R1",
+            "kind": "point",
+            "i": 81
+          },
+          {
+            "t": "2026-02-13T00:00:00",
+            "p": 544.2000122070312,
+            "label": "R2",
+            "kind": "point",
+            "i": 121
           }
         ],
         "lines": [
           {
-            "t1": "2025-12-05T00:00:00",
-            "y1": 523.4000244140625,
-            "t2": "2026-01-26T00:00:00",
-            "y2": 504.20001220703125,
+            "t1": "2025-12-12T00:00:00",
+            "y1": 565.5999755859375,
+            "t2": "2026-02-13T00:00:00",
+            "y2": 544.2000122070312,
             "label": "Neckline",
-            "i1": 76,
-            "i2": 107
+            "i1": 81,
+            "i2": 121
           }
         ],
-        "pattern_start_i": 61,
-        "pattern_end_i": 121,
+        "pattern_start_i": 76,
+        "pattern_end_i": 124,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-02-26T00:00:00"
@@ -871,60 +871,60 @@
     "PLTR": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 169.79590000250403,
+      "level": 84.96090490167786,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
         "points": [
           {
-            "t": "2025-10-16T00:00:00",
-            "p": 178.1199951171875,
+            "t": "2025-09-23T00:00:00",
+            "p": 182.5500030517578,
             "label": "LS",
             "kind": "point",
-            "i": 39
+            "i": 22
           },
           {
-            "t": "2025-12-10T00:00:00",
-            "p": 187.91000366210938,
+            "t": "2025-11-03T00:00:00",
+            "p": 207.17999267578125,
             "label": "H",
             "kind": "point",
-            "i": 77
+            "i": 51
           },
           {
-            "t": "2026-01-23T00:00:00",
-            "p": 169.60000610351562,
+            "t": "2026-01-07T00:00:00",
+            "p": 181.67999267578125,
             "label": "RS",
             "kind": "point",
-            "i": 106
+            "i": 95
+          },
+          {
+            "t": "2025-10-22T00:00:00",
+            "p": 169.4199981689453,
+            "label": "T1",
+            "kind": "point",
+            "i": 43
           },
           {
             "t": "2025-11-21T00:00:00",
             "p": 147.55999755859375,
-            "label": "T1",
-            "kind": "point",
-            "i": 65
-          },
-          {
-            "t": "2026-01-21T00:00:00",
-            "p": 161.11000061035156,
             "label": "T2",
             "kind": "point",
-            "i": 104
+            "i": 65
           }
         ],
         "lines": [
           {
-            "t1": "2025-11-21T00:00:00",
-            "y1": 147.55999755859375,
-            "t2": "2026-01-21T00:00:00",
-            "y2": 161.11000061035156,
+            "t1": "2025-10-22T00:00:00",
+            "y1": 169.4199981689453,
+            "t2": "2025-11-21T00:00:00",
+            "y2": 147.55999755859375,
             "label": "Neckline",
-            "i1": 65,
-            "i2": 104
+            "i1": 43,
+            "i2": 65
           }
         ],
-        "pattern_start_i": 39,
-        "pattern_end_i": 106,
+        "pattern_start_i": 22,
+        "pattern_end_i": 95,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-02-26T00:00:00"
@@ -1115,7 +1115,7 @@
     "0027.HK": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 42.2882371042289,
+      "level": 42.29411944221047,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -1298,7 +1298,7 @@
     "0669.HK": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 87.13391685485837,
+      "level": 87.32855987548825,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -1542,7 +1542,7 @@
     "2587.T": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 4810.333333333332,
+      "level": 4807.666666666666,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -1847,24 +1847,24 @@
     "4204.T": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 2817.4999999999986,
+      "level": 2819.3749999999986,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
         "points": [
           {
-            "t": "2025-10-17T00:00:00",
-            "p": 2722.0,
+            "t": "2025-10-02T00:00:00",
+            "p": 2674.5,
             "label": "LS",
             "kind": "point",
-            "i": 38
+            "i": 28
           },
           {
-            "t": "2025-12-11T00:00:00",
-            "p": 2536.0,
+            "t": "2025-11-19T00:00:00",
+            "p": 2528.5,
             "label": "H",
             "kind": "point",
-            "i": 75
+            "i": 60
           },
           {
             "t": "2026-01-29T00:00:00",
@@ -1899,7 +1899,7 @@
             "i2": 96
           }
         ],
-        "pattern_start_i": 38,
+        "pattern_start_i": 28,
         "pattern_end_i": 106,
         "trigger_line_type": "neckline"
       },
@@ -1969,7 +1969,7 @@
     "4502.T": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 4764.625000000003,
+      "level": 4761.031250000003,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -2030,7 +2030,7 @@
     "4612.T": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 1085.9999999999993,
+      "level": 1085.7333333333327,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -2091,7 +2091,7 @@
     "4684.T": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 5389.222222222219,
+      "level": 5386.444444444441,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -2335,7 +2335,7 @@
     "6098.T": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 9277.857142857134,
+      "level": 9268.178571428563,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -2396,7 +2396,7 @@
     "6146.T": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 37296.99999999999,
+      "level": 37385.99999999999,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -2579,7 +2579,7 @@
     "6479.T": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 3620.4999999999986,
+      "level": 3607.8749999999986,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -2640,7 +2640,7 @@
     "6504.T": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 9801.250000000004,
+      "level": 9808.846153846156,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -2701,7 +2701,7 @@
     "6586.T": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 5192.4,
+      "level": 5190.32,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -2762,7 +2762,7 @@
     "6702.T": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 3800.3,
+      "level": 3804.025,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -3006,7 +3006,7 @@
     "6902.T": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 1763.2575757575771,
+      "level": 1766.636363636365,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -3311,24 +3311,24 @@
     "7270.T": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 3148.867924528304,
+      "level": 3107.0,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
         "points": [
           {
-            "t": "2025-10-28T00:00:00",
-            "p": 3305.0,
+            "t": "2025-11-28T00:00:00",
+            "p": 3509.0,
             "label": "LS",
             "kind": "point",
-            "i": 45
+            "i": 66
           },
           {
-            "t": "2025-12-16T00:00:00",
-            "p": 3539.0,
+            "t": "2026-01-14T00:00:00",
+            "p": 3598.0,
             "label": "H",
             "kind": "point",
-            "i": 78
+            "i": 95
           },
           {
             "t": "2026-02-06T00:00:00",
@@ -3338,11 +3338,11 @@
             "i": 112
           },
           {
-            "t": "2025-11-10T00:00:00",
-            "p": 3177.0,
+            "t": "2025-12-08T00:00:00",
+            "p": 3254.0,
             "label": "T1",
             "kind": "point",
-            "i": 53
+            "i": 72
           },
           {
             "t": "2026-01-29T00:00:00",
@@ -3354,16 +3354,16 @@
         ],
         "lines": [
           {
-            "t1": "2025-11-10T00:00:00",
-            "y1": 3177.0,
+            "t1": "2025-12-08T00:00:00",
+            "y1": 3254.0,
             "t2": "2026-01-29T00:00:00",
             "y2": 3156.0,
             "label": "Neckline",
-            "i1": 53,
+            "i1": 72,
             "i2": 106
           }
         ],
-        "pattern_start_i": 45,
+        "pattern_start_i": 66,
         "pattern_end_i": 112,
         "trigger_line_type": "neckline"
       },
@@ -3494,7 +3494,7 @@
     "7532.T": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 1005.1475409836067,
+      "level": 736.1726518110806,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -3507,18 +3507,18 @@
             "i": 34
           },
           {
-            "t": "2025-11-21T00:00:00",
-            "p": 916.5999755859375,
+            "t": "2025-11-17T00:00:00",
+            "p": 903.0,
             "label": "H",
             "kind": "point",
-            "i": 62
+            "i": 58
           },
           {
-            "t": "2026-02-16T00:00:00",
-            "p": 968.4000244140625,
+            "t": "2025-12-17T00:00:00",
+            "p": 938.9000244140625,
             "label": "RS",
             "kind": "point",
-            "i": 117
+            "i": 79
           },
           {
             "t": "2025-11-12T00:00:00",
@@ -3528,26 +3528,26 @@
             "i": 55
           },
           {
-            "t": "2026-02-13T00:00:00",
-            "p": 1006.0,
+            "t": "2025-11-28T00:00:00",
+            "p": 967.7999877929688,
             "label": "R2",
             "kind": "point",
-            "i": 116
+            "i": 66
           }
         ],
         "lines": [
           {
             "t1": "2025-11-12T00:00:00",
             "y1": 1012.5,
-            "t2": "2026-02-13T00:00:00",
-            "y2": 1006.0,
+            "t2": "2025-11-28T00:00:00",
+            "y2": 967.7999877929688,
             "label": "Neckline",
             "i1": 55,
-            "i2": 116
+            "i2": 66
           }
         ],
         "pattern_start_i": 34,
-        "pattern_end_i": 117,
+        "pattern_end_i": 79,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-02-26T00:00:00"
@@ -3616,7 +3616,7 @@
     "7733.T": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 1803.7887323943658,
+      "level": 1803.6338028169012,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -3860,24 +3860,24 @@
     "8113.T": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 997.8103448275862,
+      "level": 1020.4693877551019,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
         "points": [
           {
-            "t": "2025-10-02T00:00:00",
-            "p": 941.0999755859375,
+            "t": "2025-11-19T00:00:00",
+            "p": 922.9000244140625,
             "label": "LS",
             "kind": "point",
-            "i": 28
+            "i": 60
           },
           {
-            "t": "2025-12-12T00:00:00",
-            "p": 884.0,
+            "t": "2026-01-08T00:00:00",
+            "p": 880.7999877929688,
             "label": "H",
             "kind": "point",
-            "i": 76
+            "i": 92
           },
           {
             "t": "2026-02-09T00:00:00",
@@ -3887,11 +3887,11 @@
             "i": 113
           },
           {
-            "t": "2025-11-10T00:00:00",
-            "p": 1048.0,
+            "t": "2025-11-21T00:00:00",
+            "p": 952.0,
             "label": "R1",
             "kind": "point",
-            "i": 53
+            "i": 62
           },
           {
             "t": "2026-02-05T00:00:00",
@@ -3903,16 +3903,16 @@
         ],
         "lines": [
           {
-            "t1": "2025-11-10T00:00:00",
-            "y1": 1048.0,
+            "t1": "2025-11-21T00:00:00",
+            "y1": 952.0,
             "t2": "2026-02-05T00:00:00",
             "y2": 1007.0,
             "label": "Neckline",
-            "i1": 53,
+            "i1": 62,
             "i2": 111
           }
         ],
-        "pattern_start_i": 28,
+        "pattern_start_i": 60,
         "pattern_end_i": 113,
         "trigger_line_type": "neckline"
       },
@@ -4104,7 +4104,7 @@
     "9021.T": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 3571.3714285714273,
+      "level": 3567.757142857142,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -4165,7 +4165,7 @@
     "9022.T": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 4390.294117647058,
+      "level": 4381.49019607843,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -4226,17 +4226,17 @@
     "9023.T": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 1744.4062499999998,
+      "level": 1700.7708333333323,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
         "points": [
           {
-            "t": "2025-10-14T00:00:00",
-            "p": 1616.5,
+            "t": "2025-11-04T00:00:00",
+            "p": 1609.5,
             "label": "LS",
             "kind": "point",
-            "i": 35
+            "i": 49
           },
           {
             "t": "2025-12-22T00:00:00",
@@ -4246,11 +4246,11 @@
             "i": 82
           },
           {
-            "t": "2026-02-20T00:00:00",
-            "p": 1660.0,
+            "t": "2026-01-28T00:00:00",
+            "p": 1610.0,
             "label": "RS",
             "kind": "point",
-            "i": 121
+            "i": 105
           },
           {
             "t": "2025-11-10T00:00:00",
@@ -4260,26 +4260,26 @@
             "i": 53
           },
           {
-            "t": "2026-02-16T00:00:00",
-            "p": 1735.0,
+            "t": "2026-01-22T00:00:00",
+            "p": 1684.5,
             "label": "R2",
             "kind": "point",
-            "i": 117
+            "i": 101
           }
         ],
         "lines": [
           {
             "t1": "2025-11-10T00:00:00",
             "y1": 1649.0,
-            "t2": "2026-02-16T00:00:00",
-            "y2": 1735.0,
+            "t2": "2026-01-22T00:00:00",
+            "y2": 1684.5,
             "label": "Neckline",
             "i1": 53,
-            "i2": 117
+            "i2": 101
           }
         ],
-        "pattern_start_i": 35,
-        "pattern_end_i": 121,
+        "pattern_start_i": 49,
+        "pattern_end_i": 105,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-02-26T00:00:00"
@@ -4287,7 +4287,7 @@
     "9042.T": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 4244.999999999999,
+      "level": 4249.176470588234,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -4348,7 +4348,7 @@
     "9101.T": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 5401.76595744681,
+      "level": 5401.5957446808525,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -4592,7 +4592,7 @@
     "A": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 135.0883752996271,
+      "level": 135.09328419078477,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -4775,7 +4775,7 @@
     "AEP": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 110.87304654328722,
+      "level": 110.919350831405,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -5080,7 +5080,7 @@
     "AON": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 350.14998081752236,
+      "level": 350.3599809919085,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -5141,60 +5141,60 @@
     "APD": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 274.39452616373694,
+      "level": 243.96937192719588,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
         "points": [
           {
-            "t": "2025-10-23T00:00:00",
-            "p": 254.92999267578125,
+            "t": "2025-09-26T00:00:00",
+            "p": 266.7799987792969,
             "label": "LS",
             "kind": "point",
-            "i": 44
+            "i": 25
           },
           {
-            "t": "2025-12-10T00:00:00",
-            "p": 236.7100067138672,
+            "t": "2025-11-05T00:00:00",
+            "p": 237.55999755859375,
             "label": "H",
             "kind": "point",
-            "i": 77
+            "i": 53
           },
           {
-            "t": "2026-01-28T00:00:00",
-            "p": 255.88999938964844,
+            "t": "2025-12-02T00:00:00",
+            "p": 256.7699890136719,
             "label": "RS",
             "kind": "point",
-            "i": 109
+            "i": 71
+          },
+          {
+            "t": "2025-10-02T00:00:00",
+            "p": 274.8299865722656,
+            "label": "R1",
+            "kind": "point",
+            "i": 29
           },
           {
             "t": "2025-11-12T00:00:00",
             "p": 265.7900085449219,
-            "label": "R1",
-            "kind": "point",
-            "i": 58
-          },
-          {
-            "t": "2026-01-14T00:00:00",
-            "p": 270.8800048828125,
             "label": "R2",
             "kind": "point",
-            "i": 100
+            "i": 58
           }
         ],
         "lines": [
           {
-            "t1": "2025-11-12T00:00:00",
-            "y1": 265.7900085449219,
-            "t2": "2026-01-14T00:00:00",
-            "y2": 270.8800048828125,
+            "t1": "2025-10-02T00:00:00",
+            "y1": 274.8299865722656,
+            "t2": "2025-11-12T00:00:00",
+            "y2": 265.7900085449219,
             "label": "Neckline",
-            "i1": 58,
-            "i2": 100
+            "i1": 29,
+            "i2": 58
           }
         ],
-        "pattern_start_i": 44,
-        "pattern_end_i": 109,
+        "pattern_start_i": 25,
+        "pattern_end_i": 71,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-02-26T00:00:00"
@@ -5202,7 +5202,7 @@
     "ARGX": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 783.9050741390311,
+      "level": 947.9381142893143,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -5215,18 +5215,18 @@
             "i": 41
           },
           {
-            "t": "2025-12-03T00:00:00",
-            "p": 921.7999877929688,
+            "t": "2025-11-17T00:00:00",
+            "p": 929.6099853515625,
             "label": "H",
             "kind": "point",
-            "i": 72
+            "i": 61
           },
           {
-            "t": "2026-02-17T00:00:00",
-            "p": 843.5499877929688,
+            "t": "2026-01-02T00:00:00",
+            "p": 839.989990234375,
             "label": "RS",
             "kind": "point",
-            "i": 122
+            "i": 92
           },
           {
             "t": "2025-10-30T00:00:00",
@@ -5236,26 +5236,26 @@
             "i": 49
           },
           {
-            "t": "2026-01-12T00:00:00",
-            "p": 770.6699829101562,
+            "t": "2025-12-15T00:00:00",
+            "p": 827.52001953125,
             "label": "T2",
             "kind": "point",
-            "i": 98
+            "i": 80
           }
         ],
         "lines": [
           {
             "t1": "2025-10-30T00:00:00",
             "y1": 749.75,
-            "t2": "2026-01-12T00:00:00",
-            "y2": 770.6699829101562,
+            "t2": "2025-12-15T00:00:00",
+            "y2": 827.52001953125,
             "label": "Neckline",
             "i1": 49,
-            "i2": 98
+            "i2": 80
           }
         ],
         "pattern_start_i": 41,
-        "pattern_end_i": 122,
+        "pattern_end_i": 92,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-02-26T00:00:00"
@@ -5385,7 +5385,7 @@
     "AZO": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 3869.897484872855,
+      "level": 3872.039052925857,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -5446,7 +5446,7 @@
     "BALL": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 49.44399708339146,
+      "level": 49.45799713134765,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -5507,7 +5507,7 @@
     "BE": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 87.31223672011798,
+      "level": 87.06516778880147,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -5568,7 +5568,7 @@
     "BKNG": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 5762.916144120067,
+      "level": 5757.858514083061,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -5629,7 +5629,7 @@
     "BLDR": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 131.9556257724762,
+      "level": 131.93875074386597,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -5690,7 +5690,7 @@
     "BN": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 44.61431593053479,
+      "level": 44.57529628978054,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -5751,7 +5751,7 @@
     "BR": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 225.72740064348505,
+      "level": 225.86144801548562,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -5812,7 +5812,7 @@
     "CARR": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 56.79000011243315,
+      "level": 56.85833345379743,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -5934,7 +5934,7 @@
     "CHD": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 76.74823985380279,
+      "level": 76.89294568230117,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -5954,11 +5954,11 @@
             "i": 49
           },
           {
-            "t": "2026-01-05T00:00:00",
-            "p": 84.11000061035156,
+            "t": "2025-12-02T00:00:00",
+            "p": 83.54000091552734,
             "label": "RS",
             "kind": "point",
-            "i": 93
+            "i": 71
           },
           {
             "t": "2025-10-08T00:00:00",
@@ -5987,7 +5987,7 @@
           }
         ],
         "pattern_start_i": 26,
-        "pattern_end_i": 93,
+        "pattern_end_i": 71,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-02-26T00:00:00"
@@ -5995,7 +5995,7 @@
     "CL": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 81.10023666009671,
+      "level": 81.10413918844084,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -6056,7 +6056,7 @@
     "CLX": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 119.88237019589072,
+      "level": 119.69052806653474,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -6483,7 +6483,7 @@
     "CRH": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 125.389762151809,
+      "level": 125.1185716901507,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -6605,7 +6605,7 @@
     "CRWV": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 128.5287822376598,
+      "level": 127.82484297318892,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -6666,7 +6666,7 @@
     "CSCO": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 74.42930691741236,
+      "level": 74.3767487281977,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -6686,11 +6686,11 @@
             "i": 77
           },
           {
-            "t": "2026-02-23T00:00:00",
-            "p": 77.73999786376953,
+            "t": "2026-01-15T00:00:00",
+            "p": 75.25,
             "label": "RS",
             "kind": "point",
-            "i": 126
+            "i": 101
           },
           {
             "t": "2025-11-07T00:00:00",
@@ -6719,7 +6719,7 @@
           }
         ],
         "pattern_start_i": 51,
-        "pattern_end_i": 126,
+        "pattern_end_i": 101,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-02-26T00:00:00"
@@ -6727,7 +6727,7 @@
     "CSL": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 378.46002197265625,
+      "level": 378.1077993887442,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -6788,7 +6788,7 @@
     "CTAS": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 194.72325074827515,
+      "level": 188.11072567531053,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -6801,18 +6801,18 @@
             "i": 23
           },
           {
-            "t": "2025-11-19T00:00:00",
-            "p": 183.47000122070312,
+            "t": "2025-11-03T00:00:00",
+            "p": 182.0399932861328,
             "label": "H",
             "kind": "point",
-            "i": 63
+            "i": 51
           },
           {
-            "t": "2026-02-03T00:00:00",
-            "p": 190.72999572753906,
+            "t": "2025-12-22T00:00:00",
+            "p": 191.99000549316406,
             "label": "RS",
             "kind": "point",
-            "i": 113
+            "i": 85
           },
           {
             "t": "2025-09-30T00:00:00",
@@ -6822,26 +6822,26 @@
             "i": 27
           },
           {
-            "t": "2026-01-21T00:00:00",
-            "p": 197.47000122070312,
+            "t": "2025-12-18T00:00:00",
+            "p": 196.0500030517578,
             "label": "R2",
             "kind": "point",
-            "i": 104
+            "i": 83
           }
         ],
         "lines": [
           {
             "t1": "2025-09-30T00:00:00",
             "y1": 205.92999267578125,
-            "t2": "2026-01-21T00:00:00",
-            "y2": 197.47000122070312,
+            "t2": "2025-12-18T00:00:00",
+            "y2": 196.0500030517578,
             "label": "Neckline",
             "i1": 27,
-            "i2": 104
+            "i2": 83
           }
         ],
         "pattern_start_i": 23,
-        "pattern_end_i": 113,
+        "pattern_end_i": 85,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-02-26T00:00:00"
@@ -6910,7 +6910,7 @@
     "CVS": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 74.51738772184956,
+      "level": 74.51064864448882,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -7215,7 +7215,7 @@
     "DKS": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 201.32521654211962,
+      "level": 201.97130352517837,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -7276,7 +7276,7 @@
     "DLR": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 186.8290557861328,
+      "level": 167.76999409993488,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -7296,11 +7296,11 @@
             "i": 83
           },
           {
-            "t": "2026-02-23T00:00:00",
-            "p": 176.08999633789062,
+            "t": "2026-02-03T00:00:00",
+            "p": 164.4499969482422,
             "label": "RS",
             "kind": "point",
-            "i": 126
+            "i": 113
           },
           {
             "t": "2025-11-10T00:00:00",
@@ -7310,26 +7310,26 @@
             "i": 56
           },
           {
-            "t": "2026-02-12T00:00:00",
-            "p": 184.7899932861328,
+            "t": "2026-01-29T00:00:00",
+            "p": 168.39999389648438,
             "label": "R2",
             "kind": "point",
-            "i": 120
+            "i": 110
           }
         ],
         "lines": [
           {
             "t1": "2025-11-10T00:00:00",
             "y1": 170.2899932861328,
-            "t2": "2026-02-12T00:00:00",
-            "y2": 184.7899932861328,
+            "t2": "2026-01-29T00:00:00",
+            "y2": 168.39999389648438,
             "label": "Neckline",
             "i1": 56,
-            "i2": 120
+            "i2": 110
           }
         ],
         "pattern_start_i": 54,
-        "pattern_end_i": 126,
+        "pattern_end_i": 113,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-02-26T00:00:00"
@@ -7337,7 +7337,7 @@
     "DOC": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 18.099744209876427,
+      "level": 18.10384677006648,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -7398,7 +7398,7 @@
     "DPZ": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 442.91310277478453,
+      "level": 442.90086154280044,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -7418,11 +7418,11 @@
             "i": 64
           },
           {
-            "t": "2026-01-28T00:00:00",
-            "p": 405.3699951171875,
+            "t": "2026-01-08T00:00:00",
+            "p": 406.5799865722656,
             "label": "RS",
             "kind": "point",
-            "i": 109
+            "i": 96
           },
           {
             "t": "2025-09-26T00:00:00",
@@ -7451,7 +7451,7 @@
           }
         ],
         "pattern_start_i": 24,
-        "pattern_end_i": 109,
+        "pattern_end_i": 96,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-02-26T00:00:00"
@@ -7459,7 +7459,7 @@
     "DRI": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 199.2738483135516,
+      "level": 199.24615595890918,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -7581,7 +7581,7 @@
     "EBAY": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 96.30584947118219,
+      "level": 96.3652834622365,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -7764,7 +7764,7 @@
     "EME": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 496.11215135527834,
+      "level": 497.1872737233233,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -7825,60 +7825,60 @@
     "EMP-A.TO": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 49.74983965966007,
+      "level": 57.752504825592084,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
         "points": [
           {
-            "t": "2025-10-16T00:00:00",
-            "p": 47.7599983215332,
+            "t": "2025-09-26T00:00:00",
+            "p": 49.11000061035156,
             "label": "LS",
             "kind": "point",
-            "i": 38
+            "i": 25
           },
           {
-            "t": "2025-12-12T00:00:00",
-            "p": 46.04999923706055,
+            "t": "2025-10-29T00:00:00",
+            "p": 46.5099983215332,
             "label": "H",
             "kind": "point",
-            "i": 79
+            "i": 47
           },
           {
-            "t": "2026-02-20T00:00:00",
-            "p": 47.9900016784668,
+            "t": "2025-12-04T00:00:00",
+            "p": 50.84000015258789,
             "label": "RS",
             "kind": "point",
-            "i": 125
+            "i": 73
+          },
+          {
+            "t": "2025-10-01T00:00:00",
+            "p": 50.189998626708984,
+            "label": "R1",
+            "kind": "point",
+            "i": 28
           },
           {
             "t": "2025-11-17T00:00:00",
             "p": 52.61000061035156,
-            "label": "R1",
-            "kind": "point",
-            "i": 60
-          },
-          {
-            "t": "2026-02-17T00:00:00",
-            "p": 50.040000915527344,
             "label": "R2",
             "kind": "point",
-            "i": 122
+            "i": 60
           }
         ],
         "lines": [
           {
-            "t1": "2025-11-17T00:00:00",
-            "y1": 52.61000061035156,
-            "t2": "2026-02-17T00:00:00",
-            "y2": 50.040000915527344,
+            "t1": "2025-10-01T00:00:00",
+            "y1": 50.189998626708984,
+            "t2": "2025-11-17T00:00:00",
+            "y2": 52.61000061035156,
             "label": "Neckline",
-            "i1": 60,
-            "i2": 122
+            "i1": 28,
+            "i2": 60
           }
         ],
-        "pattern_start_i": 38,
-        "pattern_end_i": 125,
+        "pattern_start_i": 25,
+        "pattern_end_i": 73,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-02-26T00:00:00"
@@ -8130,7 +8130,7 @@
     "ETR": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 86.75601348876953,
+      "level": 86.8495132446289,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -8313,7 +8313,7 @@
     "EXR": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 159.46455244584516,
+      "level": 159.11364329944956,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -8435,7 +8435,7 @@
     "FE": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 41.57230876042295,
+      "level": 41.620385683499876,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -8496,17 +8496,17 @@
     "FICO": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 1496.4578190104173,
+      "level": 1566.7743219339623,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
         "points": [
           {
-            "t": "2025-09-26T00:00:00",
-            "p": 1518.780029296875,
+            "t": "2025-10-20T00:00:00",
+            "p": 1620.3900146484375,
             "label": "LS",
             "kind": "point",
-            "i": 25
+            "i": 41
           },
           {
             "t": "2025-12-12T00:00:00",
@@ -8516,40 +8516,40 @@
             "i": 79
           },
           {
-            "t": "2026-01-29T00:00:00",
-            "p": 1501.75,
+            "t": "2026-01-12T00:00:00",
+            "p": 1631.31005859375,
             "label": "RS",
             "kind": "point",
-            "i": 110
+            "i": 98
           },
           {
-            "t": "2025-10-01T00:00:00",
-            "p": 1484.22998046875,
+            "t": "2025-10-22T00:00:00",
+            "p": 1548.780029296875,
             "label": "T1",
             "kind": "point",
-            "i": 28
+            "i": 43
           },
           {
-            "t": "2026-01-20T00:00:00",
-            "p": 1493.31005859375,
+            "t": "2026-01-08T00:00:00",
+            "p": 1560.0,
             "label": "T2",
             "kind": "point",
-            "i": 103
+            "i": 96
           }
         ],
         "lines": [
           {
-            "t1": "2025-10-01T00:00:00",
-            "y1": 1484.22998046875,
-            "t2": "2026-01-20T00:00:00",
-            "y2": 1493.31005859375,
+            "t1": "2025-10-22T00:00:00",
+            "y1": 1548.780029296875,
+            "t2": "2026-01-08T00:00:00",
+            "y2": 1560.0,
             "label": "Neckline",
-            "i1": 28,
-            "i2": 103
+            "i1": 43,
+            "i2": 96
           }
         ],
-        "pattern_start_i": 25,
-        "pattern_end_i": 110,
+        "pattern_start_i": 41,
+        "pattern_end_i": 98,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-02-26T00:00:00"
@@ -8557,24 +8557,24 @@
     "FIS": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 67.0035252290613,
+      "level": 67.17915019583197,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
         "points": [
           {
-            "t": "2025-10-16T00:00:00",
-            "p": 65.80999755859375,
+            "t": "2025-09-24T00:00:00",
+            "p": 64.12999725341797,
             "label": "LS",
             "kind": "point",
-            "i": 39
+            "i": 23
           },
           {
-            "t": "2025-11-20T00:00:00",
-            "p": 62.380001068115234,
+            "t": "2025-10-29T00:00:00",
+            "p": 61.5,
             "label": "H",
             "kind": "point",
-            "i": 64
+            "i": 48
           },
           {
             "t": "2026-01-05T00:00:00",
@@ -8584,11 +8584,11 @@
             "i": 93
           },
           {
-            "t": "2025-10-24T00:00:00",
-            "p": 68.9800033569336,
+            "t": "2025-10-07T00:00:00",
+            "p": 69.13999938964844,
             "label": "R1",
             "kind": "point",
-            "i": 45
+            "i": 32
           },
           {
             "t": "2025-12-12T00:00:00",
@@ -8600,16 +8600,16 @@
         ],
         "lines": [
           {
-            "t1": "2025-10-24T00:00:00",
-            "y1": 68.9800033569336,
+            "t1": "2025-10-07T00:00:00",
+            "y1": 69.13999938964844,
             "t2": "2025-12-12T00:00:00",
             "y2": 68.18000030517578,
             "label": "Neckline",
-            "i1": 45,
+            "i1": 32,
             "i2": 79
           }
         ],
-        "pattern_start_i": 39,
+        "pattern_start_i": 23,
         "pattern_end_i": 93,
         "trigger_line_type": "neckline"
       },
@@ -8618,7 +8618,7 @@
     "FLEX": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 55.799795812490004,
+      "level": 55.75714274815147,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -8679,7 +8679,7 @@
     "FSLR": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 213.25417771979943,
+      "level": 213.29343152402052,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -8740,7 +8740,7 @@
     "FTNT": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 70.33197221599642,
+      "level": 70.45574263275647,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -8801,7 +8801,7 @@
     "FUTU": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 180.7066046532163,
+      "level": 180.98639175739683,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -8984,7 +8984,7 @@
     "GEHC": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 75.48769730788008,
+      "level": 75.61795356946111,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -9045,7 +9045,7 @@
     "GGG": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 84.80154066819412,
+      "level": 84.79692527575372,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -9228,7 +9228,7 @@
     "GLPI": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 46.71366856892903,
+      "level": 46.70425186157226,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -9289,7 +9289,7 @@
     "GLW": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 90.9332201557775,
+      "level": 90.72160733130674,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -9533,7 +9533,7 @@
     "HEN3.DE": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 72.48086663951045,
+      "level": 72.49564925484036,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -9594,7 +9594,7 @@
     "HON": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 193.51890804893105,
+      "level": 193.7091441907382,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -9777,7 +9777,7 @@
     "HWM": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 195.88128388233665,
+      "level": 195.75307875413154,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -9899,7 +9899,7 @@
     "IBM": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 373.2100412469159,
+      "level": 371.9200407329357,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -9960,7 +9960,7 @@
     "ICE": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 177.61807673810486,
+      "level": 159.81864723792458,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -9973,18 +9973,18 @@
             "i": 24
           },
           {
-            "t": "2025-11-18T00:00:00",
-            "p": 152.77999877929688,
+            "t": "2025-11-03T00:00:00",
+            "p": 145.58999633789062,
             "label": "H",
             "kind": "point",
-            "i": 62
+            "i": 51
           },
           {
-            "t": "2026-02-03T00:00:00",
-            "p": 163.07000732421875,
+            "t": "2025-12-17T00:00:00",
+            "p": 160.86000061035156,
             "label": "RS",
             "kind": "point",
-            "i": 113
+            "i": 82
           },
           {
             "t": "2025-09-30T00:00:00",
@@ -9994,26 +9994,26 @@
             "i": 27
           },
           {
-            "t": "2026-01-29T00:00:00",
-            "p": 176.0500030517578,
+            "t": "2025-12-12T00:00:00",
+            "p": 164.3699951171875,
             "label": "R2",
             "kind": "point",
-            "i": 110
+            "i": 79
           }
         ],
         "lines": [
           {
             "t1": "2025-09-30T00:00:00",
             "y1": 169.1999969482422,
-            "t2": "2026-01-29T00:00:00",
-            "y2": 176.0500030517578,
+            "t2": "2025-12-12T00:00:00",
+            "y2": 164.3699951171875,
             "label": "Neckline",
             "i1": 27,
-            "i2": 110
+            "i2": 79
           }
         ],
         "pattern_start_i": 24,
-        "pattern_end_i": 113,
+        "pattern_end_i": 82,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-02-26T00:00:00"
@@ -10082,7 +10082,7 @@
     "INCY": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 98.17749977111818,
+      "level": 98.08474979400637,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -10265,7 +10265,7 @@
     "IRM": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 105.50391089397925,
+      "level": 105.17043271272075,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -10509,7 +10509,7 @@
     "KIM": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 19.69960773692411,
+      "level": 19.73274500229779,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -10631,7 +10631,7 @@
     "L": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 108.66000366210938,
+      "level": 108.52074432373047,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -10753,7 +10753,7 @@
     "LI": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 19.369902629478297,
+      "level": 19.36441241993623,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -10814,7 +10814,7 @@
     "LII": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 523.8146645682199,
+      "level": 524.3398426600864,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -10875,7 +10875,7 @@
     "LIN": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 457.15552139282215,
+      "level": 456.7950210571288,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -10997,7 +10997,7 @@
     "LNT": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 62.06052539223117,
+      "level": 62.11078854611044,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -11058,7 +11058,7 @@
     "LOW": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 263.50831180148657,
+      "level": 263.3024787902832,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -11119,7 +11119,7 @@
     "LYB": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 53.81315793489156,
+      "level": 53.77552634791324,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -11180,7 +11180,7 @@
     "MA": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 579.3957663796165,
+      "level": 579.4646761807529,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -11241,7 +11241,7 @@
     "MAS": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 72.06150169372557,
+      "level": 72.04366836547851,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -11302,7 +11302,7 @@
     "MDB": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 321.67052848971605,
+      "level": 321.4871608189173,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -11315,11 +11315,11 @@
             "i": 51
           },
           {
-            "t": "2025-12-22T00:00:00",
-            "p": 439.67999267578125,
+            "t": "2026-01-07T00:00:00",
+            "p": 440.6000061035156,
             "label": "H",
             "kind": "point",
-            "i": 85
+            "i": 95
           },
           {
             "t": "2026-02-10T00:00:00",
@@ -11607,7 +11607,7 @@
     "MMM": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 149.86843931908695,
+      "level": 149.99157655005357,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -11912,7 +11912,7 @@
     "MSI": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 473.3530919001652,
+      "level": 473.1105276254507,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -12095,7 +12095,7 @@
     "NEE": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 76.28706359863281,
+      "level": 76.34235763549805,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -12278,7 +12278,7 @@
     "NLY": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 22.32666714986165,
+      "level": 22.32194492552015,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -12400,7 +12400,7 @@
     "NRG": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 127.6841967182776,
+      "level": 147.02818645130503,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -12413,47 +12413,47 @@
             "i": 26
           },
           {
-            "t": "2025-11-28T00:00:00",
-            "p": 169.49000549316406,
+            "t": "2025-10-29T00:00:00",
+            "p": 178.5,
             "label": "H",
             "kind": "point",
-            "i": 69
+            "i": 48
           },
           {
-            "t": "2026-01-15T00:00:00",
-            "p": 158.5,
+            "t": "2025-12-12T00:00:00",
+            "p": 161.44000244140625,
             "label": "RS",
             "kind": "point",
-            "i": 101
+            "i": 79
+          },
+          {
+            "t": "2025-10-22T00:00:00",
+            "p": 158.30999755859375,
+            "label": "T1",
+            "kind": "point",
+            "i": 43
           },
           {
             "t": "2025-11-21T00:00:00",
             "p": 155.38999938964844,
-            "label": "T1",
-            "kind": "point",
-            "i": 65
-          },
-          {
-            "t": "2026-01-08T00:00:00",
-            "p": 141.97000122070312,
             "label": "T2",
             "kind": "point",
-            "i": 96
+            "i": 65
           }
         ],
         "lines": [
           {
-            "t1": "2025-11-21T00:00:00",
-            "y1": 155.38999938964844,
-            "t2": "2026-01-08T00:00:00",
-            "y2": 141.97000122070312,
+            "t1": "2025-10-22T00:00:00",
+            "y1": 158.30999755859375,
+            "t2": "2025-11-21T00:00:00",
+            "y2": 155.38999938964844,
             "label": "Neckline",
-            "i1": 65,
-            "i2": 96
+            "i1": 43,
+            "i2": 65
           }
         ],
         "pattern_start_i": 26,
-        "pattern_end_i": 101,
+        "pattern_end_i": 79,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-02-26T00:00:00"
@@ -12461,7 +12461,7 @@
     "NTRA": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 193.76000540597104,
+      "level": 193.78000531877797,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -12644,7 +12644,7 @@
     "OXY": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 46.24976969874181,
+      "level": 46.21046731638352,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -12705,7 +12705,7 @@
     "PAH3.DE": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 34.79920272827148,
+      "level": 35.85945964503933,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -12718,18 +12718,18 @@
             "i": 61
           },
           {
-            "t": "2026-01-05T00:00:00",
-            "p": 39.380001068115234,
+            "t": "2025-12-11T00:00:00",
+            "p": 41.060001373291016,
             "label": "H",
             "kind": "point",
-            "i": 92
+            "i": 80
           },
           {
-            "t": "2026-02-20T00:00:00",
-            "p": 36.810001373291016,
+            "t": "2026-02-04T00:00:00",
+            "p": 36.5,
             "label": "RS",
             "kind": "point",
-            "i": 126
+            "i": 114
           },
           {
             "t": "2025-11-21T00:00:00",
@@ -12739,26 +12739,26 @@
             "i": 66
           },
           {
-            "t": "2026-02-06T00:00:00",
-            "p": 34.83000183105469,
+            "t": "2026-01-20T00:00:00",
+            "p": 35.47999954223633,
             "label": "T2",
             "kind": "point",
-            "i": 116
+            "i": 103
           }
         ],
         "lines": [
           {
             "t1": "2025-11-21T00:00:00",
             "y1": 34.939998626708984,
-            "t2": "2026-02-06T00:00:00",
-            "y2": 34.83000183105469,
+            "t2": "2026-01-20T00:00:00",
+            "y2": 35.47999954223633,
             "label": "Neckline",
             "i1": 66,
-            "i2": 116
+            "i2": 103
           }
         ],
         "pattern_start_i": 61,
-        "pattern_end_i": 126,
+        "pattern_end_i": 114,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-02-26T00:00:00"
@@ -12766,7 +12766,7 @@
     "PCG": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 13.276667171054413,
+      "level": 13.305556050053346,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -12888,60 +12888,60 @@
     "PHM": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 138.34719482421875,
+      "level": 163.97331746419283,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
         "points": [
           {
-            "t": "2025-10-21T00:00:00",
-            "p": 123.2699966430664,
+            "t": "2025-10-28T00:00:00",
+            "p": 120.73999786376953,
             "label": "LS",
             "kind": "point",
-            "i": 42
+            "i": 47
           },
           {
-            "t": "2025-12-23T00:00:00",
-            "p": 117.37999725341797,
+            "t": "2025-11-18T00:00:00",
+            "p": 113.48999786376953,
             "label": "H",
             "kind": "point",
-            "i": 86
+            "i": 62
           },
           {
-            "t": "2026-01-27T00:00:00",
-            "p": 123.87999725341797,
+            "t": "2026-01-02T00:00:00",
+            "p": 119.06999969482422,
             "label": "RS",
             "kind": "point",
-            "i": 108
+            "i": 92
+          },
+          {
+            "t": "2025-11-12T00:00:00",
+            "p": 122.72000122070312,
+            "label": "R1",
+            "kind": "point",
+            "i": 58
           },
           {
             "t": "2025-12-04T00:00:00",
             "p": 131.55999755859375,
-            "label": "R1",
-            "kind": "point",
-            "i": 73
-          },
-          {
-            "t": "2026-01-12T00:00:00",
-            "p": 134.58999633789062,
             "label": "R2",
             "kind": "point",
-            "i": 98
+            "i": 73
           }
         ],
         "lines": [
           {
-            "t1": "2025-12-04T00:00:00",
-            "y1": 131.55999755859375,
-            "t2": "2026-01-12T00:00:00",
-            "y2": 134.58999633789062,
+            "t1": "2025-11-12T00:00:00",
+            "y1": 122.72000122070312,
+            "t2": "2025-12-04T00:00:00",
+            "y2": 131.55999755859375,
             "label": "Neckline",
-            "i1": 73,
-            "i2": 98
+            "i1": 58,
+            "i2": 73
           }
         ],
-        "pattern_start_i": 42,
-        "pattern_end_i": 108,
+        "pattern_start_i": 47,
+        "pattern_end_i": 92,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-02-26T00:00:00"
@@ -13010,7 +13010,7 @@
     "PPG": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 103.90834214952255,
+      "level": 103.94250869750975,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -13193,7 +13193,7 @@
     "QCOM": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 171.17759231041217,
+      "level": 170.9879371379984,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -13557,62 +13557,62 @@
       "asof": "2026-02-26T00:00:00"
     },
     "ROL": {
-      "pattern": "HS_TOP",
-      "direction": "BREAKDOWN",
-      "level": 54.914091457020156,
+      "pattern": "IHS",
+      "direction": "BREAKOUT",
+      "level": 65.66095424833755,
       "meta": {
         "annot_type": "hs",
-        "variant": "top",
+        "variant": "inverse",
         "points": [
           {
-            "t": "2025-12-05T00:00:00",
-            "p": 61.400001525878906,
+            "t": "2025-09-23T00:00:00",
+            "p": 55.400001525878906,
             "label": "LS",
             "kind": "point",
-            "i": 74
+            "i": 22
           },
           {
-            "t": "2026-01-27T00:00:00",
-            "p": 63.4900016784668,
+            "t": "2025-10-29T00:00:00",
+            "p": 53.869998931884766,
             "label": "H",
             "kind": "point",
-            "i": 108
-          },
-          {
-            "t": "2026-02-23T00:00:00",
-            "p": 60.380001068115234,
-            "label": "RS",
-            "kind": "point",
-            "i": 126
+            "i": 48
           },
           {
             "t": "2025-12-09T00:00:00",
-            "p": 57.540000915527344,
-            "label": "T1",
+            "p": 58.0099983215332,
+            "label": "RS",
             "kind": "point",
             "i": 76
           },
           {
-            "t": "2026-02-12T00:00:00",
-            "p": 55.36000061035156,
-            "label": "T2",
+            "t": "2025-09-30T00:00:00",
+            "p": 59.119998931884766,
+            "label": "R1",
             "kind": "point",
-            "i": 120
+            "i": 27
+          },
+          {
+            "t": "2025-11-28T00:00:00",
+            "p": 61.84000015258789,
+            "label": "R2",
+            "kind": "point",
+            "i": 69
           }
         ],
         "lines": [
           {
-            "t1": "2025-12-09T00:00:00",
-            "y1": 57.540000915527344,
-            "t2": "2026-02-12T00:00:00",
-            "y2": 55.36000061035156,
+            "t1": "2025-09-30T00:00:00",
+            "y1": 59.119998931884766,
+            "t2": "2025-11-28T00:00:00",
+            "y2": 61.84000015258789,
             "label": "Neckline",
-            "i1": 76,
-            "i2": 120
+            "i1": 27,
+            "i2": 69
           }
         ],
-        "pattern_start_i": 74,
-        "pattern_end_i": 126,
+        "pattern_start_i": 22,
+        "pattern_end_i": 76,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-02-26T00:00:00"
@@ -13620,60 +13620,60 @@
     "RPM": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 122.68701201599913,
+      "level": 113.31223479313637,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
         "points": [
           {
-            "t": "2025-10-17T00:00:00",
-            "p": 112.19000244140625,
+            "t": "2025-10-09T00:00:00",
+            "p": 110.86000061035156,
             "label": "LS",
             "kind": "point",
-            "i": 40
+            "i": 34
           },
           {
-            "t": "2025-12-19T00:00:00",
-            "p": 105.12999725341797,
+            "t": "2025-11-19T00:00:00",
+            "p": 102.45999908447266,
             "label": "H",
             "kind": "point",
-            "i": 84
+            "i": 63
           },
           {
-            "t": "2026-02-20T00:00:00",
-            "p": 115.56999969482422,
+            "t": "2026-01-29T00:00:00",
+            "p": 107.76000213623047,
             "label": "RS",
             "kind": "point",
-            "i": 125
+            "i": 110
           },
           {
-            "t": "2025-10-22T00:00:00",
-            "p": 114.0199966430664,
+            "t": "2025-10-15T00:00:00",
+            "p": 115.26000213623047,
             "label": "R1",
             "kind": "point",
-            "i": 43
+            "i": 38
           },
           {
-            "t": "2026-02-12T00:00:00",
-            "p": 121.77999877929688,
+            "t": "2026-01-22T00:00:00",
+            "p": 113.80999755859375,
             "label": "R2",
             "kind": "point",
-            "i": 120
+            "i": 105
           }
         ],
         "lines": [
           {
-            "t1": "2025-10-22T00:00:00",
-            "y1": 114.0199966430664,
-            "t2": "2026-02-12T00:00:00",
-            "y2": 121.77999877929688,
+            "t1": "2025-10-15T00:00:00",
+            "y1": 115.26000213623047,
+            "t2": "2026-01-22T00:00:00",
+            "y2": 113.80999755859375,
             "label": "Neckline",
-            "i1": 43,
-            "i2": 120
+            "i1": 38,
+            "i2": 105
           }
         ],
-        "pattern_start_i": 40,
-        "pattern_end_i": 125,
+        "pattern_start_i": 34,
+        "pattern_end_i": 110,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-02-26T00:00:00"
@@ -13681,7 +13681,7 @@
     "RSG": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 228.44920630204044,
+      "level": 204.7281965775923,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -13694,18 +13694,18 @@
             "i": 39
           },
           {
-            "t": "2025-12-10T00:00:00",
-            "p": 207.55999755859375,
+            "t": "2025-11-10T00:00:00",
+            "p": 204.1199951171875,
             "label": "H",
             "kind": "point",
-            "i": 77
+            "i": 56
           },
           {
-            "t": "2026-02-18T00:00:00",
-            "p": 216.83999633789062,
+            "t": "2025-12-22T00:00:00",
+            "p": 212.9199981689453,
             "label": "RS",
             "kind": "point",
-            "i": 123
+            "i": 85
           },
           {
             "t": "2025-10-22T00:00:00",
@@ -13715,26 +13715,1124 @@
             "i": 43
           },
           {
-            "t": "2026-02-11T00:00:00",
-            "p": 228.08999633789062,
+            "t": "2025-11-21T00:00:00",
+            "p": 220.02000427246094,
             "label": "R2",
             "kind": "point",
-            "i": 119
+            "i": 65
           }
         ],
         "lines": [
           {
             "t1": "2025-10-22T00:00:00",
             "y1": 225.36000061035156,
-            "t2": "2026-02-11T00:00:00",
-            "y2": 228.08999633789062,
+            "t2": "2025-11-21T00:00:00",
+            "y2": 220.02000427246094,
             "label": "Neckline",
             "i1": 43,
-            "i2": 119
+            "i2": 65
           }
         ],
         "pattern_start_i": 39,
-        "pattern_end_i": 123,
+        "pattern_end_i": 85,
+        "trigger_line_type": "neckline"
+      },
+      "asof": "2026-02-26T00:00:00"
+    },
+    "SNPS": {
+      "pattern": "IHS",
+      "direction": "BREAKOUT",
+      "level": 552.1200169154577,
+      "meta": {
+        "annot_type": "hs",
+        "variant": "inverse",
+        "points": [
+          {
+            "t": "2025-09-25T00:00:00",
+            "p": 487.20001220703125,
+            "label": "LS",
+            "kind": "point",
+            "i": 24
+          },
+          {
+            "t": "2025-11-18T00:00:00",
+            "p": 383.82000732421875,
+            "label": "H",
+            "kind": "point",
+            "i": 62
+          },
+          {
+            "t": "2026-01-20T00:00:00",
+            "p": 510.9700012207031,
+            "label": "RS",
+            "kind": "point",
+            "i": 103
+          },
+          {
+            "t": "2025-10-01T00:00:00",
+            "p": 495.7200012207031,
+            "label": "R1",
+            "kind": "point",
+            "i": 28
+          },
+          {
+            "t": "2026-01-12T00:00:00",
+            "p": 535.2000122070312,
+            "label": "R2",
+            "kind": "point",
+            "i": 98
+          }
+        ],
+        "lines": [
+          {
+            "t1": "2025-10-01T00:00:00",
+            "y1": 495.7200012207031,
+            "t2": "2026-01-12T00:00:00",
+            "y2": 535.2000122070312,
+            "label": "Neckline",
+            "i1": 28,
+            "i2": 98
+          }
+        ],
+        "pattern_start_i": 24,
+        "pattern_end_i": 103,
+        "trigger_line_type": "neckline"
+      },
+      "asof": "2026-02-26T00:00:00"
+    },
+    "UCG.MI": {
+      "pattern": "IHS",
+      "direction": "BREAKOUT",
+      "level": 73.9609104503285,
+      "meta": {
+        "annot_type": "hs",
+        "variant": "inverse",
+        "points": [
+          {
+            "t": "2025-09-18T00:00:00",
+            "p": 64.58000183105469,
+            "label": "LS",
+            "kind": "point",
+            "i": 20
+          },
+          {
+            "t": "2025-10-24T00:00:00",
+            "p": 61.33000183105469,
+            "label": "H",
+            "kind": "point",
+            "i": 46
+          },
+          {
+            "t": "2025-12-08T00:00:00",
+            "p": 65.16999816894531,
+            "label": "RS",
+            "kind": "point",
+            "i": 77
+          },
+          {
+            "t": "2025-09-29T00:00:00",
+            "p": 65.7699966430664,
+            "label": "R1",
+            "kind": "point",
+            "i": 27
+          },
+          {
+            "t": "2025-11-13T00:00:00",
+            "p": 68.41999816894531,
+            "label": "R2",
+            "kind": "point",
+            "i": 60
+          }
+        ],
+        "lines": [
+          {
+            "t1": "2025-09-29T00:00:00",
+            "y1": 65.7699966430664,
+            "t2": "2025-11-13T00:00:00",
+            "y2": 68.41999816894531,
+            "label": "Neckline",
+            "i1": 27,
+            "i2": 60
+          }
+        ],
+        "pattern_start_i": 20,
+        "pattern_end_i": 77,
+        "trigger_line_type": "neckline"
+      },
+      "asof": "2026-02-26T00:00:00"
+    },
+    "VLO": {
+      "pattern": "HS_TOP",
+      "direction": "BREAKDOWN",
+      "level": 164.83162245639542,
+      "meta": {
+        "annot_type": "hs",
+        "variant": "top",
+        "points": [
+          {
+            "t": "2025-10-15T00:00:00",
+            "p": 160.97999572753906,
+            "label": "LS",
+            "kind": "point",
+            "i": 38
+          },
+          {
+            "t": "2025-11-18T00:00:00",
+            "p": 185.42999267578125,
+            "label": "H",
+            "kind": "point",
+            "i": 62
+          },
+          {
+            "t": "2025-12-22T00:00:00",
+            "p": 163.5500030517578,
+            "label": "RS",
+            "kind": "point",
+            "i": 85
+          },
+          {
+            "t": "2025-10-16T00:00:00",
+            "p": 155.2899932861328,
+            "label": "T1",
+            "kind": "point",
+            "i": 39
+          },
+          {
+            "t": "2025-12-17T00:00:00",
+            "p": 159.89999389648438,
+            "label": "T2",
+            "kind": "point",
+            "i": 82
+          }
+        ],
+        "lines": [
+          {
+            "t1": "2025-10-16T00:00:00",
+            "y1": 155.2899932861328,
+            "t2": "2025-12-17T00:00:00",
+            "y2": 159.89999389648438,
+            "label": "Neckline",
+            "i1": 39,
+            "i2": 82
+          }
+        ],
+        "pattern_start_i": 38,
+        "pattern_end_i": 85,
+        "trigger_line_type": "neckline"
+      },
+      "asof": "2026-02-26T00:00:00"
+    },
+    "RXL": {
+      "pattern": "HS_TOP",
+      "direction": "BREAKDOWN",
+      "level": 51.581139700753354,
+      "meta": {
+        "annot_type": "hs",
+        "variant": "top",
+        "points": [
+          {
+            "t": "2025-11-13T00:00:00",
+            "p": 50.70000076293945,
+            "label": "LS",
+            "kind": "point",
+            "i": 59
+          },
+          {
+            "t": "2026-01-07T00:00:00",
+            "p": 55.08000183105469,
+            "label": "H",
+            "kind": "point",
+            "i": 95
+          },
+          {
+            "t": "2026-02-13T00:00:00",
+            "p": 53.20000076293945,
+            "label": "RS",
+            "kind": "point",
+            "i": 121
+          },
+          {
+            "t": "2025-12-09T00:00:00",
+            "p": 48.58000183105469,
+            "label": "T1",
+            "kind": "point",
+            "i": 76
+          },
+          {
+            "t": "2026-01-30T00:00:00",
+            "p": 50.599998474121094,
+            "label": "T2",
+            "kind": "point",
+            "i": 111
+          }
+        ],
+        "lines": [
+          {
+            "t1": "2025-12-09T00:00:00",
+            "y1": 48.58000183105469,
+            "t2": "2026-01-30T00:00:00",
+            "y2": 50.599998474121094,
+            "label": "Neckline",
+            "i1": 76,
+            "i2": 111
+          }
+        ],
+        "pattern_start_i": 59,
+        "pattern_end_i": 121,
+        "trigger_line_type": "neckline"
+      },
+      "asof": "2026-02-26T00:00:00"
+    },
+    "SHW": {
+      "pattern": "IHS",
+      "direction": "BREAKOUT",
+      "level": 369.1417106466091,
+      "meta": {
+        "annot_type": "hs",
+        "variant": "inverse",
+        "points": [
+          {
+            "t": "2025-11-07T00:00:00",
+            "p": 340.1600036621094,
+            "label": "LS",
+            "kind": "point",
+            "i": 55
+          },
+          {
+            "t": "2025-12-19T00:00:00",
+            "p": 320.8599853515625,
+            "label": "H",
+            "kind": "point",
+            "i": 84
+          },
+          {
+            "t": "2026-01-29T00:00:00",
+            "p": 354.5799865722656,
+            "label": "RS",
+            "kind": "point",
+            "i": 110
+          },
+          {
+            "t": "2025-11-12T00:00:00",
+            "p": 348.3800048828125,
+            "label": "R1",
+            "kind": "point",
+            "i": 58
+          },
+          {
+            "t": "2026-01-22T00:00:00",
+            "p": 362.32000732421875,
+            "label": "R2",
+            "kind": "point",
+            "i": 105
+          }
+        ],
+        "lines": [
+          {
+            "t1": "2025-11-12T00:00:00",
+            "y1": 348.3800048828125,
+            "t2": "2026-01-22T00:00:00",
+            "y2": 362.32000732421875,
+            "label": "Neckline",
+            "i1": 58,
+            "i2": 105
+          }
+        ],
+        "pattern_start_i": 55,
+        "pattern_end_i": 110,
+        "trigger_line_type": "neckline"
+      },
+      "asof": "2026-02-26T00:00:00"
+    },
+    "SNOW": {
+      "pattern": "HS_TOP",
+      "direction": "BREAKDOWN",
+      "level": 207.31571742466528,
+      "meta": {
+        "annot_type": "hs",
+        "variant": "top",
+        "points": [
+          {
+            "t": "2025-09-19T00:00:00",
+            "p": 230.47999572753906,
+            "label": "LS",
+            "kind": "point",
+            "i": 20
+          },
+          {
+            "t": "2025-11-03T00:00:00",
+            "p": 277.1400146484375,
+            "label": "H",
+            "kind": "point",
+            "i": 51
+          },
+          {
+            "t": "2026-01-08T00:00:00",
+            "p": 223.7899932861328,
+            "label": "RS",
+            "kind": "point",
+            "i": 96
+          },
+          {
+            "t": "2025-09-25T00:00:00",
+            "p": 217.27000427246094,
+            "label": "T1",
+            "kind": "point",
+            "i": 24
+          },
+          {
+            "t": "2025-12-15T00:00:00",
+            "p": 211.91000366210938,
+            "label": "T2",
+            "kind": "point",
+            "i": 80
+          }
+        ],
+        "lines": [
+          {
+            "t1": "2025-09-25T00:00:00",
+            "y1": 217.27000427246094,
+            "t2": "2025-12-15T00:00:00",
+            "y2": 211.91000366210938,
+            "label": "Neckline",
+            "i1": 24,
+            "i2": 80
+          }
+        ],
+        "pattern_start_i": 20,
+        "pattern_end_i": 96,
+        "trigger_line_type": "neckline"
+      },
+      "asof": "2026-02-26T00:00:00"
+    },
+    "SO": {
+      "pattern": "IHS",
+      "direction": "BREAKOUT",
+      "level": 85.38139014610876,
+      "meta": {
+        "annot_type": "hs",
+        "variant": "inverse",
+        "points": [
+          {
+            "t": "2025-09-19T00:00:00",
+            "p": 91.80000305175781,
+            "label": "LS",
+            "kind": "point",
+            "i": 20
+          },
+          {
+            "t": "2025-12-10T00:00:00",
+            "p": 84.08000183105469,
+            "label": "H",
+            "kind": "point",
+            "i": 77
+          },
+          {
+            "t": "2026-01-23T00:00:00",
+            "p": 87.54000091552734,
+            "label": "RS",
+            "kind": "point",
+            "i": 106
+          },
+          {
+            "t": "2025-10-16T00:00:00",
+            "p": 100.83999633789062,
+            "label": "R1",
+            "kind": "point",
+            "i": 39
+          },
+          {
+            "t": "2026-01-21T00:00:00",
+            "p": 89.55000305175781,
+            "label": "R2",
+            "kind": "point",
+            "i": 104
+          }
+        ],
+        "lines": [
+          {
+            "t1": "2025-10-16T00:00:00",
+            "y1": 100.83999633789062,
+            "t2": "2026-01-21T00:00:00",
+            "y2": 89.55000305175781,
+            "label": "Neckline",
+            "i1": 39,
+            "i2": 104
+          }
+        ],
+        "pattern_start_i": 20,
+        "pattern_end_i": 106,
+        "trigger_line_type": "neckline"
+      },
+      "asof": "2026-02-26T00:00:00"
+    },
+    "SOFI": {
+      "pattern": "HS_TOP",
+      "direction": "BREAKDOWN",
+      "level": 10.038004302978564,
+      "meta": {
+        "annot_type": "hs",
+        "variant": "top",
+        "points": [
+          {
+            "t": "2025-10-10T00:00:00",
+            "p": 26.190000534057617,
+            "label": "LS",
+            "kind": "point",
+            "i": 35
+          },
+          {
+            "t": "2025-11-12T00:00:00",
+            "p": 32.209999084472656,
+            "label": "H",
+            "kind": "point",
+            "i": 58
+          },
+          {
+            "t": "2026-01-15T00:00:00",
+            "p": 26.440000534057617,
+            "label": "RS",
+            "kind": "point",
+            "i": 101
+          },
+          {
+            "t": "2025-11-07T00:00:00",
+            "p": 25.65999984741211,
+            "label": "T1",
+            "kind": "point",
+            "i": 55
+          },
+          {
+            "t": "2025-11-21T00:00:00",
+            "p": 23.520000457763672,
+            "label": "T2",
+            "kind": "point",
+            "i": 65
+          }
+        ],
+        "lines": [
+          {
+            "t1": "2025-11-07T00:00:00",
+            "y1": 25.65999984741211,
+            "t2": "2025-11-21T00:00:00",
+            "y2": 23.520000457763672,
+            "label": "Neckline",
+            "i1": 55,
+            "i2": 65
+          }
+        ],
+        "pattern_start_i": 35,
+        "pattern_end_i": 101,
+        "trigger_line_type": "neckline"
+      },
+      "asof": "2026-02-26T00:00:00"
+    },
+    "SRT3.DE": {
+      "pattern": "HS_TOP",
+      "direction": "BREAKDOWN",
+      "level": 222.43333689371744,
+      "meta": {
+        "annot_type": "hs",
+        "variant": "top",
+        "points": [
+          {
+            "t": "2025-11-12T00:00:00",
+            "p": 232.6999969482422,
+            "label": "LS",
+            "kind": "point",
+            "i": 59
+          },
+          {
+            "t": "2026-01-08T00:00:00",
+            "p": 265.29998779296875,
+            "label": "H",
+            "kind": "point",
+            "i": 95
+          },
+          {
+            "t": "2026-02-20T00:00:00",
+            "p": 239.0,
+            "label": "RS",
+            "kind": "point",
+            "i": 126
+          },
+          {
+            "t": "2025-11-21T00:00:00",
+            "p": 218.0,
+            "label": "T1",
+            "kind": "point",
+            "i": 66
+          },
+          {
+            "t": "2026-02-12T00:00:00",
+            "p": 221.8000030517578,
+            "label": "T2",
+            "kind": "point",
+            "i": 120
+          }
+        ],
+        "lines": [
+          {
+            "t1": "2025-11-21T00:00:00",
+            "y1": 218.0,
+            "t2": "2026-02-12T00:00:00",
+            "y2": 221.8000030517578,
+            "label": "Neckline",
+            "i1": 66,
+            "i2": 120
+          }
+        ],
+        "pattern_start_i": 59,
+        "pattern_end_i": 126,
+        "trigger_line_type": "neckline"
+      },
+      "asof": "2026-02-26T00:00:00"
+    },
+    "STE": {
+      "pattern": "HS_TOP",
+      "direction": "BREAKDOWN",
+      "level": 214.9700091818105,
+      "meta": {
+        "annot_type": "hs",
+        "variant": "top",
+        "points": [
+          {
+            "t": "2025-12-09T00:00:00",
+            "p": 257.2699890136719,
+            "label": "LS",
+            "kind": "point",
+            "i": 76
+          },
+          {
+            "t": "2026-01-16T00:00:00",
+            "p": 268.6499938964844,
+            "label": "H",
+            "kind": "point",
+            "i": 102
+          },
+          {
+            "t": "2026-02-20T00:00:00",
+            "p": 250.64999389648438,
+            "label": "RS",
+            "kind": "point",
+            "i": 125
+          },
+          {
+            "t": "2026-01-02T00:00:00",
+            "p": 246.64999389648438,
+            "label": "T1",
+            "kind": "point",
+            "i": 92
+          },
+          {
+            "t": "2026-02-05T00:00:00",
+            "p": 226.41000366210938,
+            "label": "T2",
+            "kind": "point",
+            "i": 115
+          }
+        ],
+        "lines": [
+          {
+            "t1": "2026-01-02T00:00:00",
+            "y1": 246.64999389648438,
+            "t2": "2026-02-05T00:00:00",
+            "y2": 226.41000366210938,
+            "label": "Neckline",
+            "i1": 92,
+            "i2": 115
+          }
+        ],
+        "pattern_start_i": 76,
+        "pattern_end_i": 125,
+        "trigger_line_type": "neckline"
+      },
+      "asof": "2026-02-26T00:00:00"
+    },
+    "TDG": {
+      "pattern": "HS_TOP",
+      "direction": "BREAKDOWN",
+      "level": 1249.3385200500488,
+      "meta": {
+        "annot_type": "hs",
+        "variant": "top",
+        "points": [
+          {
+            "t": "2025-11-28T00:00:00",
+            "p": 1360.1700439453125,
+            "label": "LS",
+            "kind": "point",
+            "i": 69
+          },
+          {
+            "t": "2026-01-16T00:00:00",
+            "p": 1450.0,
+            "label": "H",
+            "kind": "point",
+            "i": 102
+          },
+          {
+            "t": "2026-02-20T00:00:00",
+            "p": 1338.97998046875,
+            "label": "RS",
+            "kind": "point",
+            "i": 125
+          },
+          {
+            "t": "2025-12-18T00:00:00",
+            "p": 1237.0899658203125,
+            "label": "T1",
+            "kind": "point",
+            "i": 83
+          },
+          {
+            "t": "2026-02-05T00:00:00",
+            "p": 1245.800048828125,
+            "label": "T2",
+            "kind": "point",
+            "i": 115
+          }
+        ],
+        "lines": [
+          {
+            "t1": "2025-12-18T00:00:00",
+            "y1": 1237.0899658203125,
+            "t2": "2026-02-05T00:00:00",
+            "y2": 1245.800048828125,
+            "label": "Neckline",
+            "i1": 83,
+            "i2": 115
+          }
+        ],
+        "pattern_start_i": 69,
+        "pattern_end_i": 125,
+        "trigger_line_type": "neckline"
+      },
+      "asof": "2026-02-26T00:00:00"
+    },
+    "TEL": {
+      "pattern": "HS_TOP",
+      "direction": "BREAKDOWN",
+      "level": 216.34997558593756,
+      "meta": {
+        "annot_type": "hs",
+        "variant": "top",
+        "points": [
+          {
+            "t": "2025-10-09T00:00:00",
+            "p": 222.4600067138672,
+            "label": "LS",
+            "kind": "point",
+            "i": 34
+          },
+          {
+            "t": "2025-11-05T00:00:00",
+            "p": 249.0,
+            "label": "H",
+            "kind": "point",
+            "i": 53
+          },
+          {
+            "t": "2025-12-22T00:00:00",
+            "p": 233.50999450683594,
+            "label": "RS",
+            "kind": "point",
+            "i": 85
+          },
+          {
+            "t": "2025-10-14T00:00:00",
+            "p": 212.32000732421875,
+            "label": "T1",
+            "kind": "point",
+            "i": 37
+          },
+          {
+            "t": "2025-11-21T00:00:00",
+            "p": 213.55999755859375,
+            "label": "T2",
+            "kind": "point",
+            "i": 65
+          }
+        ],
+        "lines": [
+          {
+            "t1": "2025-10-14T00:00:00",
+            "y1": 212.32000732421875,
+            "t2": "2025-11-21T00:00:00",
+            "y2": 213.55999755859375,
+            "label": "Neckline",
+            "i1": 37,
+            "i2": 65
+          }
+        ],
+        "pattern_start_i": 34,
+        "pattern_end_i": 85,
+        "trigger_line_type": "neckline"
+      },
+      "asof": "2026-02-26T00:00:00"
+    },
+    "TOST": {
+      "pattern": "IHS",
+      "direction": "BREAKOUT",
+      "level": 34.96287727355956,
+      "meta": {
+        "annot_type": "hs",
+        "variant": "inverse",
+        "points": [
+          {
+            "t": "2025-10-10T00:00:00",
+            "p": 34.97999954223633,
+            "label": "LS",
+            "kind": "point",
+            "i": 35
+          },
+          {
+            "t": "2025-11-20T00:00:00",
+            "p": 32.599998474121094,
+            "label": "H",
+            "kind": "point",
+            "i": 64
+          },
+          {
+            "t": "2026-01-02T00:00:00",
+            "p": 34.02000045776367,
+            "label": "RS",
+            "kind": "point",
+            "i": 92
+          },
+          {
+            "t": "2025-10-24T00:00:00",
+            "p": 39.724998474121094,
+            "label": "R1",
+            "kind": "point",
+            "i": 45
+          },
+          {
+            "t": "2025-12-22T00:00:00",
+            "p": 37.43000030517578,
+            "label": "R2",
+            "kind": "point",
+            "i": 85
+          }
+        ],
+        "lines": [
+          {
+            "t1": "2025-10-24T00:00:00",
+            "y1": 39.724998474121094,
+            "t2": "2025-12-22T00:00:00",
+            "y2": 37.43000030517578,
+            "label": "Neckline",
+            "i1": 45,
+            "i2": 85
+          }
+        ],
+        "pattern_start_i": 35,
+        "pattern_end_i": 92,
+        "trigger_line_type": "neckline"
+      },
+      "asof": "2026-02-26T00:00:00"
+    },
+    "TSLA": {
+      "pattern": "HS_TOP",
+      "direction": "BREAKDOWN",
+      "level": 304.79756225585925,
+      "meta": {
+        "annot_type": "hs",
+        "variant": "top",
+        "points": [
+          {
+            "t": "2025-10-02T00:00:00",
+            "p": 436.0,
+            "label": "LS",
+            "kind": "point",
+            "i": 29
+          },
+          {
+            "t": "2025-11-03T00:00:00",
+            "p": 468.3699951171875,
+            "label": "H",
+            "kind": "point",
+            "i": 51
+          },
+          {
+            "t": "2025-12-05T00:00:00",
+            "p": 455.0,
+            "label": "RS",
+            "kind": "point",
+            "i": 74
+          },
+          {
+            "t": "2025-10-10T00:00:00",
+            "p": 411.45001220703125,
+            "label": "T1",
+            "kind": "point",
+            "i": 35
+          },
+          {
+            "t": "2025-11-14T00:00:00",
+            "p": 382.7799987792969,
+            "label": "T2",
+            "kind": "point",
+            "i": 60
+          }
+        ],
+        "lines": [
+          {
+            "t1": "2025-10-10T00:00:00",
+            "y1": 411.45001220703125,
+            "t2": "2025-11-14T00:00:00",
+            "y2": 382.7799987792969,
+            "label": "Neckline",
+            "i1": 35,
+            "i2": 60
+          }
+        ],
+        "pattern_start_i": 29,
+        "pattern_end_i": 74,
+        "trigger_line_type": "neckline"
+      },
+      "asof": "2026-02-26T00:00:00"
+    },
+    "TXN": {
+      "pattern": "IHS",
+      "direction": "BREAKOUT",
+      "level": 189.68749141693118,
+      "meta": {
+        "annot_type": "hs",
+        "variant": "inverse",
+        "points": [
+          {
+            "t": "2025-10-15T00:00:00",
+            "p": 175.27000427246094,
+            "label": "LS",
+            "kind": "point",
+            "i": 38
+          },
+          {
+            "t": "2025-11-20T00:00:00",
+            "p": 153.3300018310547,
+            "label": "H",
+            "kind": "point",
+            "i": 64
+          },
+          {
+            "t": "2025-12-31T00:00:00",
+            "p": 173.49000549316406,
+            "label": "RS",
+            "kind": "point",
+            "i": 91
+          },
+          {
+            "t": "2025-10-21T00:00:00",
+            "p": 181.83999633789062,
+            "label": "R1",
+            "kind": "point",
+            "i": 42
+          },
+          {
+            "t": "2025-12-05T00:00:00",
+            "p": 184.75999450683594,
+            "label": "R2",
+            "kind": "point",
+            "i": 74
+          }
+        ],
+        "lines": [
+          {
+            "t1": "2025-10-21T00:00:00",
+            "y1": 181.83999633789062,
+            "t2": "2025-12-05T00:00:00",
+            "y2": 184.75999450683594,
+            "label": "Neckline",
+            "i1": 42,
+            "i2": 74
+          }
+        ],
+        "pattern_start_i": 38,
+        "pattern_end_i": 91,
+        "trigger_line_type": "neckline"
+      },
+      "asof": "2026-02-26T00:00:00"
+    },
+    "UHS": {
+      "pattern": "HS_TOP",
+      "direction": "BREAKDOWN",
+      "level": 196.2425786798651,
+      "meta": {
+        "annot_type": "hs",
+        "variant": "top",
+        "points": [
+          {
+            "t": "2025-10-07T00:00:00",
+            "p": 209.6999969482422,
+            "label": "LS",
+            "kind": "point",
+            "i": 32
+          },
+          {
+            "t": "2025-11-26T00:00:00",
+            "p": 244.17999267578125,
+            "label": "H",
+            "kind": "point",
+            "i": 68
+          },
+          {
+            "t": "2026-01-27T00:00:00",
+            "p": 202.63999938964844,
+            "label": "RS",
+            "kind": "point",
+            "i": 108
+          },
+          {
+            "t": "2025-10-14T00:00:00",
+            "p": 195.75999450683594,
+            "label": "T1",
+            "kind": "point",
+            "i": 37
+          },
+          {
+            "t": "2026-01-20T00:00:00",
+            "p": 196.11000061035156,
+            "label": "T2",
+            "kind": "point",
+            "i": 103
+          }
+        ],
+        "lines": [
+          {
+            "t1": "2025-10-14T00:00:00",
+            "y1": 195.75999450683594,
+            "t2": "2026-01-20T00:00:00",
+            "y2": 196.11000061035156,
+            "label": "Neckline",
+            "i1": 37,
+            "i2": 103
+          }
+        ],
+        "pattern_start_i": 32,
+        "pattern_end_i": 108,
+        "trigger_line_type": "neckline"
+      },
+      "asof": "2026-02-26T00:00:00"
+    },
+    "WELL": {
+      "pattern": "HS_TOP",
+      "direction": "BREAKDOWN",
+      "level": 193.0608831037554,
+      "meta": {
+        "annot_type": "hs",
+        "variant": "top",
+        "points": [
+          {
+            "t": "2025-10-01T00:00:00",
+            "p": 179.3800048828125,
+            "label": "LS",
+            "kind": "point",
+            "i": 28
+          },
+          {
+            "t": "2025-11-28T00:00:00",
+            "p": 208.22000122070312,
+            "label": "H",
+            "kind": "point",
+            "i": 69
+          },
+          {
+            "t": "2026-01-20T00:00:00",
+            "p": 188.0,
+            "label": "RS",
+            "kind": "point",
+            "i": 103
+          },
+          {
+            "t": "2025-10-13T00:00:00",
+            "p": 163.75,
+            "label": "T1",
+            "kind": "point",
+            "i": 36
+          },
+          {
+            "t": "2026-01-05T00:00:00",
+            "p": 181.91000366210938,
+            "label": "T2",
+            "kind": "point",
+            "i": 93
+          }
+        ],
+        "lines": [
+          {
+            "t1": "2025-10-13T00:00:00",
+            "y1": 163.75,
+            "t2": "2026-01-05T00:00:00",
+            "y2": 181.91000366210938,
+            "label": "Neckline",
+            "i1": 36,
+            "i2": 93
+          }
+        ],
+        "pattern_start_i": 28,
+        "pattern_end_i": 103,
+        "trigger_line_type": "neckline"
+      },
+      "asof": "2026-02-26T00:00:00"
+    },
+    "ZTS": {
+      "pattern": "IHS",
+      "direction": "BREAKOUT",
+      "level": 133.32584253946936,
+      "meta": {
+        "annot_type": "hs",
+        "variant": "inverse",
+        "points": [
+          {
+            "t": "2025-11-07T00:00:00",
+            "p": 120.23999786376953,
+            "label": "LS",
+            "kind": "point",
+            "i": 55
+          },
+          {
+            "t": "2025-12-09T00:00:00",
+            "p": 115.75,
+            "label": "H",
+            "kind": "point",
+            "i": 76
+          },
+          {
+            "t": "2026-01-30T00:00:00",
+            "p": 124.81999969482422,
+            "label": "RS",
+            "kind": "point",
+            "i": 111
+          },
+          {
+            "t": "2025-12-01T00:00:00",
+            "p": 129.5800018310547,
+            "label": "R1",
+            "kind": "point",
+            "i": 70
+          },
+          {
+            "t": "2026-01-06T00:00:00",
+            "p": 131.1300048828125,
+            "label": "R2",
+            "kind": "point",
+            "i": 94
+          }
+        ],
+        "lines": [
+          {
+            "t1": "2025-12-01T00:00:00",
+            "y1": 129.5800018310547,
+            "t2": "2026-01-06T00:00:00",
+            "y2": 131.1300048828125,
+            "label": "Neckline",
+            "i1": 70,
+            "i2": 94
+          }
+        ],
+        "pattern_start_i": 55,
+        "pattern_end_i": 111,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-02-26T00:00:00"
@@ -15773,6 +16871,280 @@
         "trend_label": "BOTTOM"
       },
       "last_touch": "2026-02-12T00:00:00"
+    },
+    "SOF": {
+      "pattern": "RECT_TOP",
+      "meta": {
+        "annot_type": "band",
+        "pattern": "RECT_TOP",
+        "start_i": 46,
+        "end_i": 128,
+        "lines": [
+          {
+            "t1": "2025-10-28T00:00:00",
+            "y1": 100.45119170715157,
+            "t2": "2026-02-26T00:00:00",
+            "y2": 100.40163018379302,
+            "label": "Upper",
+            "i1": 46,
+            "i2": 128
+          },
+          {
+            "t1": "2025-10-28T00:00:00",
+            "y1": 100.10276686418447,
+            "t2": "2026-02-26T00:00:00",
+            "y2": 100.20999949650668,
+            "label": "Lower",
+            "i1": 46,
+            "i2": 128
+          }
+        ],
+        "touch_points": [
+          {
+            "t": "2025-11-25T00:00:00",
+            "p": 100.44000244140625,
+            "label": "H touch",
+            "kind": "touch_high",
+            "i": 66
+          },
+          {
+            "t": "2025-12-18T00:00:00",
+            "p": 100.45999908447266,
+            "label": "H touch",
+            "kind": "touch_high",
+            "i": 82
+          },
+          {
+            "t": "2025-12-26T00:00:00",
+            "p": 100.43000030517578,
+            "label": "H touch",
+            "kind": "touch_high",
+            "i": 87
+          },
+          {
+            "t": "2026-01-07T00:00:00",
+            "p": 100.29000091552734,
+            "label": "H touch",
+            "kind": "touch_high",
+            "i": 94
+          },
+          {
+            "t": "2026-01-22T00:00:00",
+            "p": 100.66500091552734,
+            "label": "H touch",
+            "kind": "touch_high",
+            "i": 104
+          },
+          {
+            "t": "2026-01-28T00:00:00",
+            "p": 100.44000244140625,
+            "label": "H touch",
+            "kind": "touch_high",
+            "i": 108
+          },
+          {
+            "t": "2026-02-04T00:00:00",
+            "p": 100.2699966430664,
+            "label": "H touch",
+            "kind": "touch_high",
+            "i": 113
+          },
+          {
+            "t": "2026-02-17T00:00:00",
+            "p": 100.4000015258789,
+            "label": "H touch",
+            "kind": "touch_high",
+            "i": 121
+          },
+          {
+            "t": "2025-10-30T00:00:00",
+            "p": 100.13999938964844,
+            "label": "L touch",
+            "kind": "touch_low",
+            "i": 48
+          },
+          {
+            "t": "2025-11-26T00:00:00",
+            "p": 100.0999984741211,
+            "label": "L touch",
+            "kind": "touch_low",
+            "i": 67
+          },
+          {
+            "t": "2025-12-29T00:00:00",
+            "p": 100.11530303955078,
+            "label": "L touch",
+            "kind": "touch_low",
+            "i": 88
+          },
+          {
+            "t": "2026-01-20T00:00:00",
+            "p": 100.25,
+            "label": "L touch",
+            "kind": "touch_low",
+            "i": 102
+          },
+          {
+            "t": "2026-01-29T00:00:00",
+            "p": 100.11000061035156,
+            "label": "L touch",
+            "kind": "touch_low",
+            "i": 109
+          },
+          {
+            "t": "2026-02-17T00:00:00",
+            "p": 100.23999786376953,
+            "label": "L touch",
+            "kind": "touch_low",
+            "i": 121
+          }
+        ],
+        "pattern_end_i": 121,
+        "pattern_end_t": "2026-02-17T00:00:00",
+        "containment": 1.0,
+        "alternations": 10,
+        "trend_label": "TOP"
+      },
+      "last_touch": "2026-02-17T00:00:00"
+    },
+    "U96.SI": {
+      "pattern": "DESC_TRIANGLE",
+      "meta": {
+        "annot_type": "band",
+        "pattern": "DESC_TRIANGLE",
+        "start_i": 39,
+        "end_i": 130,
+        "lines": [
+          {
+            "t1": "2025-10-15T00:00:00",
+            "y1": 6.6362162972561185,
+            "t2": "2026-02-26T00:00:00",
+            "y2": 5.939245911536344,
+            "label": "Upper",
+            "i1": 39,
+            "i2": 130
+          },
+          {
+            "t1": "2025-10-15T00:00:00",
+            "y1": 6.201635752665686,
+            "t2": "2026-02-26T00:00:00",
+            "y2": 5.880525283823691,
+            "label": "Lower",
+            "i1": 39,
+            "i2": 130
+          }
+        ],
+        "touch_points": [
+          {
+            "t": "2025-11-11T00:00:00",
+            "p": 6.519999980926514,
+            "label": "H touch",
+            "kind": "touch_high",
+            "i": 57
+          },
+          {
+            "t": "2026-01-19T00:00:00",
+            "p": 6.179999828338623,
+            "label": "H touch",
+            "kind": "touch_high",
+            "i": 104
+          },
+          {
+            "t": "2025-10-17T00:00:00",
+            "p": 6.199999809265137,
+            "label": "L touch",
+            "kind": "touch_low",
+            "i": 41
+          },
+          {
+            "t": "2026-01-15T00:00:00",
+            "p": 5.949999809265137,
+            "label": "L touch",
+            "kind": "touch_low",
+            "i": 102
+          }
+        ],
+        "pattern_end_i": 104,
+        "pattern_end_t": "2026-01-19T00:00:00",
+        "containment": 0.717391304347826,
+        "alternations": 3,
+        "trend_label": "NEUTRAL",
+        "apex_x": 144.21693796518613,
+        "progress_to_apex": 0.8648797594747512
+      },
+      "last_touch": "2026-01-19T00:00:00"
+    },
+    "WTRG": {
+      "pattern": "RECT_BOTTOM",
+      "meta": {
+        "annot_type": "band",
+        "pattern": "RECT_BOTTOM",
+        "start_i": 81,
+        "end_i": 129,
+        "lines": [
+          {
+            "t1": "2025-12-16T00:00:00",
+            "y1": 39.137585935002534,
+            "t2": "2026-02-26T00:00:00",
+            "y2": 40.182854650501234,
+            "label": "Upper",
+            "i1": 81,
+            "i2": 129
+          },
+          {
+            "t1": "2025-12-16T00:00:00",
+            "y1": 37.76635649174111,
+            "t2": "2026-02-26T00:00:00",
+            "y2": 37.79655693325201,
+            "label": "Lower",
+            "i1": 81,
+            "i2": 129
+          }
+        ],
+        "touch_points": [
+          {
+            "t": "2025-12-18T00:00:00",
+            "p": 39.220001220703125,
+            "label": "H touch",
+            "kind": "touch_high",
+            "i": 83
+          },
+          {
+            "t": "2026-01-26T00:00:00",
+            "p": 39.939998626708984,
+            "label": "H touch",
+            "kind": "touch_high",
+            "i": 107
+          },
+          {
+            "t": "2026-02-17T00:00:00",
+            "p": 40.130001068115234,
+            "label": "H touch",
+            "kind": "touch_high",
+            "i": 122
+          },
+          {
+            "t": "2025-12-22T00:00:00",
+            "p": 37.689998626708984,
+            "label": "L touch",
+            "kind": "touch_low",
+            "i": 85
+          },
+          {
+            "t": "2026-01-28T00:00:00",
+            "p": 38.06999969482422,
+            "label": "L touch",
+            "kind": "touch_low",
+            "i": 109
+          }
+        ],
+        "pattern_end_i": 122,
+        "pattern_end_t": "2026-02-17T00:00:00",
+        "containment": 0.8979591836734694,
+        "alternations": 4,
+        "trend_label": "BOTTOM"
+      },
+      "last_touch": "2026-02-17T00:00:00"
     }
   }
 }
