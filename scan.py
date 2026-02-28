@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+from zoneinfo import ZoneInfo
 import json
 import math
 import os
@@ -240,6 +241,7 @@ HS_MAX_BARS = 90
 # Maximum allowed lag between pattern completion (RS) and breakout/breakdown confirmation run start
 HS_MAX_BREAKOUT_LAG_BARS = 30
 HS_GEOM_CARRY_BARS = 30  # persist HS/IHS geometry up to 30 bars to survive pivot re-picks on big bars
+BAND_GEOM_CARRY_BARS = 30  # persist band geometry (rect/tri/broaden) up to 30 bars since last validating touch
 # Lifecycle: CONFIRMED is only day 0..1 of a new confirmed run. Day 2 becomes VALIDATED if the validation window holds.
 CONFIRMED_MAX_AGE_BARS = 2
 VALIDATED_MIN_AGE_BARS = 3
@@ -2949,6 +2951,26 @@ def _iso_ts(idx_val) -> str:
         return str(idx_val)
 
 
+def _after_close_cutoff_berlin(now: Optional[dt.datetime] = None) -> bool:
+    """Simple rule: if local Berlin time >= 22:10, assume the latest daily candle is closed."""
+    try:
+        tz = ZoneInfo("Europe/Berlin")
+        now2 = now or dt.datetime.now(tz)
+    except Exception:
+        now2 = now or dt.datetime.now()
+    return (now2.hour, now2.minute) >= (22, 10)
+
+
+def _latest_completed_close_df(d: pd.DataFrame) -> pd.DataFrame:
+    """Return df sliced to the latest completed daily close (drop today's partial bar if before cutoff)."""
+    if d is None or d.empty:
+        return d
+    if _after_close_cutoff_berlin():
+        return d
+    return d.iloc[:-1].copy() if len(d) > 1 else d
+
+
+
 def _point_meta(df: pd.DataFrame, i: int, price: float, label: str, kind: str = "point") -> Dict[str, Any]:
     return {"t": _iso_ts(df.index[i]), "p": float(price), "label": str(label), "kind": kind, "i": int(i)}
 
@@ -3057,6 +3079,16 @@ def _build_band_pattern_meta(
         ],
         "touch_points": [],
     }
+    # For persistence & freshness: pattern_end is the latest validating touch (not the window end)
+    try:
+        last_touch_i = int(max((hi_touches or []) + (lo_touches or []))) if (hi_touches or lo_touches) else int(end_i)
+    except Exception:
+        last_touch_i = int(end_i)
+    meta["pattern_end_i"] = int(last_touch_i)
+    try:
+        meta["pattern_end_t"] = _iso_ts(df.index[int(last_touch_i)])
+    except Exception:
+        meta["pattern_end_t"] = ""
     for i in hi_touches:
         meta["touch_points"].append(_point_meta(df, i, float(df["High"].iloc[i]), "H touch", kind="touch_high"))
     for i in lo_touches:
@@ -4127,6 +4159,7 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
         d = d0.loc[d0.index >= cutoff].copy()
     else:
         d = d0.tail(LOOKBACK_DAYS).copy()
+    d = _latest_completed_close_df(d)
 
     if len(d) < 80:
         return sigs
@@ -4200,6 +4233,8 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
                             level=float(mem.get("level", 0.0)),
                             meta=meta2,
                         ))
+                        if isinstance(debug, dict):
+                            debug['hs_restored'] = int(debug.get('hs_restored', 0)) + 1
                 else:
                     hs_geom.pop(ticker, None)
             except Exception:
@@ -4214,6 +4249,52 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
                 "level": float(best.level),
                 "meta": best.meta,
                 "asof": _iso_ts(d.index[-1]),
+            }
+        except Exception:
+            pass
+
+
+    # Band geometry carry-forward: rectangles/triangles/broadening can flip-flop due to refits.
+    # Persist neutral geometry (upper+lower) keyed by last validating touch, for up to 30 bars.
+    if isinstance(state, dict):
+        band_geom = state.setdefault("band_geom", {})
+        mem_b = band_geom.get(ticker)
+
+        have_band_today = any(isinstance(getattr(cnd, "meta", None), dict) and str(cnd.meta.get("annot_type", "")) == "band" for cnd in candidates)
+
+        if (not have_band_today) and isinstance(mem_b, dict):
+            try:
+                last_touch = str(mem_b.get("last_touch", "") or "")
+                if isinstance(d.index, pd.DatetimeIndex) and last_touch:
+                    date_keys = [pd.Timestamp(x).date().isoformat() for x in d.index]
+                    lt_dt = pd.to_datetime(last_touch, utc=True, errors="coerce")
+                    if pd.isna(lt_dt):
+                        lt_dt = pd.to_datetime(last_touch, errors="coerce")
+                    lt_key = lt_dt.date().isoformat() if not pd.isna(lt_dt) else ""
+                    if lt_key in date_keys:
+                        age = int(len(date_keys) - 1 - date_keys.index(lt_key))
+                        if age <= BAND_GEOM_CARRY_BARS:
+                            meta2 = _reindex_meta_to_df(mem_b.get("meta", {}), d)
+                            if meta2 is not None:
+                                pat = str(mem_b.get("pattern", ""))
+                                candidates.append(PatternCandidate(pattern=pat, direction="BREAKOUT", level=0.0, meta=meta2))
+                                candidates.append(PatternCandidate(pattern=pat, direction="BREAKDOWN", level=0.0, meta=meta2))
+                                if isinstance(debug, dict):
+                                    debug["band_restored"] = int(debug.get("band_restored", 0)) + 1
+                    else:
+                        band_geom.pop(ticker, None)
+            except Exception:
+                pass
+
+        # Update memory if a band candidate exists today
+        try:
+            best_band = next(cnd for cnd in candidates if isinstance(getattr(cnd, "meta", None), dict) and str(cnd.meta.get("annot_type", "")) == "band")
+            meta_b = best_band.meta or {}
+            last_touch_t = str(meta_b.get("pattern_end_t", "") or "")
+            band_geom[ticker] = {
+                "pattern": str(best_band.pattern),
+                "meta": meta_b,
+                "last_touch": last_touch_t,
             }
         except Exception:
             pass
@@ -4376,6 +4457,7 @@ def _debug_gates_for_ticker(ticker: str, df0: pd.DataFrame, state: Optional[Dict
         d = d0.loc[d0.index >= cutoff].copy()
     else:
         d = d0.tail(LOOKBACK_DAYS).copy()
+    d = _latest_completed_close_df(d)
     if d.empty or len(d) < 5:
         out["note"] = "empty slice"
         return out
@@ -5401,6 +5483,21 @@ def main():
     # Download OHLCV once (for technicals)
     ohlcv = yf_download_chunk(tech_scan_universe)
 
+    # Load state early (used for HS/Band geometry carry-forward) + initialize debug counters
+    state = load_state()
+    debug: Dict[str, Any] = {
+        'tickers_scanned': 0,
+        'tickers_usable': 0,
+        'cand_total': 0,
+        'cand_by_pattern': {},
+        'signals_early': 0,
+        'signals_conf': 0,
+        'signals_val': 0,
+        'signals_total': 0,
+        'hs_restored': 0,
+        'band_restored': 0,
+    }
+
     # 2) Movers
     # Compute session movers from the watchlist universe (more reliable than scraping Yahoo gainers/losers).
     # With MSCI expansion enabled, the large batch download can occasionally miss a few watchlist names;
@@ -5570,8 +5667,7 @@ def main():
         s.chart_path = plot_signal_chart(s.ticker, ohlcv.get(s.ticker), s, name_resolver=company_name_for_ticker)
         early_charts += 1
 # State diff (used only for EARLY "NEW" labeling + a changelog of signal IDs)
-    state = load_state()
-    debug: Dict[str, Any] = {'tickers_scanned': 0, 'tickers_usable': 0, 'cand_total': 0, 'cand_by_pattern': {}, 'signals_early': 0, 'signals_conf': 0, 'signals_val': 0, 'signals_total': 0}
+    # (state/debug already initialized above; do not reload here)
     prev_all = {"signals": state.get("signals", [])}
     prev_early = {"signals": state.get("early", [])}
 
@@ -5695,6 +5791,7 @@ def main():
         md.append(f"- Tickers scanned: **{int(debug.get('tickers_scanned', 0))}**; usable OHLCV: **{int(debug.get('tickers_usable', 0))}**\n")
         md.append(f"- Candidates found: **{cand_total}** (top patterns: {top_pats_str})\n")
         md.append(f"- Live signals: EARLY **{int(debug.get('signals_early', 0))}**, CONFIRMED **{int(debug.get('signals_conf', 0))}**, VALIDATED **{int(debug.get('signals_val', 0))}** (total {sig_total})\n")
+        md.append(f"- Geometry restored today: HS/IHS **{int(debug.get('hs_restored', 0))}**, Band **{int(debug.get('band_restored', 0))}**\n")
         md.append("\n")
 
         big_rows: List[Dict[str, Any]] = []
