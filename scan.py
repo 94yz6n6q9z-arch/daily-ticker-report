@@ -3004,6 +3004,220 @@ def _diagnose_swing_high(
         return out
 
 
+
+def _swing_highs_on_close(
+    df: pd.DataFrame,
+    window: int = 3,
+    prominence_atr_mult: float = 0.5,
+    allow_tie_high_2dp: bool = True,
+) -> List[int]:
+    """
+    Close-based swing highs (for HS shoulders/head in a Close-driven deterministic model).
+    - local max on Close in [i-window, i+window]
+    - unique max (or optional 2dp tie handling)
+    - prominence measured vs window Low using ATR filter
+    """
+    dd = df.dropna(subset=["High", "Low", "Close"]).copy()
+    if dd.empty or len(dd) < (2 * window + 5):
+        return []
+    cl = dd["Close"].astype(float).values
+    lo = dd["Low"].astype(float).values
+    atr_s = atr(dd, ATR_N)
+    atr_v = pd.to_numeric(atr_s, errors="coerce").values if atr_s is not None else np.full(len(dd), np.nan)
+
+    highs: List[int] = []
+    for i in range(window, len(dd) - window):
+        cwin = cl[i - window : i + window + 1]
+        lwin = lo[i - window : i + window + 1]
+        if np.isnan(cwin).any() or np.isnan(lwin).any():
+            continue
+
+        atr_i = atr_v[i] if i < len(atr_v) and np.isfinite(atr_v[i]) else np.nan
+        if not np.isfinite(atr_i):
+            lo_i = max(0, i - 20)
+            med = np.nanmedian(atr_v[lo_i : i + 1])
+            atr_i = med if np.isfinite(med) else np.nan
+        if not np.isfinite(atr_i):
+            atr_i = max(float(np.nanmedian((np.nanmax(dd["High"].values[i-window:i+window+1]) - lwin))), 1e-6)
+
+        is_local_max = bool(cl[i] == np.max(cwin))
+        if not is_local_max:
+            continue
+
+        is_unique = bool(np.sum(cwin == cl[i]) == 1)
+        ok_tie = False
+        if (not is_unique) and allow_tie_high_2dp:
+            try:
+                mx2 = round(float(np.max(cwin)), 2)
+                ties = [j for j, v in enumerate(cwin) if round(float(v), 2) == mx2]
+                if ties:
+                    chosen_global = (i - window) + int(ties[0])  # earliest tie rep
+                    ok_tie = (i == chosen_global) and (round(float(cl[i]), 2) == mx2)
+            except Exception:
+                ok_tie = False
+
+        if is_unique or ok_tie:
+            prominence = float(cl[i] - np.min(lwin))
+            if prominence >= float(prominence_atr_mult * atr_i):
+                highs.append(i)
+    return highs
+
+
+def _swing_lows_on_close(
+    df: pd.DataFrame,
+    window: int = 3,
+    prominence_atr_mult: float = 0.5,
+    allow_tie_low_2dp: bool = True,
+) -> List[int]:
+    """
+    Close-based swing lows (for IHS shoulders/head in a Close-driven deterministic model).
+    - local min on Close in [i-window, i+window]
+    - unique min (or optional 2dp tie handling)
+    - prominence measured vs window High using ATR filter
+    """
+    dd = df.dropna(subset=["High", "Low", "Close"]).copy()
+    if dd.empty or len(dd) < (2 * window + 5):
+        return []
+    cl = dd["Close"].astype(float).values
+    hi = dd["High"].astype(float).values
+    atr_s = atr(dd, ATR_N)
+    atr_v = pd.to_numeric(atr_s, errors="coerce").values if atr_s is not None else np.full(len(dd), np.nan)
+
+    lows: List[int] = []
+    for i in range(window, len(dd) - window):
+        cwin = cl[i - window : i + window + 1]
+        hwin = hi[i - window : i + window + 1]
+        if np.isnan(cwin).any() or np.isnan(hwin).any():
+            continue
+
+        atr_i = atr_v[i] if i < len(atr_v) and np.isfinite(atr_v[i]) else np.nan
+        if not np.isfinite(atr_i):
+            lo_i = max(0, i - 20)
+            med = np.nanmedian(atr_v[lo_i : i + 1])
+            atr_i = med if np.isfinite(med) else np.nan
+        if not np.isfinite(atr_i):
+            atr_i = max(float(np.nanmedian((hwin - np.nanmin(dd["Low"].values[i-window:i+window+1])))), 1e-6)
+
+        is_local_min = bool(cl[i] == np.min(cwin))
+        if not is_local_min:
+            continue
+
+        is_unique = bool(np.sum(cwin == cl[i]) == 1)
+        ok_tie = False
+        if (not is_unique) and allow_tie_low_2dp:
+            try:
+                mn2 = round(float(np.min(cwin)), 2)
+                ties = [j for j, v in enumerate(cwin) if round(float(v), 2) == mn2]
+                if ties:
+                    chosen_global = (i - window) + int(ties[0])  # earliest tie rep
+                    ok_tie = (i == chosen_global) and (round(float(cl[i]), 2) == mn2)
+            except Exception:
+                ok_tie = False
+
+        if is_unique or ok_tie:
+            prominence = float(np.max(hwin) - cl[i])
+            if prominence >= float(prominence_atr_mult * atr_i):
+                lows.append(i)
+    return lows
+
+
+def _diagnose_swing_high_close(
+    df: pd.DataFrame,
+    ts: str,
+    window: int = 3,
+    prominence_atr_mult: float = 0.5,
+) -> Dict[str, Any]:
+    """Explain deterministically why a given bar is / is not a Close-based swing high under _swing_highs_on_close()."""
+    out: Dict[str, Any] = {"ts_req": ts, "ok": False}
+    try:
+        dd0 = df.dropna(subset=["High", "Low", "Close"]).copy()
+        if dd0.empty:
+            out["reason"] = "empty_df_after_dropna"
+            return out
+        if isinstance(dd0.index, pd.DatetimeIndex):
+            cutoff = dd0.index[-1] - pd.Timedelta(days=CHART_WINDOW_DAYS)
+            dd = dd0.loc[dd0.index >= cutoff].copy()
+        else:
+            dd = dd0.tail(LOOKBACK_DAYS).copy()
+        dd = _latest_completed_close_df(dd)
+        if dd.empty:
+            out["reason"] = "empty_df_after_dropna"
+            return out
+
+        t_req = pd.to_datetime(ts, errors="coerce")
+        if pd.isna(t_req):
+            out["reason"] = "bad_ts"
+            return out
+
+        if not isinstance(dd.index, pd.DatetimeIndex):
+            out["reason"] = "non_datetime_index"
+            return out
+
+        try:
+            i = int(dd.index.get_loc(t_req))
+            t_hit = dd.index[i]
+        except Exception:
+            diffs = np.abs((dd.index - t_req).astype("timedelta64[s]").astype(np.int64))
+            i = int(np.nanargmin(diffs))
+            t_hit = dd.index[i]
+            out["nearest"] = True
+
+        out["ts_hit"] = str(t_hit)
+        out["i"] = int(i)
+
+        if i < window or i >= len(dd) - window:
+            out["reason"] = "too_close_to_edges_for_window"
+            return out
+
+        cl = dd["Close"].astype(float).values
+        lo = dd["Low"].astype(float).values
+
+        cwin = cl[i - window : i + window + 1]
+        lwin = lo[i - window : i + window + 1]
+        out["cwin_max"] = float(np.max(cwin))
+        out["cwin_max_count"] = int(np.sum(cwin == cl[i]))
+        out["close_i"] = float(cl[i])
+        out["low_i"] = float(lo[i])
+
+        atr_s = atr(dd, ATR_N)
+        atr_v = pd.to_numeric(atr_s, errors="coerce").values if atr_s is not None else np.full(len(dd), np.nan)
+        atr_i = atr_v[i] if i < len(atr_v) and np.isfinite(atr_v[i]) else np.nan
+        if not np.isfinite(atr_i):
+            lo_i = max(0, i - 20)
+            med = np.nanmedian(atr_v[lo_i : i + 1])
+            atr_i = med if np.isfinite(med) else np.nan
+        if not np.isfinite(atr_i):
+            atr_i = max(float(np.nanmedian((dd["High"].astype(float).values[i-window:i+window+1] - lwin))), 1e-6)
+
+        out["atr_i"] = float(atr_i)
+        is_local_max = bool(cl[i] == np.max(cwin))
+        is_unique = bool(np.sum(cwin == cl[i]) == 1)
+        prominence = float(cl[i] - np.min(lwin))
+        thresh = float(prominence_atr_mult * atr_i)
+
+        out["is_local_max"] = is_local_max
+        out["is_unique_max"] = is_unique
+        out["prominence"] = float(prominence)
+        out["prom_thresh"] = float(thresh)
+        out["prom_ok"] = bool(prominence >= thresh)
+
+        out["ok"] = bool(is_local_max and is_unique and prominence >= thresh)
+        if not out["ok"]:
+            reasons = []
+            if not is_local_max:
+                reasons.append("not_local_max_in_window")
+            if is_local_max and (not is_unique):
+                reasons.append("ties_for_local_max")
+            if prominence < thresh:
+                reasons.append("prominence_below_threshold")
+            out["reason"] = ",".join(reasons) if reasons else "unknown"
+        return out
+    except Exception as e:
+        out["reason"] = f"exception:{type(e).__name__}"
+        return out
+
+
+
 def _swing_points_ohlc(
     df: pd.DataFrame,
     window: int = 3,
@@ -3516,45 +3730,43 @@ def _pick_recent_hs_triplet(
                     bump('missing_between')
 
                 # Base prices at provisional pivots
-                px1 = float(c.iloc[p1]); px2 = float(c.iloc[p2]); px3 = float(c.iloc[p3])
-
-                # Shoulder snap v2 (CLOSE-based, head-anchored)
-                # LS = latest argmax/argmin Close in last SNAP_WIN bars before Head
-                # RS = earliest argmax/argmin Close in next SNAP_WIN bars after Head
+                px1 = float(c.iloc[p1]); px2 = float(c.iloc[p2]); px3 = float(c.iloc[p3])                # Shoulder snap v3 (pivot-based, head-anchored, respects HS_MIN_SIDE_BARS)
+                # Choose shoulders from *primary pivots* within SNAP_WIN around the Head, but exclude the
+                # ±HS_MIN_SIDE_BARS zone adjacent to the Head so shoulders cannot collapse into 1–3 bars.
                 try:
                     p2i = int(p2)
 
-                    # Left window: [p2-SNAP_WIN, p2) exclude head
                     L0 = max(0, p2i - SNAP_WIN)
-                    left = c.iloc[L0:p2i]
-                    if len(left) >= HS_MIN_SIDE_BARS:
-                        lv = left.to_numpy(dtype=float)
-                        if not inverse:
-                            mx = np.nanmax(lv)
-                            if not np.isnan(mx):
-                                cand = np.where(lv == mx)[0]
-                                if len(cand):
-                                    p1 = int(L0 + cand[-1])  # latest max
-                        else:
-                            mn = np.nanmin(lv)
-                            if not np.isnan(mn):
-                                cand = np.where(lv == mn)[0]
-                                if len(cand):
-                                    p1 = int(L0 + cand[-1])  # latest min
-
-                    # Right window: (p2, p2+SNAP_WIN] exclude head, include up to SNAP_WIN
+                    L1 = max(L0, p2i - HS_MIN_SIDE_BARS)  # exclude near-head zone
+                    R0 = min(len(c), p2i + 1 + HS_MIN_SIDE_BARS)  # start after near-head zone
                     R1 = min(len(c), p2i + 1 + SNAP_WIN)
-                    right = c.iloc[p2i+1:R1]
-                    if len(right) >= HS_MIN_SIDE_BARS:
-                        rv = right.to_numpy(dtype=float)
+
+                    left_piv = [int(x) for x in pivots_primary if L0 <= int(x) < L1]
+                    right_piv = [int(x) for x in pivots_primary if R0 <= int(x) < R1]
+
+                    if left_piv:
                         if not inverse:
-                            j = _safe_nanargmax(rv)
-                            if j is not None:
-                                p3 = int((p2i + 1) + j)  # earliest max
+                            mx = float(np.nanmax([float(c.iloc[i]) for i in left_piv]))
+                            cand = [i for i in left_piv if float(c.iloc[i]) == mx]
+                            if cand:
+                                p1 = int(max(cand))  # latest max
                         else:
-                            j = _safe_nanargmin(rv)
-                            if j is not None:
-                                p3 = int((p2i + 1) + j)  # earliest min
+                            mn = float(np.nanmin([float(c.iloc[i]) for i in left_piv]))
+                            cand = [i for i in left_piv if float(c.iloc[i]) == mn]
+                            if cand:
+                                p1 = int(max(cand))  # latest min
+
+                    if right_piv:
+                        if not inverse:
+                            mx = float(np.nanmax([float(c.iloc[i]) for i in right_piv]))
+                            cand = [i for i in right_piv if float(c.iloc[i]) == mx]
+                            if cand:
+                                p3 = int(min(cand))  # earliest max
+                        else:
+                            mn = float(np.nanmin([float(c.iloc[i]) for i in right_piv]))
+                            cand = [i for i in right_piv if float(c.iloc[i]) == mn]
+                            if cand:
+                                p3 = int(min(cand))  # earliest min
 
                     # Refresh prices after snap
                     px1 = float(c.iloc[int(p1)])
@@ -3727,7 +3939,8 @@ def detect_hs_top(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None) ->
             explain['len_lt_120'] = int(explain.get('len_lt_120', 0)) + 1
         return None
     c = d["Close"].astype(float)
-    highs_idx, lows_idx = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
+    _, lows_idx = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
+    highs_idx = _swing_highs_on_close(d, window=3, prominence_atr_mult=0.5, allow_tie_high_2dp=True)
     if len(highs_idx) < 3 or len(lows_idx) < 2:
         if isinstance(explain, dict):
             explain['not_enough_swings'] = int(explain.get('not_enough_swings', 0)) + 1
@@ -3776,7 +3989,8 @@ def detect_inverse_hs(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None
             explain['len_lt_120'] = int(explain.get('len_lt_120', 0)) + 1
         return None
     c = d["Close"].astype(float)
-    highs_idx, lows_idx = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
+    highs_idx, _ = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
+    lows_idx = _swing_lows_on_close(d, window=3, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
     if len(lows_idx) < 3 or len(highs_idx) < 2:
         if isinstance(explain, dict):
             explain['not_enough_swings'] = int(explain.get('not_enough_swings', 0)) + 1
@@ -6492,16 +6706,25 @@ def main():
             # NU-specific diagnostics: why Jan 5 is / is not a swing high + whether HS_MIN_BARS is forcing LS backward
             if str(ft).upper() == "NU":
                 try:
-                    diag = _diagnose_swing_high(df_ft, "2026-01-05", window=3, prominence_atr_mult=0.5)
-                    md.append(f"- NU swing-high check @ 2026-01-05: ok={diag.get('ok')} | reason={diag.get('reason')}\n")
-                    if diag.get("ts_hit"):
+                    diagc = _diagnose_swing_high_close(df_ft, "2026-01-05", window=3, prominence_atr_mult=0.5)
+                    md.append(f"- NU swing-high check (Close-based) @ 2026-01-05: ok={diagc.get('ok')} | reason={diagc.get('reason')}\n")
+                    if diagc.get("ts_hit"):
                         md.append(
-                            f"  - hit={diag.get('ts_hit')} (i={diag.get('i')}) | High={diag.get('hi_i'):.2f} | "
-                            f"hwin_max={diag.get('hwin_max'):.2f} (count={diag.get('hwin_max_count')}) | "
-                            f"prom={diag.get('prominence'):.2f} vs thr={diag.get('prom_thresh'):.2f} (ATR={diag.get('atr_i'):.2f})\n"
+                            f"  - hit={diagc.get('ts_hit')} (i={diagc.get('i')}) | Close={diagc.get('close_i'):.2f} | "
+                            f"cwin_max={diagc.get('cwin_max'):.2f} (count={diagc.get('cwin_max_count')}) | "
+                            f"prom={diagc.get('prominence'):.2f} vs thr={diagc.get('prom_thresh'):.2f} (ATR={diagc.get('atr_i'):.2f})\n"
+                        )
+                    diagh = _diagnose_swing_high(df_ft, "2026-01-05", window=3, prominence_atr_mult=0.5)
+                    md.append(f"- NU swing-high check (High-based) @ 2026-01-05: ok={diagh.get('ok')} | reason={diagh.get('reason')}\n")
+                    if diagh.get("ts_hit"):
+                        md.append(
+                            f"  - hit={diagh.get('ts_hit')} (i={diagh.get('i')}) | High={diagh.get('hi_i'):.2f} | "
+                            f"hwin_max={diagh.get('hwin_max'):.2f} (count={diagh.get('hwin_max_count')}) | "
+                            f"prom={diagh.get('prominence'):.2f} vs thr={diagh.get('prom_thresh'):.2f} (ATR={diagh.get('atr_i'):.2f})\n"
                         )
                 except Exception:
                     pass
+
                 try:
                     dr = exp_top.get("_dur_reject_best")
                     if isinstance(dr, dict):
@@ -6554,13 +6777,59 @@ def main():
                                 if h_i > ls_i + 1:
                                     seg = d_local["Close"].iloc[ls_i+1:h_i]
                                     if len(seg):
-                                        j = int(seg.values.argmax()) + (ls_i + 1)
-                                        md.append(f"  - Pre-head maxClose between (LS,H): {float(seg.max()):.2f} at {d_local.index[j]} | LS_Close={float(d_local['Close'].iloc[ls_i]):.2f}\n")
+                                        piv = []
+                                        try:
+                                            if patt == "HS_TOP":
+                                                piv_all = _swing_highs_on_close(d_local, window=3, prominence_atr_mult=0.5, allow_tie_high_2dp=True)
+                                                piv = [int(x) for x in piv_all if int(ls_i) < int(x) < int(h_i)]
+                                            elif patt == "IHS":
+                                                piv_all = _swing_lows_on_close(d_local, window=3, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
+                                                piv = [int(x) for x in piv_all if int(ls_i) < int(x) < int(h_i)]
+                                        except Exception:
+                                            piv = []
+                                        if piv:
+                                            vals = [(float(d_local["Close"].iloc[i]), int(i)) for i in piv]
+                                            if patt == "HS_TOP":
+                                                mx = max(v for v, _ in vals)
+                                                cand = [i for v, i in vals if v == mx]
+                                                j = int(max(cand)) if cand else int(piv[-1])
+                                                md.append(f"  - Pre-head maxClose (swing pivot) between (LS,H): {float(mx):.2f} at {d_local.index[j]} | LS_Close={float(d_local['Close'].iloc[ls_i]):.2f}\n")
+                                            else:
+                                                mn = min(v for v, _ in vals)
+                                                cand = [i for v, i in vals if v == mn]
+                                                j = int(max(cand)) if cand else int(piv[-1])
+                                                md.append(f"  - Pre-head minClose (swing pivot) between (LS,H): {float(mn):.2f} at {d_local.index[j]} | LS_Close={float(d_local['Close'].iloc[ls_i]):.2f}\n")
+                                        else:
+                                            j = int(seg.values.argmax()) + (ls_i + 1)
+                                            md.append(f"  - Pre-head maxClose between (LS,H): {float(seg.max()):.2f} at {d_local.index[j]} | LS_Close={float(d_local['Close'].iloc[ls_i]):.2f}\n")
                                 if rs_i > h_i + 1:
                                     seg2 = d_local["Close"].iloc[h_i+1:rs_i]
                                     if len(seg2):
-                                        j2 = int(seg2.values.argmax()) + (h_i + 1)
-                                        md.append(f"  - Post-head maxClose between (H,RS): {float(seg2.max()):.2f} at {d_local.index[j2]} | RS_Close={float(d_local['Close'].iloc[rs_i]):.2f}\n")
+                                        piv = []
+                                        try:
+                                            if patt == "HS_TOP":
+                                                piv_all = _swing_highs_on_close(d_local, window=3, prominence_atr_mult=0.5, allow_tie_high_2dp=True)
+                                                piv = [int(x) for x in piv_all if int(h_i) < int(x) < int(rs_i)]
+                                            elif patt == "IHS":
+                                                piv_all = _swing_lows_on_close(d_local, window=3, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
+                                                piv = [int(x) for x in piv_all if int(h_i) < int(x) < int(rs_i)]
+                                        except Exception:
+                                            piv = []
+                                        if piv:
+                                            vals = [(float(d_local["Close"].iloc[i]), int(i)) for i in piv]
+                                            if patt == "HS_TOP":
+                                                mx = max(v for v, _ in vals)
+                                                cand = [i for v, i in vals if v == mx]
+                                                j2 = int(min(cand)) if cand else int(piv[0])
+                                                md.append(f"  - Post-head maxClose (swing pivot) between (H,RS): {float(mx):.2f} at {d_local.index[j2]} | RS_Close={float(d_local['Close'].iloc[rs_i]):.2f}\n")
+                                            else:
+                                                mn = min(v for v, _ in vals)
+                                                cand = [i for v, i in vals if v == mn]
+                                                j2 = int(min(cand)) if cand else int(piv[0])
+                                                md.append(f"  - Post-head minClose (swing pivot) between (H,RS): {float(mn):.2f} at {d_local.index[j2]} | RS_Close={float(d_local['Close'].iloc[rs_i]):.2f}\n")
+                                        else:
+                                            j2 = int(seg2.values.argmax()) + (h_i + 1)
+                                            md.append(f"  - Post-head maxClose between (H,RS): {float(seg2.max()):.2f} at {d_local.index[j2]} | RS_Close={float(d_local['Close'].iloc[rs_i]):.2f}\n")
                     except Exception:
                         pass
 
