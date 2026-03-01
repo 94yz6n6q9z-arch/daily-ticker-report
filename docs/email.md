@@ -1,12 +1,12 @@
 # Daily Report
 
-_Generated: **2026-03-01 15:30 CET**_
+_Generated: **2026-03-01 17:04 CET**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Headline: Equities slipped as investors weighed fresh oil-supply shock risks around Hormuz alongside a steady drumbeat of Wall Street rating calls and broader AI unease. The Nasdaq 100 fell 0.3% and the S&P 500 dropped 0.4% while the Vix jumped 6.6%, extending a choppy, risk-sensitive tape of the past month (NDX -4.1% 1M) as WTI rose 2.8%. Biggest movers were Netflix up 13.8% and NAT up 6.1%, while Oklo fell 8.9% and QBTS slid 6.8%.
+Headline: AI-linked tech remained under pressure as investors weighed an “AI-driven tech sell-off” against fresh agentic-AI dealmaking, while oil-risk chatter around a potential Hormuz disruption kept macro nerves elevated. The Nasdaq 100 fell 0.3% and the S&P 500 slid 0.4% as the Vix jumped 6.6%, extending the choppy, risk-sensitive tape of the past month (NDX -4.1% 1M). Biggest movers were Netflix up 13.8%, NAT up 6.1% and SI=F up 7.2%, while Oklo fell 8.9%, QBTS dropped 6.8% and IONQ lost 6.1%.
 
 **Key tape (multi-horizon):**
 
@@ -25,7 +25,7 @@ Headline: Equities slipped as investors weighed fresh oil-supply shock risks aro
 | Silver           | 93.29     | <span style="color:#11823b;">+7.23%</span> | <span style="color:#11823b;">+13.38%</span> | <span style="color:#b91c1c;">-17.52%</span> | <span style="color:#11823b;">+65.27%</span> | <span style="color:#11823b;">+132.07%</span> |
 | Coffee           | 284.90    | <span style="color:#b91c1c;">-0.38%</span> | <span style="color:#b91c1c;">-1.18%</span>  | <span style="color:#b91c1c;">-18.83%</span> | <span style="color:#b91c1c;">-31.02%</span> | <span style="color:#b91c1c;">-28.21%</span>  |
 | Cocoa            | 2,798.00  | <span style="color:#b91c1c;">-5.92%</span> | <span style="color:#b91c1c;">-9.16%</span>  | <span style="color:#b91c1c;">-32.58%</span> | <span style="color:#b91c1c;">-48.22%</span> | <span style="color:#b91c1c;">-63.35%</span>  |
-| Bitcoin          | 66,939.77 | <span style="color:#b91c1c;">-0.08%</span> | <span style="color:#b91c1c;">-1.06%</span>  | <span style="color:#b91c1c;">-20.43%</span> | <span style="color:#b91c1c;">-22.45%</span> | <span style="color:#b91c1c;">-39.80%</span>  |
+| Bitcoin          | 66,937.49 | <span style="color:#b91c1c;">-0.09%</span> | <span style="color:#b91c1c;">-1.07%</span>  | <span style="color:#b91c1c;">-20.43%</span> | <span style="color:#b91c1c;">-22.46%</span> | <span style="color:#b91c1c;">-39.80%</span>  |
 
 **Macro charts (5Y):**
 
@@ -75,11 +75,11 @@ _Upcoming earnings dates for your  watchlist._
 
 - Tickers scanned: **1277**; usable OHLCV: **799**
 
-- Candidates found: **173** (top patterns: MOMO_TREND:104, RECT:22, RECT_BOTTOM:18, RECT_TOP:18, DEAD_CAT_BOUNCE:11)
+- Candidates found: **172** (top patterns: MOMO_TREND:104, RECT:22, RECT_BOTTOM:16, RECT_TOP:16, DEAD_CAT_BOUNCE:11, DESC_TRIANGLE:2, HS_TOP:1)
 
 - Live signals: EARLY **27**, CONFIRMED **47**, VALIDATED **1** (total 75)
 
-- Geometry restored today: HS/IHS **266**, Band **6**
+- Geometry restored today: HS/IHS **265**, Band **7**
 
 
 
@@ -189,16 +189,16 @@ _Includes **VALIDATED** only: breakout/breakdown occurred **3 sessions ago** AND
 
 _Linked digest for drill-down._
 
-- [William Blair Reiterates Buy on Erie Indemnity (ERIE)](https://finance.yahoo.com/news/william-blair-reiterates-buy-erie-123249702.html) — Yahoo Finance Top Stories
+- [Cognizant (CTSH) Partners With Google Cloud to Scale Agentic AI](https://finance.yahoo.com/news/cognizant-ctsh-partners-google-cloud-150511541.html) — Yahoo Finance Top Stories
+- [Has the retail industry rebounded? We’ll find out this week from Target, Costco, Best Buy and others’ earnings](https://www.marketwatch.com/story/has-the-retail-industry-rebounded-well-find-out-this-week-from-target-costco-best-buy-and-others-earnings-4ea65430?mod=mw_rss_topstories) — MarketWatch Top Stories
 - [Iran conflict risks Strait of Hormuz standstill and sparks talk of $100-a-barrel oil](https://www.marketwatch.com/story/iran-conflict-raises-talk-of-a-return-to-100-a-barrel-oil-63bbc1b3?mod=mw_rss_topstories) — MarketWatch Top Stories
 - [As investors wait for crude-oil trading to reopen amid Iran conflict, shares of the world’s biggest producer are climbing](https://www.marketwatch.com/story/as-investors-wait-for-crude-oil-trading-to-reopen-amid-iran-conflict-shares-of-the-worlds-biggest-producer-are-climbing-dd812149?mod=mw_rss_topstories) — MarketWatch Top Stories
 - [A big AI worry? It will destroy old jobs faster than it creates new ones. The only thing lacking is proof.](https://www.marketwatch.com/story/a-big-ai-worry-it-will-destroy-old-jobs-faster-than-it-creates-new-ones-the-only-thing-lacking-is-proof-617e27cf?mod=mw_rss_topstories) — MarketWatch Top Stories
 - [Stocks Sink in Broad AI Rout Sparked by China's DeepSeek](https://www.wsj.com/articles/nikkei-may-rise-as-weak-yen-raises-earnings-hopes-776a8056?mod=rss_markets_main) — WSJ Markets
 - [Oil price expected to surge following Iran strikes and strait of Hormuz closure](https://www.theguardian.com/business/2026/mar/01/oil-price-surge-iran-us-israel-strikes-markets) — The Guardian Business
-- [Millions may drop ACA coverage amid premium spikes, and experts warn this could raise costs for others. What you can do](https://finance.yahoo.com/news/millions-may-drop-aca-coverage-124500713.html) — Yahoo Finance Top Stories
-- [Morgan Stanley Maintains Hold on Assurant (AIZ) With $248 Target](https://finance.yahoo.com/news/morgan-stanley-maintains-hold-assurant-123248810.html) — Yahoo Finance Top Stories
-- [TD Cowen Reiterates Hold on Raymond James Financial (RJF) Shares](https://finance.yahoo.com/news/td-cowen-reiterates-hold-raymond-123246368.html) — Yahoo Finance Top Stories
-- [Analysts Maintains Buy on Charles Schwab (SCHW)](https://finance.yahoo.com/news/analysts-maintains-buy-charles-schwab-123236039.html) — Yahoo Finance Top Stories
+- [Waiting on a tariff refund after Trump’s duties were struck down? Don’t bother | Gene Marks](https://www.theguardian.com/business/2026/mar/01/trump-tariffs-business-refund-supreme-court) — The Guardian Business
+- ["A stark contrast": Wall Street weighs winners and losers amid AI-driven tech sell-off](https://finance.yahoo.com/news/a-stark-contrast-wall-street-weighs-winners-and-losers-amid-ai-driven-tech-sell-off-160017420.html) — Yahoo Finance Top Stories
+- [Wells Fargo Raises Globe Life (GL) Target, Keeps Overweight Rating](https://finance.yahoo.com/news/wells-fargo-raises-globe-life-150514746.html) — Yahoo Finance Top Stories
 
 ## 6) Watchlist performance (all tickers)
 
