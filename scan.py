@@ -268,8 +268,8 @@ CLV_BREAKOUT_MIN = 0.70   # CLV in [-1..+1] must be >= +0.70 for breakout confir
 CLV_BREAKDOWN_MAX = -0.70  # CLV in [-1..+1] must be <= -0.70 for breakdown confirmation
 
 LOOKBACK_DAYS = 190
-# HS/IHS minimum formation duration (daily bars) to avoid short (3-4 week) false positives
-HS_MIN_BARS = 45
+# HS/IHS minimum formation duration (daily bars) to avoid too-short (≈2-3 week) false positives
+HS_MIN_BARS = 30
 HS_MIN_SIDE_BARS = 10
 # HS/IHS maximum formation duration (daily bars) to avoid stale multi-month patterns
 HS_MAX_BARS = 90
@@ -2900,6 +2900,110 @@ def _swing_points(series: pd.Series, window: int = 3) -> Tuple[List[int], List[i
     return highs, lows
 
 
+
+def _diagnose_swing_high(
+    df: pd.DataFrame,
+    ts: str,
+    window: int = 3,
+    prominence_atr_mult: float = 0.5,
+) -> Dict[str, Any]:
+    """Explain deterministically why a given bar *is / is not* a swing-high pivot under _swing_points_ohlc()."""
+    out: Dict[str, Any] = {"ts_req": ts, "ok": False}
+
+    try:
+        dd0 = df.dropna(subset=["High", "Low", "Close"]).copy()
+        if dd0.empty:
+            out["reason"] = "empty_df_after_dropna"
+            return out
+        # Use the SAME calendar-day window as detection (CHART_WINDOW_DAYS), so indices match detector logic.
+        if isinstance(dd0.index, pd.DatetimeIndex):
+            cutoff = dd0.index[-1] - pd.Timedelta(days=CHART_WINDOW_DAYS)
+            dd = dd0.loc[dd0.index >= cutoff].copy()
+        else:
+            dd = dd0.tail(LOOKBACK_DAYS).copy()
+        dd = _latest_completed_close_df(dd)
+        if dd.empty:
+            out["reason"] = "empty_df_after_dropna"
+            return out
+
+        t_req = pd.to_datetime(ts, errors="coerce")
+        if pd.isna(t_req):
+            out["reason"] = "bad_ts"
+            return out
+
+        # Find exact match; else choose nearest index (deterministic).
+        if isinstance(dd.index, pd.DatetimeIndex):
+            try:
+                i = int(dd.index.get_loc(t_req))
+                t_hit = dd.index[i]
+            except Exception:
+                # nearest
+                diffs = np.abs((dd.index - t_req).astype("timedelta64[s]").astype(np.int64))
+                i = int(np.nanargmin(diffs))
+                t_hit = dd.index[i]
+                out["nearest"] = True
+        else:
+            out["reason"] = "non_datetime_index"
+            return out
+
+        out["ts_hit"] = str(t_hit)
+        out["i"] = int(i)
+
+        if i < window or i >= len(dd) - window:
+            out["reason"] = "too_close_to_edges_for_window"
+            return out
+
+        hi = dd["High"].astype(float).values
+        lo = dd["Low"].astype(float).values
+
+        hwin = hi[i - window : i + window + 1]
+        lwin = lo[i - window : i + window + 1]
+        out["hwin_max"] = float(np.max(hwin))
+        out["hwin_max_count"] = int(np.sum(hwin == hi[i]))
+        out["hi_i"] = float(hi[i])
+        out["lo_i"] = float(lo[i])
+        out["close_i"] = float(dd["Close"].iloc[i])
+
+        # ATR at i (mirror logic in _swing_points_ohlc)
+        atr_s = atr(dd, ATR_N)
+        atr_v = pd.to_numeric(atr_s, errors="coerce").values if atr_s is not None else np.full(len(dd), np.nan)
+        atr_i = atr_v[i] if i < len(atr_v) and np.isfinite(atr_v[i]) else np.nan
+        if not np.isfinite(atr_i):
+            lo_i = max(0, i - 20)
+            med = np.nanmedian(atr_v[lo_i : i + 1])
+            atr_i = med if np.isfinite(med) else np.nan
+        if not np.isfinite(atr_i):
+            atr_i = max(float(np.nanmedian((hwin - lwin))), 1e-6)
+
+        out["atr_i"] = float(atr_i)
+
+        is_local_max = bool(hi[i] == np.max(hwin))
+        is_unique = bool(np.sum(hwin == hi[i]) == 1)
+        prominence = float(hi[i] - np.min(lwin))
+        thresh = float(prominence_atr_mult * atr_i)
+
+        out["is_local_max"] = is_local_max
+        out["is_unique_max"] = is_unique
+        out["prominence"] = float(prominence)
+        out["prom_thresh"] = float(thresh)
+        out["prom_ok"] = bool(prominence >= thresh)
+
+        out["ok"] = bool(is_local_max and is_unique and prominence >= thresh)
+        if not out["ok"]:
+            reasons = []
+            if not is_local_max:
+                reasons.append("not_local_max_in_window")
+            if is_local_max and (not is_unique):
+                reasons.append("ties_for_local_max")
+            if prominence < thresh:
+                reasons.append("prominence_below_threshold")
+            out["reason"] = ",".join(reasons) if reasons else "unknown"
+        return out
+    except Exception as e:
+        out["reason"] = f"exception:{type(e).__name__}"
+        return out
+
+
 def _swing_points_ohlc(
     df: pd.DataFrame,
     window: int = 3,
@@ -2963,6 +3067,101 @@ def _swing_points_ohlc(
                     lows.append(i)
 
     return highs, lows
+
+
+
+def _diagnose_swing_high(
+    df: pd.DataFrame,
+    ts: str,
+    window: int = 3,
+    prominence_atr_mult: float = 0.5,
+) -> Dict[str, Any]:
+    """Explain deterministically why a given bar *is / is not* a swing-high pivot under _swing_points_ohlc()."""
+    out: Dict[str, Any] = {"ts_req": ts, "ok": False}
+
+    try:
+        dd = df.tail(LOOKBACK_DAYS).dropna(subset=["High", "Low", "Close"]).copy()
+        dd = _latest_completed_close_df(dd)
+        if dd.empty:
+            out["reason"] = "empty_df_after_dropna"
+            return out
+
+        t_req = pd.to_datetime(ts, errors="coerce")
+        if pd.isna(t_req):
+            out["reason"] = "bad_ts"
+            return out
+
+        # Find exact match; else choose nearest index (deterministic).
+        if isinstance(dd.index, pd.DatetimeIndex):
+            try:
+                i = int(dd.index.get_loc(t_req))
+                t_hit = dd.index[i]
+            except Exception:
+                # nearest
+                diffs = np.abs((dd.index - t_req).astype("timedelta64[s]").astype(np.int64))
+                i = int(np.nanargmin(diffs))
+                t_hit = dd.index[i]
+                out["nearest"] = True
+        else:
+            out["reason"] = "non_datetime_index"
+            return out
+
+        out["ts_hit"] = str(t_hit)
+        out["i"] = int(i)
+
+        if i < window or i >= len(dd) - window:
+            out["reason"] = "too_close_to_edges_for_window"
+            return out
+
+        hi = dd["High"].astype(float).values
+        lo = dd["Low"].astype(float).values
+
+        hwin = hi[i - window : i + window + 1]
+        lwin = lo[i - window : i + window + 1]
+        out["hwin_max"] = float(np.max(hwin))
+        out["hwin_max_count"] = int(np.sum(hwin == hi[i]))
+        out["hi_i"] = float(hi[i])
+        out["lo_i"] = float(lo[i])
+        out["close_i"] = float(dd["Close"].iloc[i])
+
+        # ATR at i (mirror logic in _swing_points_ohlc)
+        atr_s = atr(dd, ATR_N)
+        atr_v = pd.to_numeric(atr_s, errors="coerce").values if atr_s is not None else np.full(len(dd), np.nan)
+        atr_i = atr_v[i] if i < len(atr_v) and np.isfinite(atr_v[i]) else np.nan
+        if not np.isfinite(atr_i):
+            lo_i = max(0, i - 20)
+            med = np.nanmedian(atr_v[lo_i : i + 1])
+            atr_i = med if np.isfinite(med) else np.nan
+        if not np.isfinite(atr_i):
+            atr_i = max(float(np.nanmedian((hwin - lwin))), 1e-6)
+
+        out["atr_i"] = float(atr_i)
+
+        is_local_max = bool(hi[i] == np.max(hwin))
+        is_unique = bool(np.sum(hwin == hi[i]) == 1)
+        prominence = float(hi[i] - np.min(lwin))
+        thresh = float(prominence_atr_mult * atr_i)
+
+        out["is_local_max"] = is_local_max
+        out["is_unique_max"] = is_unique
+        out["prominence"] = float(prominence)
+        out["prom_thresh"] = float(thresh)
+        out["prom_ok"] = bool(prominence >= thresh)
+
+        out["ok"] = bool(is_local_max and is_unique and prominence >= thresh)
+        if not out["ok"]:
+            reasons = []
+            if not is_local_max:
+                reasons.append("not_local_max_in_window")
+            if is_local_max and (not is_unique):
+                reasons.append("ties_for_local_max")
+            if prominence < thresh:
+                reasons.append("prominence_below_threshold")
+            out["reason"] = ",".join(reasons) if reasons else "unknown"
+        return out
+    except Exception as e:
+        out["reason"] = f"exception:{type(e).__name__}"
+        return out
 
 
 def _line_fit(x: np.ndarray, y: np.ndarray) -> Tuple[float, float]:
@@ -3224,10 +3423,11 @@ def _pick_recent_hs_triplet(
     """
     Returns (p1, p2, p3, t1, t2, px1, px2, px3) for H&S/IHS candidate if rules pass.
 
-    Deterministic upgrades (v56):
+    Deterministic upgrades (v57):
       - Shoulder snap v2 (HEAD-anchored): LS/RS are selected from fixed windows around the Head,
         not from provisional shoulder pivots. This prevents "lower shoulder" escape cases (e.g., NU Jan 5).
       - Do NOT hard-reject when swing "between" pivots are missing; fall back to segment trough/peak selection.
+      - HS_MIN_BARS reduced to 30 (requested) to allow 4–6 week HS/IHS formations (fixes NU LS being forced back).
     """
     if len(highs_idx) + len(lows_idx) < 5:
         return None
@@ -3378,6 +3578,29 @@ def _pick_recent_hs_triplet(
 
                 # Minimum formation duration (avoid 3-4 week HS/IHS false positives)
                 if (int(p3) - int(p1)) < HS_MIN_BARS or (int(p3) - int(p1)) > HS_MAX_BARS or dL < HS_MIN_SIDE_BARS or dR < HS_MIN_SIDE_BARS:
+                    # Diagnostics: remember the *most recent* snapped-LS candidate rejected by duration/sidebars.
+                    if isinstance(explain, dict):
+                        try:
+                            prev = explain.get("_dur_reject_best")
+                            take = (not isinstance(prev, dict)) or (int(p1) > int(prev.get("p1_i", -1)))
+                            if take:
+                                explain["_dur_reject_best"] = {
+                                    "p1_i": int(p1),
+                                    "p2_i": int(p2),
+                                    "p3_i": int(p3),
+                                    "span": int(int(p3) - int(p1)),
+                                    "dL": int(dL),
+                                    "dR": int(dR),
+                                    "ratio": float(ratio),
+                                    "HS_MIN_BARS": int(HS_MIN_BARS),
+                                    "HS_MAX_BARS": int(HS_MAX_BARS),
+                                    "HS_MIN_SIDE_BARS": int(HS_MIN_SIDE_BARS),
+                                    "p1_t": str(d.index[int(p1)]) if isinstance(d.index, pd.DatetimeIndex) else int(p1),
+                                    "p2_t": str(d.index[int(p2)]) if isinstance(d.index, pd.DatetimeIndex) else int(p2),
+                                    "p3_t": str(d.index[int(p3)]) if isinstance(d.index, pd.DatetimeIndex) else int(p3),
+                                }
+                        except Exception:
+                            pass
                     bump('duration_or_sidebars')
                     continue
 
@@ -6235,36 +6458,59 @@ def main():
             hs_seen = any((isinstance(r, dict) and r.get("pattern") in ("HS_TOP", "IHS")) for r in top_list)
             md.append(f"- HS/IHS detected today: **{'YES' if hs_seen else 'NO'}**\n")
 
-            if not hs_seen:
-                exp_top: Dict[str, Any] = {}
-                exp_inv: Dict[str, Any] = {}
+
+            # Always compute HS/IHS gate diagnostics for focus tickers (even if a HS/IHS was detected).
+            exp_top: Dict[str, Any] = {}
+            exp_inv: Dict[str, Any] = {}
+            try:
+                _ = detect_hs_top(df_ft, explain=exp_top)
+            except Exception:
+                pass
+            try:
+                _ = detect_inverse_hs(df_ft, explain=exp_inv)
+            except Exception:
+                pass
+
+            def _fmt(exp: Dict[str, Any]) -> str:
+                items = []
+                for k, v in exp.items():
+                    if k in ("highs", "lows") or str(k).startswith("_"):
+                        continue
+                    if isinstance(v, (int, float)) and v:
+                        items.append((k, int(v)))
+                items.sort(key=lambda x: x[1], reverse=True)
+                top = items[:10]
+                return ", ".join([f"{k}:{v}" for k, v in top]) if top else "None"
+
+            md.append(f"- HS_TOP reject summary: {_fmt(exp_top)}\n")
+            md.append(f"- IHS reject summary: {_fmt(exp_inv)}\n")
+            if "highs" in exp_top or "lows" in exp_top:
+                md.append(f"- Swings (HS_TOP): highs={exp_top.get('highs','?')} lows={exp_top.get('lows','?')}\n")
+            if "highs" in exp_inv or "lows" in exp_inv:
+                md.append(f"- Swings (IHS): highs={exp_inv.get('highs','?')} lows={exp_inv.get('lows','?')}\n")
+
+            # NU-specific diagnostics: why Jan 5 is / is not a swing high + whether HS_MIN_BARS is forcing LS backward
+            if str(ft).upper() == "NU":
                 try:
-                    _ = detect_hs_top(df_ft, explain=exp_top)
+                    diag = _diagnose_swing_high(df_ft, "2026-01-05", window=3, prominence_atr_mult=0.5)
+                    md.append(f"- NU swing-high check @ 2026-01-05: ok={diag.get('ok')} | reason={diag.get('reason')}\n")
+                    if diag.get("ts_hit"):
+                        md.append(
+                            f"  - hit={diag.get('ts_hit')} (i={diag.get('i')}) | High={diag.get('hi_i'):.2f} | "
+                            f"hwin_max={diag.get('hwin_max'):.2f} (count={diag.get('hwin_max_count')}) | "
+                            f"prom={diag.get('prominence'):.2f} vs thr={diag.get('prom_thresh'):.2f} (ATR={diag.get('atr_i'):.2f})\n"
+                        )
                 except Exception:
                     pass
                 try:
-                    _ = detect_inverse_hs(df_ft, explain=exp_inv)
+                    dr = exp_top.get("_dur_reject_best")
+                    if isinstance(dr, dict):
+                        md.append(
+                            f"- NU duration gate (HS_MIN_BARS={dr.get('HS_MIN_BARS')}): most-recent rejected snapped candidate "
+                            f"LS={dr.get('p1_t')} → RS={dr.get('p3_t')} span={dr.get('span')} bars (dL={dr.get('dL')}, dR={dr.get('dR')}, ratio={dr.get('ratio'):.2f})\n"
+                        )
                 except Exception:
                     pass
-
-                def _fmt(exp: Dict[str, Any]) -> str:
-                    items = []
-                    for k, v in exp.items():
-                        if k in ("highs", "lows"):
-                            continue
-                        if isinstance(v, (int, float)) and v:
-                            items.append((k, int(v)))
-                    items.sort(key=lambda x: x[1], reverse=True)
-                    top = items[:8]
-                    return ", ".join([f"{k}:{v}" for k, v in top]) if top else "None"
-
-                md.append(f"- HS_TOP reject summary: {_fmt(exp_top)}\n")
-                md.append(f"- IHS reject summary: {_fmt(exp_inv)}\n")
-                if "highs" in exp_top or "lows" in exp_top:
-                    md.append(f"- Swings (HS_TOP): highs={exp_top.get('highs','?')} lows={exp_top.get('lows','?')}\n")
-                if "highs" in exp_inv or "lows" in exp_inv:
-                    md.append(f"- Swings (IHS): highs={exp_inv.get('highs','?')} lows={exp_inv.get('lows','?')}\n")
-
             if best and best.get("pattern"):
                 patt = str(best.get("pattern", ""))
                 direc = str(best.get("dir", ""))
@@ -6296,8 +6542,13 @@ def main():
                                 ls_i = int(pLS.get("i")); h_i = int(pH.get("i")); rs_i = int(pRS.get("i"))
                                 md.append(f"  - LS/H/RS geometry (idx): LS={ls_i}, H={h_i}, RS={rs_i}\n")
                                 md.append(f"  - LS/H/RS geometry (ts): LS={pLS.get('t')}, H={pH.get('t')}, RS={pRS.get('t')}\n")
-                                # Use the same local window as detectors (avoids index mismatch vs plotted 6-month window)
-                                d_local = df_ft.tail(LOOKBACK_DAYS).dropna(subset=["Open","High","Low","Close"]).copy()
+                                # Use the SAME calendar-day window as detection (CHART_WINDOW_DAYS), so meta indices align.
+                                d0 = df_ft.dropna(subset=["Open","High","Low","Close"]).copy()
+                                if isinstance(d0.index, pd.DatetimeIndex):
+                                    cutoff = d0.index[-1] - pd.Timedelta(days=CHART_WINDOW_DAYS)
+                                    d_local = d0.loc[d0.index >= cutoff].copy()
+                                else:
+                                    d_local = d0.tail(LOOKBACK_DAYS).copy()
                                 d_local = _latest_completed_close_df(d_local)
                                 # max close between LS..H (exclusive)
                                 if h_i > ls_i + 1:
