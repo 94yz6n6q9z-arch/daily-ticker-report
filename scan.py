@@ -2586,6 +2586,8 @@ class LevelSignal:
     stage_age_bars: Optional[int] = None
     breakout_start: Optional[str] = None
     pct_today: Optional[float] = None
+    clv: Optional[float] = None
+    vol_ratio: Optional[float] = None
     chart_path: Optional[str] = None
     vp_hvn_runway_pct: Optional[float] = None
     vp_hvn_zone_low: Optional[float] = None
@@ -2902,12 +2904,19 @@ def _swing_points_ohlc(
     df: pd.DataFrame,
     window: int = 3,
     prominence_atr_mult: float = 0.5,
+    allow_tie_high_2dp: bool = False,
     allow_tie_low_2dp: bool = False,
 ) -> Tuple[List[int], List[int]]:
     """
     Deterministic pivots on High/Low with prominence filter:
-    - swing high: local max in [i-window, i+window], unique, prominence >= 0.5 ATR
-    - swing low: local min analogously (optionally allow ties at 2dp for HS neckline shelves)
+
+    Swing high:
+      - local max in [i-window, i+window]
+      - either unique, OR (optionally) a 2dp tie "shelf" where we keep a single deterministic representative
+      - prominence >= prominence_atr_mult * ATR
+
+    Swing low:
+      - local min analogously (optionally allow 2dp ties; used for HS neckline shelves)
     """
     dd = df.dropna(subset=["High", "Low", "Close"]).copy()
     if dd.empty or len(dd) < (2 * window + 5):
@@ -2934,10 +2943,25 @@ def _swing_points_ohlc(
             atr_i = max(float(np.nanmedian((hwin - lwin))), 1e-6)
 
         # High pivot
-        if hi[i] == np.max(hwin) and np.sum(hwin == hi[i]) == 1:
-            prominence = float(hi[i] - np.min(lwin))
-            if prominence >= float(prominence_atr_mult * atr_i):
-                highs.append(i)
+        if hi[i] == np.max(hwin):
+            ok_unique = (np.sum(hwin == hi[i]) == 1)
+            ok_tie = False
+            if (not ok_unique) and allow_tie_high_2dp:
+                # Allow shelf/plateau highs (ties) if they match at 2 decimals.
+                # Keep exactly ONE deterministic representative: the earliest bar in the tied-max set.
+                try:
+                    max2 = round(float(np.max(hwin)), 2)
+                    ties = [j for j, v in enumerate(hwin) if round(float(v), 2) == max2]
+                    if ties:
+                        chosen_global = (i - window) + int(ties[0])
+                        ok_tie = (i == chosen_global) and (round(float(hi[i]), 2) == max2)
+                except Exception:
+                    ok_tie = False
+
+            if ok_unique or ok_tie:
+                prominence = float(hi[i] - np.min(lwin))
+                if prominence >= float(prominence_atr_mult * atr_i):
+                    highs.append(i)
 
         # Low pivot
         if lo[i] == np.min(lwin):
@@ -2961,6 +2985,7 @@ def _swing_points_ohlc(
                     lows.append(i)
 
     return highs, lows
+
 
 
 def _line_fit(x: np.ndarray, y: np.ndarray) -> Tuple[float, float]:
@@ -3266,30 +3291,65 @@ def _pick_recent_hs_triplet(
                     continue
 
                 px1 = float(c.iloc[p1]); px2 = float(c.iloc[p2]); px3 = float(c.iloc[p3])
-                # Shoulder snap (CLOSE-based):
-                # Ensure LS is the highest Close before Head (within [LS..H)), and RS is the highest Close after Head (within (H..RS]).
-                # (For IHS, the analogous lowest Close rule applies.)
+                # Shoulder snap (HIGH/LOW-based, deterministic):
+                # Enforce: never accept a "lower" shoulder if a higher peak/trough exists between shoulder and head.
+                # We snap LS/RS to the highest (HS) / lowest (IHS) extreme that still leaves at least one opposite pivot
+                # between shoulder and head (or head and shoulder) and keeps ≥ HS_MIN_SIDE_BARS spacing to the head.
+                between1_pre = list(between1)
+                between2_pre = list(between2)
                 try:
                     p1i, p2i, p3i = int(p1), int(p2), int(p3)
 
+                    def _order(vals: np.ndarray, mode: str) -> np.ndarray:
+                        vv = np.array(vals, dtype=float)
+                        if mode == "max":
+                            vv = np.where(np.isfinite(vv), np.round(vv, 2), -np.inf)
+                            return np.argsort(-vv, kind="mergesort")  # stable
+                        vv = np.where(np.isfinite(vv), np.round(vv, 2), np.inf)
+                        return np.argsort(vv, kind="mergesort")  # stable
+
                     if not inverse:
+                        # HS_TOP: shoulders are HIGHs.
                         if p2i > p1i + 1:
-                            segL = c.iloc[p1i:p2i]  # include p1, exclude head
-                            if len(segL):
-                                p1 = int(segL.values.argmax()) + p1i
+                            seg = pd.to_numeric(d["High"].iloc[p1i:p2i], errors="coerce").to_numpy()
+                            for j in _order(seg, "max")[:12]:
+                                cand = p1i + int(j)
+                                if (p2i - cand) < HS_MIN_SIDE_BARS:
+                                    continue
+                                if any((cand < x < p2i) for x in between1_pre):
+                                    p1 = int(cand)
+                                    break
+
                         if p3i > p2i + 1:
-                            segR = c.iloc[p2i+1:p3i+1]  # include p3, exclude head
-                            if len(segR):
-                                p3 = int(segR.values.argmax()) + (p2i + 1)
+                            seg = pd.to_numeric(d["High"].iloc[p2i+1:p3i+1], errors="coerce").to_numpy()
+                            for j in _order(seg, "max")[:12]:
+                                cand = (p2i + 1) + int(j)
+                                if (cand - p2i) < HS_MIN_SIDE_BARS:
+                                    continue
+                                if any((p2i < x < cand) for x in between2_pre):
+                                    p3 = int(cand)
+                                    break
                     else:
+                        # IHS: shoulders are LOWs.
                         if p2i > p1i + 1:
-                            segL = c.iloc[p1i:p2i]
-                            if len(segL):
-                                p1 = int(segL.values.argmin()) + p1i
+                            seg = pd.to_numeric(d["Low"].iloc[p1i:p2i], errors="coerce").to_numpy()
+                            for j in _order(seg, "min")[:12]:
+                                cand = p1i + int(j)
+                                if (p2i - cand) < HS_MIN_SIDE_BARS:
+                                    continue
+                                if any((cand < x < p2i) for x in between1_pre):
+                                    p1 = int(cand)
+                                    break
+
                         if p3i > p2i + 1:
-                            segR = c.iloc[p2i+1:p3i+1]
-                            if len(segR):
-                                p3 = int(segR.values.argmin()) + (p2i + 1)
+                            seg = pd.to_numeric(d["Low"].iloc[p2i+1:p3i+1], errors="coerce").to_numpy()
+                            for j in _order(seg, "min")[:12]:
+                                cand = (p2i + 1) + int(j)
+                                if (cand - p2i) < HS_MIN_SIDE_BARS:
+                                    continue
+                                if any((p2i < x < cand) for x in between2_pre):
+                                    p3 = int(cand)
+                                    break
 
                     px1 = float(c.iloc[int(p1)])
                     px3 = float(c.iloc[int(p3)])
@@ -3363,25 +3423,30 @@ def _pick_recent_hs_triplet(
                 except Exception:
                     pass
 
-                # Deterministic shoulder dominance rule:
-                # HS_TOP: LS must be the highest close between LS and H (exclusive); RS must be the highest close between H and RS (exclusive).
-                # IHS: LS must be the lowest close between LS and H; RS must be the lowest close between H and RS.
-                eps = 1e-6
+                # Deterministic shoulder dominance rule (PEAK/TROUGH-based):
+                # HS_TOP: LS must be the highest HIGH between LS and H (exclusive); RS must be the highest HIGH between H and RS (exclusive).
+                # IHS: LS must be the lowest LOW between LS and H; RS must be the lowest LOW between H and RS.
                 try:
-                    segL = c.iloc[int(p1)+1:int(p2)]
-                    segR = c.iloc[int(p2)+1:int(p3)]
                     if not inverse:
-                        if len(segL) and float(segL.max()) > float(px1) + eps:
+                        segL = pd.to_numeric(d["High"].iloc[int(p1)+1:int(p2)], errors="coerce").dropna()
+                        segR = pd.to_numeric(d["High"].iloc[int(p2)+1:int(p3)], errors="coerce").dropna()
+                        ls_ref = float(d["High"].iloc[int(p1)])
+                        rs_ref = float(d["High"].iloc[int(p3)])
+                        if len(segL) and round(float(segL.max()), 2) > round(ls_ref, 2):
                             bump('ls_not_max_prehead')
                             continue
-                        if len(segR) and float(segR.max()) > float(px3) + eps:
+                        if len(segR) and round(float(segR.max()), 2) > round(rs_ref, 2):
                             bump('rs_not_max_posthead')
                             continue
                     else:
-                        if len(segL) and float(segL.min()) < float(px1) - eps:
+                        segL = pd.to_numeric(d["Low"].iloc[int(p1)+1:int(p2)], errors="coerce").dropna()
+                        segR = pd.to_numeric(d["Low"].iloc[int(p2)+1:int(p3)], errors="coerce").dropna()
+                        ls_ref = float(d["Low"].iloc[int(p1)])
+                        rs_ref = float(d["Low"].iloc[int(p3)])
+                        if len(segL) and round(float(segL.min()), 2) < round(ls_ref, 2):
                             bump('ls_not_min_prehead')
                             continue
-                        if len(segR) and float(segR.min()) < float(px3) - eps:
+                        if len(segR) and round(float(segR.min()), 2) < round(rs_ref, 2):
                             bump('rs_not_min_posthead')
                             continue
                 except Exception:
@@ -3429,7 +3494,7 @@ def detect_hs_top(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None) ->
             explain['len_lt_120'] = int(explain.get('len_lt_120', 0)) + 1
         return None
     c = d["Close"].astype(float)
-    highs_idx, lows_idx = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
+    highs_idx, lows_idx = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5, allow_tie_high_2dp=True, allow_tie_low_2dp=True)
     if len(highs_idx) < 3 or len(lows_idx) < 2:
         if isinstance(explain, dict):
             explain['not_enough_swings'] = int(explain.get('not_enough_swings', 0)) + 1
@@ -3478,7 +3543,7 @@ def detect_inverse_hs(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None
             explain['len_lt_120'] = int(explain.get('len_lt_120', 0)) + 1
         return None
     c = d["Close"].astype(float)
-    highs_idx, lows_idx = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
+    highs_idx, lows_idx = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5, allow_tie_high_2dp=True, allow_tie_low_2dp=True)
     if len(lows_idx) < 3 or len(highs_idx) < 2:
         if isinstance(explain, dict):
             explain['not_enough_swings'] = int(explain.get('not_enough_swings', 0)) + 1
@@ -3535,7 +3600,7 @@ def _detect_band_structure(df: pd.DataFrame) -> Optional[Dict[str, Any]]:
     if len(d) < 100:
         return None
     c = d["Close"].astype(float)
-    highs_idx, lows_idx = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
+    highs_idx, lows_idx = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5, allow_tie_high_2dp=True, allow_tie_low_2dp=True)
     if len(highs_idx) < 4 or len(lows_idx) < 4:
         return None
 
@@ -4704,6 +4769,8 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
             stage_age_bars=stage_age_bars,
             breakout_start=breakout_start,
             pct_today=pct_today,
+            clv=clv,
+            vol_ratio=vol_ratio,
             vp_hvn_runway_pct=vp_runway_pct,
             vp_hvn_zone_low=vp_zone_low,
             vp_hvn_zone_high=vp_zone_high,
@@ -5473,7 +5540,7 @@ def signals_to_df(
     name_resolver=None,
     country_resolver=None,
 ) -> pd.DataFrame:
-    cols = ["Name of Company", "Ticker", "Country", "Signal", "Pattern", "Dir", "Sector", "Close", "Level", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"]
+    cols = ["Name of Company", "Ticker", "Country", "Sector", "Signal", "Close", "Day%", "Threshold", "CLV", "ATR(14)", "Dist(ATR)", "Vol/AvgVol(20)", "HVN Runway%", "Chart"]
     if not signals:
         return pd.DataFrame(columns=cols)
     rows = []
@@ -5500,16 +5567,17 @@ def signals_to_df(
             "Name of Company": name,
             "Ticker": display_ticker(s.ticker),
             "Country": country,
-            "Signal": s.signal,
-            "Pattern": s.pattern,
-            "Dir": s.direction,
             "Sector": cat,
+            "Signal": s.signal,
             "Close": s.close,
-            "Level": s.level,
-            "Dist(ATR)": s.dist_atr,
-            "HVN Runway%": s.vp_hvn_runway_pct if s.vp_hvn_runway_pct is not None else np.nan,
             "Day%": s.pct_today if s.pct_today is not None else np.nan,
-            "Chart": s.chart_path or ""
+            "Threshold": s.level,
+            "CLV": s.clv if getattr(s, "clv", None) is not None else np.nan,
+            "ATR(14)": s.atr,
+            "Dist(ATR)": s.dist_atr,
+            "Vol/AvgVol(20)": s.vol_ratio if getattr(s, "vol_ratio", None) is not None else np.nan,
+            "HVN Runway%": s.vp_hvn_runway_pct if s.vp_hvn_runway_pct is not None else np.nan,
+            "Chart": s.chart_path or "",
         })
     return pd.DataFrame(rows)
 
@@ -6231,7 +6299,7 @@ def main():
                                     seg2 = d_local["Close"].iloc[h_i+1:rs_i]
                                     if len(seg2):
                                         j2 = int(seg2.values.argmax()) + (h_i + 1)
-                                        md.append(f"  - Post-head maxClose between (H,RS): {float(seg2.max()):.2f} at {df_ft.index[j2]} | RS_Close={float(d_local['Close'].iloc[rs_i]):.2f}\n")
+                                        md.append(f"  - Post-head maxClose between (H,RS): {float(seg2.max()):.2f} at {d_local.index[j2]} | RS_Close={float(d_local['Close'].iloc[rs_i]):.2f}\n")
                     except Exception:
                         pass
 
@@ -6290,7 +6358,7 @@ def main():
     df_early_new_tbl = df_early_new.copy()
     if "Level" in df_early_new_tbl.columns and "Threshold" not in df_early_new_tbl.columns:
         df_early_new_tbl["Threshold"] = df_early_new_tbl["Level"]
-    md.append(md_table_from_df(df_early_new_tbl, cols=["Ticker", "Signal", "Close", "Threshold", "Dist(ATR)", "Day%", "Chart"], max_rows=40))
+    md.append(html_table_from_df(df_early_new_tbl, cols=["Name of Company", "Ticker", "Country", "Sector", "Signal", "Close", "Day%", "Threshold", "CLV", "ATR(14)", "Dist(ATR)", "Vol/AvgVol(20)", "Chart"], max_rows=60))
     # NEW early callouts: add a short, deterministic explanation + embed the annotated chart
     if df_early_new is not None and not df_early_new.empty:
         md.append("\n**What’s going on (NEW early callouts):**\n")
@@ -6303,7 +6371,7 @@ def main():
             except Exception:
                 close_v = float("nan")
             try:
-                level_v = float(rr.get("Level"))
+                level_v = float(rr.get("Threshold"))
             except Exception:
                 level_v = float("nan")
             try:
@@ -6330,7 +6398,7 @@ def main():
     df_early_old_tbl = df_early_old.copy()
     if "Level" in df_early_old_tbl.columns and "Threshold" not in df_early_old_tbl.columns:
         df_early_old_tbl["Threshold"] = df_early_old_tbl["Level"]
-    md.append(md_table_from_df(df_early_old_tbl, cols=["Ticker", "Signal", "Close", "Threshold", "Dist(ATR)", "Day%", "Chart"], max_rows=80))
+    md.append(html_table_from_df(df_early_old_tbl, cols=["Name of Company", "Ticker", "Country", "Sector", "Signal", "Close", "Day%", "Threshold", "CLV", "ATR(14)", "Dist(ATR)", "Vol/AvgVol(20)", "Chart"], max_rows=120))
     if ended_by_stage.get("EARLY"):
         md.append("\n**Ended today (EARLY):**\n")
         for x in ended_by_stage["EARLY"][:120]:
@@ -6347,14 +6415,14 @@ def main():
         df_conf_new_tbl["Threshold"] = df_conf_new_tbl["Level"]
     if not df_conf_new_tbl.empty and "Sector" in df_conf_new_tbl.columns:
         df_conf_new_tbl = df_conf_new_tbl.sort_values(["Sector", "Signal", "Dist(ATR)"], na_position="last")
-    md.append(html_table_from_df(df_conf_new_tbl, cols=["Name of Company", "Ticker", "Country", "Sector", "Signal", "Close", "Threshold", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"], max_rows=80))
+    md.append(html_table_from_df(df_conf_new_tbl, cols=["Name of Company", "Ticker", "Country", "Sector", "Signal", "Close", "Day%", "Threshold", "CLV", "ATR(14)", "Dist(ATR)", "Vol/AvgVol(20)", "HVN Runway%", "Chart"], max_rows=120))
     md.append("\n**ONGOING:**\n")
     df_conf_old_tbl = df_conf_old.copy()
     if "Level" in df_conf_old_tbl.columns and "Threshold" not in df_conf_old_tbl.columns:
         df_conf_old_tbl["Threshold"] = df_conf_old_tbl["Level"]
     if not df_conf_old_tbl.empty and "Sector" in df_conf_old_tbl.columns:
         df_conf_old_tbl = df_conf_old_tbl.sort_values(["Sector", "Signal", "Dist(ATR)"], na_position="last")
-    md.append(html_table_from_df(df_conf_old_tbl, cols=["Name of Company", "Ticker", "Country", "Sector", "Signal", "Close", "Threshold", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"], max_rows=160))
+    md.append(html_table_from_df(df_conf_old_tbl, cols=["Name of Company", "Ticker", "Country", "Sector", "Signal", "Close", "Day%", "Threshold", "CLV", "ATR(14)", "Dist(ATR)", "Vol/AvgVol(20)", "HVN Runway%", "Chart"], max_rows=240))
     if ended_by_stage.get("CONFIRMED"):
         md.append("\n**Ended today (CONFIRMED):**\n")
         for x in ended_by_stage["CONFIRMED"][:120]:
@@ -6373,14 +6441,14 @@ def main():
         df_val_new_tbl["Threshold"] = df_val_new_tbl["Level"]
     if not df_val_new_tbl.empty and "Sector" in df_val_new_tbl.columns:
         df_val_new_tbl = df_val_new_tbl.sort_values(["Sector", "Signal", "HVN Runway%", "Dist(ATR)"], ascending=[True, True, False, True], na_position="last")
-    md.append(html_table_from_df(df_val_new_tbl, cols=["Name of Company", "Ticker", "Country", "Sector", "Signal", "Close", "Threshold", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"], max_rows=80))
+    md.append(html_table_from_df(df_val_new_tbl, cols=["Name of Company", "Ticker", "Country", "Sector", "Signal", "Close", "Day%", "Threshold", "CLV", "ATR(14)", "Dist(ATR)", "Vol/AvgVol(20)", "HVN Runway%", "Chart"], max_rows=80))
     md.append("\n**ONGOING:**\n")
     df_val_old_tbl = df_val_old.copy()
     if "Level" in df_val_old_tbl.columns and "Threshold" not in df_val_old_tbl.columns:
         df_val_old_tbl["Threshold"] = df_val_old_tbl["Level"]
     if not df_val_old_tbl.empty and "Sector" in df_val_old_tbl.columns:
         df_val_old_tbl = df_val_old_tbl.sort_values(["Sector", "Signal", "HVN Runway%", "Dist(ATR)"], ascending=[True, True, False, True], na_position="last")
-    md.append(html_table_from_df(df_val_old_tbl, cols=["Name of Company", "Ticker", "Country", "Sector", "Signal", "Close", "Threshold", "Dist(ATR)", "HVN Runway%", "Day%", "Chart"], max_rows=80))
+    md.append(html_table_from_df(df_val_old_tbl, cols=["Name of Company", "Ticker", "Country", "Sector", "Signal", "Close", "Day%", "Threshold", "CLV", "ATR(14)", "Dist(ATR)", "Vol/AvgVol(20)", "HVN Runway%", "Chart"], max_rows=160))
     if ended_by_stage.get("VALIDATED"):
         md.append("\n**Ended today (VALIDATED):**\n")
         for x in ended_by_stage["VALIDATED"][:120]:
