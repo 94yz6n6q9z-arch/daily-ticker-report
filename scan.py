@@ -3650,301 +3650,255 @@ def _pick_recent_hs_triplet(
     explain: Optional[Dict[str, int]] = None,
 ) -> Optional[Tuple[int, int, int, int, int, float, float, float]]:
     """
-    Returns (p1, p2, p3, t1, t2, px1, px2, px3) for H&S/IHS candidate if rules pass.
+    Head-first H&S / Inverse H&S selector (deterministic).
 
-    Deterministic upgrades (v57):
-      - Shoulder snap v2 (HEAD-anchored): LS/RS are selected from fixed windows around the Head,
-        not from provisional shoulder pivots. This prevents "lower shoulder" escape cases (e.g., NU Jan 5).
-      - Do NOT hard-reject when swing "between" pivots are missing; fall back to segment trough/peak selection.
-      - HS_MIN_BARS reduced to 30 (requested) to allow 4–6 week HS/IHS formations (fixes NU LS being forced back).
+    Why this version exists:
+    - For HS_TOP we anchor the Head as the global extreme Close in the working window.
+    - Shoulders are selected from Close-based local extrema (primary pivots).
+      This avoids "intraday High spikes" (e.g., Jan 6) invalidating true Close-shoulders (e.g., Jan 5).
+    - We exclude a "head zone" of ±HS_MIN_SIDE_BARS bars around the head from ANY shoulder competition
+      (bars right into / out of the head are part of the head run-up, not shoulders).
+    - We enforce a minimum reaction depth: between each shoulder and head there must be a valley/peak
+      with depth ≥ 2.0 * ATR (config inside this function).
+
+    Returns (p1, p2, p3, t1, t2, px1, px2, px3).
     """
-    if len(highs_idx) + len(lows_idx) < 5:
+    if len(c) < 10 or d is None or d.empty:
         return None
 
     def bump(k: str) -> None:
         if isinstance(explain, dict):
             explain[k] = int(explain.get(k, 0)) + 1
 
-    piv_hi = highs_idx[-32:]
-    piv_lo = lows_idx[-32:]
+    # Primary (shoulder/head) pivots and "between" reaction pivots
     if inverse:
-        pivots_primary = piv_lo
-        pivots_between = piv_hi
+        pivots_primary = [int(x) for x in lows_idx]   # Close-based swing lows
+        pivots_between = [int(x) for x in highs_idx]  # OHLC swing highs (reaction highs)
     else:
-        pivots_primary = piv_hi
-        pivots_between = piv_lo
+        pivots_primary = [int(x) for x in highs_idx]  # Close-based swing highs
+        pivots_between = [int(x) for x in lows_idx]   # OHLC swing lows (reaction lows)
 
-    if len(pivots_primary) < 3:
+    if len(pivots_primary) < 2:
+        bump("not_enough_primary_pivots")
         return None
 
-    best = None
-    best_score = -1e18
-
-    # Head anchor: enforce H to be the absolute extreme close of the window (deterministic).
+    # Head anchor: absolute extreme close in the window
     try:
         head_target = int(np.nanargmin(c.values)) if inverse else int(np.nanargmax(c.values))
     except Exception:
         head_target = None
+    if head_target is None:
+        bump("no_head")
+        return None
+    p2 = int(head_target)
 
+    # Candidate shoulder windows around the head (limit search and respect max duration)
+    head_zone = int(HS_MIN_SIDE_BARS)  # exclude ± head_zone around head
+    L_lo = max(0, p2 - int(HS_MAX_BARS))
+    L_hi = max(L_lo, p2 - head_zone)  # exclusive upper
+    R_lo = min(len(c), p2 + 1 + head_zone)  # inclusive lower
+    R_hi = min(len(c), p2 + 1 + int(HS_MAX_BARS))
+
+    left = [i for i in pivots_primary if L_lo <= i < L_hi]
+    right = [i for i in pivots_primary if R_lo <= i < R_hi]
+
+    if not left or not right:
+        bump("no_shoulder_candidates")
+        return None
+
+    # Helper: fallback neckline reaction points when swing "between" pivots are missing
     def _safe_nanargmax(v: np.ndarray) -> Optional[int]:
-        if v is None or len(v) == 0:
-            return None
-        if np.all(np.isnan(v)):
+        if v is None or len(v) == 0 or np.all(np.isnan(v)):
             return None
         return int(np.nanargmax(v))
 
     def _safe_nanargmin(v: np.ndarray) -> Optional[int]:
-        if v is None or len(v) == 0:
-            return None
-        if np.all(np.isnan(v)):
+        if v is None or len(v) == 0 or np.all(np.isnan(v)):
             return None
         return int(np.nanargmin(v))
 
     def _fallback_t1_t2(p1i: int, p2i: int, p3i: int) -> Optional[Tuple[int, int]]:
-        """
-        Fallback neckline reaction points when swing 'between' pivots are missing.
-        HS_TOP: T1/T2 = argmin Low in (LS,H) and (H,RS)
-        IHS:    T1/T2 = argmax High in (LS,H) and (H,RS)
-        """
         if p2i <= p1i + 1 or p3i <= p2i + 1:
             return None
         if inverse:
-            seg1 = d["High"].iloc[p1i+1:p2i].to_numpy(dtype=float)
-            seg2 = d["High"].iloc[p2i+1:p3i].to_numpy(dtype=float)
-            j1 = _safe_nanargmax(seg1)
-            j2 = _safe_nanargmax(seg2)
+            seg1 = d["High"].iloc[p1i + 1 : p2i].to_numpy(dtype=float)
+            seg2 = d["High"].iloc[p2i + 1 : p3i].to_numpy(dtype=float)
+            j1 = _safe_nanargmax(seg1); j2 = _safe_nanargmax(seg2)
             if j1 is None or j2 is None:
                 return None
             return (p1i + 1 + j1, p2i + 1 + j2)
         else:
-            seg1 = d["Low"].iloc[p1i+1:p2i].to_numpy(dtype=float)
-            seg2 = d["Low"].iloc[p2i+1:p3i].to_numpy(dtype=float)
-            j1 = _safe_nanargmin(seg1)
-            j2 = _safe_nanargmin(seg2)
+            seg1 = d["Low"].iloc[p1i + 1 : p2i].to_numpy(dtype=float)
+            seg2 = d["Low"].iloc[p2i + 1 : p3i].to_numpy(dtype=float)
+            j1 = _safe_nanargmin(seg1); j2 = _safe_nanargmin(seg2)
             if j1 is None or j2 is None:
                 return None
             return (p1i + 1 + j1, p2i + 1 + j2)
 
-    # HEAD-anchored shoulder snap window (bars)
-    SNAP_WIN = 90
+    # Stronger HS definition: need meaningful pullback between shoulder and head
+    REACT_DEPTH_ATR = 2.0
 
-    for a_i in range(0, len(pivots_primary) - 2):
-        for b_i in range(a_i + 1, len(pivots_primary) - 1):
-            for c_i in range(b_i + 1, len(pivots_primary)):
-                p1, p2, p3 = int(pivots_primary[a_i]), int(pivots_primary[b_i]), int(pivots_primary[c_i])
+    best: Optional[Tuple[int, int, int, int, int, float, float, float]] = None
+    best_score = -1e18
 
-                # Require head pivot (p2) to coincide with the global extreme close (±1 bar tolerance)
-                if head_target is not None and abs(int(p2) - int(head_target)) > 1:
-                    bump('head_not_global')
-                    continue
+    # Deterministic dominance: a shoulder cannot be "lower" if a higher primary pivot exists
+    # in the same shoulder region (excluding the head zone).
+    # This prevents selecting Dec 11 when Jan 5 exists, and prevents head-run-up bars invalidating shoulders.
+    def _is_dominant_left(p1i: int) -> bool:
+        px1 = float(c.iloc[p1i])
+        for j in left:
+            if j > p1i and j < L_hi:
+                if float(c.iloc[j]) > px1 + 1e-9:
+                    return False
+        return True
 
-                # Intervening opposite pivots (nice-to-have, not hard requirement anymore)
-                between1 = [x for x in pivots_between if p1 < x < p2]
-                between2 = [x for x in pivots_between if p2 < x < p3]
-                if not between1 or not between2:
-                    bump('missing_between')
+    def _is_dominant_right(p3i: int) -> bool:
+        px3 = float(c.iloc[p3i])
+        for j in right:
+            if j < p3i and j >= R_lo:
+                if float(c.iloc[j]) > px3 + 1e-9:
+                    return False
+        return True
 
-                # Base prices at provisional pivots
-                px1 = float(c.iloc[p1]); px2 = float(c.iloc[p2]); px3 = float(c.iloc[p3])                # Shoulder snap v3 (pivot-based, head-anchored, respects HS_MIN_SIDE_BARS)
-                # Choose shoulders from *primary pivots* within SNAP_WIN around the Head, but exclude the
-                # ±HS_MIN_SIDE_BARS zone adjacent to the Head so shoulders cannot collapse into 1–3 bars.
-                try:
-                    p2i = int(p2)
+    # Iterate candidate shoulder pairs
+    for p1 in left:
+        p1 = int(p1)
+        if p1 >= p2 - head_zone:
+            continue
+        if not _is_dominant_left(p1):
+            bump("ls_not_dominant_left")
+            continue
 
-                    L0 = max(0, p2i - SNAP_WIN)
-                    L1 = max(L0, p2i - HS_MIN_SIDE_BARS)  # exclude near-head zone
-                    R0 = min(len(c), p2i + 1 + HS_MIN_SIDE_BARS)  # start after near-head zone
-                    R1 = min(len(c), p2i + 1 + SNAP_WIN)
+        for p3 in right:
+            p3 = int(p3)
+            if p3 <= p2 + head_zone:
+                continue
+            if p3 <= p1:
+                continue
+            if not _is_dominant_right(p3):
+                bump("rs_not_dominant_right")
+                continue
 
-                    left_piv = [int(x) for x in pivots_primary if L0 <= int(x) < L1]
-                    right_piv = [int(x) for x in pivots_primary if R0 <= int(x) < R1]
+            span = int(p3 - p1)
+            if span < int(HS_MIN_BARS) or span > int(HS_MAX_BARS):
+                bump("duration_or_sidebars")
+                continue
 
-                    if left_piv:
-                        if not inverse:
-                            mx = float(np.nanmax([float(c.iloc[i]) for i in left_piv]))
-                            cand = [i for i in left_piv if float(c.iloc[i]) == mx]
-                            if cand:
-                                p1 = int(max(cand))  # latest max
-                        else:
-                            mn = float(np.nanmin([float(c.iloc[i]) for i in left_piv]))
-                            cand = [i for i in left_piv if float(c.iloc[i]) == mn]
-                            if cand:
-                                p1 = int(max(cand))  # latest min
+            dL = int(p2 - p1)
+            dR = int(p3 - p2)
+            if dL < int(HS_MIN_SIDE_BARS) or dR < int(HS_MIN_SIDE_BARS):
+                bump("duration_or_sidebars")
+                continue
 
-                    if right_piv:
-                        if not inverse:
-                            mx = float(np.nanmax([float(c.iloc[i]) for i in right_piv]))
-                            cand = [i for i in right_piv if float(c.iloc[i]) == mx]
-                            if cand:
-                                p3 = int(min(cand))  # earliest max
-                        else:
-                            mn = float(np.nanmin([float(c.iloc[i]) for i in right_piv]))
-                            cand = [i for i in right_piv if float(c.iloc[i]) == mn]
-                            if cand:
-                                p3 = int(min(cand))  # earliest min
+            ratio = float(dL) / float(max(1, dR))
+            if ratio < 0.33 or ratio > 3.0:
+                bump("time_symmetry")
+                continue
 
-                    # Refresh prices after snap
-                    px1 = float(c.iloc[int(p1)])
-                    px3 = float(c.iloc[int(p3)])
+            px1 = float(c.iloc[p1]); px2 = float(c.iloc[p2]); px3 = float(c.iloc[p3])
 
-                    # Recompute intervening opposite pivots after shoulder snap
-                    between1 = [x for x in pivots_between if int(p1) < x < int(p2)]
-                    between2 = [x for x in pivots_between if int(p2) < x < int(p3)]
-                    if not between1 or not between2:
-                        bump('missing_between_post_snap')
-                except Exception:
-                    pass
+            # ATR context
+            atr_med = _median_atr(d, p1, p3 + 1)
+            price_ref = float(np.nanmedian([px1, px2, px3]))
+            min_head_gap = max(0.5 * atr_med, 0.02 * max(price_ref, 1e-6))
+            shoulder_tol = max(1.0 * atr_med, 0.05 * max((px1 + px3) / 2.0, 1e-6))
 
-                # Time symmetry
-                dL = max(1, int(p2) - int(p1))
-                dR = max(1, int(p3) - int(p2))
-                ratio = dL / dR
-                if ratio < 0.33 or ratio > 3.0:
-                    bump('time_symmetry')
-                    continue
-
-                # Minimum formation duration (avoid 3-4 week HS/IHS false positives)
-                if (int(p3) - int(p1)) < HS_MIN_BARS or (int(p3) - int(p1)) > HS_MAX_BARS or dL < HS_MIN_SIDE_BARS or dR < HS_MIN_SIDE_BARS:
-                    # Diagnostics: remember the *most recent* snapped-LS candidate rejected by duration/sidebars.
-                    if isinstance(explain, dict):
-                        try:
-                            prev = explain.get("_dur_reject_best")
-                            take = (not isinstance(prev, dict)) or (int(p1) > int(prev.get("p1_i", -1)))
-                            if take:
-                                explain["_dur_reject_best"] = {
-                                    "p1_i": int(p1),
-                                    "p2_i": int(p2),
-                                    "p3_i": int(p3),
-                                    "span": int(int(p3) - int(p1)),
-                                    "dL": int(dL),
-                                    "dR": int(dR),
-                                    "ratio": float(ratio),
-                                    "HS_MIN_BARS": int(HS_MIN_BARS),
-                                    "HS_MAX_BARS": int(HS_MAX_BARS),
-                                    "HS_MIN_SIDE_BARS": int(HS_MIN_SIDE_BARS),
-                                    "p1_t": str(d.index[int(p1)]) if isinstance(d.index, pd.DatetimeIndex) else int(p1),
-                                    "p2_t": str(d.index[int(p2)]) if isinstance(d.index, pd.DatetimeIndex) else int(p2),
-                                    "p3_t": str(d.index[int(p3)]) if isinstance(d.index, pd.DatetimeIndex) else int(p3),
-                                }
-                        except Exception:
-                            pass
-                    bump('duration_or_sidebars')
-                    continue
-
-                # Pattern ATR context
-                start_i = int(p1)
-                end_i = int(p3) + 1
-                atr_med = _median_atr(d, start_i, end_i)
-                price_ref = float(np.nanmedian([px1, px2, px3]))
-                min_head_gap = max(0.5 * atr_med, 0.02 * max(price_ref, 1e-6))
-                shoulder_tol = max(1.0 * atr_med, 0.05 * max((px1 + px3) / 2.0, 1e-6))
-
-                # Neckline reaction points: use swing pivots if available, else fall back to full-segment extrema
-                p1i, p2i, p3i = int(p1), int(p2), int(p3)
-                if between1 and between2:
-                    if inverse:
-                        t1 = max(between1, key=lambda k: float(d["High"].iloc[k]))
-                        t2 = max(between2, key=lambda k: float(d["High"].iloc[k]))
-                    else:
-                        t1 = min(between1, key=lambda k: float(d["Low"].iloc[k]))
-                        t2 = min(between2, key=lambda k: float(d["Low"].iloc[k]))
-                else:
-                    fb = _fallback_t1_t2(p1i, p2i, p3i)
-                    if fb is None:
-                        bump('fallback_t1t2_failed')
-                        continue
-                    t1, t2 = fb
-
+            # Neckline reaction points
+            between1 = [x for x in pivots_between if p1 < int(x) < p2]
+            between2 = [x for x in pivots_between if p2 < int(x) < p3]
+            if between1 and between2:
                 if inverse:
-                    n1 = float(d["High"].iloc[t1]); n2 = float(d["High"].iloc[t2])
+                    t1 = max(between1, key=lambda k: float(d["High"].iloc[int(k)]))
+                    t2 = max(between2, key=lambda k: float(d["High"].iloc[int(k)]))
                 else:
-                    n1 = float(d["Low"].iloc[t1]); n2 = float(d["Low"].iloc[t2])
-
-                # Head / shoulders geometry
-                if inverse:
-                    if not (px2 <= min(px1, px3) - min_head_gap):
-                        bump('head_gap')
-                        continue
-                    if abs(px1 - px3) > shoulder_tol:
-                        bump('shoulder_mismatch')
-                        continue
-                    head_gap_quality = min(px1 - px2, px3 - px2)
-                else:
-                    if not (px2 >= max(px1, px3) + min_head_gap):
-                        bump('head_gap')
-                        continue
-                    if abs(px1 - px3) > shoulder_tol:
-                        bump('shoulder_mismatch')
-                        continue
-                    head_gap_quality = min(px2 - px1, px2 - px3)
-
-                # Head must be the extreme close between LS and RS (avoid picking a non-peak head due to pivot jitter)
-                try:
-                    seg = c.iloc[int(p1):int(p3)+1]
-                    if inverse:
-                        if px2 > float(seg.min()) * (1.0 + 1e-6):
-                            bump('head_not_extreme')
-                            continue
-                    else:
-                        if px2 < float(seg.max()) * (1.0 - 1e-6):
-                            bump('head_not_extreme')
-                            continue
-                except Exception:
-                    pass
-
-                # Deterministic shoulder dominance rule (CLOSE-based)
-                eps = 1e-6
-                try:
-                    segL_end = max(int(p1) + 1, int(p2) - HS_MIN_SIDE_BARS)
-                    segR_start = min(int(p3), int(p2) + 1 + HS_MIN_SIDE_BARS)
-                    segL = c.iloc[int(p1)+1:segL_end]
-                    segR = c.iloc[segR_start:int(p3)]
-                    if not inverse:
-                        if len(segL) and float(segL.max()) > float(px1) + eps:
-                            bump('ls_not_max_prehead')
-                            continue
-                        if len(segR) and float(segR.max()) > float(px3) + eps:
-                            bump('rs_not_max_posthead')
-                            continue
-                    else:
-                        if len(segL) and float(segL.min()) < float(px1) - eps:
-                            bump('ls_not_min_prehead')
-                            continue
-                        if len(segR) and float(segR.min()) < float(px3) - eps:
-                            bump('rs_not_min_posthead')
-                            continue
-                except Exception:
-                    pass
-
-                # Sanity: ensure shoulders are on the correct side of the intervening troughs/highs
-                if inverse:
-                    if not (px1 < n1 and px3 < n2):
-                        bump('shoulder_vs_reaction')
-                        continue
-                else:
-                    if not (px1 > n1 and px3 > n2):
-                        bump('shoulder_vs_reaction')
-                        continue
-
-                # Prior trend label enforcement
-                trend = _trend_context_label(c, int(p1), atr_med)
-                if inverse and trend != "BOTTOM":
-                    bump('trend_label')
+                    t1 = min(between1, key=lambda k: float(d["Low"].iloc[int(k)]))
+                    t2 = min(between2, key=lambda k: float(d["Low"].iloc[int(k)]))
+            else:
+                fb = _fallback_t1_t2(p1, p2, p3)
+                if fb is None:
+                    bump("fallback_t1t2_failed")
                     continue
-                if (not inverse) and trend != "TOP":
-                    bump('trend_label')
+                t1, t2 = fb
+
+            # Reaction depth (meaningful pullback into neckline)
+            try:
+                if inverse:
+                    seg1 = d["High"].iloc[p1 + 1 : p2].to_numpy(dtype=float)
+                    seg2 = d["High"].iloc[p2 + 1 : p3].to_numpy(dtype=float)
+                    if not (np.nanmax(seg1) - px2 >= REACT_DEPTH_ATR * atr_med):
+                        bump("reaction_depth")
+                        continue
+                    if not (np.nanmax(seg2) - px2 >= REACT_DEPTH_ATR * atr_med):
+                        bump("reaction_depth")
+                        continue
+                else:
+                    seg1 = d["Low"].iloc[p1 + 1 : p2].to_numpy(dtype=float)
+                    seg2 = d["Low"].iloc[p2 + 1 : p3].to_numpy(dtype=float)
+                    if not (px2 - np.nanmin(seg1) >= REACT_DEPTH_ATR * atr_med):
+                        bump("reaction_depth")
+                        continue
+                    if not (px2 - np.nanmin(seg2) >= REACT_DEPTH_ATR * atr_med):
+                        bump("reaction_depth")
+                        continue
+            except Exception:
+                bump("reaction_depth")
+                continue
+
+            # Head/shoulder geometry
+            if inverse:
+                if not (px2 <= min(px1, px3) - min_head_gap):
+                    bump("head_gap")
+                    continue
+                if abs(px1 - px3) > shoulder_tol:
+                    bump("shoulder_mismatch")
+                    continue
+                head_gap_quality = min(px1 - px2, px3 - px2)
+            else:
+                if not (px2 >= max(px1, px3) + min_head_gap):
+                    bump("head_gap")
+                    continue
+                if abs(px1 - px3) > shoulder_tol:
+                    bump("shoulder_mismatch")
+                    continue
+                head_gap_quality = min(px2 - px1, px2 - px3)
+
+            # Ensure head is extreme between LS and RS (should be true, but protect against window jitter)
+            seg = c.iloc[p1 : p3 + 1]
+            if inverse:
+                if px2 > float(seg.min()) * (1.0 + 1e-6):
+                    bump("head_not_extreme")
+                    continue
+            else:
+                if px2 < float(seg.max()) * (1.0 - 1e-6):
+                    bump("head_not_extreme")
                     continue
 
-                # Score: recency + symmetry + prominence
-                recency_bonus = float(p3)
-                sym_penalty = abs(math.log(ratio))
-                neck_span = abs(n2 - n1)
-                score = recency_bonus + 4.0 * (head_gap_quality / max(atr_med, 1e-6)) - 2.0 * sym_penalty - 0.25 * (neck_span / max(atr_med, 1e-6))
-                if score > best_score:
-                    best_score = score
-                    best = (int(p1), int(p2), int(p3), int(t1), int(t2), float(px1), float(px2), float(px3))
+            # Trend label enforcement
+            trend = _trend_context_label(c, int(p1), atr_med)
+            if inverse and trend != "BOTTOM":
+                bump("trend_label")
+                continue
+            if (not inverse) and trend != "TOP":
+                bump("trend_label")
+                continue
 
+            # Score
+            if inverse:
+                n1 = float(d["High"].iloc[int(t1)]); n2 = float(d["High"].iloc[int(t2)])
+            else:
+                n1 = float(d["Low"].iloc[int(t1)]); n2 = float(d["Low"].iloc[int(t2)])
+            sym_penalty = abs(math.log(ratio))
+            neck_span = abs(n2 - n1)
+            score = float(p3) + 4.0 * (head_gap_quality / max(atr_med, 1e-6)) - 2.0 * sym_penalty - 0.25 * (neck_span / max(atr_med, 1e-6))
+            if score > best_score:
+                best_score = score
+                best = (int(p1), int(p2), int(p3), int(t1), int(t2), float(px1), float(px2), float(px3))
+
+    if best is None:
+        bump("no_triplet")
     return best
+
+
 
 
 def detect_hs_top(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None) -> Optional[PatternCandidate]:
@@ -3957,7 +3911,7 @@ def detect_hs_top(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None) ->
         return None
     c = d["Close"].astype(float)
     _, lows_idx = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
-    highs_idx = _swing_highs_on_close(d, window=3, prominence_atr_mult=0.5, allow_tie_high_2dp=True)
+    highs_idx = _swing_highs_on_close(d, window=5, prominence_atr_mult=0.5, allow_tie_high_2dp=True)
     if len(highs_idx) < 3 or len(lows_idx) < 2:
         if isinstance(explain, dict):
             explain['not_enough_swings'] = int(explain.get('not_enough_swings', 0)) + 1
@@ -4007,7 +3961,7 @@ def detect_inverse_hs(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None
         return None
     c = d["Close"].astype(float)
     highs_idx, _ = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
-    lows_idx = _swing_lows_on_close(d, window=3, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
+    lows_idx = _swing_lows_on_close(d, window=5, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
     if len(lows_idx) < 3 or len(highs_idx) < 2:
         if isinstance(explain, dict):
             explain['not_enough_swings'] = int(explain.get('not_enough_swings', 0)) + 1
