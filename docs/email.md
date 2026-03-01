@@ -1,12 +1,12 @@
 # Daily Report
 
-_Generated: **2026-03-01 21:21 CET**_
+_Generated: **2026-03-01 22:23 CET**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Headline: Oil-supply fears around Iran and OPEC+ moves kept geopolitics in focus as the AI-led tech sell-off continued to pressure sentiment. The Nasdaq 100 fell 0.3% and the S&P 500 slid 0.4% while the Vix jumped 6.6%, extending the choppy, risk-averse tape of the past month (NDX -4.1% 1M) even as WTI rose 2.8% on disruption worries. Biggest movers on the watchlist were Netflix up 13.8% and Silver up 7.2%, while Oklo fell 8.9% and D-Wave Quantum dropped 6.8%.
+Headline: Oil-supply fears tied to Iran headlines and Opec+ output moves kept markets on edge as investors weighed the risk of a sharper energy shock. The Nasdaq 100 fell 0.3% and the S&P 500 slid 0.4% while the Vix jumped 6.6%, extending a choppy, risk-sensitive tape of the past month (NDX -4.1% 1M), even as WTI rose 2.8% on expectations crude could open above $70. Biggest movers were Netflix up 13.8% and Silver up 7.2%, while Oklo fell 8.9% and QBTS dropped 6.8%.
 
 **Key tape (multi-horizon):**
 
@@ -19,13 +19,13 @@ Headline: Oil-supply fears around Iran and OPEC+ moves kept geopolitics in focus
 | CAC 40           | 8,580.75  | <span style="color:#b91c1c;">-0.47%</span> | <span style="color:#11823b;">+0.77%</span>  | <span style="color:#11823b;">+6.37%</span>  | <span style="color:#11823b;">+5.64%</span>  | <span style="color:#11823b;">+11.38%</span>  |
 | FTSE 100         | 10,910.60 | <span style="color:#11823b;">+0.59%</span> | <span style="color:#11823b;">+2.09%</span>  | <span style="color:#11823b;">+7.45%</span>  | <span style="color:#11823b;">+12.24%</span> | <span style="color:#11823b;">+18.76%</span>  |
 | VIX              | 19.86     | <span style="color:#11823b;">+6.60%</span> | <span style="color:#11823b;">+4.03%</span>  | <span style="color:#11823b;">+21.47%</span> | <span style="color:#11823b;">+21.47%</span> | <span style="color:#11823b;">+29.30%</span>  |
-| EUR/USD          | 1.18      | <span style="color:#11823b;">+0.12%</span> | <span style="color:#11823b;">+0.41%</span>  | <span style="color:#b91c1c;">-1.24%</span>  | <span style="color:#11823b;">+1.86%</span>  | <span style="color:#11823b;">+0.87%</span>   |
+| EUR/USD          | 1.18      | <span style="color:#11823b;">+0.24%</span> | <span style="color:#11823b;">+0.53%</span>  | <span style="color:#b91c1c;">-1.12%</span>  | <span style="color:#11823b;">+1.98%</span>  | <span style="color:#11823b;">+0.99%</span>   |
 | WTI Crude        | 67.02     | <span style="color:#11823b;">+2.78%</span> | <span style="color:#11823b;">+0.95%</span>  | <span style="color:#11823b;">+6.03%</span>  | <span style="color:#11823b;">+14.47%</span> | <span style="color:#11823b;">+4.70%</span>   |
 | Gold             | 5,247.90  | <span style="color:#11823b;">+1.38%</span> | <span style="color:#11823b;">+3.73%</span>  | <span style="color:#b91c1c;">-1.01%</span>  | <span style="color:#11823b;">+24.41%</span> | <span style="color:#11823b;">+51.08%</span>  |
 | Silver           | 93.29     | <span style="color:#11823b;">+7.23%</span> | <span style="color:#11823b;">+13.38%</span> | <span style="color:#b91c1c;">-17.52%</span> | <span style="color:#11823b;">+65.27%</span> | <span style="color:#11823b;">+132.07%</span> |
 | Coffee           | 284.90    | <span style="color:#b91c1c;">-0.38%</span> | <span style="color:#b91c1c;">-1.18%</span>  | <span style="color:#b91c1c;">-18.83%</span> | <span style="color:#b91c1c;">-31.02%</span> | <span style="color:#b91c1c;">-28.21%</span>  |
 | Cocoa            | 2,798.00  | <span style="color:#b91c1c;">-5.92%</span> | <span style="color:#b91c1c;">-9.16%</span>  | <span style="color:#b91c1c;">-32.58%</span> | <span style="color:#b91c1c;">-48.22%</span> | <span style="color:#b91c1c;">-63.35%</span>  |
-| Bitcoin          | 65,494.79 | <span style="color:#b91c1c;">-2.24%</span> | <span style="color:#b91c1c;">-3.20%</span>  | <span style="color:#b91c1c;">-22.15%</span> | <span style="color:#b91c1c;">-24.13%</span> | <span style="color:#b91c1c;">-41.10%</span>  |
+| Bitcoin          | 65,571.73 | <span style="color:#b91c1c;">-2.13%</span> | <span style="color:#b91c1c;">-3.09%</span>  | <span style="color:#b91c1c;">-22.06%</span> | <span style="color:#b91c1c;">-24.04%</span> | <span style="color:#b91c1c;">-41.03%</span>  |
 
 **Macro charts (5Y):**
 
@@ -39,7 +39,7 @@ Headline: Oil-supply fears around Iran and OPEC+ moves kept geopolitics in focus
 | Ticker   | pct     |
 | :--- | ---: |
 | NFLX     | +13.77% |
-| SI=F     | +7.23%  |
+| Silver   | +7.23%  |
 | NAT      | +6.11%  |
 | INSW     | +4.16%  |
 
@@ -50,7 +50,7 @@ Headline: Oil-supply fears around Iran and OPEC+ moves kept geopolitics in focus
 | OKLO     | -8.86% |
 | QBTS     | -6.75% |
 | IONQ     | -6.14% |
-| CC=F     | -5.92% |
+| Cocoa    | -5.92% |
 | HOOD     | -4.53% |
 | NVDA     | -4.16% |
 
@@ -205,7 +205,9 @@ _Includes **VALIDATED** only: breakout/breakdown occurred **3 sessions ago** AND
 
 _Linked digest for drill-down._
 
+- [Amazon India slashes seller referral fees in retail growth push](https://finance.yahoo.com/news/amazon-india-slashes-seller-referral-203149282.html) — Yahoo Finance Top Stories
 - [OPEC+ boosts oil production after attacks on Iran and throughout region](https://finance.yahoo.com/news/opec-boosts-oil-production-attacks-195550407.html) — Yahoo Finance Top Stories
+- [Jobs, Geopolitics and Other Key Things to Watch this Week](https://finance.yahoo.com/news/jobs-geopolitics-other-key-things-180002397.html) — Yahoo Finance Top Stories
 - [Tesla's China EV Rivals Hit By Lunar New Year Holidays, But Nio Stands Out](https://www.investors.com/news/teslas-china-ev-rivals-byd-xpeng-xiaomi-lunar-new-year-nio-strong/?src=A00220&yptr=yahoo) — Yahoo Finance Top Stories
 - [Stocks Sink in Broad AI Rout Sparked by China's DeepSeek](https://www.wsj.com/articles/nikkei-may-rise-as-weak-yen-raises-earnings-hopes-776a8056?mod=rss_markets_main) — WSJ Markets
 - [Oil price expected to surge after Iran strikes and strait of Hormuz closure](https://www.theguardian.com/business/2026/mar/01/oil-price-surge-iran-us-israel-strikes-markets) — The Guardian Business
@@ -213,8 +215,6 @@ _Linked digest for drill-down._
 - [Waiting on a tariff refund after Trump’s duties were struck down? Don’t bother | Gene Marks](https://www.theguardian.com/business/2026/mar/01/trump-tariffs-business-refund-supreme-court) — The Guardian Business
 - [Dow Jones Futures, Oil Prices Loom; Trump Says Iran's New Leaders 'Want To Talk'](https://www.investors.com/market-trend/stock-market-today/trump-us-israel-massive-attacks-iran-dow-jones-futures-oil-prices/?src=A00220&yptr=yahoo) — Yahoo Finance Top Stories
 - ["A stark contrast": Wall Street weighs winners and losers amid AI-driven tech sell-off](https://finance.yahoo.com/news/a-stark-contrast-wall-street-weighs-winners-and-losers-amid-ai-driven-tech-sell-off-160017420.html) — Yahoo Finance Top Stories
-- [U.S. crude oil set to top $70 a barrel when trading begins on fears of Iran supply disruption](https://www.cnbc.com/2026/03/01/crude-oil-futures-iran.html) — CNBC Top News
-- [$100 oil? Prolonged Hormuz closure could spark a 1970s-style energy shock](https://www.cnbc.com/2026/03/01/experts-weigh-potential-scenarios-for-oil-if-strait-of-hormuz-closes.html) — CNBC Top News
 
 ## 6) Watchlist performance (all tickers)
 
@@ -258,4 +258,4 @@ Columns: **Name of Company | Ticker | Country | Sector | Close | Day% | CLV | AT
 
 ### Commodities
 
-<style>table.tblauto{table-layout:auto;width:100%;border-collapse:collapse;margin:8px 0;}table.tblauto th,table.tblauto td{border:1px solid #e5e7eb;padding:6px 8px;vertical-align:top;}table.tblauto th{background:#f6f8fa;font-weight:600;white-space:nowrap;}table.tblauto td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}table.tblauto td.txt{white-space:nowrap;}table.tblauto td.wrap{white-space:normal;}</style><div style="overflow-x:auto"><table class="tblauto"><thead><tr><th>Name of Company</th><th>Ticker</th><th>Country</th><th>Sector</th><th>Close</th><th>Day%</th><th>CLV</th><th>ATR(14)</th><th>ATR Δ14d</th><th>Vol/AvgVol20</th><th>1D</th><th>7D</th><th>1M</th><th>3M</th></tr></thead><tbody><tr><td class="wrap">GOLD</td><td class="txt">GC=F</td><td class="txt"></td><td class="txt">Commodities</td><td class="num">5,247.90</td><td class="num">+1.4%</td><td class="num">+0.12</td><td class="num">105.98</td><td class="num">-58.5%</td><td class="num">55.63×</td><td class="num">+1.4%</td><td class="num">+3.7%</td><td class="num">-1.0%</td><td class="num">+26.8%</td></tr><tr><td class="wrap">SILVER</td><td class="txt">SI=F</td><td class="txt"></td><td class="txt">Commodities</td><td class="num">93.29</td><td class="num">+7.2%</td><td class="num">+0.54</td><td class="num">4.74</td><td class="num">-60.8%</td><td class="num">21.56×</td><td class="num">+7.2%</td><td class="num">+13.4%</td><td class="num">-17.5%</td><td class="num">+83.2%</td></tr><tr><td class="wrap">COFFEE</td><td class="txt">KC=F</td><td class="txt"></td><td class="txt">Commodities</td><td class="num">284.90</td><td class="num">-0.4%</td><td class="num">+1.00</td><td class="num">8.73</td><td class="num">-31.6%</td><td class="num">1.07×</td><td class="num">-0.4%</td><td class="num">-1.2%</td><td class="num">-18.8%</td><td class="num">-31.2%</td></tr><tr><td class="wrap">COCOA</td><td class="txt">CC=F</td><td class="txt"></td><td class="txt">Commodities</td><td class="num">2,798.00</td><td class="num">-5.9%</td><td class="num"></td><td class="num">170.36</td><td class="num">-38.3%</td><td class="num">0.00×</td><td class="num">-5.9%</td><td class="num">-9.2%</td><td class="num">-32.6%</td><td class="num">-44.0%</td></tr></tbody></table></div>
+<style>table.tblauto{table-layout:auto;width:100%;border-collapse:collapse;margin:8px 0;}table.tblauto th,table.tblauto td{border:1px solid #e5e7eb;padding:6px 8px;vertical-align:top;}table.tblauto th{background:#f6f8fa;font-weight:600;white-space:nowrap;}table.tblauto td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}table.tblauto td.txt{white-space:nowrap;}table.tblauto td.wrap{white-space:normal;}</style><div style="overflow-x:auto"><table class="tblauto"><thead><tr><th>Name of Company</th><th>Ticker</th><th>Country</th><th>Sector</th><th>Close</th><th>Day%</th><th>CLV</th><th>ATR(14)</th><th>ATR Δ14d</th><th>Vol/AvgVol20</th><th>1D</th><th>7D</th><th>1M</th><th>3M</th></tr></thead><tbody><tr><td class="wrap">GOLD</td><td class="txt">Gold</td><td class="txt"></td><td class="txt">Commodities</td><td class="num">5,247.90</td><td class="num">+1.4%</td><td class="num">+0.12</td><td class="num">105.98</td><td class="num">-58.5%</td><td class="num">55.63×</td><td class="num">+1.4%</td><td class="num">+3.7%</td><td class="num">-1.0%</td><td class="num">+26.8%</td></tr><tr><td class="wrap">SILVER</td><td class="txt">Silver</td><td class="txt"></td><td class="txt">Commodities</td><td class="num">93.29</td><td class="num">+7.2%</td><td class="num">+0.54</td><td class="num">4.74</td><td class="num">-60.8%</td><td class="num">21.56×</td><td class="num">+7.2%</td><td class="num">+13.4%</td><td class="num">-17.5%</td><td class="num">+83.2%</td></tr><tr><td class="wrap">COFFEE</td><td class="txt">Coffee</td><td class="txt"></td><td class="txt">Commodities</td><td class="num">284.90</td><td class="num">-0.4%</td><td class="num">+1.00</td><td class="num">8.73</td><td class="num">-31.6%</td><td class="num">1.07×</td><td class="num">-0.4%</td><td class="num">-1.2%</td><td class="num">-18.8%</td><td class="num">-31.2%</td></tr><tr><td class="wrap">COCOA</td><td class="txt">Cocoa</td><td class="txt"></td><td class="txt">Commodities</td><td class="num">2,798.00</td><td class="num">-5.9%</td><td class="num"></td><td class="num">170.36</td><td class="num">-38.3%</td><td class="num">0.00×</td><td class="num">-5.9%</td><td class="num">-9.2%</td><td class="num">-32.6%</td><td class="num">-44.0%</td></tr></tbody></table></div>
