@@ -190,10 +190,25 @@ def _base_ticker(t: str) -> str:
     return t.split(".", 1)[0] if "." in t else t
 
 def _display_name(t: str) -> str:
+    """Human-friendly labels for tickers in the report.
+
+    - Exchange suffixes are removed for equities (e.g., MC.PA -> MC).
+    - Commodity continuous futures (e.g., SI=F) are shown as the commodity name.
+    """
     t = str(t).strip()
+
+    # Commodities: prefer explicit commodity names over the Yahoo symbol.
+    if t in COMMODITY_NAME_OVERRIDES:
+        return COMMODITY_NAME_OVERRIDES[t]
+
     if t in DISPLAY_NAME_OVERRIDES:
         return DISPLAY_NAME_OVERRIDES[t]
+
     base = _base_ticker(t)
+
+    if base in COMMODITY_NAME_OVERRIDES:
+        return COMMODITY_NAME_OVERRIDES[base]
+
     return DISPLAY_NAME_OVERRIDES.get(base, base)
 
 # Ticker display labels: include segment tag when available, but hide exchange suffix.
