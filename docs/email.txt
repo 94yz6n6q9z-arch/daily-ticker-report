@@ -1,12 +1,12 @@
 # Daily Report
 
-_Generated: **2026-03-01 23:45 CET**_
+_Generated: **2026-03-02 00:43 CET**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Headline: Oil-supply fears tied to Iran and a busy week ahead for jobs data and big tech earnings kept investors cautious. The Nasdaq 100 fell 0.3% and the S&P 500 lost 0.4% as the VIX jumped 6.6%, extending the choppy, risk-sensitive tone of the past month (NDX -4.1% 1M) while WTI rose 2.8% on disruption concerns. Biggest movers were NFLX up 13.8% and Silver up 7.2%, while OKLO fell 8.9% and QBTS slid 6.8%.
+Headline: Oil spiked on fears of Iran-related supply disruption, dragging US equities lower as investors repriced geopolitical risk. The Nasdaq 100 fell 0.3% and the S&P 500 slid 0.4% while the VIX jumped 6.6%, extending a choppier, risk-sensitive tape of the past month (NDX -4.1% 1M) as WTI surged 8.6%. On the watchlist, Netflix jumped 13.8% and Nordic American Tankers rose 6.1%, while Oklo sank 8.9% and D-Wave Quantum fell 6.8%.
 
 **Key tape (multi-horizon):**
 
@@ -19,13 +19,13 @@ Headline: Oil-supply fears tied to Iran and a busy week ahead for jobs data and 
 | CAC 40           | 8,580.75  | <span style="color:#b91c1c;">-0.47%</span> | <span style="color:#11823b;">+0.77%</span>  | <span style="color:#11823b;">+6.37%</span>  | <span style="color:#11823b;">+5.64%</span>  | <span style="color:#11823b;">+11.38%</span>  |
 | FTSE 100         | 10,910.60 | <span style="color:#11823b;">+0.59%</span> | <span style="color:#11823b;">+2.09%</span>  | <span style="color:#11823b;">+7.45%</span>  | <span style="color:#11823b;">+12.24%</span> | <span style="color:#11823b;">+18.76%</span>  |
 | VIX              | 19.86     | <span style="color:#11823b;">+6.60%</span> | <span style="color:#11823b;">+4.03%</span>  | <span style="color:#11823b;">+21.47%</span> | <span style="color:#11823b;">+21.47%</span> | <span style="color:#11823b;">+29.30%</span>  |
-| EUR/USD          | 1.18      | <span style="color:#b91c1c;">-0.23%</span> | <span style="color:#11823b;">+0.06%</span>  | <span style="color:#b91c1c;">-1.59%</span>  | <span style="color:#11823b;">+1.50%</span>  | <span style="color:#11823b;">+0.51%</span>   |
-| WTI Crude        | 67.02     | <span style="color:#11823b;">+2.78%</span> | <span style="color:#11823b;">+0.95%</span>  | <span style="color:#11823b;">+6.03%</span>  | <span style="color:#11823b;">+14.47%</span> | <span style="color:#11823b;">+4.70%</span>   |
-| Gold             | 5,247.90  | <span style="color:#11823b;">+1.38%</span> | <span style="color:#11823b;">+3.73%</span>  | <span style="color:#b91c1c;">-1.01%</span>  | <span style="color:#11823b;">+24.41%</span> | <span style="color:#11823b;">+51.08%</span>  |
-| Silver           | 93.29     | <span style="color:#11823b;">+7.23%</span> | <span style="color:#11823b;">+13.38%</span> | <span style="color:#b91c1c;">-17.52%</span> | <span style="color:#11823b;">+65.27%</span> | <span style="color:#11823b;">+132.07%</span> |
+| EUR/USD          | 1.18      | <span style="color:#b91c1c;">-0.30%</span> | <span style="color:#b91c1c;">-0.01%</span>  | <span style="color:#b91c1c;">-1.66%</span>  | <span style="color:#11823b;">+1.43%</span>  | <span style="color:#11823b;">+0.44%</span>   |
+| WTI Crude        | 72.79     | <span style="color:#11823b;">+8.61%</span> | <span style="color:#11823b;">+9.64%</span>  | <span style="color:#11823b;">+11.62%</span> | <span style="color:#11823b;">+22.71%</span> | <span style="color:#11823b;">+10.98%</span>  |
+| Gold             | 5,377.90  | <span style="color:#11823b;">+2.82%</span> | <span style="color:#11823b;">+6.30%</span>  | <span style="color:#11823b;">+14.09%</span> | <span style="color:#11823b;">+26.86%</span> | <span style="color:#11823b;">+51.52%</span>  |
+| Silver           | 95.83     | <span style="color:#11823b;">+3.40%</span> | <span style="color:#11823b;">+16.47%</span> | <span style="color:#11823b;">+22.41%</span> | <span style="color:#11823b;">+64.05%</span> | <span style="color:#11823b;">+133.34%</span> |
 | Coffee           | 284.90    | <span style="color:#b91c1c;">-0.38%</span> | <span style="color:#b91c1c;">-1.18%</span>  | <span style="color:#b91c1c;">-18.83%</span> | <span style="color:#b91c1c;">-31.02%</span> | <span style="color:#b91c1c;">-28.21%</span>  |
 | Cocoa            | 2,798.00  | <span style="color:#b91c1c;">-5.92%</span> | <span style="color:#b91c1c;">-9.16%</span>  | <span style="color:#b91c1c;">-32.58%</span> | <span style="color:#b91c1c;">-48.22%</span> | <span style="color:#b91c1c;">-63.35%</span>  |
-| Bitcoin          | 65,434.43 | <span style="color:#b91c1c;">-2.33%</span> | <span style="color:#b91c1c;">-3.29%</span>  | <span style="color:#b91c1c;">-22.22%</span> | <span style="color:#b91c1c;">-24.20%</span> | <span style="color:#b91c1c;">-41.16%</span>  |
+| Bitcoin          | 65,739.41 | <span style="color:#b91c1c;">-1.88%</span> | <span style="color:#b91c1c;">-2.84%</span>  | <span style="color:#b91c1c;">-21.86%</span> | <span style="color:#b91c1c;">-23.84%</span> | <span style="color:#b91c1c;">-40.88%</span>  |
 
 **Macro charts (5Y):**
 
@@ -39,7 +39,6 @@ Headline: Oil-supply fears tied to Iran and a busy week ahead for jobs data and 
 | Ticker   | pct     |
 | :--- | ---: |
 | NFLX     | +13.77% |
-| Silver   | +7.23%  |
 | NAT      | +6.11%  |
 | INSW     | +4.16%  |
 
@@ -64,10 +63,10 @@ _Upcoming earnings dates for your  watchlist._
 
 | Ticker   | Earnings Date   |   Days |
 | :--- | ---: | ---: |
-| ANF      | 2026-03-04      |      3 |
-| AVGO     | 2026-03-04      |      3 |
-| MAU      | 2026-03-12      |     11 |
-| RRTL     | 2026-03-12      |     11 |
+| ANF      | 2026-03-04      |      2 |
+| AVGO     | 2026-03-04      |      2 |
+| MAU      | 2026-03-12      |     10 |
+| RRTL     | 2026-03-12      |     10 |
 
 ## 4) Technical triggers
 
@@ -75,11 +74,11 @@ _Upcoming earnings dates for your  watchlist._
 
 - Tickers scanned: **1277**; usable OHLCV: **799**
 
-- Candidates found: **287** (top patterns: MOMO_TREND:104, IHS:79, HS_TOP:37, RECT:22, RECT_BOTTOM:16, RECT_TOP:16, DEAD_CAT_BOUNCE:11, DESC_TRIANGLE:2)
+- Candidates found: **328** (top patterns: IHS:113, MOMO_TREND:104, HS_TOP:44, RECT:22, RECT_BOTTOM:16, RECT_TOP:16, DEAD_CAT_BOUNCE:11, DESC_TRIANGLE:2)
 
-- Live signals: EARLY **28**, CONFIRMED **47**, VALIDATED **1** (total 76)
+- Live signals: EARLY **29**, CONFIRMED **48**, VALIDATED **1** (total 78)
 
-- Geometry restored today: HS/IHS **178**, Band **7**
+- Geometry restored today: HS/IHS **154**, Band **7**
 
 
 
@@ -94,7 +93,7 @@ _Upcoming earnings dates for your  watchlist._
 
 - HS/IHS detected today: **YES**
 
-- HS_TOP reject summary: ls_not_dominant_left:5, no_triplet:2, trend_label:1
+- HS_TOP reject summary: ls_not_dominant_left:8, no_triplet:2, trend_label:1
 
 - IHS reject summary: no_shoulder_candidates:1, no_triplet:1
 
@@ -104,7 +103,9 @@ _Upcoming earnings dates for your  watchlist._
 
 - NU swing-high check (High-based) @ 2026-01-05: ok=False | reason=not_local_max_in_window
 
-  - hit=2026-01-05 00:00:00 (i=152) | High=18.14 | hwin_max=18.37 (count=1) | prom=1.49 vs thr=0.20 (ATR=0.39)
+  - hit=2026-01-05 00:00:00 (i=93) | High=18.14 | hwin_max=18.37 (count=1) | prom=1.49 vs thr=0.20 (ATR=0.39)
+
+- HS detector pivots (Close, window=3): Jan-05 in pivot list? True | pos=152
 
 - Best candidate: **HS_TOP / BREAKDOWN** | Dist(ATR) **-2.17** | Gates: Price **Y**, CLV **N**, Vol **Y** | HS lag **5**
 
@@ -126,7 +127,7 @@ _Upcoming earnings dates for your  watchlist._
 
 - HS/IHS detected today: **YES**
 
-- HS_TOP reject summary: ls_not_dominant_left:3, rs_not_dominant_right:2, no_triplet:2, duration_or_sidebars:1, shoulder_mismatch:1
+- HS_TOP reject summary: ls_not_dominant_left:8, rs_not_dominant_right:8, trend_label:2, shoulder_mismatch:2, duration_or_sidebars:1
 
 - IHS reject summary: no_shoulder_candidates:1, no_triplet:1
 
@@ -170,4 +171,4 @@ _Close enough to pre-plan. “Close enough” = within 0.5 ATR of the trigger (n
 
 **NEW (today):**
 
-<style>table.tblauto{table-layout:auto;width:100%;border-collapse:collapse;margin:8px 0;}table.tblauto th,table.tblauto td{border:1px solid #e5e7eb;padding:6px 8px;vertical-align:top;}table.tblauto th{background:#f6f8fa;font-weight:600;white-space:nowrap;}table.tblauto td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}table.tblauto td.txt{white-space:nowrap;}table.tblauto td.wrap{white-space:normal;}</style><div style="overflow-x:auto"><table class="tblauto"><thead><tr><th>Name of Company</th><th>Tic
+<style>table.tblauto{table-layout:auto;width:100%;border-collapse:collapse;margin:8px 0;}table.tblauto th,table.tblauto td{border:1px solid #e5e7eb;padding:6px 8px;vertical-align:top;}table.tblauto th{background:#f6f8fa;font-weight:600;white-space:nowrap;}table.tblauto td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}table.tblauto td.txt{white-space:nowrap;}table.tblauto td.wrap{white-space:normal;}</style><div style="ove
