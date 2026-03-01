@@ -1,12 +1,12 @@
 # Daily Report
 
-_Generated: **2026-03-01 18:41 CET**_
+_Generated: **2026-03-01 21:21 CET**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Headline: Tech’s AI-led wobble deepened as geopolitics kept oil in focus, even as dealmaking chatter offered a tentative counterpoint. The Nasdaq 100 fell 0.3% and the S&P 500 slid 0.4% while the VIX jumped 6.6%, extending a choppy, risk-averse few weeks for growth stocks (NDX -4.1% over 1M) as WTI rose 2.8%. Biggest movers were Netflix up 13.8%, silver up 7.2% and Nordic American Tankers up 6.1%, while Oklo fell 8.9%, D-Wave Quantum dropped 6.8% and IonQ slid 6.1%.
+Headline: Oil-supply fears around Iran and OPEC+ moves kept geopolitics in focus as the AI-led tech sell-off continued to pressure sentiment. The Nasdaq 100 fell 0.3% and the S&P 500 slid 0.4% while the Vix jumped 6.6%, extending the choppy, risk-averse tape of the past month (NDX -4.1% 1M) even as WTI rose 2.8% on disruption worries. Biggest movers on the watchlist were Netflix up 13.8% and Silver up 7.2%, while Oklo fell 8.9% and D-Wave Quantum dropped 6.8%.
 
 **Key tape (multi-horizon):**
 
@@ -19,13 +19,13 @@ Headline: Tech’s AI-led wobble deepened as geopolitics kept oil in focus, even
 | CAC 40           | 8,580.75  | <span style="color:#b91c1c;">-0.47%</span> | <span style="color:#11823b;">+0.77%</span>  | <span style="color:#11823b;">+6.37%</span>  | <span style="color:#11823b;">+5.64%</span>  | <span style="color:#11823b;">+11.38%</span>  |
 | FTSE 100         | 10,910.60 | <span style="color:#11823b;">+0.59%</span> | <span style="color:#11823b;">+2.09%</span>  | <span style="color:#11823b;">+7.45%</span>  | <span style="color:#11823b;">+12.24%</span> | <span style="color:#11823b;">+18.76%</span>  |
 | VIX              | 19.86     | <span style="color:#11823b;">+6.60%</span> | <span style="color:#11823b;">+4.03%</span>  | <span style="color:#11823b;">+21.47%</span> | <span style="color:#11823b;">+21.47%</span> | <span style="color:#11823b;">+29.30%</span>  |
-| EUR/USD          | 1.18      | <span style="color:#b91c1c;">-0.10%</span> | <span style="color:#11823b;">+0.29%</span>  | <span style="color:#b91c1c;">-1.79%</span>  | <span style="color:#11823b;">+1.75%</span>  | <span style="color:#11823b;">+1.04%</span>   |
+| EUR/USD          | 1.18      | <span style="color:#11823b;">+0.12%</span> | <span style="color:#11823b;">+0.41%</span>  | <span style="color:#b91c1c;">-1.24%</span>  | <span style="color:#11823b;">+1.86%</span>  | <span style="color:#11823b;">+0.87%</span>   |
 | WTI Crude        | 67.02     | <span style="color:#11823b;">+2.78%</span> | <span style="color:#11823b;">+0.95%</span>  | <span style="color:#11823b;">+6.03%</span>  | <span style="color:#11823b;">+14.47%</span> | <span style="color:#11823b;">+4.70%</span>   |
 | Gold             | 5,247.90  | <span style="color:#11823b;">+1.38%</span> | <span style="color:#11823b;">+3.73%</span>  | <span style="color:#b91c1c;">-1.01%</span>  | <span style="color:#11823b;">+24.41%</span> | <span style="color:#11823b;">+51.08%</span>  |
 | Silver           | 93.29     | <span style="color:#11823b;">+7.23%</span> | <span style="color:#11823b;">+13.38%</span> | <span style="color:#b91c1c;">-17.52%</span> | <span style="color:#11823b;">+65.27%</span> | <span style="color:#11823b;">+132.07%</span> |
 | Coffee           | 284.90    | <span style="color:#b91c1c;">-0.38%</span> | <span style="color:#b91c1c;">-1.18%</span>  | <span style="color:#b91c1c;">-18.83%</span> | <span style="color:#b91c1c;">-31.02%</span> | <span style="color:#b91c1c;">-28.21%</span>  |
 | Cocoa            | 2,798.00  | <span style="color:#b91c1c;">-5.92%</span> | <span style="color:#b91c1c;">-9.16%</span>  | <span style="color:#b91c1c;">-32.58%</span> | <span style="color:#b91c1c;">-48.22%</span> | <span style="color:#b91c1c;">-63.35%</span>  |
-| Bitcoin          | 66,070.02 | <span style="color:#b91c1c;">-1.38%</span> | <span style="color:#b91c1c;">-2.35%</span>  | <span style="color:#b91c1c;">-21.47%</span> | <span style="color:#b91c1c;">-23.46%</span> | <span style="color:#b91c1c;">-40.58%</span>  |
+| Bitcoin          | 65,494.79 | <span style="color:#b91c1c;">-2.24%</span> | <span style="color:#b91c1c;">-3.20%</span>  | <span style="color:#b91c1c;">-22.15%</span> | <span style="color:#b91c1c;">-24.13%</span> | <span style="color:#b91c1c;">-41.10%</span>  |
 
 **Macro charts (5Y):**
 
@@ -94,15 +94,17 @@ _Upcoming earnings dates for your  watchlist._
 
 - HS/IHS detected today: **YES**
 
-- HS_TOP reject summary: head_not_global:1106, missing_between_post_snap:34, duration_or_sidebars:34, no_triplet:1
+- HS_TOP reject summary: head_not_global:786, ls_not_max_prehead:30, no_triplet:1
 
-- IHS reject summary: head_not_global:455, no_triplet:1
+- IHS reject summary: head_not_global:665, time_symmetry:15, no_triplet:1
 
-- NU swing-high check @ 2026-01-05: ok=False | reason=not_local_max_in_window
+- NU swing-high check (Close-based) @ 2026-01-05: ok=True | reason=None
+
+  - hit=2026-01-05 00:00:00 (i=93) | Close=17.94 | cwin_max=17.94 (count=1) | prom=1.29 vs thr=0.20 (ATR=0.39)
+
+- NU swing-high check (High-based) @ 2026-01-05: ok=False | reason=not_local_max_in_window
 
   - hit=2026-01-05 00:00:00 (i=152) | High=18.14 | hwin_max=18.37 (count=1) | prom=1.49 vs thr=0.20 (ATR=0.39)
-
-- NU duration gate (HS_MIN_BARS=30): most-recent rejected snapped candidate LS=2026-01-28 00:00:00 → RS=2026-02-03 00:00:00 span=4 bars (dL=1, dR=3, ratio=0.33)
 
 - Best candidate: **HS_TOP / BREAKDOWN** | Dist(ATR) **-2.17** | Gates: Price **Y**, CLV **N**, Vol **Y** | HS lag **5**
 
@@ -112,9 +114,9 @@ _Upcoming earnings dates for your  watchlist._
 
   - LS/H/RS geometry (ts): LS=2025-12-11T00:00:00, H=2026-01-29T00:00:00, RS=2026-02-20T00:00:00
 
-  - Pre-head maxClose between (LS,H): 18.76 at 2026-01-28 00:00:00 | LS_Close=16.82
+  - Pre-head maxClose (swing pivot) between (LS,H): 18.76 at 2026-01-28 00:00:00 | LS_Close=16.82
 
-  - Post-head maxClose between (H,RS): 18.12 at 2026-02-03 00:00:00 | RS_Close=17.53
+  - Post-head maxClose (swing pivot) between (H,RS): 17.57 at 2026-02-10 00:00:00 | RS_Close=17.53
 
 <img src='img/NU_FOCUS_HS_TOP_BREAKDOWN.png' width='980' style='max-width:980px;height:auto;'>
 
@@ -124,7 +126,7 @@ _Upcoming earnings dates for your  watchlist._
 
 - HS/IHS detected today: **YES**
 
-- HS_TOP reject summary: head_not_global:1050, missing_between_post_snap:90, time_symmetry:90, no_triplet:1
+- HS_TOP reject summary: head_not_global:1231, duration_or_sidebars:99, no_triplet:1
 
 - IHS reject summary: head_not_global:816, no_triplet:1
 
@@ -136,9 +138,9 @@ _Upcoming earnings dates for your  watchlist._
 
   - LS/H/RS geometry (ts): LS=2025-09-23T00:00:00, H=2025-12-04T00:00:00, RS=2026-01-15T00:00:00
 
-  - Pre-head maxClose between (LS,H): 403.95 at 2025-10-15 00:00:00 | LS_Close=336.65
+  - Pre-head maxClose (swing pivot) between (LS,H): 403.95 at 2025-10-15 00:00:00 | LS_Close=336.65
 
-  - Post-head maxClose between (H,RS): 378.60 at 2025-12-11 00:00:00 | RS_Close=341.20
+  - Post-head maxClose (swing pivot) between (H,RS): 378.60 at 2025-12-11 00:00:00 | RS_Close=341.20
 
 <img src='img/CEG_FOCUS_HS_TOP_BREAKDOWN.png' width='980' style='max-width:980px;height:auto;'>
 
@@ -203,16 +205,16 @@ _Includes **VALIDATED** only: breakout/breakdown occurred **3 sessions ago** AND
 
 _Linked digest for drill-down._
 
+- [OPEC+ boosts oil production after attacks on Iran and throughout region](https://finance.yahoo.com/news/opec-boosts-oil-production-attacks-195550407.html) — Yahoo Finance Top Stories
 - [Tesla's China EV Rivals Hit By Lunar New Year Holidays, But Nio Stands Out](https://www.investors.com/news/teslas-china-ev-rivals-byd-xpeng-xiaomi-lunar-new-year-nio-strong/?src=A00220&yptr=yahoo) — Yahoo Finance Top Stories
-- [Cognizant (CTSH) Partners With Google Cloud to Scale Agentic AI](https://finance.yahoo.com/news/cognizant-ctsh-partners-google-cloud-150511541.html) — Yahoo Finance Top Stories
-- [Stocks face Iran jitters and a crucial jobs report in the week ahead as AI layoffs loom large](https://www.marketwatch.com/story/stocks-face-iran-jitters-and-a-crucial-jobs-report-in-the-week-ahead-as-ai-layoffs-loom-large-5da09c93?mod=mw_rss_topstories) — MarketWatch Top Stories
-- [Has the retail industry rebounded? We’ll find out this week from Target, Costco, Best Buy and others’ earnings](https://www.marketwatch.com/story/has-the-retail-industry-rebounded-well-find-out-this-week-from-target-costco-best-buy-and-others-earnings-4ea65430?mod=mw_rss_topstories) — MarketWatch Top Stories
-- [Iran conflict risks Strait of Hormuz standstill and sparks talk of $100-a-barrel oil](https://www.marketwatch.com/story/iran-conflict-raises-talk-of-a-return-to-100-a-barrel-oil-63bbc1b3?mod=mw_rss_topstories) — MarketWatch Top Stories
-- [As investors wait for crude-oil trading to reopen amid Iran conflict, shares of the world’s biggest producer are climbing](https://www.marketwatch.com/story/as-investors-wait-for-crude-oil-trading-to-reopen-amid-iran-conflict-shares-of-the-worlds-biggest-producer-are-climbing-dd812149?mod=mw_rss_topstories) — MarketWatch Top Stories
-- [A big AI worry? It will destroy old jobs faster than it creates new ones. The only thing lacking is proof.](https://www.marketwatch.com/story/a-big-ai-worry-it-will-destroy-old-jobs-faster-than-it-creates-new-ones-the-only-thing-lacking-is-proof-617e27cf?mod=mw_rss_topstories) — MarketWatch Top Stories
 - [Stocks Sink in Broad AI Rout Sparked by China's DeepSeek](https://www.wsj.com/articles/nikkei-may-rise-as-weak-yen-raises-earnings-hopes-776a8056?mod=rss_markets_main) — WSJ Markets
 - [Oil price expected to surge after Iran strikes and strait of Hormuz closure](https://www.theguardian.com/business/2026/mar/01/oil-price-surge-iran-us-israel-strikes-markets) — The Guardian Business
 - [What is the strait of Hormuz and why is it crucial for oil supplies?](https://www.theguardian.com/business/2026/mar/01/us-israel-strikes-iran-oil-price) — The Guardian Business
+- [Waiting on a tariff refund after Trump’s duties were struck down? Don’t bother | Gene Marks](https://www.theguardian.com/business/2026/mar/01/trump-tariffs-business-refund-supreme-court) — The Guardian Business
+- [Dow Jones Futures, Oil Prices Loom; Trump Says Iran's New Leaders 'Want To Talk'](https://www.investors.com/market-trend/stock-market-today/trump-us-israel-massive-attacks-iran-dow-jones-futures-oil-prices/?src=A00220&yptr=yahoo) — Yahoo Finance Top Stories
+- ["A stark contrast": Wall Street weighs winners and losers amid AI-driven tech sell-off](https://finance.yahoo.com/news/a-stark-contrast-wall-street-weighs-winners-and-losers-amid-ai-driven-tech-sell-off-160017420.html) — Yahoo Finance Top Stories
+- [U.S. crude oil set to top $70 a barrel when trading begins on fears of Iran supply disruption](https://www.cnbc.com/2026/03/01/crude-oil-futures-iran.html) — CNBC Top News
+- [$100 oil? Prolonged Hormuz closure could spark a 1970s-style energy shock](https://www.cnbc.com/2026/03/01/experts-weigh-potential-scenarios-for-oil-if-strait-of-hormuz-closes.html) — CNBC Top News
 
 ## 6) Watchlist performance (all tickers)
 
