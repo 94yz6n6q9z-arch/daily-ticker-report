@@ -1,12 +1,12 @@
 # Daily Report
 
-_Generated: **2026-03-01 17:04 CET**_
+_Generated: **2026-03-01 18:41 CET**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Headline: AI-linked tech remained under pressure as investors weighed an “AI-driven tech sell-off” against fresh agentic-AI dealmaking, while oil-risk chatter around a potential Hormuz disruption kept macro nerves elevated. The Nasdaq 100 fell 0.3% and the S&P 500 slid 0.4% as the Vix jumped 6.6%, extending the choppy, risk-sensitive tape of the past month (NDX -4.1% 1M). Biggest movers were Netflix up 13.8%, NAT up 6.1% and SI=F up 7.2%, while Oklo fell 8.9%, QBTS dropped 6.8% and IONQ lost 6.1%.
+Headline: Tech’s AI-led wobble deepened as geopolitics kept oil in focus, even as dealmaking chatter offered a tentative counterpoint. The Nasdaq 100 fell 0.3% and the S&P 500 slid 0.4% while the VIX jumped 6.6%, extending a choppy, risk-averse few weeks for growth stocks (NDX -4.1% over 1M) as WTI rose 2.8%. Biggest movers were Netflix up 13.8%, silver up 7.2% and Nordic American Tankers up 6.1%, while Oklo fell 8.9%, D-Wave Quantum dropped 6.8% and IonQ slid 6.1%.
 
 **Key tape (multi-horizon):**
 
@@ -25,7 +25,7 @@ Headline: AI-linked tech remained under pressure as investors weighed an “AI-d
 | Silver           | 93.29     | <span style="color:#11823b;">+7.23%</span> | <span style="color:#11823b;">+13.38%</span> | <span style="color:#b91c1c;">-17.52%</span> | <span style="color:#11823b;">+65.27%</span> | <span style="color:#11823b;">+132.07%</span> |
 | Coffee           | 284.90    | <span style="color:#b91c1c;">-0.38%</span> | <span style="color:#b91c1c;">-1.18%</span>  | <span style="color:#b91c1c;">-18.83%</span> | <span style="color:#b91c1c;">-31.02%</span> | <span style="color:#b91c1c;">-28.21%</span>  |
 | Cocoa            | 2,798.00  | <span style="color:#b91c1c;">-5.92%</span> | <span style="color:#b91c1c;">-9.16%</span>  | <span style="color:#b91c1c;">-32.58%</span> | <span style="color:#b91c1c;">-48.22%</span> | <span style="color:#b91c1c;">-63.35%</span>  |
-| Bitcoin          | 66,937.49 | <span style="color:#b91c1c;">-0.09%</span> | <span style="color:#b91c1c;">-1.07%</span>  | <span style="color:#b91c1c;">-20.43%</span> | <span style="color:#b91c1c;">-22.46%</span> | <span style="color:#b91c1c;">-39.80%</span>  |
+| Bitcoin          | 66,070.02 | <span style="color:#b91c1c;">-1.38%</span> | <span style="color:#b91c1c;">-2.35%</span>  | <span style="color:#b91c1c;">-21.47%</span> | <span style="color:#b91c1c;">-23.46%</span> | <span style="color:#b91c1c;">-40.58%</span>  |
 
 **Macro charts (5Y):**
 
@@ -94,6 +94,16 @@ _Upcoming earnings dates for your  watchlist._
 
 - HS/IHS detected today: **YES**
 
+- HS_TOP reject summary: head_not_global:1106, missing_between_post_snap:34, duration_or_sidebars:34, no_triplet:1
+
+- IHS reject summary: head_not_global:455, no_triplet:1
+
+- NU swing-high check @ 2026-01-05: ok=False | reason=not_local_max_in_window
+
+  - hit=2026-01-05 00:00:00 (i=152) | High=18.14 | hwin_max=18.37 (count=1) | prom=1.49 vs thr=0.20 (ATR=0.39)
+
+- NU duration gate (HS_MIN_BARS=30): most-recent rejected snapped candidate LS=2026-01-28 00:00:00 → RS=2026-02-03 00:00:00 span=4 bars (dL=1, dR=3, ratio=0.33)
+
 - Best candidate: **HS_TOP / BREAKDOWN** | Dist(ATR) **-2.17** | Gates: Price **Y**, CLV **N**, Vol **Y** | HS lag **5**
 
   - Gate inputs: CLV=0.11999893188476562 | VolRatio=2.1237622474130693
@@ -102,9 +112,9 @@ _Upcoming earnings dates for your  watchlist._
 
   - LS/H/RS geometry (ts): LS=2025-12-11T00:00:00, H=2026-01-29T00:00:00, RS=2026-02-20T00:00:00
 
-  - Pre-head maxClose between (LS,H): 16.30 at 2025-09-22 00:00:00 | LS_Close=15.99
+  - Pre-head maxClose between (LS,H): 18.76 at 2026-01-28 00:00:00 | LS_Close=16.82
 
-  - Post-head maxClose between (H,RS): 16.39 at 2025-11-11 00:00:00 | RS_Close=15.92
+  - Post-head maxClose between (H,RS): 18.12 at 2026-02-03 00:00:00 | RS_Close=17.53
 
 <img src='img/NU_FOCUS_HS_TOP_BREAKDOWN.png' width='980' style='max-width:980px;height:auto;'>
 
@@ -114,6 +124,10 @@ _Upcoming earnings dates for your  watchlist._
 
 - HS/IHS detected today: **YES**
 
+- HS_TOP reject summary: head_not_global:1050, missing_between_post_snap:90, time_symmetry:90, no_triplet:1
+
+- IHS reject summary: head_not_global:816, no_triplet:1
+
 - Best candidate: **HS_TOP / BREAKDOWN** | Dist(ATR) **+0.61** | Gates: Price **N**, CLV **N**, Vol **N** | HS lag **29**
 
   - Gate inputs: CLV=0.9540953619556655 | VolRatio=0.8032524619589796
@@ -122,9 +136,9 @@ _Upcoming earnings dates for your  watchlist._
 
   - LS/H/RS geometry (ts): LS=2025-09-23T00:00:00, H=2025-12-04T00:00:00, RS=2026-01-15T00:00:00
 
-  - Pre-head maxClose between (LS,H): 354.89 at 2025-08-04 00:00:00 | LS_Close=322.76
+  - Pre-head maxClose between (LS,H): 403.95 at 2025-10-15 00:00:00 | LS_Close=336.65
 
-  - Post-head maxClose between (H,RS): 403.95 at 2025-10-15 00:00:00 | RS_Close=358.79
+  - Post-head maxClose between (H,RS): 378.60 at 2025-12-11 00:00:00 | RS_Close=341.20
 
 <img src='img/CEG_FOCUS_HS_TOP_BREAKDOWN.png' width='980' style='max-width:980px;height:auto;'>
 
@@ -189,16 +203,16 @@ _Includes **VALIDATED** only: breakout/breakdown occurred **3 sessions ago** AND
 
 _Linked digest for drill-down._
 
+- [Tesla's China EV Rivals Hit By Lunar New Year Holidays, But Nio Stands Out](https://www.investors.com/news/teslas-china-ev-rivals-byd-xpeng-xiaomi-lunar-new-year-nio-strong/?src=A00220&yptr=yahoo) — Yahoo Finance Top Stories
 - [Cognizant (CTSH) Partners With Google Cloud to Scale Agentic AI](https://finance.yahoo.com/news/cognizant-ctsh-partners-google-cloud-150511541.html) — Yahoo Finance Top Stories
+- [Stocks face Iran jitters and a crucial jobs report in the week ahead as AI layoffs loom large](https://www.marketwatch.com/story/stocks-face-iran-jitters-and-a-crucial-jobs-report-in-the-week-ahead-as-ai-layoffs-loom-large-5da09c93?mod=mw_rss_topstories) — MarketWatch Top Stories
 - [Has the retail industry rebounded? We’ll find out this week from Target, Costco, Best Buy and others’ earnings](https://www.marketwatch.com/story/has-the-retail-industry-rebounded-well-find-out-this-week-from-target-costco-best-buy-and-others-earnings-4ea65430?mod=mw_rss_topstories) — MarketWatch Top Stories
 - [Iran conflict risks Strait of Hormuz standstill and sparks talk of $100-a-barrel oil](https://www.marketwatch.com/story/iran-conflict-raises-talk-of-a-return-to-100-a-barrel-oil-63bbc1b3?mod=mw_rss_topstories) — MarketWatch Top Stories
 - [As investors wait for crude-oil trading to reopen amid Iran conflict, shares of the world’s biggest producer are climbing](https://www.marketwatch.com/story/as-investors-wait-for-crude-oil-trading-to-reopen-amid-iran-conflict-shares-of-the-worlds-biggest-producer-are-climbing-dd812149?mod=mw_rss_topstories) — MarketWatch Top Stories
 - [A big AI worry? It will destroy old jobs faster than it creates new ones. The only thing lacking is proof.](https://www.marketwatch.com/story/a-big-ai-worry-it-will-destroy-old-jobs-faster-than-it-creates-new-ones-the-only-thing-lacking-is-proof-617e27cf?mod=mw_rss_topstories) — MarketWatch Top Stories
 - [Stocks Sink in Broad AI Rout Sparked by China's DeepSeek](https://www.wsj.com/articles/nikkei-may-rise-as-weak-yen-raises-earnings-hopes-776a8056?mod=rss_markets_main) — WSJ Markets
-- [Oil price expected to surge following Iran strikes and strait of Hormuz closure](https://www.theguardian.com/business/2026/mar/01/oil-price-surge-iran-us-israel-strikes-markets) — The Guardian Business
-- [Waiting on a tariff refund after Trump’s duties were struck down? Don’t bother | Gene Marks](https://www.theguardian.com/business/2026/mar/01/trump-tariffs-business-refund-supreme-court) — The Guardian Business
-- ["A stark contrast": Wall Street weighs winners and losers amid AI-driven tech sell-off](https://finance.yahoo.com/news/a-stark-contrast-wall-street-weighs-winners-and-losers-amid-ai-driven-tech-sell-off-160017420.html) — Yahoo Finance Top Stories
-- [Wells Fargo Raises Globe Life (GL) Target, Keeps Overweight Rating](https://finance.yahoo.com/news/wells-fargo-raises-globe-life-150514746.html) — Yahoo Finance Top Stories
+- [Oil price expected to surge after Iran strikes and strait of Hormuz closure](https://www.theguardian.com/business/2026/mar/01/oil-price-surge-iran-us-israel-strikes-markets) — The Guardian Business
+- [What is the strait of Hormuz and why is it crucial for oil supplies?](https://www.theguardian.com/business/2026/mar/01/us-israel-strikes-iran-oil-price) — The Guardian Business
 
 ## 6) Watchlist performance (all tickers)
 
