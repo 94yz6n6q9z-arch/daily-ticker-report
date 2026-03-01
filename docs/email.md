@@ -1,12 +1,12 @@
 # Daily Report
 
-_Generated: **2026-03-01 02:22 CET**_
+_Generated: **2026-03-01 10:43 CET**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Headline: AI-disruption fears broadened from software into financials as geopolitics kept energy in focus. The Nasdaq 100 fell 0.3% and the S&P 500 slid 0.4% while the VIX jumped 6.6%, extending the choppy, risk-sensitive tape of the past month (NDX -4.1% 1M) even as WTI rose 2.8% amid attention on potential fallout for the oil market. Biggest movers were Netflix up 13.8%, silver up 6.5% and Nordic American Tankers up 6.1%, while Oklo fell 8.9%, D-Wave Quantum dropped 6.8% and IonQ slid 6.1%.
+Headline: Equities stayed on the back foot as investors weighed tech/earnings updates against renewed geopolitical oil-market anxiety and tariff talk. The Nasdaq 100 fell 0.3% and the S&P 500 slid 0.4% while the Vix jumped 6.6%, extending the choppy, risk-sensitive tape of recent weeks (NDX -4.1% over 1M); biggest movers were Netflix up 13.8% and NAT up 6.1%, while Oklo fell 8.9% and QBTS dropped 6.8%.
 
 **Key tape (multi-horizon):**
 
@@ -21,11 +21,11 @@ Headline: AI-disruption fears broadened from software into financials as geopoli
 | VIX              | 19.86     | <span style="color:#11823b;">+6.60%</span> | <span style="color:#11823b;">+4.03%</span>  | <span style="color:#11823b;">+21.47%</span> | <span style="color:#11823b;">+21.47%</span> | <span style="color:#11823b;">+29.30%</span>  |
 | EUR/USD          | 1.18      | <span style="color:#b91c1c;">-0.10%</span> | <span style="color:#11823b;">+0.29%</span>  | <span style="color:#b91c1c;">-1.79%</span>  | <span style="color:#11823b;">+1.75%</span>  | <span style="color:#11823b;">+1.04%</span>   |
 | WTI Crude        | 67.02     | <span style="color:#11823b;">+2.78%</span> | <span style="color:#11823b;">+0.95%</span>  | <span style="color:#11823b;">+6.03%</span>  | <span style="color:#11823b;">+14.47%</span> | <span style="color:#11823b;">+4.70%</span>   |
-| Gold             | 5,230.50  | <span style="color:#11823b;">+1.04%</span> | <span style="color:#11823b;">+3.38%</span>  | <span style="color:#b91c1c;">-1.34%</span>  | <span style="color:#11823b;">+24.00%</span> | <span style="color:#11823b;">+50.57%</span>  |
-| Silver           | 92.68     | <span style="color:#11823b;">+6.53%</span> | <span style="color:#11823b;">+12.64%</span> | <span style="color:#b91c1c;">-18.06%</span> | <span style="color:#11823b;">+64.20%</span> | <span style="color:#11823b;">+130.55%</span> |
-| Coffee           | 284.60    | <span style="color:#b91c1c;">-0.49%</span> | <span style="color:#b91c1c;">-1.28%</span>  | <span style="color:#b91c1c;">-18.92%</span> | <span style="color:#b91c1c;">-31.09%</span> | <span style="color:#b91c1c;">-28.29%</span>  |
+| Gold             | 5,247.90  | <span style="color:#11823b;">+1.38%</span> | <span style="color:#11823b;">+3.73%</span>  | <span style="color:#b91c1c;">-1.01%</span>  | <span style="color:#11823b;">+24.41%</span> | <span style="color:#11823b;">+51.08%</span>  |
+| Silver           | 93.29     | <span style="color:#11823b;">+7.23%</span> | <span style="color:#11823b;">+13.38%</span> | <span style="color:#b91c1c;">-17.52%</span> | <span style="color:#11823b;">+65.27%</span> | <span style="color:#11823b;">+132.07%</span> |
+| Coffee           | 284.90    | <span style="color:#b91c1c;">-0.38%</span> | <span style="color:#b91c1c;">-1.18%</span>  | <span style="color:#b91c1c;">-18.83%</span> | <span style="color:#b91c1c;">-31.02%</span> | <span style="color:#b91c1c;">-28.21%</span>  |
 | Cocoa            | 2,798.00  | <span style="color:#b91c1c;">-5.92%</span> | <span style="color:#b91c1c;">-9.16%</span>  | <span style="color:#b91c1c;">-32.58%</span> | <span style="color:#b91c1c;">-48.22%</span> | <span style="color:#b91c1c;">-63.35%</span>  |
-| Bitcoin          | 66,301.91 | <span style="color:#11823b;">+0.64%</span> | <span style="color:#b91c1c;">-2.01%</span>  | <span style="color:#b91c1c;">-21.19%</span> | <span style="color:#b91c1c;">-23.19%</span> | <span style="color:#b91c1c;">-40.38%</span>  |
+| Bitcoin          | 66,348.57 | <span style="color:#b91c1c;">-0.97%</span> | <span style="color:#b91c1c;">-1.94%</span>  | <span style="color:#b91c1c;">-21.13%</span> | <span style="color:#b91c1c;">-23.14%</span> | <span style="color:#b91c1c;">-40.33%</span>  |
 
 **Macro charts (5Y):**
 
@@ -39,7 +39,7 @@ Headline: AI-disruption fears broadened from software into financials as geopoli
 | Ticker   | pct     |
 | :--- | ---: |
 | NFLX     | +13.77% |
-| SI=F     | +6.53%  |
+| SI=F     | +7.23%  |
 | NAT      | +6.11%  |
 | INSW     | +4.16%  |
 
@@ -98,6 +98,14 @@ _Upcoming earnings dates for your  watchlist._
 
   - Gate inputs: CLV=0.11999893188476562 | VolRatio=2.1237622474130693
 
+  - LS/H/RS geometry (idx): LS=78, H=110, RS=125
+
+  - LS/H/RS geometry (ts): LS=2025-12-11T00:00:00, H=2026-01-29T00:00:00, RS=2026-02-20T00:00:00
+
+  - Pre-head maxClose between (LS,H): 8.18 at 2023-07-13 00:00:00 | LS_Close=7.71
+
+  - Post-head maxClose between (H,RS): 7.99 at 2023-08-08 00:00:00 | RS_Close=6.96
+
 <img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/NU_FOCUS_HS_TOP_BREAKDOWN.png' width='980' style='max-width:980px;height:auto;'>
 
 
@@ -109,6 +117,14 @@ _Upcoming earnings dates for your  watchlist._
 - Best candidate: **HS_TOP / BREAKDOWN** | Dist(ATR) **+0.61** | Gates: Price **N**, CLV **N**, Vol **N** | HS lag **29**
 
   - Gate inputs: CLV=0.9540953619556655 | VolRatio=0.8032524619589796
+
+  - LS/H/RS geometry (idx): LS=22, H=73, RS=101
+
+  - LS/H/RS geometry (ts): LS=2025-09-23T00:00:00, H=2025-12-04T00:00:00, RS=2026-01-15T00:00:00
+
+  - Pre-head maxClose between (LS,H): 93.75 at 2023-06-12 00:00:00 | LS_Close=76.82
+
+  - Post-head maxClose between (H,RS): 96.89 at 2023-07-20 00:00:00 | RS_Close=97.52
 
 <img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/CEG_FOCUS_HS_TOP_BREAKDOWN.png' width='980' style='max-width:980px;height:auto;'>
 
@@ -201,16 +217,16 @@ _Includes **VALIDATED** only: breakout/breakdown occurred **3 sessions ago** AND
 
 _Linked digest for drill-down._
 
-- [Dorsey's blunt AI warning sharpens debate over jobs and profits](https://finance.yahoo.com/news/dorseys-blunt-ai-warning-sharpens-185617222.html) — Yahoo Finance Top Stories
 - [Trump said tariffs could someday 'substantially replace' income taxes. What policy experts say](https://www.cnbc.com/2026/02/27/trump-tariffs-income-taxes.html) — CNBC Top News
 - [Stocks Sink in Broad AI Rout Sparked by China's DeepSeek](https://www.wsj.com/articles/nikkei-may-rise-as-weak-yen-raises-earnings-hopes-776a8056?mod=rss_markets_main) — WSJ Markets
 - [The real winners of Trump’s global tariff war: law firms, hedge funds and AI](https://www.theguardian.com/us-news/2026/feb/28/trump-tariffs-refunds-law-firms) — The Guardian Business
-- [Is AMD a Buy After Meta Deal?](https://finance.yahoo.com/news/amd-buy-meta-deal-185000599.html) — Yahoo Finance Top Stories
+- [Cloudflare (NET) Gains Upgrade Following Strong Q4 Execution and Growth](https://finance.yahoo.com/news/cloudflare-net-gains-upgrade-following-050434009.html) — Yahoo Finance Top Stories
+- [DoubleVerify Q4 Earnings Call Highlights](https://finance.yahoo.com/news/doubleverify-q4-earnings-call-highlights-050707280.html) — Yahoo Finance Top Stories
+- [DiamondRock Hospitality Q4 Earnings Call Highlights](https://finance.yahoo.com/news/diamondrock-hospitality-q4-earnings-call-050707160.html) — Yahoo Finance Top Stories
+- [Citi Cuts Accenture (ACN) Price Target to $215 as Firm Strengthens AI Strategy with Mistral AI](https://finance.yahoo.com/news/citi-cuts-accenture-acn-price-043716444.html) — Yahoo Finance Top Stories
+- [RBC Sees Improving Credit Outlook for The Bank of Nova Scotia (BNS), Raises Price Objective](https://finance.yahoo.com/news/rbc-sees-improving-credit-outlook-043708388.html) — Yahoo Finance Top Stories
+- [Diana Shipping Q4 Earnings Call Highlights](https://finance.yahoo.com/news/diana-shipping-q4-earnings-call-050707229.html) — Yahoo Finance Top Stories
 - [How the attack on Iran could impact the global oil market and economy](https://www.cnbc.com/2026/02/28/iran-us-attack-oil-market-economy.html) — CNBC Top News
-- [Berkshire Hathaway operating earnings fell nearly 30% in Warren Buffett's final quarter as CEO](https://www.cnbc.com/2026/02/28/berkshire-hathaway-brka-q4-2025-earnings.html) — CNBC Top News
-- [Anthropic's Claude hits No. 1 on Apple's top free apps list after Pentagon rejection](https://www.cnbc.com/2026/02/28/anthropics-claude-apple-apps.html) — CNBC Top News
-- [OpenAI strikes deal with Pentagon, hours after rival Anthropic was blacklisted by Trump](https://www.cnbc.com/2026/02/27/openai-strikes-deal-with-pentagon-hours-after-rival-anthropic-was-blacklisted-by-trump.html) — CNBC Top News
-- [With free storage at max from Google to Shutterfly to Snap, the price for your memories is rising](https://www.cnbc.com/2026/02/28/cloud-storage-prices-apple-icloud-google-snap-shutterfly.html) — CNBC Top News
 
 ## 6) Watchlist performance (all tickers)
 
@@ -254,4 +270,4 @@ Columns: **Name of Company | Ticker | Country | Sector | Close | Day% | CLV | AT
 
 ### Commodities
 
-<style>table.tblauto{table-layout:auto;width:100%;border-collapse:collapse;margin:8px 0;}table.tblauto th,table.tblauto td{border:1px solid #e5e7eb;padding:6px 8px;vertical-align:top;}table.tblauto th{background:#f6f8fa;font-weight:600;white-space:nowrap;}table.tblauto td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}table.tblauto td.txt{white-space:nowrap;}table.tblauto td.wrap{white-space:normal;}</style><div style="overflow-x:auto"><table class="tblauto"><thead><tr><th>Name of Company</th><th>Ticker</th><th>Country</th><th>Sector</th><th>Close</th><th>Day%</th><th>CLV</th><th>ATR(14)</th><th>ATR Δ14d</th><th>Vol/AvgVol20</th><th>1D</th><th>7D</th><th>1M</th><th>3M</th></tr></thead><tbody><tr><td class="wrap">GOLD</td><td class="txt">GC=F</td><td class="txt"></td><td class="txt">Commodities</td><td class="num">5,230.50</td><td class="num">+1.0%</td><td class="num">+0.04</td><td class="num">104.62</td><td class="num">-59.0%</td><td class="num">0.58×</td><td class="num">+1.0%</td><td class="num">+3.4%</td><td class="num">-1.3%</td><td class="num">+26.4%</td></tr><tr><td class="wrap">SILVER</td><td class="txt">SI=F</td><td class="txt"></td><td class="txt">Commodities</td><td class="num">92.68</td><td class="num">+6.5%</td><td class="num">+0.60</td><td class="num">4.68</td><td class="num">-61.3%</td><td class="num">2.75×</td><td class="num">+6.5%</td><td class="num">+12.6%</td><td class="num">-18.1%</td><td class="num">+82.0%</td></tr><tr><td class="wrap">COFFEE</td><td class="txt">KC=F</td><td class="txt"></td><td class="txt">Commodities</td><td class="num">284.60</td><td class="num">-0.5%</td><td class="num">-1.00</td><td class="num">8.14</td><td class="num">-36.2%</td><td class="num">0.00×</td><td class="num">-0.5%</td><td class="num">-1.3%</td><td class="num">-18.9%</td><td class="num">-31.3%</td></tr><tr><td class="wrap">COCOA</td><td class="txt">CC=F</td><td class="txt"></td><td class="txt">Commodities</td><td class="num">2,798.00</td><td class="num">-5.9%</td><td class="num"></td><td class="num">170.36</td><td class="num">-38.3%</td><td class="num">0.00×</td><td class="num">-5.9%</td><td class="num">-9.2%</td><td class="num">-32.6%</td><td class="num">-44.0%</td></tr></tbody></table></div>
+<style>table.tblauto{table-layout:auto;width:100%;border-collapse:collapse;margin:8px 0;}table.tblauto th,table.tblauto td{border:1px solid #e5e7eb;padding:6px 8px;vertical-align:top;}table.tblauto th{background:#f6f8fa;font-weight:600;white-space:nowrap;}table.tblauto td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}table.tblauto td.txt{white-space:nowrap;}table.tblauto td.wrap{white-space:normal;}</style><div style="overflow-x:auto"><table class="tblauto"><thead><tr><th>Name of Company</th><th>Ticker</th><th>Country</th><th>Sector</th><th>Close</th><th>Day%</th><th>CLV</th><th>ATR(14)</th><th>ATR Δ14d</th><th>Vol/AvgVol20</th><th>1D</th><th>7D</th><th>1M</th><th>3M</th></tr></thead><tbody><tr><td class="wrap">GOLD</td><td class="txt">GC=F</td><td class="txt"></td><td class="txt">Commodities</td><td class="num">5,247.90</td><td class="num">+1.4%</td><td class="num">+0.12</td><td class="num">105.98</td><td class="num">-58.5%</td><td class="num">55.63×</td><td class="num">+1.4%</td><td class="num">+3.7%</td><td class="num">-1.0%</td><td class="num">+26.8%</td></tr><tr><td class="wrap">SILVER</td><td class="txt">SI=F</td><td class="txt"></td><td class="txt">Commodities</td><td class="num">93.29</td><td class="num">+7.2%</td><td class="num">+0.54</td><td class="num">4.74</td><td class="num">-60.8%</td><td class="num">21.56×</td><td class="num">+7.2%</td><td class="num">+13.4%</td><td class="num">-17.5%</td><td class="num">+83.2%</td></tr><tr><td class="wrap">COFFEE</td><td class="txt">KC=F</td><td class="txt"></td><td class="txt">Commodities</td><td class="num">284.90</td><td class="num">-0.4%</td><td class="num">+1.00</td><td class="num">8.73</td><td class="num">-31.6%</td><td class="num">1.07×</td><td class="num">-0.4%</td><td class="num">-1.2%</td><td class="num">-18.8%</td><td class="num">-31.2%</td></tr><tr><td class="wrap">COCOA</td><td class="txt">CC=F</td><td class="txt"></td><td class="txt">Commodities</td><td class="num">2,798.00</td><td class="num">-5.9%</td><td class="num"></td><td class="num">170.36</td><td class="num">-38.3%</td><td class="num">0.00×</td><td class="num">-5.9%</td><td class="num">-9.2%</td><td class="num">-32.6%</td><td class="num">-44.0%</td></tr></tbody></table></div>
