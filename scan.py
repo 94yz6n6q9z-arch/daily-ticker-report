@@ -104,6 +104,10 @@ NAME_OVERRIDES = {
     "NU": "NU HOLDINGS LTD.",
     "SMR": "NUSCALE POWER CORP.",
     "TNK": "TEEKAY TANKERS LTD.",
+    "GC=F": "GOLD",
+    "SI=F": "SILVER",
+    "KC=F": "COFFEE",
+    "CC=F": "COCOA",
 }
 
 WATCHLIST_GROUPS: Dict[str, List[str]] = {
@@ -3240,10 +3244,20 @@ def _pick_recent_hs_triplet(
     best = None
     best_score = -1e18
 
+    # Head anchor: enforce H to be the absolute extreme close of the window (deterministic).
+    try:
+        head_target = int(np.nanargmin(c.values)) if inverse else int(np.nanargmax(c.values))
+    except Exception:
+        head_target = None
+
     for a_i in range(0, len(pivots_primary) - 2):
         for b_i in range(a_i + 1, len(pivots_primary) - 1):
             for c_i in range(b_i + 1, len(pivots_primary)):
                 p1, p2, p3 = pivots_primary[a_i], pivots_primary[b_i], pivots_primary[c_i]
+                # Require head pivot (p2) to coincide with the global extreme close (±1 bar tolerance)
+                if head_target is not None and abs(int(p2) - int(head_target)) > 1:
+                    bump('head_not_global')
+                    continue
                 # Need intervening opposite pivots
                 between1 = [x for x in pivots_between if p1 < x < p2]
                 between2 = [x for x in pivots_between if p2 < x < p3]
@@ -6204,17 +6218,20 @@ def main():
                                 ls_i = int(pLS.get("i")); h_i = int(pH.get("i")); rs_i = int(pRS.get("i"))
                                 md.append(f"  - LS/H/RS geometry (idx): LS={ls_i}, H={h_i}, RS={rs_i}\n")
                                 md.append(f"  - LS/H/RS geometry (ts): LS={pLS.get('t')}, H={pH.get('t')}, RS={pRS.get('t')}\n")
+                                # Use the same local window as detectors (avoids index mismatch vs plotted 6-month window)
+                                d_local = df_ft.tail(LOOKBACK_DAYS).dropna(subset=["Open","High","Low","Close"]).copy()
+                                d_local = _latest_completed_close_df(d_local)
                                 # max close between LS..H (exclusive)
                                 if h_i > ls_i + 1:
-                                    seg = df_ft["Close"].iloc[ls_i+1:h_i]
+                                    seg = d_local["Close"].iloc[ls_i+1:h_i]
                                     if len(seg):
                                         j = int(seg.values.argmax()) + (ls_i + 1)
-                                        md.append(f"  - Pre-head maxClose between (LS,H): {float(seg.max()):.2f} at {df_ft.index[j]} | LS_Close={float(df_ft['Close'].iloc[ls_i]):.2f}\n")
+                                        md.append(f"  - Pre-head maxClose between (LS,H): {float(seg.max()):.2f} at {d_local.index[j]} | LS_Close={float(d_local['Close'].iloc[ls_i]):.2f}\n")
                                 if rs_i > h_i + 1:
-                                    seg2 = df_ft["Close"].iloc[h_i+1:rs_i]
+                                    seg2 = d_local["Close"].iloc[h_i+1:rs_i]
                                     if len(seg2):
                                         j2 = int(seg2.values.argmax()) + (h_i + 1)
-                                        md.append(f"  - Post-head maxClose between (H,RS): {float(seg2.max()):.2f} at {df_ft.index[j2]} | RS_Close={float(df_ft['Close'].iloc[rs_i]):.2f}\n")
+                                        md.append(f"  - Post-head maxClose between (H,RS): {float(seg2.max()):.2f} at {df_ft.index[j2]} | RS_Close={float(d_local['Close'].iloc[rs_i]):.2f}\n")
                     except Exception:
                         pass
 
