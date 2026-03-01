@@ -293,7 +293,7 @@ DOWNLOAD_INTERVAL = "1d"
 CHUNK_SIZE = 80
 
 MAX_CHARTS_EARLY = 30
-MAX_CHARTS_CONFIRMED = 15
+MAX_CHARTS_CONFIRMED = 30
 MAX_CHARTS_VALIDATED = 5
 MAX_CHARTS_TRIGGERED = 18
 
@@ -3252,6 +3252,36 @@ def _pick_recent_hs_triplet(
                     continue
 
                 px1 = float(c.iloc[p1]); px2 = float(c.iloc[p2]); px3 = float(c.iloc[p3])
+                # Shoulder snap (CLOSE-based):
+                # Ensure LS is the highest Close before Head (within [LS..H)), and RS is the highest Close after Head (within (H..RS]).
+                # (For IHS, the analogous lowest Close rule applies.)
+                try:
+                    p1i, p2i, p3i = int(p1), int(p2), int(p3)
+
+                    if not inverse:
+                        if p2i > p1i + 1:
+                            segL = c.iloc[p1i:p2i]  # include p1, exclude head
+                            if len(segL):
+                                p1 = int(segL.values.argmax()) + p1i
+                        if p3i > p2i + 1:
+                            segR = c.iloc[p2i+1:p3i+1]  # include p3, exclude head
+                            if len(segR):
+                                p3 = int(segR.values.argmax()) + (p2i + 1)
+                    else:
+                        if p2i > p1i + 1:
+                            segL = c.iloc[p1i:p2i]
+                            if len(segL):
+                                p1 = int(segL.values.argmin()) + p1i
+                        if p3i > p2i + 1:
+                            segR = c.iloc[p2i+1:p3i+1]
+                            if len(segR):
+                                p3 = int(segR.values.argmin()) + (p2i + 1)
+
+                    px1 = float(c.iloc[int(p1)])
+                    px3 = float(c.iloc[int(p3)])
+                except Exception:
+                    pass
+
 
                 # Time symmetry
                 dL = max(1, p2 - p1); dR = max(1, p3 - p2)
@@ -6150,9 +6180,9 @@ def main():
                 md.append(f"- Best candidate: **{patt} / {direc}** | Dist(ATR) **{dist:+.2f}** | Gates: Price **{'Y' if price_ok else 'N'}**, CLV **{'Y' if clv_ok else 'N'}**, Vol **{'Y' if vol_ok else 'N'}** | HS lag **{hs_lag}**\n")
                 try:
                     clv_val = info.get('CLV', None)
-                    volr_val = info.get('Vol/AvgVol(20)', None)
+                    volr_val = info.get('VolRatio', None)
                     if clv_val is not None or volr_val is not None:
-                        md.append(f"  - Gate inputs: CLV={clv_val} | Vol/AvgVol(20)={volr_val}\n")
+                        md.append(f"  - Gate inputs: CLV={clv_val} | VolRatio={volr_val}\n")
                 except Exception:
                     pass
 
