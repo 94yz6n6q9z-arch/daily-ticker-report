@@ -1,12 +1,12 @@
 # Daily Report
 
-_Generated: **2026-03-01 22:23 CET**_
+_Generated: **2026-03-01 23:01 CET**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Headline: Oil-supply fears tied to Iran headlines and Opec+ output moves kept markets on edge as investors weighed the risk of a sharper energy shock. The Nasdaq 100 fell 0.3% and the S&P 500 slid 0.4% while the Vix jumped 6.6%, extending a choppy, risk-sensitive tape of the past month (NDX -4.1% 1M), even as WTI rose 2.8% on expectations crude could open above $70. Biggest movers were Netflix up 13.8% and Silver up 7.2%, while Oklo fell 8.9% and QBTS dropped 6.8%.
+Headline: Oil-supply fears tied to Iran and Hormuz risks, plus a busy week of jobs data and Broadcom earnings, kept investors cautious. The Nasdaq 100 fell 0.3% and the S&P 500 slid 0.4% as the VIX jumped 6.6%, extending the choppy, risk-sensitive tape of the past month (NDX -4.1% 1M). Biggest movers on the watchlist were NFLX up 13.8% and Silver up 7.2%, while OKLO fell 8.9% and QBTS dropped 6.8%.
 
 **Key tape (multi-horizon):**
 
@@ -19,13 +19,13 @@ Headline: Oil-supply fears tied to Iran headlines and Opec+ output moves kept ma
 | CAC 40           | 8,580.75  | <span style="color:#b91c1c;">-0.47%</span> | <span style="color:#11823b;">+0.77%</span>  | <span style="color:#11823b;">+6.37%</span>  | <span style="color:#11823b;">+5.64%</span>  | <span style="color:#11823b;">+11.38%</span>  |
 | FTSE 100         | 10,910.60 | <span style="color:#11823b;">+0.59%</span> | <span style="color:#11823b;">+2.09%</span>  | <span style="color:#11823b;">+7.45%</span>  | <span style="color:#11823b;">+12.24%</span> | <span style="color:#11823b;">+18.76%</span>  |
 | VIX              | 19.86     | <span style="color:#11823b;">+6.60%</span> | <span style="color:#11823b;">+4.03%</span>  | <span style="color:#11823b;">+21.47%</span> | <span style="color:#11823b;">+21.47%</span> | <span style="color:#11823b;">+29.30%</span>  |
-| EUR/USD          | 1.18      | <span style="color:#11823b;">+0.24%</span> | <span style="color:#11823b;">+0.53%</span>  | <span style="color:#b91c1c;">-1.12%</span>  | <span style="color:#11823b;">+1.98%</span>  | <span style="color:#11823b;">+0.99%</span>   |
+| EUR/USD          | 1.18      | <span style="color:#b91c1c;">-0.27%</span> | <span style="color:#11823b;">+0.02%</span>  | <span style="color:#b91c1c;">-1.62%</span>  | <span style="color:#11823b;">+1.47%</span>  | <span style="color:#11823b;">+0.48%</span>   |
 | WTI Crude        | 67.02     | <span style="color:#11823b;">+2.78%</span> | <span style="color:#11823b;">+0.95%</span>  | <span style="color:#11823b;">+6.03%</span>  | <span style="color:#11823b;">+14.47%</span> | <span style="color:#11823b;">+4.70%</span>   |
 | Gold             | 5,247.90  | <span style="color:#11823b;">+1.38%</span> | <span style="color:#11823b;">+3.73%</span>  | <span style="color:#b91c1c;">-1.01%</span>  | <span style="color:#11823b;">+24.41%</span> | <span style="color:#11823b;">+51.08%</span>  |
 | Silver           | 93.29     | <span style="color:#11823b;">+7.23%</span> | <span style="color:#11823b;">+13.38%</span> | <span style="color:#b91c1c;">-17.52%</span> | <span style="color:#11823b;">+65.27%</span> | <span style="color:#11823b;">+132.07%</span> |
 | Coffee           | 284.90    | <span style="color:#b91c1c;">-0.38%</span> | <span style="color:#b91c1c;">-1.18%</span>  | <span style="color:#b91c1c;">-18.83%</span> | <span style="color:#b91c1c;">-31.02%</span> | <span style="color:#b91c1c;">-28.21%</span>  |
 | Cocoa            | 2,798.00  | <span style="color:#b91c1c;">-5.92%</span> | <span style="color:#b91c1c;">-9.16%</span>  | <span style="color:#b91c1c;">-32.58%</span> | <span style="color:#b91c1c;">-48.22%</span> | <span style="color:#b91c1c;">-63.35%</span>  |
-| Bitcoin          | 65,571.73 | <span style="color:#b91c1c;">-2.13%</span> | <span style="color:#b91c1c;">-3.09%</span>  | <span style="color:#b91c1c;">-22.06%</span> | <span style="color:#b91c1c;">-24.04%</span> | <span style="color:#b91c1c;">-41.03%</span>  |
+| Bitcoin          | 65,743.03 | <span style="color:#b91c1c;">-1.87%</span> | <span style="color:#b91c1c;">-2.83%</span>  | <span style="color:#b91c1c;">-21.85%</span> | <span style="color:#b91c1c;">-23.84%</span> | <span style="color:#b91c1c;">-40.88%</span>  |
 
 **Macro charts (5Y):**
 
@@ -75,11 +75,11 @@ _Upcoming earnings dates for your  watchlist._
 
 - Tickers scanned: **1277**; usable OHLCV: **799**
 
-- Candidates found: **172** (top patterns: MOMO_TREND:104, RECT:22, RECT_BOTTOM:16, RECT_TOP:16, DEAD_CAT_BOUNCE:11, DESC_TRIANGLE:2, HS_TOP:1)
+- Candidates found: **219** (top patterns: MOMO_TREND:104, IHS:28, RECT:22, HS_TOP:20, RECT_BOTTOM:16, RECT_TOP:16, DEAD_CAT_BOUNCE:11, DESC_TRIANGLE:2)
 
-- Live signals: EARLY **27**, CONFIRMED **47**, VALIDATED **1** (total 75)
+- Live signals: EARLY **26**, CONFIRMED **47**, VALIDATED **1** (total 74)
 
-- Geometry restored today: HS/IHS **265**, Band **7**
+- Geometry restored today: HS/IHS **231**, Band **7**
 
 
 
@@ -94,7 +94,7 @@ _Upcoming earnings dates for your  watchlist._
 
 - HS/IHS detected today: **YES**
 
-- HS_TOP reject summary: head_not_global:786, ls_not_max_prehead:30, no_triplet:1
+- HS_TOP reject summary: head_not_global:786, trend_label:30, no_triplet:1
 
 - IHS reject summary: head_not_global:665, time_symmetry:15, no_triplet:1
 
@@ -114,9 +114,9 @@ _Upcoming earnings dates for your  watchlist._
 
   - LS/H/RS geometry (ts): LS=2025-12-11T00:00:00, H=2026-01-29T00:00:00, RS=2026-02-20T00:00:00
 
-  - Pre-head maxClose (swing pivot) between (LS,H): 18.76 at 2026-01-28 00:00:00 | LS_Close=16.82
+  - Pre-head maxClose (swing pivot) between (LS,H): 17.94 at 2026-01-05 00:00:00 | LS_Close=16.82
 
-  - Post-head maxClose (swing pivot) between (H,RS): 17.57 at 2026-02-10 00:00:00 | RS_Close=17.53
+  - Post-head maxClose between (H,RS): 18.12 at 2026-02-03 00:00:00 | RS_Close=17.53
 
 <img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/NU_FOCUS_HS_TOP_BREAKDOWN.png' width='980' style='max-width:980px;height:auto;'>
 
@@ -140,7 +140,7 @@ _Upcoming earnings dates for your  watchlist._
 
   - Pre-head maxClose (swing pivot) between (LS,H): 403.95 at 2025-10-15 00:00:00 | LS_Close=336.65
 
-  - Post-head maxClose (swing pivot) between (H,RS): 378.60 at 2025-12-11 00:00:00 | RS_Close=341.20
+  - Post-head maxClose (swing pivot) between (H,RS): 366.25 at 2026-01-02 00:00:00 | RS_Close=341.20
 
 <img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/CEG_FOCUS_HS_TOP_BREAKDOWN.png' width='980' style='max-width:980px;height:auto;'>
 
@@ -174,4 +174,4 @@ _Close enough to pre-plan. “Close enough” = within 0.5 ATR of the trigger (n
 
 **ONGOING:**
 
-<style>table.tblauto{table-layout:auto;width:100%;border-collapse:collapse;margin:8px 0;}table.tblauto th,table.tblauto td{border:1px solid #e5e7eb;padding:6px 8px;vertical-align:top;}table.tblauto th{background:#f6f8fa;font-weight:600;white-space:nowrap;}table.tblauto td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}table.tblauto td.txt{white-space:nowrap;}table.tblauto td.wrap{white-space:normal;}</style><div style="overflow-x:auto"><table 
+<style>table.tblauto{table-layout:auto;width:100%;border-collapse:collapse;margin:8px 0;}table.tblauto th,table.tblauto td{border:1px solid #e5e7eb;padding:6px 8px;vertical-align:top;}table.tblauto th{background:#f6f8fa;font-weight:600;white-space:nowrap;}table.tblauto td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}table.tblauto td.txt{white-space:nowrap;}table.tblauto td.wrap{white-space:normal;}</style><div style="overflow-x:auto"><table class="tblauto"><thead><tr><th>Name of Company</th><th>Ticker</th><th>Country</t
