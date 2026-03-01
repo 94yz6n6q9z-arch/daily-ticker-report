@@ -1,12 +1,12 @@
 # Daily Report
 
-_Generated: **2026-03-01 00:02 CET**_
+_Generated: **2026-03-01 01:27 CET**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Headline: AI’s next constraint shifts from chips to power as geopolitics keeps energy and materials in focus. The Nasdaq 100 fell 0.3% and the S&P 500 slid 0.4% while the VIX jumped 6.6%, extending a choppy, risk-sensitive tape that has weighed on tech over the past month (NDX -4.1% 1M) even as attention turns to mining demand and the potential oil-market fallout from the attack on Iran. On the watchlist, NFLX surged 13.8% and NAT rose 6.1%, while OKLO sank 8.9% and QBTS fell 6.8%.
+Headline: Tech’s AI wobble deepened as investors weighed Nvidia’s setup into earnings against fresh geopolitical oil-risk headlines. The Nasdaq 100 fell 0.3% and the S&P 500 slid 0.4% while the VIX jumped 6.6%, extending a choppy, risk-sensitive tape of the past month (NDX -4.1% 1M) even as WTI rose 2.8% on the Iran-attack focus. Biggest movers were NFLX up 13.8%, SI=F up 6.5% and NAT up 6.1%, while OKLO fell 8.9%, QBTS 6.8% and IONQ 6.1%.
 
 **Key tape (multi-horizon):**
 
@@ -25,7 +25,7 @@ Headline: AI’s next constraint shifts from chips to power as geopolitics keeps
 | Silver           | 92.68     | <span style="color:#11823b;">+6.53%</span> | <span style="color:#11823b;">+12.64%</span> | <span style="color:#b91c1c;">-18.06%</span> | <span style="color:#11823b;">+64.20%</span> | <span style="color:#11823b;">+130.55%</span> |
 | Coffee           | 284.60    | <span style="color:#b91c1c;">-0.49%</span> | <span style="color:#b91c1c;">-1.28%</span>  | <span style="color:#b91c1c;">-18.92%</span> | <span style="color:#b91c1c;">-31.09%</span> | <span style="color:#b91c1c;">-28.29%</span>  |
 | Cocoa            | 2,798.00  | <span style="color:#b91c1c;">-5.92%</span> | <span style="color:#b91c1c;">-9.16%</span>  | <span style="color:#b91c1c;">-32.58%</span> | <span style="color:#b91c1c;">-48.22%</span> | <span style="color:#b91c1c;">-63.35%</span>  |
-| Bitcoin          | 67,116.99 | <span style="color:#11823b;">+1.87%</span> | <span style="color:#b91c1c;">-0.80%</span>  | <span style="color:#b91c1c;">-20.22%</span> | <span style="color:#b91c1c;">-22.25%</span> | <span style="color:#b91c1c;">-39.64%</span>  |
+| Bitcoin          | 66,964.93 | <span style="color:#11823b;">+1.64%</span> | <span style="color:#b91c1c;">-1.03%</span>  | <span style="color:#b91c1c;">-20.40%</span> | <span style="color:#b91c1c;">-22.42%</span> | <span style="color:#b91c1c;">-39.78%</span>  |
 
 **Macro charts (5Y):**
 
@@ -75,11 +75,11 @@ _Upcoming earnings dates for your  watchlist._
 
 - Tickers scanned: **1277**; usable OHLCV: **799**
 
-- Candidates found: **337** (top patterns: MOMO_TREND:104, IHS:94, HS_TOP:72, RECT:22, RECT_BOTTOM:16, RECT_TOP:16, DEAD_CAT_BOUNCE:11, DESC_TRIANGLE:2)
+- Candidates found: **172** (top patterns: MOMO_TREND:104, RECT:22, RECT_BOTTOM:16, RECT_TOP:16, DEAD_CAT_BOUNCE:11, DESC_TRIANGLE:2, HS_TOP:1)
 
-- Live signals: EARLY **27**, CONFIRMED **42**, VALIDATED **1** (total 70)
+- Live signals: EARLY **27**, CONFIRMED **47**, VALIDATED **1** (total 75)
 
-- Geometry restored today: HS/IHS **102**, Band **5**
+- Geometry restored today: HS/IHS **265**, Band **5**
 
 
 
@@ -96,6 +96,8 @@ _Upcoming earnings dates for your  watchlist._
 
 - Best candidate: **HS_TOP / BREAKDOWN** | Dist(ATR) **-2.17** | Gates: Price **Y**, CLV **N**, Vol **Y** | HS lag **5**
 
+  - Gate inputs: CLV=0.11999893188476562 | Vol/AvgVol(20)=None
+
 <img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/NU_FOCUS_HS_TOP_BREAKDOWN.png' width='980' style='max-width:980px;height:auto;'>
 
 
@@ -105,6 +107,8 @@ _Upcoming earnings dates for your  watchlist._
 - HS/IHS detected today: **YES**
 
 - Best candidate: **HS_TOP / BREAKDOWN** | Dist(ATR) **+0.61** | Gates: Price **N**, CLV **N**, Vol **N** | HS lag **29**
+
+  - Gate inputs: CLV=0.9540953619556655 | Vol/AvgVol(20)=None
 
 <img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/CEG_FOCUS_HS_TOP_BREAKDOWN.png' width='980' style='max-width:980px;height:auto;'>
 
@@ -120,11 +124,11 @@ _Logic: score each ticker by stage (EARLY=1, CONFIRMED=3, VALIDATED=4) × direct
 | AI software/data | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
 | Big Tech platforms | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
 | Consumer & retail (incl. luxury) | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
-| Fintech & financials | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
+| Fintech & financials | Bearish | 0 | 0 | 0 | 1 | 0 | 0 |
 | Healthcare | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
 | Energy & Nuclear | Mixed | 1 | 1 | 0 | 0 | 0 | 0 |
 | Quantum | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
-| Venezuela Oil | Bullish | 0 | 0 | 2 | 0 | 0 | 0 |
+| Venezuela Oil | Bullish | 0 | 0 | 4 | 0 | 0 | 0 |
 | Commodities | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
 
 
@@ -134,28 +138,18 @@ _Close enough to pre-plan. “Close enough” = within 0.5 ATR of the trigger (n
 
 **NEW (today):**
 
-| Ticker   | Signal                 |   Close |   Threshold |   Dist(ATR) | Day%   | Chart                                       |
-| :--- | :--- | ---: | ---: | ---: | ---: | :--- |
-| ELV      | EARLY_HS_TOP_BREAKDOWN |   320   |     321.265 |       -0.11 | -0.94% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/ELV_EARLY_HS_TOP_BREAKDOWN.png) |
-| ZTS      | EARLY_IHS_BREAKOUT     |   131.1 |     133.072 |       -0.47 | +1.03% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/ZTS_EARLY_IHS_BREAKOUT.png)     |
-
-**What’s going on (NEW early callouts):**
-
-#### ELV — `EARLY_HS_TOP_BREAKDOWN`
-- **Trigger (level):** 321.26  |  **Close:** 320.00  |  **Distance:** -0.11 ATR
-- Chart includes **SMA(50)** + **SMA(200)**, **volume**, plus trigger + confirmation (±0.5 ATR). HS/IHS is labeled (LS/H/RS) with neckline; Wedges include upper/lower trendlines with touch points.
-- **HS/IHS read:** neckline is the trigger; chart labels LS/H/RS and draws the neckline + confirmation band.
-<img src="https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/ELV_EARLY_HS_TOP_BREAKDOWN.png" width="720" style="max-width:100%;height:auto;">
-
-#### ZTS — `EARLY_IHS_BREAKOUT`
-- **Trigger (level):** 133.07  |  **Close:** 131.10  |  **Distance:** -0.47 ATR
-- Chart includes **SMA(50)** + **SMA(200)**, **volume**, plus trigger + confirmation (±0.5 ATR). HS/IHS is labeled (LS/H/RS) with neckline; Wedges include upper/lower trendlines with touch points.
-- **HS/IHS read:** neckline is the trigger; chart labels LS/H/RS and draws the neckline + confirmation band.
-<img src="https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/ZTS_EARLY_IHS_BREAKOUT.png" width="720" style="max-width:100%;height:auto;">
-
+_None_
 
 **ONGOING:**
 
 | Ticker   | Signal                      |   Close |   Threshold |   Dist(ATR) | Day%   | Chart                                            |
 | :--- | :--- | ---: | ---: | ---: | ---: | :--- |
-| VST      | EARLY_RECT_BOTTOM_BREAKOUT  |  173.89 |    173.323  |     
+| VST      | EARLY_RECT_BOTTOM_BREAKOUT  |  173.89 |    173.323  |        0.08 | -1.66% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/VST_EARLY_RECT_BOTTOM_BREAKOUT.png)  |
+| RMD      | EARLY_IHS_BREAKOUT          |  256.26 |    256.875  |       -0.08 | -0.31% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/RMD_EARLY_IHS_BREAKOUT.png)          |
+| SMR      | EARLY_RECT_BOTTOM_BREAKDOWN |   12.85 |     12.9496 |       -0.08 | -3.60% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/SMR_EARLY_RECT_BOTTOM_BREAKDOWN.png) |
+| ALL      | EARLY_RECT_BREAKOUT         |  214.52 |    214.98   |       -0.08 | +0.83% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/ALL_EARLY_RECT_BREAKOUT.png)         |
+| RKLB     | EARLY_HS_TOP_BREAKDOWN      |   69.1  |     68.6518 |        0.08 | -4.89% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/RKLB_EARLY_HS_TOP_BREAKDOWN.png)     |
+| ELV      | EARLY_HS_TOP_BREAKDOWN      |  320    |    321.265  |       -0.11 | -0.94% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/ELV_EARLY_HS_TOP_BREAKDOWN.png)      |
+| 4661     | EARLY_IHS_BREAKOUT          | 2816    |   2808.28   |        0.13 | -0.07% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/4661.T_EARLY_IHS_BREAKOUT.png)       |
+| 7701     | EARLY_RECT_TOP_BREAKOUT     | 4359    |   4345.22   |        0.14 | +0.16% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/7701.T_EARLY_RECT_TOP_BREAKOUT.png)  |
+| HRL      | EARLY_IHS_BREAKOUT          |   25.6  |     25.4841 |        0.16 | +3.14% | [chart](https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/HRL
