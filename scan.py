@@ -3279,6 +3279,13 @@ def _pick_recent_hs_triplet(
 
                     px1 = float(c.iloc[int(p1)])
                     px3 = float(c.iloc[int(p3)])
+
+                    # Recompute intervening opposite pivots after shoulder snap (keeps T1/T2 consistent)
+                    between1 = [x for x in pivots_between if int(p1) < x < int(p2)]
+                    between2 = [x for x in pivots_between if int(p2) < x < int(p3)]
+                    if not between1 or not between2:
+                        bump('missing_between_post_snap')
+                        continue
                 except Exception:
                     pass
 
@@ -6183,6 +6190,34 @@ def main():
                     volr_val = info.get('VolRatio', None)
                     if clv_val is not None or volr_val is not None:
                         md.append(f"  - Gate inputs: CLV={clv_val} | VolRatio={volr_val}\n")
+                    try:
+                        meta2 = best.get("meta") if isinstance(best, dict) else None
+                        pts = meta2.get("points") if isinstance(meta2, dict) else None
+                        if isinstance(pts, list):
+                            def _pt(lbl):
+                                for p in pts:
+                                    if isinstance(p, dict) and str(p.get("label","")) == lbl:
+                                        return p
+                                return None
+                            pLS = _pt("LS"); pH = _pt("H"); pRS = _pt("RS")
+                            if pLS and pH and pRS:
+                                ls_i = int(pLS.get("i")); h_i = int(pH.get("i")); rs_i = int(pRS.get("i"))
+                                md.append(f"  - LS/H/RS geometry (idx): LS={ls_i}, H={h_i}, RS={rs_i}\n")
+                                md.append(f"  - LS/H/RS geometry (ts): LS={pLS.get('t')}, H={pH.get('t')}, RS={pRS.get('t')}\n")
+                                # max close between LS..H (exclusive)
+                                if h_i > ls_i + 1:
+                                    seg = df_ft["Close"].iloc[ls_i+1:h_i]
+                                    if len(seg):
+                                        j = int(seg.values.argmax()) + (ls_i + 1)
+                                        md.append(f"  - Pre-head maxClose between (LS,H): {float(seg.max()):.2f} at {df_ft.index[j]} | LS_Close={float(df_ft['Close'].iloc[ls_i]):.2f}\n")
+                                if rs_i > h_i + 1:
+                                    seg2 = df_ft["Close"].iloc[h_i+1:rs_i]
+                                    if len(seg2):
+                                        j2 = int(seg2.values.argmax()) + (h_i + 1)
+                                        md.append(f"  - Post-head maxClose between (H,RS): {float(seg2.max()):.2f} at {df_ft.index[j2]} | RS_Close={float(df_ft['Close'].iloc[rs_i]):.2f}\n")
+                    except Exception:
+                        pass
+
                 except Exception:
                     pass
 
