@@ -286,6 +286,8 @@ LOOKBACK_DAYS = 190
 # HS/IHS minimum formation duration (daily bars) to avoid too-short (≈2-3 week) false positives
 HS_MIN_BARS = 30
 HS_MIN_SIDE_BARS = 10
+# Pivot window for HS/IHS shoulders/head (Close-based swing highs/lows)
+HS_SWING_WINDOW = 3
 # HS/IHS maximum formation duration (daily bars) to avoid stale multi-month patterns
 HS_MAX_BARS = 90
 # Maximum allowed lag between pattern completion (RS) and breakout/breakdown confirmation run start
@@ -3299,100 +3301,6 @@ def _swing_points_ohlc(
 
 
 
-def _diagnose_swing_high(
-    df: pd.DataFrame,
-    ts: str,
-    window: int = 3,
-    prominence_atr_mult: float = 0.5,
-) -> Dict[str, Any]:
-    """Explain deterministically why a given bar *is / is not* a swing-high pivot under _swing_points_ohlc()."""
-    out: Dict[str, Any] = {"ts_req": ts, "ok": False}
-
-    try:
-        dd = df.tail(LOOKBACK_DAYS).dropna(subset=["High", "Low", "Close"]).copy()
-        dd = _latest_completed_close_df(dd)
-        if dd.empty:
-            out["reason"] = "empty_df_after_dropna"
-            return out
-
-        t_req = pd.to_datetime(ts, errors="coerce")
-        if pd.isna(t_req):
-            out["reason"] = "bad_ts"
-            return out
-
-        # Find exact match; else choose nearest index (deterministic).
-        if isinstance(dd.index, pd.DatetimeIndex):
-            try:
-                i = int(dd.index.get_loc(t_req))
-                t_hit = dd.index[i]
-            except Exception:
-                # nearest
-                diffs = np.abs((dd.index - t_req).astype("timedelta64[s]").astype(np.int64))
-                i = int(np.nanargmin(diffs))
-                t_hit = dd.index[i]
-                out["nearest"] = True
-        else:
-            out["reason"] = "non_datetime_index"
-            return out
-
-        out["ts_hit"] = str(t_hit)
-        out["i"] = int(i)
-
-        if i < window or i >= len(dd) - window:
-            out["reason"] = "too_close_to_edges_for_window"
-            return out
-
-        hi = dd["High"].astype(float).values
-        lo = dd["Low"].astype(float).values
-
-        hwin = hi[i - window : i + window + 1]
-        lwin = lo[i - window : i + window + 1]
-        out["hwin_max"] = float(np.max(hwin))
-        out["hwin_max_count"] = int(np.sum(hwin == hi[i]))
-        out["hi_i"] = float(hi[i])
-        out["lo_i"] = float(lo[i])
-        out["close_i"] = float(dd["Close"].iloc[i])
-
-        # ATR at i (mirror logic in _swing_points_ohlc)
-        atr_s = atr(dd, ATR_N)
-        atr_v = pd.to_numeric(atr_s, errors="coerce").values if atr_s is not None else np.full(len(dd), np.nan)
-        atr_i = atr_v[i] if i < len(atr_v) and np.isfinite(atr_v[i]) else np.nan
-        if not np.isfinite(atr_i):
-            lo_i = max(0, i - 20)
-            med = np.nanmedian(atr_v[lo_i : i + 1])
-            atr_i = med if np.isfinite(med) else np.nan
-        if not np.isfinite(atr_i):
-            atr_i = max(float(np.nanmedian((hwin - lwin))), 1e-6)
-
-        out["atr_i"] = float(atr_i)
-
-        is_local_max = bool(hi[i] == np.max(hwin))
-        is_unique = bool(np.sum(hwin == hi[i]) == 1)
-        prominence = float(hi[i] - np.min(lwin))
-        thresh = float(prominence_atr_mult * atr_i)
-
-        out["is_local_max"] = is_local_max
-        out["is_unique_max"] = is_unique
-        out["prominence"] = float(prominence)
-        out["prom_thresh"] = float(thresh)
-        out["prom_ok"] = bool(prominence >= thresh)
-
-        out["ok"] = bool(is_local_max and is_unique and prominence >= thresh)
-        if not out["ok"]:
-            reasons = []
-            if not is_local_max:
-                reasons.append("not_local_max_in_window")
-            if is_local_max and (not is_unique):
-                reasons.append("ties_for_local_max")
-            if prominence < thresh:
-                reasons.append("prominence_below_threshold")
-            out["reason"] = ",".join(reasons) if reasons else "unknown"
-        return out
-    except Exception as e:
-        out["reason"] = f"exception:{type(e).__name__}"
-        return out
-
-
 def _line_fit(x: np.ndarray, y: np.ndarray) -> Tuple[float, float]:
     if len(x) < 2:
         return (0.0, float(y[-1]) if len(y) else 0.0)
@@ -3741,6 +3649,47 @@ def _pick_recent_hs_triplet(
     best: Optional[Tuple[int, int, int, int, int, float, float, float]] = None
     best_score = -1e18
 
+    # Debug: store the most-recent rejected triplet due to duration/sidebars.
+    # This gives 100% clarity when the detector "pushes" LS backward to satisfy HS_MIN_BARS / HS_MIN_SIDE_BARS.
+    def _store_dur_reject(p1i: int, p2i: int, p3i: int, reason: str) -> None:
+        if not isinstance(explain, dict):
+            return
+        try:
+            p1i = int(p1i); p2i = int(p2i); p3i = int(p3i)
+            dL_ = int(p2i - p1i)
+            dR_ = int(p3i - p2i)
+            ratio_ = float(dL_) / float(max(1, dR_))
+            span_ = int(p3i - p1i)
+            prev = explain.get("_dur_reject_best")
+            take = False
+            if not isinstance(prev, dict):
+                take = True
+            else:
+                prev_p1 = int(prev.get("p1", -1))
+                prev_p3 = int(prev.get("p3", -1))
+                if (p1i > prev_p1) or (p1i == prev_p1 and p3i > prev_p3):
+                    take = True
+            if take:
+                explain["_dur_reject_best"] = {
+                    "HS_MIN_BARS": int(HS_MIN_BARS),
+                    "HS_MAX_BARS": int(HS_MAX_BARS),
+                    "HS_MIN_SIDE_BARS": int(HS_MIN_SIDE_BARS),
+                    "p1": p1i,
+                    "p2": p2i,
+                    "p3": p3i,
+                    "p1_t": _iso_ts(d.index[p1i]),
+                    "p2_t": _iso_ts(d.index[p2i]),
+                    "p3_t": _iso_ts(d.index[p3i]),
+                    "span": span_,
+                    "dL": dL_,
+                    "dR": dR_,
+                    "ratio": float(ratio_),
+                    "reason": str(reason),
+                }
+        except Exception:
+            return
+
+
     # Deterministic dominance: a shoulder cannot be "lower" if a higher primary pivot exists
     # in the same shoulder region (excluding the head zone).
     # This prevents selecting Dec 11 when Jan 5 exists, and prevents head-run-up bars invalidating shoulders.
@@ -3781,12 +3730,14 @@ def _pick_recent_hs_triplet(
 
             span = int(p3 - p1)
             if span < int(HS_MIN_BARS) or span > int(HS_MAX_BARS):
+                _store_dur_reject(p1, p2, p3, reason="span_out_of_range")
                 bump("duration_or_sidebars")
                 continue
 
             dL = int(p2 - p1)
             dR = int(p3 - p2)
             if dL < int(HS_MIN_SIDE_BARS) or dR < int(HS_MIN_SIDE_BARS):
+                _store_dur_reject(p1, p2, p3, reason="sidebars_too_short")
                 bump("duration_or_sidebars")
                 continue
 
@@ -3911,7 +3862,7 @@ def detect_hs_top(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None) ->
         return None
     c = d["Close"].astype(float)
     _, lows_idx = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
-    highs_idx = _swing_highs_on_close(d, window=5, prominence_atr_mult=0.5, allow_tie_high_2dp=True)
+    highs_idx = _swing_highs_on_close(d, window=HS_SWING_WINDOW, prominence_atr_mult=0.5, allow_tie_high_2dp=True)
     if len(highs_idx) < 3 or len(lows_idx) < 2:
         if isinstance(explain, dict):
             explain['not_enough_swings'] = int(explain.get('not_enough_swings', 0)) + 1
@@ -3961,7 +3912,7 @@ def detect_inverse_hs(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None
         return None
     c = d["Close"].astype(float)
     highs_idx, _ = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
-    lows_idx = _swing_lows_on_close(d, window=5, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
+    lows_idx = _swing_lows_on_close(d, window=HS_SWING_WINDOW, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
     if len(lows_idx) < 3 or len(highs_idx) < 2:
         if isinstance(explain, dict):
             explain['not_enough_swings'] = int(explain.get('not_enough_swings', 0)) + 1
@@ -6677,7 +6628,7 @@ def main():
             # NU-specific diagnostics: why Jan 5 is / is not a swing high + whether HS_MIN_BARS is forcing LS backward
             if str(ft).upper() == "NU":
                 try:
-                    diagc = _diagnose_swing_high_close(df_ft, "2026-01-05", window=3, prominence_atr_mult=0.5)
+                    diagc = _diagnose_swing_high_close(df_ft, "2026-01-05", window=HS_SWING_WINDOW, prominence_atr_mult=0.5)
                     md.append(f"- NU swing-high check (Close-based) @ 2026-01-05: ok={diagc.get('ok')} | reason={diagc.get('reason')}\n")
                     if diagc.get("ts_hit"):
                         md.append(
@@ -6685,7 +6636,7 @@ def main():
                             f"cwin_max={diagc.get('cwin_max'):.2f} (count={diagc.get('cwin_max_count')}) | "
                             f"prom={diagc.get('prominence'):.2f} vs thr={diagc.get('prom_thresh'):.2f} (ATR={diagc.get('atr_i'):.2f})\n"
                         )
-                    diagh = _diagnose_swing_high(df_ft, "2026-01-05", window=3, prominence_atr_mult=0.5)
+                    diagh = _diagnose_swing_high(df_ft, "2026-01-05", window=HS_SWING_WINDOW, prominence_atr_mult=0.5)
                     md.append(f"- NU swing-high check (High-based) @ 2026-01-05: ok={diagh.get('ok')} | reason={diagh.get('reason')}\n")
                     if diagh.get("ts_hit"):
                         md.append(
@@ -6693,6 +6644,24 @@ def main():
                             f"hwin_max={diagh.get('hwin_max'):.2f} (count={diagh.get('hwin_max_count')}) | "
                             f"prom={diagh.get('prominence'):.2f} vs thr={diagh.get('prom_thresh'):.2f} (ATR={diagh.get('atr_i'):.2f})\n"
                         )
+                    # Sanity check: is Jan 5 even a HS shoulder pivot under the SAME swing-window used by detect_hs_top?
+                    try:
+                        dd0 = df_ft.tail(LOOKBACK_DAYS).dropna(subset=["Open","High","Low","Close"]).copy()
+                        dd0 = _latest_completed_close_df(dd0)
+                        t_req = pd.to_datetime("2026-01-05", errors="coerce")
+                        pos_i = None
+                        in_piv = None
+                        if isinstance(dd0.index, pd.DatetimeIndex) and (not pd.isna(t_req)):
+                            try:
+                                pos_i = int(dd0.index.get_loc(t_req))
+                            except Exception:
+                                diffs = np.abs((dd0.index - t_req).astype("timedelta64[s]").astype(np.int64))
+                                pos_i = int(np.nanargmin(diffs))
+                            pivs = _swing_highs_on_close(dd0, window=HS_SWING_WINDOW, prominence_atr_mult=0.5, allow_tie_high_2dp=True)
+                            in_piv = int(pos_i) in set(int(x) for x in (pivs or []))
+                        md.append(f"- HS detector pivots (Close, window={HS_SWING_WINDOW}): Jan-05 in pivot list? {in_piv} | pos={pos_i}\n")
+                    except Exception:
+                        pass
                 except Exception:
                     pass
 
