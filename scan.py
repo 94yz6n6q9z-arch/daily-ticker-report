@@ -3895,8 +3895,10 @@ def _pick_recent_hs_triplet(
                 # Deterministic shoulder dominance rule (CLOSE-based)
                 eps = 1e-6
                 try:
-                    segL = c.iloc[int(p1)+1:int(p2)]
-                    segR = c.iloc[int(p2)+1:int(p3)]
+                    segL_end = max(int(p1) + 1, int(p2) - HS_MIN_SIDE_BARS)
+                    segR_start = min(int(p3), int(p2) + 1 + HS_MIN_SIDE_BARS)
+                    segL = c.iloc[int(p1)+1:segL_end]
+                    segR = c.iloc[segR_start:int(p3)]
                     if not inverse:
                         if len(segL) and float(segL.max()) > float(px1) + eps:
                             bump('ls_not_max_prehead')
@@ -6796,10 +6798,10 @@ def main():
                                         try:
                                             if patt == "HS_TOP":
                                                 piv_all = _swing_highs_on_close(d_local, window=3, prominence_atr_mult=0.5, allow_tie_high_2dp=True)
-                                                piv = [int(x) for x in piv_all if int(ls_i) < int(x) < int(h_i)]
+                                                piv = [int(x) for x in piv_all if int(ls_i) < int(x) < (int(h_i) - HS_MIN_SIDE_BARS)]
                                             elif patt == "IHS":
                                                 piv_all = _swing_lows_on_close(d_local, window=3, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
-                                                piv = [int(x) for x in piv_all if int(ls_i) < int(x) < int(h_i)]
+                                                piv = [int(x) for x in piv_all if int(ls_i) < int(x) < (int(h_i) - HS_MIN_SIDE_BARS)]
                                         except Exception:
                                             piv = []
                                         if piv:
@@ -6824,10 +6826,10 @@ def main():
                                         try:
                                             if patt == "HS_TOP":
                                                 piv_all = _swing_highs_on_close(d_local, window=3, prominence_atr_mult=0.5, allow_tie_high_2dp=True)
-                                                piv = [int(x) for x in piv_all if int(h_i) < int(x) < int(rs_i)]
+                                                piv = [int(x) for x in piv_all if (int(h_i) + HS_MIN_SIDE_BARS) < int(x) < int(rs_i)]
                                             elif patt == "IHS":
                                                 piv_all = _swing_lows_on_close(d_local, window=3, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
-                                                piv = [int(x) for x in piv_all if int(h_i) < int(x) < int(rs_i)]
+                                                piv = [int(x) for x in piv_all if (int(h_i) + HS_MIN_SIDE_BARS) < int(x) < int(rs_i)]
                                         except Exception:
                                             piv = []
                                         if piv:
