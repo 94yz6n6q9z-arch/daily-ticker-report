@@ -3312,6 +3312,30 @@ def _pick_recent_hs_triplet(
                 except Exception:
                     pass
 
+                # Deterministic shoulder dominance rule:
+                # HS_TOP: LS must be the highest close between LS and H (exclusive); RS must be the highest close between H and RS (exclusive).
+                # IHS: LS must be the lowest close between LS and H; RS must be the lowest close between H and RS.
+                eps = 1e-6
+                try:
+                    segL = c.iloc[int(p1)+1:int(p2)]
+                    segR = c.iloc[int(p2)+1:int(p3)]
+                    if not inverse:
+                        if len(segL) and float(segL.max()) > float(px1) + eps:
+                            bump('ls_not_max_prehead')
+                            continue
+                        if len(segR) and float(segR.max()) > float(px3) + eps:
+                            bump('rs_not_max_posthead')
+                            continue
+                    else:
+                        if len(segL) and float(segL.min()) < float(px1) - eps:
+                            bump('ls_not_min_prehead')
+                            continue
+                        if len(segR) and float(segR.min()) < float(px3) - eps:
+                            bump('rs_not_min_posthead')
+                            continue
+                except Exception:
+                    pass
+
                 # Sanity: ensure shoulders are on the correct side of the intervening troughs/highs
                 # HS_TOP: LS and RS (highs) must be above T1/T2 (lows)
                 # IHS: LS and RS (lows) must be below R1/R2 (highs)
@@ -4240,25 +4264,88 @@ def _validated_stage(
     status = "NEW" if age == VALIDATED_MIN_AGE_BARS else "ONGOING"
     return ("VALIDATED", status, age, int(rs_found))
 
+
+def _is_pricevol_bar(
+    cand: PatternCandidate,
+    d: pd.DataFrame,
+    a_series: pd.Series,
+    i: int,
+    atr_mult: float = ATR_CONFIRM_MULT,
+) -> bool:
+    """Return True if bar i satisfies the price+volume gates (CLV ignored).
+    Used to keep CONFIRMED signals alive on day+1 even if CLV is noisy.
+    """
+    try:
+        i = int(i)
+        if i < 0 or i >= len(d):
+            return False
+
+        level = _safe_float(_level_at_bar(cand, d, i))
+        close = _safe_float(d["Close"].iloc[i])
+        if math.isnan(level) or math.isnan(close):
+            return False
+
+        atr_v = _safe_float(a_series.iloc[i]) if a_series is not None and len(a_series) > i else float("nan")
+        if math.isnan(atr_v) or atr_v <= 0:
+            return False
+
+        dist = (close - level) / atr_v
+        if cand.direction == "BREAKOUT":
+            if dist < atr_mult:
+                return False
+        else:
+            if dist > -atr_mult:
+                return False
+
+        if "Volume" not in d.columns:
+            return False
+        v = _safe_float(d["Volume"].iloc[i])
+        if math.isnan(v) or v <= 0:
+            return False
+        if i >= 21:
+            avg20 = float(pd.to_numeric(d["Volume"].iloc[i-21:i-1], errors="coerce").mean())
+        else:
+            avg20 = float(pd.to_numeric(d["Volume"].iloc[:i], errors="coerce").tail(20).mean()) if i > 1 else float("nan")
+        if math.isnan(avg20) or avg20 <= 0:
+            return False
+        if v < VOL_CONFIRM_MULT * avg20:
+            return False
+
+        return True
+    except Exception:
+        return False
+
+
 def _confirm_run_start(cand: PatternCandidate, d: pd.DataFrame, a_series: pd.Series) -> Optional[int]:
     """Return the index (in d) of the first bar of the current CONFIRMED run, or None.
 
-    A CONFIRMED run is a consecutive sequence of bars where ALL 3 confirmation gates hold:
-      - close beyond trigger by >= 0.5 ATR(14)
-      - CLV >= +0.70 (breakout) / <= -0.70 (breakdown)
-      - Volume >= 1.25x AvgVol(20)
+    Day 0 (confirmation day): ALL 3 gates must hold (price + CLV + volume).
+    Day 1 (the next session): keep CONFIRMED alive as ONGOING if price + volume still hold; CLV is optional.
+    (Validated still requires all 3 gates on each session per the validated-stage rules.)
 
     This is used to deterministically label signals as NEW/ONGOING and to transition to VALIDATED.
     """
     n = len(d)
     if n < 5:
         return None
-    if not _is_confirmed_bar(cand, d, a_series, n - 1):
-        return None
-    j = n - 1
-    while j > 0 and _is_confirmed_bar(cand, d, a_series, j - 1):
-        j -= 1
-    return int(j)
+
+    end = n - 1
+
+    # Case A: fully confirmed today -> walk back contiguous fully-confirmed bars
+    if _is_confirmed_bar(cand, d, a_series, end):
+        j = end
+        while j > 0 and _is_confirmed_bar(cand, d, a_series, j - 1):
+            j -= 1
+        return int(j)
+
+    # Case B: day+1 carry (CLV optional) -> yesterday was fully confirmed, today still meets price+volume
+    if end >= 1:
+        if _is_pricevol_bar(cand, d, a_series, end) and _is_confirmed_bar(cand, d, a_series, end - 1):
+            # Keep as ONGOING confirmed for one extra day; run starts yesterday so age==1.
+            return int(end - 1)
+
+    return None
+
 
 
 def _stage_from_confirm_run(
@@ -6061,6 +6148,14 @@ def main():
                 meta = best.get("meta")
 
                 md.append(f"- Best candidate: **{patt} / {direc}** | Dist(ATR) **{dist:+.2f}** | Gates: Price **{'Y' if price_ok else 'N'}**, CLV **{'Y' if clv_ok else 'N'}**, Vol **{'Y' if vol_ok else 'N'}** | HS lag **{hs_lag}**\n")
+                try:
+                    clv_val = info.get('CLV', None)
+                    volr_val = info.get('Vol/AvgVol(20)', None)
+                    if clv_val is not None or volr_val is not None:
+                        md.append(f"  - Gate inputs: CLV={clv_val} | Vol/AvgVol(20)={volr_val}\n")
+                except Exception:
+                    pass
+
 
                 sig = LevelSignal(
                     ticker=ft,
