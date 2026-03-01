@@ -33,19 +33,20 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pandas requests
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          else
+            pip install pandas requests
+          fi
 
       - name: Verify refresh script exists
         run: |
-          ls -la
-          ls -la scripts
-          test -f scripts/refresh_msci_world.py
+          test -f tools/update_msci_world_classification.py
+          echo "Found tools/update_msci_world_classification.py"
 
-      - name: Refresh MSCI World classification CSV
+      - name: Run weekly MSCI World refresh
         run: |
-          python scripts/refresh_msci_world.py \
-            --out config/msci_world_classification.csv \
-            --meta docs/msci_world_classification_meta.json
+          python tools/update_msci_world_classification.py             --out config/msci_world_classification.csv             --meta docs/msci_world_classification_meta.json
 
       - name: Commit and push changes (if any)
         run: |
