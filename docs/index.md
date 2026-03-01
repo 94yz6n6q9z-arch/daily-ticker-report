@@ -1,12 +1,12 @@
 # Daily Report
 
-_Generated: **2026-03-01 10:43 CET**_
+_Generated: **2026-03-01 12:43 CET**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Headline: Equities stayed on the back foot as investors weighed tech/earnings updates against renewed geopolitical oil-market anxiety and tariff talk. The Nasdaq 100 fell 0.3% and the S&P 500 slid 0.4% while the Vix jumped 6.6%, extending the choppy, risk-sensitive tape of recent weeks (NDX -4.1% over 1M); biggest movers were Netflix up 13.8% and NAT up 6.1%, while Oklo fell 8.9% and QBTS dropped 6.8%.
+Headline: Tech nerves and earnings chatter met fresh geopolitical oil-risk headlines as investors weighed AI disruption fears against the prospect of an energy shock. The Nasdaq 100 fell 0.3% and the S&P 500 slid 0.4% while the Vix jumped 6.6%, extending a choppy, risk-sensitive tape of the past month (NDX -4.1% 1M) as WTI rose 2.8% on Iran/Hormuz concerns; biggest movers were Netflix up 13.8%, silver up 7.2% and Nordic American Tankers up 6.1%, while Oklo fell 8.9%, D-Wave Quantum dropped 6.8% and IonQ sank 6.1%.
 
 **Key tape (multi-horizon):**
 
@@ -25,7 +25,7 @@ Headline: Equities stayed on the back foot as investors weighed tech/earnings up
 | Silver           | 93.29     | <span style="color:#11823b;">+7.23%</span> | <span style="color:#11823b;">+13.38%</span> | <span style="color:#b91c1c;">-17.52%</span> | <span style="color:#11823b;">+65.27%</span> | <span style="color:#11823b;">+132.07%</span> |
 | Coffee           | 284.90    | <span style="color:#b91c1c;">-0.38%</span> | <span style="color:#b91c1c;">-1.18%</span>  | <span style="color:#b91c1c;">-18.83%</span> | <span style="color:#b91c1c;">-31.02%</span> | <span style="color:#b91c1c;">-28.21%</span>  |
 | Cocoa            | 2,798.00  | <span style="color:#b91c1c;">-5.92%</span> | <span style="color:#b91c1c;">-9.16%</span>  | <span style="color:#b91c1c;">-32.58%</span> | <span style="color:#b91c1c;">-48.22%</span> | <span style="color:#b91c1c;">-63.35%</span>  |
-| Bitcoin          | 66,348.57 | <span style="color:#b91c1c;">-0.97%</span> | <span style="color:#b91c1c;">-1.94%</span>  | <span style="color:#b91c1c;">-21.13%</span> | <span style="color:#b91c1c;">-23.14%</span> | <span style="color:#b91c1c;">-40.33%</span>  |
+| Bitcoin          | 66,472.08 | <span style="color:#b91c1c;">-0.78%</span> | <span style="color:#b91c1c;">-1.75%</span>  | <span style="color:#b91c1c;">-20.99%</span> | <span style="color:#b91c1c;">-22.99%</span> | <span style="color:#b91c1c;">-40.22%</span>  |
 
 **Macro charts (5Y):**
 
@@ -102,9 +102,9 @@ _Upcoming earnings dates for your  watchlist._
 
   - LS/H/RS geometry (ts): LS=2025-12-11T00:00:00, H=2026-01-29T00:00:00, RS=2026-02-20T00:00:00
 
-  - Pre-head maxClose between (LS,H): 8.18 at 2023-07-13 00:00:00 | LS_Close=7.71
+  - Pre-head maxClose between (LS,H): 16.30 at 2025-09-22 00:00:00 | LS_Close=15.99
 
-  - Post-head maxClose between (H,RS): 7.99 at 2023-08-08 00:00:00 | RS_Close=6.96
+  - Post-head maxClose between (H,RS): 16.39 at 2023-08-15 00:00:00 | RS_Close=15.92
 
 <img src='img/NU_FOCUS_HS_TOP_BREAKDOWN.png' width='980' style='max-width:980px;height:auto;'>
 
@@ -122,9 +122,9 @@ _Upcoming earnings dates for your  watchlist._
 
   - LS/H/RS geometry (ts): LS=2025-09-23T00:00:00, H=2025-12-04T00:00:00, RS=2026-01-15T00:00:00
 
-  - Pre-head maxClose between (LS,H): 93.75 at 2023-06-12 00:00:00 | LS_Close=76.82
+  - Pre-head maxClose between (LS,H): 354.89 at 2025-08-04 00:00:00 | LS_Close=322.76
 
-  - Post-head maxClose between (H,RS): 96.89 at 2023-07-20 00:00:00 | RS_Close=97.52
+  - Post-head maxClose between (H,RS): 403.95 at 2023-07-19 00:00:00 | RS_Close=358.79
 
 <img src='img/CEG_FOCUS_HS_TOP_BREAKDOWN.png' width='980' style='max-width:980px;height:auto;'>
 
@@ -217,16 +217,16 @@ _Includes **VALIDATED** only: breakout/breakdown occurred **3 sessions ago** AND
 
 _Linked digest for drill-down._
 
-- [Trump said tariffs could someday 'substantially replace' income taxes. What policy experts say](https://www.cnbc.com/2026/02/27/trump-tariffs-income-taxes.html) — CNBC Top News
 - [Stocks Sink in Broad AI Rout Sparked by China's DeepSeek](https://www.wsj.com/articles/nikkei-may-rise-as-weak-yen-raises-earnings-hopes-776a8056?mod=rss_markets_main) — WSJ Markets
 - [The real winners of Trump’s global tariff war: law firms, hedge funds and AI](https://www.theguardian.com/us-news/2026/feb/28/trump-tariffs-refunds-law-firms) — The Guardian Business
-- [Cloudflare (NET) Gains Upgrade Following Strong Q4 Execution and Growth](https://finance.yahoo.com/news/cloudflare-net-gains-upgrade-following-050434009.html) — Yahoo Finance Top Stories
-- [DoubleVerify Q4 Earnings Call Highlights](https://finance.yahoo.com/news/doubleverify-q4-earnings-call-highlights-050707280.html) — Yahoo Finance Top Stories
-- [DiamondRock Hospitality Q4 Earnings Call Highlights](https://finance.yahoo.com/news/diamondrock-hospitality-q4-earnings-call-050707160.html) — Yahoo Finance Top Stories
-- [Citi Cuts Accenture (ACN) Price Target to $215 as Firm Strengthens AI Strategy with Mistral AI](https://finance.yahoo.com/news/citi-cuts-accenture-acn-price-043716444.html) — Yahoo Finance Top Stories
-- [RBC Sees Improving Credit Outlook for The Bank of Nova Scotia (BNS), Raises Price Objective](https://finance.yahoo.com/news/rbc-sees-improving-credit-outlook-043708388.html) — Yahoo Finance Top Stories
-- [Diana Shipping Q4 Earnings Call Highlights](https://finance.yahoo.com/news/diana-shipping-q4-earnings-call-050707229.html) — Yahoo Finance Top Stories
+- [Playtika Holding Corp. (PLTK) Posts Q4 2025 Earnings, Here’s What You Need to Know](https://finance.yahoo.com/news/playtika-holding-corp-pltk-posts-094751963.html) — Yahoo Finance Top Stories
+- [Wall Street Cautious on Wipro Limited (WIT) Since Q3 2026 Earnings](https://finance.yahoo.com/news/wall-street-cautious-wipro-limited-094702458.html) — Yahoo Finance Top Stories
+- [Wave Life Sciences Ltd. (WVE) Announces Fiscal Q4 and Full-Year 2025 Earnings](https://finance.yahoo.com/news/wave-life-sciences-ltd-wve-094023552.html) — Yahoo Finance Top Stories
+- [What Does the Street Think About Lionsgate Studios Corp. (LION) Post Earnings?](https://finance.yahoo.com/news/does-street-think-lionsgate-studios-094021333.html) — Yahoo Finance Top Stories
+- [$100 oil? Prolonged Hormuz closure could spark a 1970s-style energy shock](https://www.cnbc.com/2026/03/01/experts-weigh-potential-scenarios-for-oil-if-strait-of-hormuz-closes.html) — CNBC Top News
 - [How the attack on Iran could impact the global oil market and economy](https://www.cnbc.com/2026/02/28/iran-us-attack-oil-market-economy.html) — CNBC Top News
+- [Berkshire Hathaway operating earnings fell nearly 30% in Warren Buffett's final quarter as CEO](https://www.cnbc.com/2026/02/28/berkshire-hathaway-brka-q4-2025-earnings.html) — CNBC Top News
+- [Anthropic's Claude hits No. 1 on Apple's top free apps list after Pentagon rejection](https://www.cnbc.com/2026/02/28/anthropics-claude-apple-apps.html) — CNBC Top News
 
 ## 6) Watchlist performance (all tickers)
 
