@@ -46,6 +46,57 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+# ----------------------------
+# Public asset URLs (email-safe) + cache busting
+# ----------------------------
+
+PUBLIC_BASE_URL: str = ""   # e.g., https://<owner>.github.io/<repo>/
+CACHE_BUST: str = ""        # e.g., YYYYMMDDHHMMSS
+
+def _derive_public_base_url() -> str:
+    """Best-effort public base URL for images so they render in email clients.
+
+    We prefer GitHub Pages (docs/ published at repo root), because relative img/ paths
+    do not resolve in email bodies.
+    """
+    # Explicit override
+    u = (os.getenv("PUBLIC_BASE_URL") or "").strip()
+    if u:
+        return u.rstrip("/") + "/"
+
+    # GitHub Actions provides owner/repo
+    repo = (os.getenv("GITHUB_REPOSITORY") or "").strip()  # e.g. owner/name
+    if repo and "/" in repo:
+        owner, name = repo.split("/", 1)
+        return f"https://{owner}.github.io/{name}/"
+
+    # Fallback to your known repo (safe default)
+    return "https://94yz6n6q9z-arch.github.io/daily-ticker-report/"
+
+def _asset_url(src: str) -> str:
+    """Turn a local path like 'img/foo.png' into an absolute URL + cache-bust.
+
+    - Absolute URLs are returned unchanged.
+    - Relative URLs are prefixed with PUBLIC_BASE_URL.
+    - A cache-bust query param is appended when CACHE_BUST is set.
+    """
+    try:
+        s = str(src or "").strip()
+    except Exception:
+        return src
+    if not s:
+        return s
+    # Absolute URL? leave it.
+    if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*://", s):
+        return s
+    base = (PUBLIC_BASE_URL or "").strip()
+    if base:
+        s = base.rstrip("/") + "/" + s.lstrip("/")
+    if CACHE_BUST:
+        sep = "&" if "?" in s else "?"
+        s = f"{s}{sep}v={CACHE_BUST}"
+    return s
+
 # Watchlist performance table (implemented locally)
 
 # ----------------------------
@@ -6095,7 +6146,8 @@ def html_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 80) ->
     if "Chart" in d.columns:
         def _mk(p):
             if isinstance(p, str) and p:
-                return f'<a href="{p}">chart</a>'
+                u = _asset_url(p)
+                return f'<a href="{u}" target="_blank">chart</a>'
             return ""
         d["Chart"] = d["Chart"].apply(_mk)
 
@@ -6110,11 +6162,36 @@ def html_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 80) ->
 
     thead = "<thead><tr>" + "".join([f"<th>{c}</th>" for c in cols_use]) + "</tr></thead>"
 
+        # Color-code selected performance columns (requested for Section 6: 1D/7D/1M/3M).
+    color_pct_cols = {"1D", "7D", "1M", "3M"}
+    def _colorize_pct_cell(v: Any) -> Any:
+        try:
+            if not isinstance(v, str):
+                return v
+            s0 = v.strip()
+            m = re.match(r"^([+-]?)(\d+(?:\.\d+)?)%$", s0)
+            if not m:
+                return v
+            sign = m.group(1)
+            if sign == "-":
+                col = "#cf222e"
+            elif sign == "+":
+                col = "#1a7f37"
+            else:
+                col = ""
+            if col:
+                return f'<span style="color:{col};font-weight:600">{s0}</span>'
+            return v
+        except Exception:
+            return v
+
     rows_html = []
     for _, r in d[cols_use].iterrows():
         tds = []
         for c in cols_use:
             v = r.get(c, "")
+            if c in color_pct_cols:
+                v = _colorize_pct_cell(v)
             cls = "num" if c in num_cols else "txt"
             if c in ("Name of Company", "Name"):
                 cls = "wrap"
@@ -6265,6 +6342,12 @@ def main():
     company_name_for_ticker, country_for_ticker = build_company_country_resolvers(msci_df)
 
     now = dt.datetime.now(dt.timezone.utc)
+    global PUBLIC_BASE_URL, CACHE_BUST
+    CACHE_BUST = now.strftime("%Y%m%d%H%M%S")
+    PUBLIC_BASE_URL = _derive_public_base_url()
+    # Backwards-compatible alias used throughout report generation
+    def _cb_img(src: str) -> str:
+        return _asset_url(src)
     header_time = now.astimezone().strftime("%Y-%m-%d %H:%M %Z")
 
     # RSS
@@ -6556,14 +6639,14 @@ def main():
     if vix_card and eur_card:
         md.append(
             f"<table><tr>"
-            f"<td style='padding-right:12px;'><img src='{vix_card}' width='{W}' style='width:{W}px;max-width:{W}px;height:auto;'></td>"
-            f"<td><img src='{eur_card}' width='{W}' style='width:{W}px;max-width:{W}px;height:auto;'></td>"
+            f"<td style='padding-right:12px;'><img src='{_cb_img(vix_card)}' width='{W}' style='width:{W}px;max-width:{W}px;height:auto;'></td>"
+            f"<td><img src='{_cb_img(eur_card)}' width='{W}' style='width:{W}px;max-width:{W}px;height:auto;'></td>"
             f"</tr></table>\n"
         )
     elif vix_card:
-        md.append(f"<img src='{vix_card}' width='{W}' style='width:{W}px;max-width:{W}px;height:auto;'>\n")
+        md.append(f"<img src='{_cb_img(vix_card)}' width='{W}' style='width:{W}px;max-width:{W}px;height:auto;'>\n")
     elif eur_card:
-        md.append(f"<img src='{eur_card}' width='{W}' style='width:{W}px;max-width:{W}px;height:auto;'>\n")
+        md.append(f"<img src='{_cb_img(eur_card)}' width='{W}' style='width:{W}px;max-width:{W}px;height:auto;'>\n")
     md.append("")
 
     # 2) Movers
@@ -6799,6 +6882,21 @@ def main():
                                 # Use the SAME detector window (tail LOOKBACK_DAYS), so meta indices (iloc) always align.
                                 d_local = df_ft.tail(LOOKBACK_DAYS).dropna(subset=["Open","High","Low","Close"]).copy()
                                 d_local = _latest_completed_close_df(d_local)
+                                # Sanity: head should be the MAX close in the detector window (HS_TOP) / MIN close (IHS).
+                                try:
+                                    close_det = d_local["Close"].astype(float)
+                                    if patt == "HS_TOP":
+                                        mxv = float(np.nanmax(close_det.values))
+                                        mxi = int(np.nanargmax(close_det.values))
+                                        hv = float(close_det.iloc[int(h_i)]) if 0 <= int(h_i) < len(close_det) else float("nan")
+                                        md.append(f"  - Detector window maxClose: {mxv:.2f} at {d_local.index[mxi]} | H_Close={hv:.2f}\n")
+                                    elif patt == "IHS":
+                                        mnv = float(np.nanmin(close_det.values))
+                                        mni = int(np.nanargmin(close_det.values))
+                                        hv = float(close_det.iloc[int(h_i)]) if 0 <= int(h_i) < len(close_det) else float("nan")
+                                        md.append(f"  - Detector window minClose: {mnv:.2f} at {d_local.index[mni]} | H_Close={hv:.2f}\n")
+                                except Exception:
+                                    pass
                                 # max close between LS..H (exclusive)
                                 if h_i > ls_i + 1:
                                     seg = d_local["Close"].iloc[ls_i+1:h_i]
@@ -6891,7 +6989,7 @@ def main():
 
             sig.chart_path = plot_signal_chart(ft, df_ft, sig, name_resolver=company_name_for_ticker)
             if getattr(sig, "chart_path", ""):
-                md.append(f"<img src='{sig.chart_path}' width='980' style='max-width:980px;height:auto;'>\n")
+                md.append(f"<a href='{_cb_img(sig.chart_path)}' target='_blank'><img src='{_cb_img(sig.chart_path)}' width='980' style='max-width:980px;height:auto;'></a>\n")
             md.append("\n")
         except Exception as e:
             md.append(f"**{ft}** — focus analysis failed: `{e}`\n\n")
@@ -6947,7 +7045,7 @@ def main():
                 md.append("- **Setup:** watch for confirmation close beyond trigger by ≥ 0.5 ATR, or a clean retest/failure in the direction of the signal.")
 
             if isinstance(chart_p, str) and chart_p:
-                md.append(f'<img src="{chart_p}" width="720" style="max-width:100%;height:auto;">')
+                md.append(f'<img src="{_cb_img(chart_p)}" width="720" style="max-width:100%;height:auto;">')
             md.append("")
 
     md.append("\n**ONGOING:**\n")
