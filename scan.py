@@ -5480,6 +5480,44 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
     return sigs
 
 
+
+def _hs_indices_from_meta(meta: Optional[Dict[str, Any]]) -> Optional[Tuple[int, int, int]]:
+    """Extract (LS_i, H_i, RS_i) from HS/IHS meta points."""
+    if not isinstance(meta, dict):
+        return None
+    pts = meta.get("points")
+    if not isinstance(pts, list):
+        return None
+    idx = {}
+    for p in pts:
+        if isinstance(p, dict):
+            lab = str(p.get("label") or p.get("name") or "").upper()
+            if lab in ("LS", "H", "RS"):
+                try:
+                    idx[lab] = int(p.get("i"))
+                except Exception:
+                    pass
+    if all(k in idx for k in ("LS", "H", "RS")):
+        return (idx["LS"], idx["H"], idx["RS"])
+    return None
+
+
+def _hs_meta_passes_guardrails(d: pd.DataFrame, pattern: str, meta: Optional[Dict[str, Any]]) -> bool:
+    """Return True if HS/IHS meta is geometrically valid on detector window d."""
+    tri = _hs_indices_from_meta(meta)
+    if tri is None:
+        return False
+    p1, p2, p3 = tri
+    inverse = (str(pattern).upper() == "IHS")
+    g = _hs_geometry_diagnostics(
+        d, p1, p2, p3, inverse=inverse,
+        local_window=HS_LOCAL_WINDOW,
+        symmetry_min_ratio=HS_SYMMETRY_MIN_RATIO,
+        valley_atr_mult=HS_VALLEY_ATR_MULT,
+        shoulder_valley_mult=HS_SHOULDER_VALLEY_ATR_MULT,
+    )
+    return bool(g.get("pass_all", False))
+
 def _debug_gates_for_ticker(ticker: str, df0: pd.DataFrame, state: Optional[Dict[str, Any]] = None, max_candidates: int = 6) -> Dict[str, Any]:
     """Diagnostics for a ticker: last-bar metrics and why it did/didn't confirm."""
     out: Dict[str, Any] = {"Ticker": ticker}
@@ -5491,11 +5529,8 @@ def _debug_gates_for_ticker(ticker: str, df0: pd.DataFrame, state: Optional[Dict
         out["note"] = "insufficient bars"
         return out
 
-    if isinstance(d0.index, pd.DatetimeIndex):
-        cutoff = d0.index[-1] - pd.Timedelta(days=CHART_WINDOW_DAYS)
-        d = d0.loc[d0.index >= cutoff].copy()
-    else:
-        d = d0.tail(LOOKBACK_DAYS).copy()
+    # Use trading-bar lookback everywhere so HS/IHS meta indices align deterministically.
+    d = d0.tail(LOOKBACK_DAYS).copy()
     d = _latest_completed_close_df(d)
     if d.empty or len(d) < 5:
         out["note"] = "empty slice"
@@ -5536,6 +5571,17 @@ def _debug_gates_for_ticker(ticker: str, df0: pd.DataFrame, state: Optional[Dict
                     level=float(mem.get("level",0.0)),
                     meta=meta2
                 ))
+
+
+    # HARD FAIL: never keep HS/IHS candidates whose geometry does not pass deterministic guardrails
+    # on the same detector window used for level evaluation.
+    try:
+        candidates = [
+            c for c in candidates
+            if not (getattr(c, "pattern", "") in ("HS_TOP", "IHS") and (not _hs_meta_passes_guardrails(d, getattr(c, "pattern", ""), getattr(c, "meta", None))))
+        ]
+    except Exception:
+        pass
 
     out["Cand#"] = len(candidates)
 
@@ -6941,6 +6987,14 @@ def main():
                 md.append(f"**{ft}** — no data\n\n")
                 continue
 
+            # Align all focus diagnostics and charts to the same detector window (trading-bar lookback).
+            d_local = df_ft.dropna(subset=["Open","High","Low","Close"]).copy()
+            d_local = d_local.tail(LOOKBACK_DAYS).copy()
+            d_local = _latest_completed_close_df(d_local)
+            if d_local.empty or len(d_local) < 5:
+                md.append(f"**{ft}** — insufficient bars\n\n")
+                continue
+
             info = _debug_gates_for_ticker(ft, df_ft, state=state, max_candidates=12)
             best = info.get("Best") or {}
             nm = company_name_for_ticker(ft)
@@ -7122,7 +7176,6 @@ def main():
                                     md.append(f"    - 3) Symmetry ratio min(dL,dR)/max(dL,dR) ≥ {HS_SYMMETRY_MIN_RATIO:.2f}: {'YES' if geom_chk.get('symmetry_ok') else 'NO'} (dL={geom_chk.get('dL')}, dR={geom_chk.get('dR')}, ratio={geom_chk.get('symmetry_ratio'):.2f})\n")
                                     md.append(f"    - 4) Valley depth ≥ {HS_VALLEY_ATR_MULT:.1f}×ATR(head): {'YES' if geom_chk.get('valley_ok') else 'NO'} (left={geom_chk.get('valley_left_depth'):.2f}, right={geom_chk.get('valley_right_depth'):.2f}, thr={geom_chk.get('valley_thr'):.2f}, ATR={geom_chk.get('atr_head'):.2f})\n")
                                     md.append(f"    - 5) Shoulder→Valley ≥ {HS_SHOULDER_VALLEY_ATR_MULT:.1f}×ATR(head): {'YES' if geom_chk.get('shoulder_valley_ok') else 'NO'} (left={geom_chk.get('shoulder_valley_left_depth'):.2f}, right={geom_chk.get('shoulder_valley_right_depth'):.2f}, thr={geom_chk.get('shoulder_valley_thr'):.2f})\n")
-                                    md.append(f"    - 5) Shoulder→valley depth ≥ {HS_SHOULDER_VALLEY_ATR_MULT:.1f}×ATR(head): {'YES' if geom_chk.get('shoulder_valley_ok') else 'NO'} (L={geom_chk.get('shoulder_valley_left_depth'):.2f}, R={geom_chk.get('shoulder_valley_right_depth'):.2f}, thr={geom_chk.get('shoulder_valley_thr'):.2f})\n")
                                 except Exception:
                                     pass
 
