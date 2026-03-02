@@ -46,6 +46,8 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+SCAN_VERSION: str = "v68"
+
 # ----------------------------
 # Public asset URLs (email-safe) + cache busting
 # ----------------------------
@@ -2077,7 +2079,7 @@ def write_email_assets(
 
     link = f"{base_url.rstrip('/')}/report.md" if base_url else ""
     lines = []
-    lines.append(f"Daily Ticker Report — {header_time}")
+    lines.append(f"Daily Ticker Report — {header_time} ({SCAN_VERSION})")
     lines.append("")
     lines.append("Executive summary:")
     lines.append(exec_summary.strip())
@@ -6831,7 +6833,7 @@ def main():
     # Assemble markdown
     md: List[str] = []
     md.append("# Daily Report\n")
-    md.append(f"_Generated: **{header_time}**_\n")
+    md.append(f"_Generated: **{header_time}** | Version: **{SCAN_VERSION}**_\n")
 
     # 1) Market recap & positioning (EXEC SUMMARY FIRST)
     md.append("## 1) Market recap & positioning\n")
@@ -6986,6 +6988,7 @@ def main():
                     md.append(f"  - 2) LS local (±{HS_LOCAL_WINDOW}): {'YES' if g.get('ls_local_extreme') else 'NO'} | RS local: {'YES' if g.get('rs_local_extreme') else 'NO'}\n")
                     md.append(f"  - 3) Symmetry ≥ {HS_SYMMETRY_MIN_RATIO:.2f}: {'YES' if g.get('symmetry_ok') else 'NO'} (dL={g.get('dL')}, dR={g.get('dR')}, ratio={g.get('symmetry_ratio')})\n")
                     md.append(f"  - 4) Valley ≥ {HS_VALLEY_ATR_MULT:.1f}×ATR: {'YES' if g.get('valley_ok') else 'NO'} (left={g.get('valley_left_depth')}, right={g.get('valley_right_depth')}, thr={g.get('valley_thr')}, ATR={g.get('atr_head')})\n")
+                    md.append(f"  - 5) Shoulder→Valley ≥ {HS_SHOULDER_VALLEY_ATR_MULT:.1f}×ATR: {'YES' if g.get('shoulder_valley_ok') else 'NO'} (left={g.get('shoulder_valley_left_depth')}, right={g.get('shoulder_valley_right_depth')}, thr={g.get('shoulder_valley_thr')})\n")
             except Exception:
                 pass
 
@@ -7091,6 +7094,9 @@ def main():
                         md.append(f"  - Gate inputs: CLV={clv_val} | VolRatio={volr_val}\n")
                     try:
                         meta2 = best.get("meta") if isinstance(best, dict) else None
+                        # Reindex geometry points onto the current detector window (prevents stale iloc indices)
+                        if isinstance(meta2, dict):
+                            meta2 = _reindex_meta_to_df(meta2, d_local) or meta2
                         pts = meta2.get("points") if isinstance(meta2, dict) else None
                         if isinstance(pts, list):
                             def _pt(lbl):
@@ -7115,6 +7121,7 @@ def main():
                                     md.append(f"    - 2) LS local extreme (±{HS_LOCAL_WINDOW} bars): {'YES' if geom_chk.get('ls_local_extreme') else 'NO'} | RS local extreme: {'YES' if geom_chk.get('rs_local_extreme') else 'NO'}\n")
                                     md.append(f"    - 3) Symmetry ratio min(dL,dR)/max(dL,dR) ≥ {HS_SYMMETRY_MIN_RATIO:.2f}: {'YES' if geom_chk.get('symmetry_ok') else 'NO'} (dL={geom_chk.get('dL')}, dR={geom_chk.get('dR')}, ratio={geom_chk.get('symmetry_ratio'):.2f})\n")
                                     md.append(f"    - 4) Valley depth ≥ {HS_VALLEY_ATR_MULT:.1f}×ATR(head): {'YES' if geom_chk.get('valley_ok') else 'NO'} (left={geom_chk.get('valley_left_depth'):.2f}, right={geom_chk.get('valley_right_depth'):.2f}, thr={geom_chk.get('valley_thr'):.2f}, ATR={geom_chk.get('atr_head'):.2f})\n")
+                                    md.append(f"    - 5) Shoulder→Valley ≥ {HS_SHOULDER_VALLEY_ATR_MULT:.1f}×ATR(head): {'YES' if geom_chk.get('shoulder_valley_ok') else 'NO'} (left={geom_chk.get('shoulder_valley_left_depth'):.2f}, right={geom_chk.get('shoulder_valley_right_depth'):.2f}, thr={geom_chk.get('shoulder_valley_thr'):.2f})\n")
                                     md.append(f"    - 5) Shoulder→valley depth ≥ {HS_SHOULDER_VALLEY_ATR_MULT:.1f}×ATR(head): {'YES' if geom_chk.get('shoulder_valley_ok') else 'NO'} (L={geom_chk.get('shoulder_valley_left_depth'):.2f}, R={geom_chk.get('shoulder_valley_right_depth'):.2f}, thr={geom_chk.get('shoulder_valley_thr'):.2f})\n")
                                 except Exception:
                                     pass
@@ -7365,6 +7372,7 @@ def main():
 
 
     md_text = "\n".join(md).strip() + "\n"
+    md_text = _dedupe_macro_cards(md_text)
 
     write_text(REPORT_PATH, md_text)
     write_text(INDEX_PATH, md_text)
