@@ -37,7 +37,7 @@ import yfinance as yf
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-SCAN_VERSION: str = "v70"
+SCAN_VERSION: str = "v73"
 # ----------------------------
 # Public asset URLs (email-safe) + cache busting
 # ----------------------------
@@ -275,7 +275,7 @@ MOVER_THRESHOLD_PCT = 4.0
 ATR_N = 14
 ATR_CONFIRM_MULT = 0.5     # confirmed breakout/breakdown threshold
 EARLY_MULT = 0.5           # early callout threshold (within 0.5 ATR)
-VALIDATE_BARS = 4         # validated requires breakout day + next 3 sessions all holding confirmation gates
+VALIDATE_BARS = 3         # validated lifecycle window (bars): day0..day2 (all3, price+vol, all3)
 DCB_EARLY_MAX_BARS = 5     # dead-cat-bounce EARLY expires after 5 bars from event low (fresh shock only)
 DCB_EARLY_MAX_FROM_BOUNCE = 4  # ...and max 4 bars from bounce high
 VOL_CONFIRM_MULT = 1.25   # volume must be >= 1.25x AvgVol(20) for CONFIRMED
@@ -297,10 +297,13 @@ HS_MAX_BREAKOUT_LAG_BARS = 30
 HS_GEOM_CARRY_BARS = 30  # persist HS/IHS geometry up to 30 bars to survive pivot re-picks on big bars
 BAND_GEOM_CARRY_BARS = 30  # persist band geometry (rect/tri/broaden) up to 30 bars since last validating touch
 # Lifecycle: CONFIRMED is only day 0..1 of a new confirmed run. Day 2 becomes VALIDATED if the validation window holds.
-CONFIRMED_MAX_AGE_BARS = 2
-VALIDATED_MIN_AGE_BARS = 3
+CONFIRMED_MAX_AGE_BARS = 1
+VALIDATED_MIN_AGE_BARS = 2
 # Keep VALIDATED ongoing for at most this many bars after the breakout day (unless you change it).
 VALIDATED_MAX_AGE_BARS = 30
+# Exit rules (applied to CONFIRMED + VALIDATED signals for ALL formations)
+EXIT_ENABLE = True
+EXIT_GIVEBACK_ATR = 2.0  # exit when giveback >= 2 ATR_ref from peak excursion
 # Dead Cat Bounce: event must be an overnight gap-down of at least 10% (open vs prior close)
 DCB_MIN_GAP_PCT = 0.10
 # Chart window (timeline) for all signal charts
@@ -3382,47 +3385,60 @@ def _hs_geometry_diagnostics(
     shoulder_valley_mult: float = HS_SHOULDER_VALLEY_ATR_MULT,
 ) -> Dict[str, Any]:
     """Compute deterministic HS/IHS geometry checks on the *same detector window* d.
-    Returns a dict with:
-      - pass_all: bool
-      - head_is_global_span: bool + head_span_arg_idx
-      - ls_local_extreme: bool, rs_local_extreme: bool
-      - symmetry_ratio: float, symmetry_ok: bool
-      - valley_left_depth, valley_right_depth, valley_thr, valley_ok
+
+    Checks (hard fail when any is False):
+      1) Head is absolute extreme Close in [LS..RS] (max for HS_TOP, min for IHS), tie-safe.
+      2) LS & RS are local extrema on Close within ±local_window bars (max for HS_TOP, min for IHS).
+      3) Symmetry ratio min(dL,dR)/max(dL,dR) ≥ symmetry_min_ratio.
+      4) Valley depth (Head→Valley) ≥ valley_atr_mult × ATR(head).
+      5) Shoulder→Valley depth ≥ shoulder_valley_mult × ATR(head).
+      6) Span bars (RS−LS) within [HS_MIN_BARS .. HS_MAX_BARS].
+      7) Sidebars: (H−LS) and (RS−H) each ≥ HS_MIN_SIDE_BARS.
     """
     out: Dict[str, Any] = {}
     if d is None or d.empty:
-        out["pass_all"] = False
-        out["reason"] = "empty"
-        return out
+        return {"pass_all": False, "reason": "empty"}
+
     close = d["Close"].astype(float).values
     high = d["High"].astype(float).values
-    low  = d["Low"].astype(float).values
+    low = d["Low"].astype(float).values
     n = len(close)
+
     p1 = int(p1); p2 = int(p2); p3 = int(p3)
     if not (0 <= p1 < p2 < p3 < n):
-        out["pass_all"] = False
-        out["reason"] = "bad_indices"
-        return out
-    # 1) Head must be absolute extreme CLOSE in [LS..RS] span
-    span = close[p1:p3+1].astype(float)
+        return {"pass_all": False, "reason": "bad_indices"}
+
+    # 6) Span bounds
+    span_bars = int(p3 - p1)
+    out["span_bars"] = span_bars
+    out["span_ok"] = bool((span_bars >= HS_MIN_BARS) and (span_bars <= HS_MAX_BARS))
+
+    # 7) Sidebars
+    dL = int(p2 - p1)
+    dR = int(p3 - p2)
+    out["dL"] = dL
+    out["dR"] = dR
+    out["sidebars_ok"] = bool((dL >= HS_MIN_SIDE_BARS) and (dR >= HS_MIN_SIDE_BARS))
+
+    # 1) Head must be absolute extreme CLOSE in [LS..RS] span (tie-safe)
+    span = close[p1:p3 + 1].astype(float)
     if inverse:
         extreme_val = float(np.nanmin(span))
-        rel_idxs = np.where(np.isclose(span, extreme_val, rtol=0.0, atol=1e-8))[0]
-        arg_rel = int(rel_idxs[-1]) if len(rel_idxs) else int(np.nanargmin(span))
     else:
         extreme_val = float(np.nanmax(span))
-        rel_idxs = np.where(np.isclose(span, extreme_val, rtol=0.0, atol=1e-8))[0]
-        arg_rel = int(rel_idxs[-1]) if len(rel_idxs) else int(np.nanargmax(span))
+    # prefer the LAST occurrence (tie-safe, consistent with our head anchoring)
+    rel_idxs = np.where(np.isclose(span, extreme_val, rtol=0.0, atol=1e-8))[0]
+    arg_rel = int(rel_idxs[-1]) if len(rel_idxs) else (int(np.nanargmin(span)) if inverse else int(np.nanargmax(span)))
     head_span_arg = int(p1 + arg_rel)
-    # IMPORTANT: allow tied max/min closes (plateaus). We require the HEAD close to match the span extreme value,
-    # but we do NOT require the head bar index to be the first argmax/argmin (np.nanarg* returns first by default).
     head_is_global_span = bool(np.isclose(float(close[p2]), float(extreme_val), rtol=0.0, atol=1e-6))
-    out["head_is_global_span"] = bool(head_is_global_span)
-    out["head_span_arg_i"] = int(head_span_arg)
+    out["head_is_global_span"] = head_is_global_span
+    out["head_span_arg_i"] = head_span_arg
     out["head_span_extreme_close"] = float(extreme_val)
     out["head_close"] = float(close[p2])
+
     # 2) LS/RS must be local extrema (Close) within ±local_window bars
     w = int(local_window)
+
     def _is_local_extreme(i: int) -> bool:
         lo_i = max(0, i - w)
         hi_i = min(n, i + w + 1)
@@ -3430,41 +3446,45 @@ def _hs_geometry_diagnostics(
         if inverse:
             return float(close[i]) <= float(np.nanmin(win) + 1e-8)
         return float(close[i]) >= float(np.nanmax(win) - 1e-8)
+
     out["ls_local_extreme"] = bool(_is_local_extreme(p1))
     out["rs_local_extreme"] = bool(_is_local_extreme(p3))
-    # 3) Symmetry: ratio of side lengths
-    dL = int(p2 - p1)
-    dR = int(p3 - p2)
+
+    # 3) Symmetry
     ratio = float(min(dL, dR) / max(dL, dR)) if max(dL, dR) > 0 else 0.0
-    out["dL"] = dL; out["dR"] = dR
     out["symmetry_ratio"] = ratio
     out["symmetry_ok"] = bool(ratio >= float(symmetry_min_ratio))
-    # 4) Valley depth (reaction) vs ATR at head
+
+    # 4/5) Valley depth vs ATR(head)
     atr_s = atr(d, ATR_N).astype(float).values
     atr_h = float(atr_s[p2]) if np.isfinite(atr_s[p2]) else float(np.nanmedian(atr_s))
-    thr = float(valley_atr_mult) * float(atr_h if np.isfinite(atr_h) and atr_h > 0 else 0.0)
     out["atr_head"] = float(atr_h)
-    out["valley_thr"] = thr
+    thr = float(valley_atr_mult) * float(atr_h if np.isfinite(atr_h) and atr_h > 0 else 0.0)
+    out["valley_thr"] = float(thr)
+
     if inverse:
-        # Need peaks between LS-H and H-RS
-        peakL = float(np.nanmax(high[p1:p2+1]))
-        peakR = float(np.nanmax(high[p2:p3+1]))
+        # IHS: valleys are peaks (highs) between LS-H and H-RS
+        peakL = float(np.nanmax(high[p1:p2 + 1]))
+        peakR = float(np.nanmax(high[p2:p3 + 1]))
         valL = peakL
         valR = peakR
         depthL = peakL - float(close[p2])
         depthR = peakR - float(close[p2])
     else:
-        # Need troughs between LS-H and H-RS
-        troughL = float(np.nanmin(low[p1:p2+1]))
-        troughR = float(np.nanmin(low[p2:p3+1]))
+        # HS_TOP: valleys are troughs (lows) between LS-H and H-RS
+        troughL = float(np.nanmin(low[p1:p2 + 1]))
+        troughR = float(np.nanmin(low[p2:p3 + 1]))
         valL = troughL
         valR = troughR
         depthL = float(close[p2]) - troughL
         depthR = float(close[p2]) - troughR
+
     out["valley_left_depth"] = float(depthL)
     out["valley_right_depth"] = float(depthR)
     out["valley_left_level"] = float(valL)
     out["valley_right_level"] = float(valR)
+    out["valley_ok"] = bool((depthL >= thr) and (depthR >= thr))
+
     shoulder_thr = float(shoulder_valley_mult) * float(atr_h if np.isfinite(atr_h) and atr_h > 0 else 0.0)
     out["shoulder_valley_thr"] = float(shoulder_thr)
     if inverse:
@@ -3476,14 +3496,16 @@ def _hs_geometry_diagnostics(
     out["shoulder_valley_left_depth"] = float(sdepthL)
     out["shoulder_valley_right_depth"] = float(sdepthR)
     out["shoulder_valley_ok"] = bool((sdepthL >= shoulder_thr) and (sdepthR >= shoulder_thr))
-    out["valley_ok"] = bool((depthL >= thr) and (depthR >= thr))
+
     out["pass_all"] = bool(
         out["head_is_global_span"]
         and out["ls_local_extreme"]
         and out["rs_local_extreme"]
         and out["symmetry_ok"]
         and out["valley_ok"]
-        and out.get("shoulder_valley_ok", True)
+        and out["shoulder_valley_ok"]
+        and out["span_ok"]
+        and out["sidebars_ok"]
     )
     return out
 def detect_hs_top(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None) -> Optional[PatternCandidate]:
@@ -4239,24 +4261,33 @@ def _validation_window_ok(
     a_series: pd.Series,
     run_start: int,
 ) -> bool:
-    """Strict 3-session anti-whipsaw validation (as agreed).
-    VALIDATED requires:
-      breakout/breakdown occurred 3 sessions ago AND for the breakout day + the next 3 sessions
-      (4 bars total, day0..day3), ALL 3 confirmation gates hold on EVERY bar.
-    Gates per bar:
-      - price beyond trigger by >= 0.5 ATR(14)
-      - CLV >= +0.70 (breakout) / <= -0.70 (breakdown)
-      - Volume >= 1.25x AvgVol(20) (prior-20 mean)
-    This prevents stale CONFIRMED signals.
+    """3-day deterministic HS lifecycle validation (as agreed).
+
+    Definitions (relative to run_start = confirmation day):
+      - Day 0 (run_start): ALL 3 gates must hold (price + CLV + volume).
+      - Day 1 (run_start+1): keep the run alive if price + volume hold; CLV is optional.
+      - Day 2 (run_start+2): VALIDATED requires ALL 3 gates again.
+
+    So the 3-bar window (day0..day2) must satisfy:
+      - day0: confirmed (3 gates)
+      - day1: price+volume (CLV ignored)
+      - day2: confirmed (3 gates)
     """
     n = len(d)
     rs = int(run_start)
-    if rs < 0 or rs + VALIDATE_BARS - 1 >= n:
+    if rs < 0 or rs + 2 >= n:
         return False
-    for k in range(rs, rs + VALIDATE_BARS):
-        if not _is_confirmed_bar(cand, d, a_series, k, atr_mult=ATR_CONFIRM_MULT):
-            return False
+    # day0: strict confirmed
+    if not _is_confirmed_bar(cand, d, a_series, rs, atr_mult=ATR_CONFIRM_MULT):
+        return False
+    # day1: price+volume (CLV optional)
+    if not _is_pricevol_bar(cand, d, a_series, rs + 1, atr_mult=ATR_CONFIRM_MULT):
+        return False
+    # day2: strict confirmed again
+    if not _is_confirmed_bar(cand, d, a_series, rs + 2, atr_mult=ATR_CONFIRM_MULT):
+        return False
     return True
+
 def _validated_stage(
     cand: PatternCandidate,
     d: pd.DataFrame,
@@ -4264,12 +4295,16 @@ def _validated_stage(
     end_idx: int,
 ) -> Optional[Tuple[str, str, int, int]]:
     """Return (stage,status,age,run_start) for VALIDATED if applicable, else None.
-    Deterministic & time-bounded:
-      - Find the most recent run start rs such that bars rs..rs+3 are ALL confirmed (strict window).
-      - VALIDATED_NEW: age == 3
-      - VALIDATED_ONGOING: age > 3 up to VALIDATED_MAX_AGE_BARS,
+
+    Deterministic & time-bounded validation (3-day lifecycle):
+      - Find the most recent run start rs such that the 3-bar window rs..rs+2 satisfies:
+          day0 (rs): all 3 gates (price + CLV + volume)
+          day1 (rs+1): price + volume (CLV optional)
+          day2 (rs+2): all 3 gates again
+      - VALIDATED_NEW: age == 2 (today is day2)
+      - VALIDATED_ONGOING: age > 2 up to VALIDATED_MAX_AGE_BARS,
         provided price remains on the correct side of the trigger.
-      - If a run never validates by day 3, it expires (not shown).
+      - If a run never validates by day2, it expires (not shown).
     """
     n = len(d)
     if n < VALIDATE_BARS + 2:
@@ -4347,6 +4382,109 @@ def _is_pricevol_bar(
         return True
     except Exception:
         return False
+
+# ----------------------------
+# Exit rules (applied to all formations once CONFIRMED/VALIDATED)
+# ----------------------------
+def _atr_ref_for_exit(cand: PatternCandidate, d: pd.DataFrame, a_series: pd.Series, run_start: int) -> float:
+    """ATR reference used for exit trailing.
+    - HS/IHS: prefer ATR at Head (structure anchor)
+    - Otherwise: ATR at run_start
+    Falls back to median ATR, then ~1% of price.
+    """
+    atr_ref = float("nan")
+    try:
+        rs = int(run_start)
+        if a_series is not None and 0 <= rs < len(a_series):
+            atr_ref = float(a_series.iloc[rs])
+    except Exception:
+        atr_ref = float("nan")
+    # Prefer head ATR for HS/IHS if available
+    try:
+        if isinstance(getattr(cand, "meta", None), dict) and str(cand.meta.get("annot_type", "")) == "hs":
+            tri = _hs_indices_from_meta(cand.meta)
+            if tri is not None:
+                _ls_i, h_i, _rs_i = tri
+                if a_series is not None and 0 <= int(h_i) < len(a_series):
+                    v = float(a_series.iloc[int(h_i)])
+                    if np.isfinite(v) and v > 0:
+                        atr_ref = v
+    except Exception:
+        pass
+    try:
+        if (not np.isfinite(atr_ref)) or atr_ref <= 0:
+            atr_ref = float(np.nanmedian(np.asarray(a_series, dtype=float)))
+    except Exception:
+        pass
+    if (not np.isfinite(atr_ref)) or atr_ref <= 0:
+        try:
+            px = float(d["Close"].iloc[int(run_start)])
+            atr_ref = max(px * 0.01, 1e-6)
+        except Exception:
+            atr_ref = 1e-6
+    return float(atr_ref)
+
+def _exit_check_giveback(
+    cand: PatternCandidate,
+    d: pd.DataFrame,
+    a_series: pd.Series,
+    run_start: int,
+    end_idx: int,
+    giveback_atr: float = EXIT_GIVEBACK_ATR,
+) -> Dict[str, Any]:
+    """Trailing exit: allow at most `giveback_atr` ATR_ref giveback from peak excursion.
+
+    Define excursion/excess in ATR units vs the trigger/neckline level at each bar:
+      - BREAKOUT: excess = (Close - Level)/ATR_ref
+      - BREAKDOWN: excess = (Level - Close)/ATR_ref
+
+    Track peak_excess since run_start.
+    Exit if:
+      - excess <= 0 (back through trigger), OR
+      - peak_excess >= giveback_atr and excess <= peak_excess - giveback_atr
+    """
+    out: Dict[str, Any] = {"exit": False, "reason": None}
+    if not EXIT_ENABLE:
+        return out
+    n = len(d)
+    rs = int(max(0, min(int(run_start), n - 1)))
+    ei = int(max(0, min(int(end_idx), n - 1)))
+    if ei <= rs:
+        return out
+    atr_ref = _atr_ref_for_exit(cand, d, a_series, rs)
+    if not np.isfinite(atr_ref) or atr_ref <= 0:
+        return out
+    excess_vals: List[float] = []
+    for j in range(rs, ei + 1):
+        try:
+            level_j = _safe_float(_level_at_bar(cand, d, j))
+            close_j = _safe_float(d["Close"].iloc[j])
+            if not np.isfinite(level_j) or not np.isfinite(close_j):
+                continue
+            if cand.direction == "BREAKOUT":
+                ex = (close_j - level_j) / atr_ref
+            else:
+                ex = (level_j - close_j) / atr_ref
+            excess_vals.append(float(ex))
+        except Exception:
+            continue
+    if not excess_vals:
+        return out
+    peak_excess = float(np.nanmax(np.asarray(excess_vals, dtype=float)))
+    cur_excess = float(excess_vals[-1])
+    out.update({"atr_ref": float(atr_ref), "peak_excess": peak_excess, "cur_excess": cur_excess, "giveback_atr": float(giveback_atr)})
+    # Hard invalidation: back through trigger/neckline
+    if cur_excess <= 0.0:
+        out["exit"] = True
+        out["reason"] = "EXIT_NECKLINE"
+        return out
+    # Trailing giveback from max favorable excursion
+    if peak_excess >= float(giveback_atr) and cur_excess <= (peak_excess - float(giveback_atr)):
+        out["exit"] = True
+        out["reason"] = "EXIT_GIVEBACK"
+        return out
+    return out
+
 def _confirm_run_start(cand: PatternCandidate, d: pd.DataFrame, a_series: pd.Series) -> Optional[int]:
     """Return the index (in d) of the first bar of the current CONFIRMED run, or None.
     Day 0 (confirmation day): ALL 3 gates must hold (price + CLV + volume).
@@ -4377,10 +4515,12 @@ def _stage_from_confirm_run(
     run_start: int,
 ) -> Tuple[str, str, int]:
     """Deterministically classify a signal after a CONFIRMED run is present.
-    - CONFIRMED is only for age 0..CONFIRMED_MAX_AGE_BARS (0..2).
-    - On age == VALIDATED_MIN_AGE_BARS (3), if the breakout day + next 3 bars are all CONFIRMED -> VALIDATED_NEW.
-    - After that -> VALIDATED_ONGOING (until VALIDATED_MAX_AGE_BARS), otherwise expires.
-    - If the run reaches age >= 3 but the first 4 bars did NOT all pass gates -> EXPIRED (removed).
+
+    Lifecycle (relative to run_start = Day 0):
+      - Day 0: CONFIRMED requires all 3 gates.
+      - Day 1: CONFIRMED_ONGOING requires price+volume (CLV optional).
+      - Day 2: VALIDATED requires all 3 gates again (and day1 price+volume).
+      - After Day 2, VALIDATED_ONGOING remains while price stays beyond the trigger (capped).
     """
     n = len(d)
     age = int((n - 1) - int(run_start))
@@ -4562,13 +4702,13 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
             continue
         seen.add(key)
         # Stage logic (deterministic lifecycle):
-        # - EARLY: within 0.5 ATR of trigger (pre-break), regardless of volume/CLV gates
-        # - CONFIRMED: breakout/breakdown day is the start of a run where ALL 3 gates hold
-        #             (price beyond trigger by >=0.5 ATR, CLV >=+0.70 / <=-0.70, Vol >=1.25x AvgVol20)
-        #             CONFIRMED is only valid for age 0..2 (NEW today, then ONGOING for 1-2 days).
-        # - VALIDATED: once the confirmed run reaches age 3 and gates held for breakout day + next 3 sessions.
-        #             After that it remains VALIDATED_ONGOING (capped by VALIDATED_MAX_AGE_BARS) while price stays
-        #             on the correct side of the trigger; otherwise it expires.
+        # - EARLY: within 0.5 ATR of trigger (pre-break), regardless of volume/CLV gates.
+        # - CONFIRMED (Day 0): breakout/breakdown day where ALL 3 gates hold
+        #   (price beyond trigger by >=0.5 ATR, CLV >=+0.70 / <=-0.70, Vol >=1.25x AvgVol20).
+        # - CONFIRMED_ONGOING (Day 1): keep alive if price + volume hold; CLV is optional.
+        # - VALIDATED (Day 2): requires ALL 3 gates again (day0 all3, day1 price+vol, day2 all3).
+        #   After that it remains VALIDATED_ONGOING (capped by VALIDATED_MAX_AGE_BARS) while price stays
+        #   on the correct side of the trigger; otherwise it expires.
         curr_level = _level_at_bar(cand, d, len(d) - 1)
         level_now = float(curr_level)
         dist_atr = (close - level_now) / (atr_val if np.isfinite(atr_val) and atr_val > 0 else max(float(abs(level_now)) * 0.01, 1e-6))
@@ -4625,6 +4765,32 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
                 except Exception:
                     pass
 # VP runway (distance to nearest opposing HVN) for CONFIRMED + VALIDATED
+
+        # Exit rules (apply to all formations once CONFIRMED/VALIDATED):
+        # - exit if price crosses back through the trigger/neckline
+        # - or if the move gives back >= 2 ATR_ref from its peak excursion since run_start
+        exit_run_start = None
+        try:
+            if prefix == "VALIDATED_" and 'vinfo' in locals() and vinfo is not None:
+                exit_run_start = int(rs)
+            elif prefix == "CONFIRMED_" and run_start is not None:
+                exit_run_start = int(run_start)
+        except Exception:
+            exit_run_start = None
+        if exit_run_start is not None:
+            exi = _exit_check_giveback(cand, d, a, exit_run_start, len(d) - 1, giveback_atr=EXIT_GIVEBACK_ATR)
+            if isinstance(exi, dict) and exi.get("exit"):
+                if isinstance(debug, dict):
+                    debug.setdefault("exit_events", []).append({
+                        "ticker": ticker,
+                        "signal": f"{prefix}{cand.pattern}_{cand.direction}",
+                        "stage": "VALIDATED" if prefix == "VALIDATED_" else "CONFIRMED",
+                        "reason": str(exi.get("reason")),
+                        "peak_excess": exi.get("peak_excess"),
+                        "cur_excess": exi.get("cur_excess"),
+                        "atr_ref": exi.get("atr_ref"),
+                    })
+                continue
         if prefix in ("CONFIRMED_", "VALIDATED_"):
             try:
                 vp_runway_pct, _z = _vp_runway_to_hvn_pct(d, close=close, direction=cand.direction, end_idx=len(d) - 1)
@@ -5885,6 +6051,32 @@ def main():
             ended_by_stage["CONFIRMED"].append(_x)
         elif str(_sig).startswith("VALIDATED_"):
             ended_by_stage["VALIDATED"].append(_x)
+
+    # Add explicit exit events (trailing giveback / neckline invalidation) with reason.
+    # These are deterministic "ended today" cases even if the signal ID would also appear in ended_ids.
+    try:
+        exit_events = debug.get("exit_events", []) if isinstance(debug, dict) else []
+        if isinstance(exit_events, list) and exit_events:
+            for ev in exit_events:
+                if not isinstance(ev, dict):
+                    continue
+                stg = str(ev.get("stage", "")).upper()
+                tkr = str(ev.get("ticker", "")).strip()
+                sig = str(ev.get("signal", "")).strip()
+                reason = str(ev.get("reason", "")).strip()
+                try:
+                    pk = float(ev.get("peak_excess"))
+                    cur = float(ev.get("cur_excess"))
+                    extra = f" (peak={pk:.2f}ATR, now={cur:.2f}ATR)"
+                except Exception:
+                    extra = ""
+                line = f"{tkr}|{sig} — {reason}{extra}"
+                if stg.startswith("VAL"):
+                    ended_by_stage["VALIDATED"].append(line)
+                elif stg.startswith("CONF"):
+                    ended_by_stage["CONFIRMED"].append(line)
+    except Exception:
+        pass
     new_early_ids, _ended_early_ids = diff_new_ended(prev_early, {"signals": cur_early_ids})
     new_set = set(new_early_ids)
     def mark_new(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
@@ -5998,8 +6190,23 @@ def main():
         pass
     # Emerging chart trends (watchlist pulse) — before early callouts
     # Focus tickers deep-dive (always shown) — NU + CEG with explicit “why not detected” + charts
-    md.append("### Focus tickers deep-dive (always shown)\n")
-    for ft in FOCUS_TICKERS:
+    md.append("### IHS early deep-dive (top 4)\n")
+    diag_tickers: List[str] = []
+    _seen_diag: set = set()
+    for _s in early_sorted:
+        try:
+            if str(getattr(_s, "pattern", "")) == "IHS" and str(getattr(_s, "direction", "")) == "BREAKOUT":
+                _tkr = str(getattr(_s, "ticker", "")).strip()
+                if _tkr and _tkr not in _seen_diag:
+                    diag_tickers.append(_tkr)
+                    _seen_diag.add(_tkr)
+            if len(diag_tickers) >= 4:
+                break
+        except Exception:
+            continue
+    if not diag_tickers:
+        md.append("_No IHS EARLY setups today._\n\n")
+    for ft in diag_tickers:
         try:
             df_ft = ohlcv.get(ft)
             if df_ft is None or df_ft.empty:
@@ -6055,6 +6262,8 @@ def main():
                     md.append(f"  - 3) Symmetry ≥ {HS_SYMMETRY_MIN_RATIO:.2f}: {'YES' if g.get('symmetry_ok') else 'NO'} (dL={g.get('dL')}, dR={g.get('dR')}, ratio={g.get('symmetry_ratio')})\n")
                     md.append(f"  - 4) Valley ≥ {HS_VALLEY_ATR_MULT:.1f}×ATR: {'YES' if g.get('valley_ok') else 'NO'} (left={g.get('valley_left_depth')}, right={g.get('valley_right_depth')}, thr={g.get('valley_thr')}, ATR={g.get('atr_head')})\n")
                     md.append(f"  - 5) Shoulder→Valley ≥ {HS_SHOULDER_VALLEY_ATR_MULT:.1f}×ATR: {'YES' if g.get('shoulder_valley_ok') else 'NO'} (left={g.get('shoulder_valley_left_depth')}, right={g.get('shoulder_valley_right_depth')}, thr={g.get('shoulder_valley_thr')})\n")
+                    md.append(f"  - 6) Span in [{HS_MIN_BARS}..{HS_MAX_BARS}] bars: {'YES' if g.get('span_ok') else 'NO'} (span={g.get('span_bars')})\n")
+                    md.append(f"  - 7) Sidebars ≥ {HS_MIN_SIDE_BARS} bars: {'YES' if g.get('sidebars_ok') else 'NO'} (dL={g.get('dL')}, dR={g.get('dR')})\n")
                 # If no last rejected geometry was captured (e.g., rejection happened before guardrails),
                 # produce a best-effort diagnostic geometry so focus tickers still show the deterministic checks.
                 try:
@@ -6104,6 +6313,8 @@ def main():
                                 md.append(f"    - 3) Symmetry ratio ≥ {HS_SYMMETRY_MIN_RATIO:.2f}: {'YES' if geom2.get('symmetry_ok') else 'NO'} (dL={geom2.get('dL')}, dR={geom2.get('dR')}, ratio={geom2.get('symmetry_ratio'):.2f})\n")
                                 md.append(f"    - 4) Valley depth ≥ {HS_VALLEY_ATR_MULT:.1f}×ATR(head): {'YES' if geom2.get('valley_ok') else 'NO'} (left={geom2.get('valley_left_depth'):.2f}, right={geom2.get('valley_right_depth'):.2f}, thr={geom2.get('valley_thr'):.2f}, ATR={geom2.get('atr_head'):.2f})\n")
                                 md.append(f"    - 5) Shoulder→Valley ≥ {HS_SHOULDER_VALLEY_ATR_MULT:.1f}×ATR(head): {'YES' if geom2.get('shoulder_valley_ok') else 'NO'} (left={geom2.get('shoulder_valley_left_depth'):.2f}, right={geom2.get('shoulder_valley_right_depth'):.2f}, thr={geom2.get('shoulder_valley_thr'):.2f})\n")
+                                md.append(f"    - 6) Span bars in [{HS_MIN_BARS}..{HS_MAX_BARS}]: {'YES' if geom2.get('span_ok') else 'NO'} (span={geom2.get('span_bars')})\n")
+                                md.append(f"    - 7) Sidebars ≥ {HS_MIN_SIDE_BARS} bars: {'YES' if geom2.get('sidebars_ok') else 'NO'} (dL={geom2.get('dL')}, dR={geom2.get('dR')})\n")
                 except Exception:
                     pass
             except Exception:
@@ -6230,6 +6441,8 @@ def main():
                                     md.append(f"    - 3) Symmetry ratio min(dL,dR)/max(dL,dR) ≥ {HS_SYMMETRY_MIN_RATIO:.2f}: {'YES' if geom_chk.get('symmetry_ok') else 'NO'} (dL={geom_chk.get('dL')}, dR={geom_chk.get('dR')}, ratio={geom_chk.get('symmetry_ratio'):.2f})\n")
                                     md.append(f"    - 4) Valley depth ≥ {HS_VALLEY_ATR_MULT:.1f}×ATR(head): {'YES' if geom_chk.get('valley_ok') else 'NO'} (left={geom_chk.get('valley_left_depth'):.2f}, right={geom_chk.get('valley_right_depth'):.2f}, thr={geom_chk.get('valley_thr'):.2f}, ATR={geom_chk.get('atr_head'):.2f})\n")
                                     md.append(f"    - 5) Shoulder→Valley ≥ {HS_SHOULDER_VALLEY_ATR_MULT:.1f}×ATR(head): {'YES' if geom_chk.get('shoulder_valley_ok') else 'NO'} (left={geom_chk.get('shoulder_valley_left_depth'):.2f}, right={geom_chk.get('shoulder_valley_right_depth'):.2f}, thr={geom_chk.get('shoulder_valley_thr'):.2f})\n")
+                                    md.append(f"    - 6) Span bars in [{HS_MIN_BARS}..{HS_MAX_BARS}]: {'YES' if geom_chk.get('span_ok') else 'NO'} (span={geom_chk.get('span_bars')})\n")
+                                    md.append(f"    - 7) Sidebars ≥ {HS_MIN_SIDE_BARS} bars: {'YES' if geom_chk.get('sidebars_ok') else 'NO'} (dL={geom_chk.get('dL')}, dR={geom_chk.get('dR')})\n")
                                 except Exception:
                                     pass
                                 # Use the SAME detector window (tail LOOKBACK_DAYS), so meta indices (iloc) always align.
@@ -6404,7 +6617,7 @@ def main():
         md.append("")
     md.append("")
     md.append("### 4C) Confirmed breakouts / breakdowns (watchlist + MSCI World)\n")
-    md.append("_Includes **CONFIRMED** only: close beyond trigger by ≥0.5 ATR AND Volume ≥1.25×AvgVol(20) AND CLV ≥+0.70 (breakout) / ≤−0.70 (breakdown). All tickers use S&P 500 11-sector labels (Sector)._ \n")
+    md.append("_Includes **CONFIRMED** only: **Day 0 (NEW)** requires **all 3** gates (Price+CLV+Volume). **Day 1 (ONGOING)** requires **Price+Volume** (CLV optional). All tickers use S&P 500 11-sector labels (Sector)._ \n")
     md.append("**NEW (today):**\n")
     df_conf_new_tbl = df_conf_new.copy()
     if "Level" in df_conf_new_tbl.columns and "Threshold" not in df_conf_new_tbl.columns:
@@ -6428,7 +6641,7 @@ def main():
     # 5) Catalysts
     md.append("")
     md.append("### 4D) Validated breakouts / breakdowns (3-session anti-whipsaw)\n")
-    md.append("_Includes **VALIDATED** only: breakout/breakdown occurred **3 sessions ago** AND for the breakout day + the next 3 sessions (incl. today) ALL 3 confirmation gates held on **each** session: (1) CLV >= +0.70 / <= -0.70, (2) Volume >= 1.25x AvgVol(20), (3) Close beyond trigger by >= 0.5 ATR(14). **HVN Runway%** = distance from current price to the nearest significant opposing Volume-Profile HVN zone (daily OHLCV approximation), expressed as % in the signal direction._\n")
+    md.append("_Includes **VALIDATED** only: 3-day lifecycle where day0 (confirmation) = **all 3** gates, day1 = **price+volume** (CLV optional), day2 = **all 3** gates again. (Then VALIDATED can remain ongoing while price stays beyond the trigger.) **HVN Runway%** = distance from current price to the nearest significant opposing Volume-Profile HVN zone (daily OHLCV approximation), expressed as % in the signal direction._\n")
     md.append("**NEW (today):**\n")
     df_val_new_tbl = df_val_new.copy()
     if "Level" in df_val_new_tbl.columns and "Threshold" not in df_val_new_tbl.columns:
