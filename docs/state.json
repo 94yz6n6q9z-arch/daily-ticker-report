@@ -133,6 +133,7 @@
     "FRO|CONFIRMED_MOMO_TREND_BREAKOUT",
     "INSW|CONFIRMED_MOMO_TREND_BREAKOUT",
     "NAT|CONFIRMED_MOMO_TREND_BREAKOUT",
+    "NU|CONFIRMED_HS_TOP_BREAKDOWN",
     "SMR|EARLY_RECT_BOTTOM_BREAKDOWN",
     "TNK|CONFIRMED_MOMO_TREND_BREAKOUT",
     "VST|EARLY_RECT_BOTTOM_BREAKOUT",
@@ -155,6 +156,7 @@
     "8697.T|CONFIRMED_RECT_TOP_BREAKOUT",
     "8697.T|CONFIRMED_MOMO_TREND_BREAKOUT",
     "9005.T|CONFIRMED_MOMO_TREND_BREAKOUT",
+    "9042.T|CONFIRMED_IHS_BREAKOUT",
     "9101.T|EARLY_IHS_BREAKOUT",
     "9101.T|CONFIRMED_RECT_BREAKOUT",
     "9104.T|CONFIRMED_MOMO_TREND_BREAKOUT",
@@ -4370,35 +4372,35 @@
             "p": 4238.0,
             "label": "LS",
             "kind": "point",
-            "i": 34
+            "i": 99
           },
           {
             "t": "2025-12-05T00:00:00",
             "p": 3842.0,
             "label": "H",
             "kind": "point",
-            "i": 69
+            "i": 134
           },
           {
             "t": "2026-02-02T00:00:00",
             "p": 4224.0,
             "label": "RS",
             "kind": "point",
-            "i": 106
+            "i": 171
           },
           {
             "t": "2025-10-20T00:00:00",
             "p": 4600.0,
             "label": "R1",
             "kind": "point",
-            "i": 37
+            "i": 102
           },
           {
             "t": "2026-01-30T00:00:00",
             "p": 4316.0,
             "label": "R2",
             "kind": "point",
-            "i": 105
+            "i": 170
           }
         ],
         "lines": [
@@ -4408,12 +4410,12 @@
             "t2": "2026-01-30T00:00:00",
             "y2": 4316.0,
             "label": "Neckline",
-            "i1": 37,
-            "i2": 105
+            "i1": 102,
+            "i2": 170
           }
         ],
-        "pattern_start_i": 34,
-        "pattern_end_i": 106,
+        "pattern_start_i": 99,
+        "pattern_end_i": 171,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-02-27T00:00:00"
@@ -15584,7 +15586,7 @@
     "NU": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 16.40079056589227,
+      "level": 16.40079056589226,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -15594,35 +15596,35 @@
             "p": 17.940000534057617,
             "label": "LS",
             "kind": "point",
-            "i": 93
+            "i": 151
           },
           {
             "t": "2026-01-29T00:00:00",
             "p": 18.760000228881836,
             "label": "H",
             "kind": "point",
-            "i": 110
+            "i": 168
           },
           {
             "t": "2026-02-20T00:00:00",
             "p": 17.530000686645508,
             "label": "RS",
             "kind": "point",
-            "i": 125
+            "i": 183
           },
           {
             "t": "2026-01-16T00:00:00",
             "p": 16.30500030517578,
             "label": "T1",
             "kind": "point",
-            "i": 102
+            "i": 160
           },
           {
             "t": "2026-02-13T00:00:00",
             "p": 16.3700008392334,
             "label": "T2",
             "kind": "point",
-            "i": 121
+            "i": 179
           }
         ],
         "lines": [
@@ -15632,12 +15634,12 @@
             "t2": "2026-02-13T00:00:00",
             "y2": 16.3700008392334,
             "label": "Neckline",
-            "i1": 102,
-            "i2": 121
+            "i1": 160,
+            "i2": 179
           }
         ],
-        "pattern_start_i": 93,
-        "pattern_end_i": 125,
+        "pattern_start_i": 151,
+        "pattern_end_i": 183,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-02-27T00:00:00"
