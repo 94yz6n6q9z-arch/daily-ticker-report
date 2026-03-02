@@ -1,12 +1,12 @@
 # Daily Report
 
-_Generated: **2026-03-02 12:50 CET**_
+_Generated: **2026-03-02 13:15 CET**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Headline: Equities slipped as the Iran conflict jolted energy markets, sending oil sharply higher and keeping investors on edge. The Nasdaq 100 fell 0.3% and the S&P 500 lost 0.4% while the VIX jumped 16.0%, extending a choppier tone of the past month (NDX -4.1% 1M) as WTI surged 7.2%. Biggest movers on the watchlist were NFLX up 13.8%, MAU up 6.6% and NAT up 6.1%, while OKLO fell 8.9%, QBTS slid 6.8% and IONQ dropped 6.1%.
+Headline: Equities slipped as Iran-linked geopolitical shocks drove a sharp oil spike and unsettled the usual defensive playbook. The Nasdaq 100 fell 0.3% and the S&P 500 dropped 0.4% as the VIX jumped 15.9%, extending a choppy, risk-sensitive tape of the past month (NDX -4.1% 1M) while WTI surged 7.9% on supply-disruption fears; biggest movers were NFLX +13.8%, MAU +6.3% and NAT +6.1% higher, with OKLO -8.9%, QBTS -6.8% and IONQ -6.1% lower.
 
 **Key tape (multi-horizon):**
 
@@ -14,18 +14,18 @@ Headline: Equities slipped as the Iran conflict jolted energy markets, sending o
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Nasdaq 100       | 24,960.04 | <span style="color:#b91c1c;">-0.30%</span>  | <span style="color:#b91c1c;">-0.21%</span>  | <span style="color:#b91c1c;">-4.08%</span>  | <span style="color:#b91c1c;">-1.87%</span>  | <span style="color:#11823b;">+6.60%</span>   |
 | S&P 500          | 6,878.88  | <span style="color:#b91c1c;">-0.43%</span>  | <span style="color:#b91c1c;">-0.44%</span>  | <span style="color:#b91c1c;">-1.42%</span>  | <span style="color:#11823b;">+0.43%</span>  | <span style="color:#11823b;">+6.48%</span>   |
-| STOXX Europe 600 | 625.35    | <span style="color:#b91c1c;">-1.34%</span>  | <span style="color:#b91c1c;">-0.37%</span>  | <span style="color:#11823b;">+2.35%</span>  | <span style="color:#11823b;">+8.63%</span>  | <span style="color:#11823b;">+14.37%</span>  |
-| DAX              | 24,812.05 | <span style="color:#b91c1c;">-1.87%</span>  | <span style="color:#b91c1c;">-0.72%</span>  | <span style="color:#11823b;">+1.11%</span>  | <span style="color:#11823b;">+4.64%</span>  | <span style="color:#11823b;">+5.16%</span>   |
-| CAC 40           | 8,438.97  | <span style="color:#b91c1c;">-1.65%</span>  | <span style="color:#b91c1c;">-0.68%</span>  | <span style="color:#11823b;">+3.84%</span>  | <span style="color:#11823b;">+4.51%</span>  | <span style="color:#11823b;">+9.32%</span>   |
-| FTSE 100         | 10,809.29 | <span style="color:#b91c1c;">-0.93%</span>  | <span style="color:#11823b;">+1.17%</span>  | <span style="color:#11823b;">+5.73%</span>  | <span style="color:#11823b;">+11.42%</span> | <span style="color:#11823b;">+17.77%</span>  |
-| VIX              | 23.03     | <span style="color:#11823b;">+15.96%</span> | <span style="color:#11823b;">+9.61%</span>  | <span style="color:#11823b;">+32.05%</span> | <span style="color:#11823b;">+38.82%</span> | <span style="color:#11823b;">+40.86%</span>  |
-| EUR/USD          | 1.17      | <span style="color:#b91c1c;">-0.50%</span>  | <span style="color:#b91c1c;">-0.77%</span>  | <span style="color:#b91c1c;">-1.85%</span>  | <span style="color:#11823b;">+1.17%</span>  | <span style="color:#11823b;">+0.93%</span>   |
-| WTI Crude        | 71.85     | <span style="color:#11823b;">+7.21%</span>  | <span style="color:#11823b;">+8.35%</span>  | <span style="color:#11823b;">+10.18%</span> | <span style="color:#11823b;">+22.53%</span> | <span style="color:#11823b;">+12.32%</span>  |
-| Gold             | 5,410.50  | <span style="color:#11823b;">+3.44%</span>  | <span style="color:#11823b;">+3.95%</span>  | <span style="color:#11823b;">+14.78%</span> | <span style="color:#11823b;">+29.23%</span> | <span style="color:#11823b;">+50.58%</span>  |
-| Silver           | 95.58     | <span style="color:#11823b;">+3.13%</span>  | <span style="color:#11823b;">+10.47%</span> | <span style="color:#11823b;">+22.08%</span> | <span style="color:#11823b;">+64.84%</span> | <span style="color:#11823b;">+130.08%</span> |
-| Coffee           | 279.95    | <span style="color:#b91c1c;">-1.63%</span>  | <span style="color:#b91c1c;">-0.43%</span>  | <span style="color:#b91c1c;">-15.74%</span> | <span style="color:#b91c1c;">-30.97%</span> | <span style="color:#b91c1c;">-27.33%</span>  |
-| Cocoa            | 2,957.00  | <span style="color:#11823b;">+5.68%</span>  | <span style="color:#b91c1c;">-1.56%</span>  | <span style="color:#b91c1c;">-29.00%</span> | <span style="color:#b91c1c;">-45.25%</span> | <span style="color:#b91c1c;">-60.44%</span>  |
-| Bitcoin          | 66,373.12 | <span style="color:#11823b;">+0.97%</span>  | <span style="color:#11823b;">+2.72%</span>  | <span style="color:#b91c1c;">-15.58%</span> | <span style="color:#b91c1c;">-27.34%</span> | <span style="color:#b91c1c;">-40.59%</span>  |
+| STOXX Europe 600 | 625.09    | <span style="color:#b91c1c;">-1.38%</span>  | <span style="color:#b91c1c;">-0.42%</span>  | <span style="color:#11823b;">+2.31%</span>  | <span style="color:#11823b;">+8.59%</span>  | <span style="color:#11823b;">+14.32%</span>  |
+| DAX              | 24,795.90 | <span style="color:#b91c1c;">-1.93%</span>  | <span style="color:#b91c1c;">-0.78%</span>  | <span style="color:#11823b;">+1.05%</span>  | <span style="color:#11823b;">+4.58%</span>  | <span style="color:#11823b;">+5.09%</span>   |
+| CAC 40           | 8,433.62  | <span style="color:#b91c1c;">-1.71%</span>  | <span style="color:#b91c1c;">-0.75%</span>  | <span style="color:#11823b;">+3.78%</span>  | <span style="color:#11823b;">+4.45%</span>  | <span style="color:#11823b;">+9.25%</span>   |
+| FTSE 100         | 10,800.25 | <span style="color:#b91c1c;">-1.01%</span>  | <span style="color:#11823b;">+1.08%</span>  | <span style="color:#11823b;">+5.64%</span>  | <span style="color:#11823b;">+11.32%</span> | <span style="color:#11823b;">+17.68%</span>  |
+| VIX              | 23.01     | <span style="color:#11823b;">+15.86%</span> | <span style="color:#11823b;">+9.52%</span>  | <span style="color:#11823b;">+31.94%</span> | <span style="color:#11823b;">+38.70%</span> | <span style="color:#11823b;">+40.73%</span>  |
+| EUR/USD          | 1.17      | <span style="color:#b91c1c;">-0.63%</span>  | <span style="color:#b91c1c;">-0.89%</span>  | <span style="color:#b91c1c;">-1.98%</span>  | <span style="color:#11823b;">+1.04%</span>  | <span style="color:#11823b;">+0.80%</span>   |
+| WTI Crude        | 72.29     | <span style="color:#11823b;">+7.86%</span>  | <span style="color:#11823b;">+9.02%</span>  | <span style="color:#11823b;">+10.86%</span> | <span style="color:#11823b;">+23.28%</span> | <span style="color:#11823b;">+13.01%</span>  |
+| Gold             | 5,405.10  | <span style="color:#11823b;">+3.34%</span>  | <span style="color:#11823b;">+3.85%</span>  | <span style="color:#11823b;">+14.66%</span> | <span style="color:#11823b;">+29.10%</span> | <span style="color:#11823b;">+50.43%</span>  |
+| Silver           | 95.26     | <span style="color:#11823b;">+2.78%</span>  | <span style="color:#11823b;">+10.10%</span> | <span style="color:#11823b;">+21.68%</span> | <span style="color:#11823b;">+64.29%</span> | <span style="color:#11823b;">+129.31%</span> |
+| Coffee           | 279.80    | <span style="color:#b91c1c;">-1.69%</span>  | <span style="color:#b91c1c;">-0.48%</span>  | <span style="color:#b91c1c;">-15.79%</span> | <span style="color:#b91c1c;">-31.01%</span> | <span style="color:#b91c1c;">-27.37%</span>  |
+| Cocoa            | 2,958.00  | <span style="color:#11823b;">+5.72%</span>  | <span style="color:#b91c1c;">-1.53%</span>  | <span style="color:#b91c1c;">-28.98%</span> | <span style="color:#b91c1c;">-45.23%</span> | <span style="color:#b91c1c;">-60.43%</span>  |
+| Bitcoin          | 66,333.01 | <span style="color:#11823b;">+0.90%</span>  | <span style="color:#11823b;">+2.66%</span>  | <span style="color:#b91c1c;">-15.63%</span> | <span style="color:#b91c1c;">-27.39%</span> | <span style="color:#b91c1c;">-40.63%</span>  |
 
 **Macro charts (5Y):**
 
@@ -39,10 +39,10 @@ Headline: Equities slipped as the Iran conflict jolted energy markets, sending o
 | Ticker   | pct     |
 | :--- | ---: |
 | NFLX     | +13.77% |
-| MAU      | +6.55%  |
+| MAU      | +6.27%  |
 | NAT      | +6.11%  |
-| Cocoa    | +5.83%  |
-| REP      | +4.65%  |
+| Cocoa    | +5.75%  |
+| REP      | +4.42%  |
 | INSW     | +4.16%  |
 
 **Session losers:**
@@ -189,4 +189,4 @@ _Logic: score each ticker by stage (EARLY=1, CONFIRMED=3, VALIDATED=4) × direct
 
 ### 4B) Early callouts (~90% complete)
 
-_Close enough to pre-plan. “Close enough” = within 0.5 ATR of 
+_Close enough to pre-plan. “Close enough” =
