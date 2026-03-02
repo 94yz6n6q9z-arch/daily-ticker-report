@@ -341,8 +341,9 @@ HS_MIN_SIDE_BARS = 10
 HS_MAX_BARS = 90
 
 # Geometry diagnostics / guardrails
-HS_SYMMETRY_MIN_RATIO = 0.50   # min(min(dL,dR)/max(dL,dR))
+HS_SYMMETRY_MIN_RATIO = 0.70   # min(min(dL,dR)/max(dL,dR))
 HS_VALLEY_ATR_MULT = 2.0       # valley depth threshold vs ATR at head
+HS_SHOULDER_VALLEY_ATR_MULT = 1.0  # min shoulder-to-trough depth in ATR(head) units
 HS_LOCAL_WINDOW = 3           # local max/min window for shoulder check (±3 bars)
 # Maximum allowed lag between pattern completion (RS) and breakout/breakdown confirmation run start
 HS_MAX_BREAKOUT_LAG_BARS = 30
@@ -3980,6 +3981,7 @@ def _hs_geometry_diagnostics(
     local_window: int = HS_LOCAL_WINDOW,
     symmetry_min_ratio: float = HS_SYMMETRY_MIN_RATIO,
     valley_atr_mult: float = HS_VALLEY_ATR_MULT,
+    shoulder_valley_mult: float = HS_SHOULDER_VALLEY_ATR_MULT,
 ) -> Dict[str, Any]:
     """Compute deterministic HS/IHS geometry checks on the *same detector window* d.
 
@@ -4054,17 +4056,34 @@ def _hs_geometry_diagnostics(
         # Need peaks between LS-H and H-RS
         peakL = float(np.nanmax(high[p1:p2+1]))
         peakR = float(np.nanmax(high[p2:p3+1]))
+        valL = peakL
+        valR = peakR
         depthL = peakL - float(close[p2])
         depthR = peakR - float(close[p2])
     else:
         # Need troughs between LS-H and H-RS
         troughL = float(np.nanmin(low[p1:p2+1]))
         troughR = float(np.nanmin(low[p2:p3+1]))
+        valL = troughL
+        valR = troughR
         depthL = float(close[p2]) - troughL
         depthR = float(close[p2]) - troughR
 
     out["valley_left_depth"] = float(depthL)
     out["valley_right_depth"] = float(depthR)
+    out["valley_left_level"] = float(valL)
+    out["valley_right_level"] = float(valR)
+    shoulder_thr = float(shoulder_valley_mult) * float(atr_h if np.isfinite(atr_h) and atr_h > 0 else 0.0)
+    out["shoulder_valley_thr"] = float(shoulder_thr)
+    if inverse:
+        sdepthL = float(valL) - float(close[p1])
+        sdepthR = float(valR) - float(close[p3])
+    else:
+        sdepthL = float(close[p1]) - float(valL)
+        sdepthR = float(close[p3]) - float(valR)
+    out["shoulder_valley_left_depth"] = float(sdepthL)
+    out["shoulder_valley_right_depth"] = float(sdepthR)
+    out["shoulder_valley_ok"] = bool((sdepthL >= shoulder_thr) and (sdepthR >= shoulder_thr))
     out["valley_ok"] = bool((depthL >= thr) and (depthR >= thr))
 
     out["pass_all"] = bool(
@@ -4073,6 +4092,7 @@ def _hs_geometry_diagnostics(
         and out["rs_local_extreme"]
         and out["symmetry_ok"]
         and out["valley_ok"]
+        and out.get("shoulder_valley_ok", True)
     )
     return out
 
@@ -5156,12 +5176,8 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
     d0 = df.dropna(subset=["Close", "High", "Low"]).copy()
     if len(d0) < 80:
         return sigs
-    # Detection lookback: align with chart window (~6 months). Use calendar-days window when possible.
-    if isinstance(d0.index, pd.DatetimeIndex):
-        cutoff = d0.index[-1] - pd.Timedelta(days=CHART_WINDOW_DAYS)
-        d = d0.loc[d0.index >= cutoff].copy()
-    else:
-        d = d0.tail(LOOKBACK_DAYS).copy()
+    # Detection lookback: ALWAYS use tail(LOOKBACK_DAYS) so HS/IHS meta indices (iloc) align everywhere.
+    d = d0.tail(LOOKBACK_DAYS).copy()
     d = _latest_completed_close_df(d)
 
     if len(d) < 80:
@@ -7099,6 +7115,7 @@ def main():
                                     md.append(f"    - 2) LS local extreme (±{HS_LOCAL_WINDOW} bars): {'YES' if geom_chk.get('ls_local_extreme') else 'NO'} | RS local extreme: {'YES' if geom_chk.get('rs_local_extreme') else 'NO'}\n")
                                     md.append(f"    - 3) Symmetry ratio min(dL,dR)/max(dL,dR) ≥ {HS_SYMMETRY_MIN_RATIO:.2f}: {'YES' if geom_chk.get('symmetry_ok') else 'NO'} (dL={geom_chk.get('dL')}, dR={geom_chk.get('dR')}, ratio={geom_chk.get('symmetry_ratio'):.2f})\n")
                                     md.append(f"    - 4) Valley depth ≥ {HS_VALLEY_ATR_MULT:.1f}×ATR(head): {'YES' if geom_chk.get('valley_ok') else 'NO'} (left={geom_chk.get('valley_left_depth'):.2f}, right={geom_chk.get('valley_right_depth'):.2f}, thr={geom_chk.get('valley_thr'):.2f}, ATR={geom_chk.get('atr_head'):.2f})\n")
+                                    md.append(f"    - 5) Shoulder→valley depth ≥ {HS_SHOULDER_VALLEY_ATR_MULT:.1f}×ATR(head): {'YES' if geom_chk.get('shoulder_valley_ok') else 'NO'} (L={geom_chk.get('shoulder_valley_left_depth'):.2f}, R={geom_chk.get('shoulder_valley_right_depth'):.2f}, thr={geom_chk.get('shoulder_valley_thr'):.2f})\n")
                                 except Exception:
                                     pass
 
