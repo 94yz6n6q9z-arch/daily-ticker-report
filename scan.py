@@ -339,6 +339,11 @@ HS_MIN_BARS = 30
 HS_MIN_SIDE_BARS = 10
 # HS/IHS maximum formation duration (daily bars) to avoid stale multi-month patterns
 HS_MAX_BARS = 90
+
+# Geometry diagnostics / guardrails
+HS_SYMMETRY_MIN_RATIO = 0.50   # min(min(dL,dR)/max(dL,dR))
+HS_VALLEY_ATR_MULT = 2.0       # valley depth threshold vs ATR at head
+HS_LOCAL_WINDOW = 3           # local max/min window for shoulder check (±3 bars)
 # Maximum allowed lag between pattern completion (RS) and breakout/breakdown confirmation run start
 HS_MAX_BREAKOUT_LAG_BARS = 30
 HS_GEOM_CARRY_BARS = 30  # persist HS/IHS geometry up to 30 bars to survive pivot re-picks on big bars
@@ -3965,6 +3970,113 @@ def _pick_recent_hs_triplet(
 
 
 
+
+def _hs_geometry_diagnostics(
+    d: pd.DataFrame,
+    p1: int,
+    p2: int,
+    p3: int,
+    inverse: bool = False,
+    local_window: int = HS_LOCAL_WINDOW,
+    symmetry_min_ratio: float = HS_SYMMETRY_MIN_RATIO,
+    valley_atr_mult: float = HS_VALLEY_ATR_MULT,
+) -> Dict[str, Any]:
+    """Compute deterministic HS/IHS geometry checks on the *same detector window* d.
+
+    Returns a dict with:
+      - pass_all: bool
+      - head_is_global_span: bool + head_span_arg_idx
+      - ls_local_extreme: bool, rs_local_extreme: bool
+      - symmetry_ratio: float, symmetry_ok: bool
+      - valley_left_depth, valley_right_depth, valley_thr, valley_ok
+    """
+    out: Dict[str, Any] = {}
+    if d is None or d.empty:
+        out["pass_all"] = False
+        out["reason"] = "empty"
+        return out
+
+    close = d["Close"].astype(float).values
+    high = d["High"].astype(float).values
+    low  = d["Low"].astype(float).values
+    n = len(close)
+
+    p1 = int(p1); p2 = int(p2); p3 = int(p3)
+    if not (0 <= p1 < p2 < p3 < n):
+        out["pass_all"] = False
+        out["reason"] = "bad_indices"
+        return out
+
+    # 1) Head must be absolute extreme CLOSE in [LS..RS] span
+    span = close[p1:p3+1]
+    if inverse:
+        extreme_val = float(np.nanmin(span))
+        arg_rel = int(np.nanargmin(span))
+    else:
+        extreme_val = float(np.nanmax(span))
+        arg_rel = int(np.nanargmax(span))
+    head_span_arg = p1 + arg_rel
+    head_is_global_span = (head_span_arg == p2)
+    out["head_is_global_span"] = bool(head_is_global_span)
+    out["head_span_arg_i"] = int(head_span_arg)
+    out["head_span_extreme_close"] = float(extreme_val)
+    out["head_close"] = float(close[p2])
+
+    # 2) LS/RS must be local extrema (Close) within ±local_window bars
+    w = int(local_window)
+    def _is_local_extreme(i: int) -> bool:
+        lo_i = max(0, i - w)
+        hi_i = min(n, i + w + 1)
+        win = close[lo_i:hi_i]
+        if inverse:
+            return float(close[i]) <= float(np.nanmin(win) + 1e-8)
+        return float(close[i]) >= float(np.nanmax(win) - 1e-8)
+
+    out["ls_local_extreme"] = bool(_is_local_extreme(p1))
+    out["rs_local_extreme"] = bool(_is_local_extreme(p3))
+
+    # 3) Symmetry: ratio of side lengths
+    dL = int(p2 - p1)
+    dR = int(p3 - p2)
+    ratio = float(min(dL, dR) / max(dL, dR)) if max(dL, dR) > 0 else 0.0
+    out["dL"] = dL; out["dR"] = dR
+    out["symmetry_ratio"] = ratio
+    out["symmetry_ok"] = bool(ratio >= float(symmetry_min_ratio))
+
+    # 4) Valley depth (reaction) vs ATR at head
+    atr_s = atr(d, ATR_N).astype(float).values
+    atr_h = float(atr_s[p2]) if np.isfinite(atr_s[p2]) else float(np.nanmedian(atr_s))
+    thr = float(valley_atr_mult) * float(atr_h if np.isfinite(atr_h) and atr_h > 0 else 0.0)
+    out["atr_head"] = float(atr_h)
+    out["valley_thr"] = thr
+
+    if inverse:
+        # Need peaks between LS-H and H-RS
+        peakL = float(np.nanmax(high[p1:p2+1]))
+        peakR = float(np.nanmax(high[p2:p3+1]))
+        depthL = peakL - float(close[p2])
+        depthR = peakR - float(close[p2])
+    else:
+        # Need troughs between LS-H and H-RS
+        troughL = float(np.nanmin(low[p1:p2+1]))
+        troughR = float(np.nanmin(low[p2:p3+1]))
+        depthL = float(close[p2]) - troughL
+        depthR = float(close[p2]) - troughR
+
+    out["valley_left_depth"] = float(depthL)
+    out["valley_right_depth"] = float(depthR)
+    out["valley_ok"] = bool((depthL >= thr) and (depthR >= thr))
+
+    out["pass_all"] = bool(
+        out["head_is_global_span"]
+        and out["ls_local_extreme"]
+        and out["rs_local_extreme"]
+        and out["symmetry_ok"]
+        and out["valley_ok"]
+    )
+    return out
+
+
 def detect_hs_top(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None) -> Optional[PatternCandidate]:
     d = df.tail(LOOKBACK_DAYS).dropna(subset=["Open", "High", "Low", "Close"]).copy()
     d = _latest_completed_close_df(d)
@@ -3988,6 +4100,30 @@ def detect_hs_top(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None) ->
             explain['no_triplet'] = int(explain.get('no_triplet', 0)) + 1
         return None
     p1, p2, p3, t1, t2, px1, px2, px3 = hs
+    # --- Geometry guardrails (must pass deterministic criteria) ---
+    geom = _hs_geometry_diagnostics(d, p1, p2, p3, inverse=False, local_window=HS_LOCAL_WINDOW,
+                                   symmetry_min_ratio=HS_SYMMETRY_MIN_RATIO, valley_atr_mult=HS_VALLEY_ATR_MULT)
+    if not geom.get("pass_all", False):
+        if isinstance(explain, dict):
+            if not geom.get("head_is_global_span", False):
+                explain['head_not_global_span'] = int(explain.get('head_not_global_span', 0)) + 1
+            if not geom.get("ls_local_extreme", False):
+                explain['ls_not_local_extreme'] = int(explain.get('ls_not_local_extreme', 0)) + 1
+            if not geom.get("rs_local_extreme", False):
+                explain['rs_not_local_extreme'] = int(explain.get('rs_not_local_extreme', 0)) + 1
+            if not geom.get("symmetry_ok", False):
+                explain['symmetry_fail'] = int(explain.get('symmetry_fail', 0)) + 1
+            if not geom.get("valley_ok", False):
+                explain['valley_fail'] = int(explain.get('valley_fail', 0)) + 1
+            explain['_last_reject_geom'] = {
+                'pattern': 'HS_TOP',
+                'inverse': False,
+                'LS_i': int(p1), 'H_i': int(p2), 'RS_i': int(p3),
+                'LS_t': _iso_ts(d.index[int(p1)]), 'H_t': _iso_ts(d.index[int(p2)]), 'RS_t': _iso_ts(d.index[int(p3)]),
+                'geom': geom,
+            }
+        return None
+
 
     # Neckline through troughs (sloped allowed)
     n1 = float(d["Low"].iloc[t1]); n2 = float(d["Low"].iloc[t2])
@@ -4038,6 +4174,30 @@ def detect_inverse_hs(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None
             explain['no_triplet'] = int(explain.get('no_triplet', 0)) + 1
         return None
     p1, p2, p3, r1, r2, px1, px2, px3 = ihs
+    # --- Geometry guardrails (must pass deterministic criteria) ---
+    geom = _hs_geometry_diagnostics(d, p1, p2, p3, inverse=True, local_window=HS_LOCAL_WINDOW,
+                                   symmetry_min_ratio=HS_SYMMETRY_MIN_RATIO, valley_atr_mult=HS_VALLEY_ATR_MULT)
+    if not geom.get("pass_all", False):
+        if isinstance(explain, dict):
+            if not geom.get("head_is_global_span", False):
+                explain['head_not_global_span'] = int(explain.get('head_not_global_span', 0)) + 1
+            if not geom.get("ls_local_extreme", False):
+                explain['ls_not_local_extreme'] = int(explain.get('ls_not_local_extreme', 0)) + 1
+            if not geom.get("rs_local_extreme", False):
+                explain['rs_not_local_extreme'] = int(explain.get('rs_not_local_extreme', 0)) + 1
+            if not geom.get("symmetry_ok", False):
+                explain['symmetry_fail'] = int(explain.get('symmetry_fail', 0)) + 1
+            if not geom.get("valley_ok", False):
+                explain['valley_fail'] = int(explain.get('valley_fail', 0)) + 1
+            explain['_last_reject_geom'] = {
+                'pattern': 'IHS',
+                'inverse': True,
+                'LS_i': int(p1), 'H_i': int(p2), 'RS_i': int(p3),
+                'LS_t': _iso_ts(d.index[int(p1)]), 'H_t': _iso_ts(d.index[int(p2)]), 'RS_t': _iso_ts(d.index[int(p3)]),
+                'geom': geom,
+            }
+        return None
+
 
     h1 = float(d["High"].iloc[r1]); h2 = float(d["High"].iloc[r2])
     a_n, b_n = _line_fit(np.array([float(r1), float(r2)]), np.array([h1, h2]))
@@ -5069,6 +5229,22 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
                             age_ok = False
                 if age_ok:
                     meta2 = _reindex_meta_to_df(mem.get("meta", {}), d)
+                    # Guardrail: if we carry HS/IHS geometry forward, it must still pass deterministic checks.
+                    if isinstance(meta2, dict) and str(meta2.get("annot_type","")) == "hs":
+                        try:
+                            pts = {str(p.get("label","")): p for p in (meta2.get("points") or []) if isinstance(p, dict)}
+                            pLS = pts.get("LS"); pH = pts.get("H"); pRS = pts.get("RS")
+                            if pLS and pH and pRS:
+                                ls_i = int(pLS.get("i")); h_i = int(pH.get("i")); rs_i = int(pRS.get("i"))
+                                inv = (str(mem.get("pattern","")) == "IHS") or (str(meta2.get("variant","")) == "inverse")
+                                g = _hs_geometry_diagnostics(d, ls_i, h_i, rs_i, inverse=inv,
+                                                             local_window=HS_LOCAL_WINDOW,
+                                                             symmetry_min_ratio=HS_SYMMETRY_MIN_RATIO,
+                                                             valley_atr_mult=HS_VALLEY_ATR_MULT)
+                                if not g.get("pass_all", False):
+                                    meta2 = None
+                        except Exception:
+                            pass
                     if meta2 is not None:
                         candidates.append(PatternCandidate(
                             pattern=str(mem.get("pattern", "")),
@@ -5733,11 +5909,13 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal, name_reso
         d_full = d0.tail(420).copy()
 
         # Plot window = last ~1 year
-        last_dt = d_full.index.max()
-        cutoff = last_dt - pd.Timedelta(days=CHART_WINDOW_DAYS)
-        d = d_full.loc[d_full.index >= cutoff].copy()
-        if len(d) < 80:
+        # Use the same detector-style window as pattern indices (tail LOOKBACK_DAYS).
+        # This avoids index/date mismatches where annotations point to the wrong bar.
+        d = d_full.tail(LOOKBACK_DAYS).copy()
+        d = _latest_completed_close_df(d)
+        if len(d) < CHART_MIN_BARS:
             d = d_full.tail(CHART_MIN_BARS).copy()
+
 
         # Indicators (computed on d_full so SMA200 works)
         sma50_full = d_full["Close"].rolling(50).mean()
@@ -6306,6 +6484,22 @@ def diff_new_ended(prev: Dict[str, List[str]], cur: Dict[str, List[str]]) -> Tup
 # ----------------------------
 # Main
 # ----------------------------
+
+def _dedupe_macro_cards(md_str: str) -> str:
+    """Ensure VIX/EURUSD macro card images appear only once in the markdown.
+    Some email/renderer paths can duplicate blocks; we keep the first occurrence."""
+    if not md_str:
+        return md_str
+    # crude but effective: if more than one occurrence of each macro image src, remove later ones
+    for key in ["macro_vix_5y.png", "macro_eurusd_5y.png"]:
+        parts = md_str.split(key)
+        if len(parts) <= 2:
+            continue
+        # rebuild keeping first occurrence only
+        md_str = parts[0] + key + "".join(p.replace(key, "") for p in parts[1:])
+    return md_str
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--mode", choices=["full", "custom"], default=os.environ.get("MODE", "custom"))
@@ -6765,6 +6959,20 @@ def main():
 
             md.append(f"- HS_TOP reject summary: {_fmt(exp_top)}\n")
             md.append(f"- IHS reject summary: {_fmt(exp_inv)}\n")
+            # If HS/IHS was rejected by guardrails, show the last rejected geometry for transparency (focus tickers).
+            try:
+                lr = exp_top.get("_last_reject_geom") if isinstance(exp_top, dict) else None
+                if isinstance(lr, dict) and isinstance(lr.get("geom"), dict):
+                    g = lr["geom"]
+                    md.append("- Last rejected HS geometry (guardrail):\n")
+                    md.append(f"  - LS/H/RS (ts): LS={lr.get('LS_t')}, H={lr.get('H_t')}, RS={lr.get('RS_t')}\n")
+                    md.append(f"  - 1) H global in [LS..RS]: {'YES' if g.get('head_is_global_span') else 'NO'} (H_Close={g.get('head_close')}, span_extreme={g.get('head_span_extreme_close')}, extreme_i={g.get('head_span_arg_i')})\n")
+                    md.append(f"  - 2) LS local (±{HS_LOCAL_WINDOW}): {'YES' if g.get('ls_local_extreme') else 'NO'} | RS local: {'YES' if g.get('rs_local_extreme') else 'NO'}\n")
+                    md.append(f"  - 3) Symmetry ≥ {HS_SYMMETRY_MIN_RATIO:.2f}: {'YES' if g.get('symmetry_ok') else 'NO'} (dL={g.get('dL')}, dR={g.get('dR')}, ratio={g.get('symmetry_ratio')})\n")
+                    md.append(f"  - 4) Valley ≥ {HS_VALLEY_ATR_MULT:.1f}×ATR: {'YES' if g.get('valley_ok') else 'NO'} (left={g.get('valley_left_depth')}, right={g.get('valley_right_depth')}, thr={g.get('valley_thr')}, ATR={g.get('atr_head')})\n")
+            except Exception:
+                pass
+
             if "highs" in exp_top or "lows" in exp_top:
                 md.append(f"- Swings (HS_TOP): highs={exp_top.get('highs','?')} lows={exp_top.get('lows','?')}\n")
             if "highs" in exp_inv or "lows" in exp_inv:
@@ -6879,6 +7087,21 @@ def main():
                                 ls_i = int(pLS.get("i")); h_i = int(pH.get("i")); rs_i = int(pRS.get("i"))
                                 md.append(f"  - LS/H/RS geometry (idx): LS={ls_i}, H={h_i}, RS={rs_i}\n")
                                 md.append(f"  - LS/H/RS geometry (ts): LS={pLS.get('t')}, H={pH.get('t')}, RS={pRS.get('t')}\n")
+
+                                # Deterministic geometry checks (requested)
+                                try:
+                                    geom_chk = _hs_geometry_diagnostics(d_local, ls_i, h_i, rs_i, inverse=(patt == "IHS"),
+                                                                        local_window=HS_LOCAL_WINDOW,
+                                                                        symmetry_min_ratio=HS_SYMMETRY_MIN_RATIO,
+                                                                        valley_atr_mult=HS_VALLEY_ATR_MULT)
+                                    md.append("  - Geometry checks (deterministic):\n")
+                                    md.append(f"    - 1) H is absolute extreme Close in [LS..RS]: {'YES' if geom_chk.get('head_is_global_span') else 'NO'} (H_Close={geom_chk.get('head_close'):.2f}, span_extreme={geom_chk.get('head_span_extreme_close'):.2f}, extreme_i={geom_chk.get('head_span_arg_i')})\n")
+                                    md.append(f"    - 2) LS local extreme (±{HS_LOCAL_WINDOW} bars): {'YES' if geom_chk.get('ls_local_extreme') else 'NO'} | RS local extreme: {'YES' if geom_chk.get('rs_local_extreme') else 'NO'}\n")
+                                    md.append(f"    - 3) Symmetry ratio min(dL,dR)/max(dL,dR) ≥ {HS_SYMMETRY_MIN_RATIO:.2f}: {'YES' if geom_chk.get('symmetry_ok') else 'NO'} (dL={geom_chk.get('dL')}, dR={geom_chk.get('dR')}, ratio={geom_chk.get('symmetry_ratio'):.2f})\n")
+                                    md.append(f"    - 4) Valley depth ≥ {HS_VALLEY_ATR_MULT:.1f}×ATR(head): {'YES' if geom_chk.get('valley_ok') else 'NO'} (left={geom_chk.get('valley_left_depth'):.2f}, right={geom_chk.get('valley_right_depth'):.2f}, thr={geom_chk.get('valley_thr'):.2f}, ATR={geom_chk.get('atr_head'):.2f})\n")
+                                except Exception:
+                                    pass
+
                                 # Use the SAME detector window (tail LOOKBACK_DAYS), so meta indices (iloc) always align.
                                 d_local = df_ft.tail(LOOKBACK_DAYS).dropna(subset=["Open","High","Low","Close"]).copy()
                                 d_local = _latest_completed_close_df(d_local)
