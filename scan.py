@@ -1,28 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Daily Ticker Report (GitHub Pages)
-
 Latest changes requested:
 - Market recap: Executive summary FIRST (no “max 2 sentences” label)
 - Replace “risk-on” phrasing with plain-English interpretation (e.g., “Markets rebounded as AI fears eased…”)
 - Snapshot “Last” formatting standardized: thousands separator comma + 2 decimals (e.g., 25,020.93)
 - Remove 🟩🟥 squares; keep only colored % text
-
 Also already applied:
 - Drop WTI, DXY, US 10Y from cross-asset tape
 - VIX + EUR/USD: 5Y Google-Finance-like card images
-
 NEW (this update):
 - Force RIGHT alignment for numeric figure columns in all markdown tables
   (Key tape, Movers, Technical trigger tables) by patching the markdown
   alignment row to use ---: on numeric columns.
 - Added VP runway metric for VALIDATED signals: distance to nearest opposing HVN (%).
 """
-
 from __future__ import annotations
-
 import argparse
 import datetime as dt
 from zoneinfo import ZoneInfo
@@ -37,27 +31,20 @@ from typing import Any, Dict, List, Optional, Tuple
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 import xml.etree.ElementTree as ET
-
 import numpy as np
 import pandas as pd
 import yfinance as yf
-
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-
-SCAN_VERSION: str = "v68"
-
+SCAN_VERSION: str = "v70"
 # ----------------------------
 # Public asset URLs (email-safe) + cache busting
 # ----------------------------
-
 PUBLIC_BASE_URL: str = ""   # e.g., https://<owner>.github.io/<repo>/
 CACHE_BUST: str = ""        # e.g., YYYYMMDDHHMMSS
-
 def _derive_public_base_url() -> str:
     """Best-effort public base URL for images so they render in email clients.
-
     We prefer GitHub Pages (docs/ published at repo root), because relative img/ paths
     do not resolve in email bodies.
     """
@@ -65,19 +52,15 @@ def _derive_public_base_url() -> str:
     u = (os.getenv("PUBLIC_BASE_URL") or "").strip()
     if u:
         return u.rstrip("/") + "/"
-
     # GitHub Actions provides owner/repo
     repo = (os.getenv("GITHUB_REPOSITORY") or "").strip()  # e.g. owner/name
     if repo and "/" in repo:
         owner, name = repo.split("/", 1)
         return f"https://{owner}.github.io/{name}/"
-
     # Fallback to your known repo (safe default)
     return "https://94yz6n6q9z-arch.github.io/daily-ticker-report/"
-
 def _asset_url(src: str) -> str:
     """Turn a local path like 'img/foo.png' into an absolute URL + cache-bust.
-
     - Absolute URLs are returned unchanged.
     - Relative URLs are prefixed with PUBLIC_BASE_URL.
     - A cache-bust query param is appended when CACHE_BUST is set.
@@ -98,9 +81,7 @@ def _asset_url(src: str) -> str:
         sep = "&" if "?" in s else "?"
         s = f"{s}{sep}v={CACHE_BUST}"
     return s
-
 # Watchlist performance table (implemented locally)
-
 # ----------------------------
 # Default watchlist (user-defined)
 # ----------------------------
@@ -113,12 +94,9 @@ WATCHLIST_44: List[str] = ["MELI","ARM","QBTS","IONQ","HOOD","PLTR","SNPS","AVGO
     "WMT","BYDDY","RRTL.DE","ARR",
     "NAT","INSW","TNK","FRO","MPC","PSX","VLO","MAU.PA","REP.MC","CVX"
 ]
-
-
 # ----------------------------
 # Watchlist categories (for Section 6)
 # ----------------------------
-
 # Commodities (Yahoo Finance continuous futures symbols)
 COMMODITY_TICKERS: List[str] = ["GC=F", "SI=F", "KC=F", "CC=F"]
 COMMODITY_NAME_OVERRIDES: Dict[str, str] = {
@@ -127,10 +105,8 @@ COMMODITY_NAME_OVERRIDES: Dict[str, str] = {
     "KC=F": "Coffee",
     "CC=F": "Cocoa",
 }
-
 # Force these tickers to always appear with charts + gate diagnosis in Section 4 (even if no live signal)
 FOCUS_TICKERS = ["NU", "CEG"]
-
 # Display name overrides (Section 6 + readability). Values should be FULL CAPS.
 NAME_OVERRIDES = {
     "PLTR": "PALANTIR TECHNOLOGIES",
@@ -162,7 +138,6 @@ NAME_OVERRIDES = {
     "KC=F": "COFFEE",
     "CC=F": "COCOA",
 }
-
 WATCHLIST_GROUPS: Dict[str, List[str]] = {
     # EDA merged into this bucket
     "AI compute & semis (incl. EDA)": ["NVDA","ARM","AVGO","TSM","000660.KS","ASML","AMAT","LRCX","SNPS","CDNS"],
@@ -179,7 +154,6 @@ WATCHLIST_GROUPS: Dict[str, List[str]] = {
     "Venezuela Oil": ["NAT","INSW","TNK","FRO","MPC","PSX","VLO","CVX","REP.MC","MAU.PA"],
     "Commodities": COMMODITY_TICKERS,
 }
-
 # One-level-deeper subsegments (max 4 per category), implemented as ticker tags (no extra tables).
 # These tags are used in:
 # - Watchlist performance table (ticker column)
@@ -190,87 +164,67 @@ SEGMENT_TAGS: Dict[str, str] = {
     "TSM": "Foundry/Mem", "000660.KS": "Foundry/Mem",
     "ASML": "Equipment", "AMAT": "Equipment", "LRCX": "Equipment",
     "SNPS": "EDA", "CDNS": "EDA",
-
     # AI software/data
     "PLTR": "AI SW/Data",
-
     # Big Tech platforms — 4 segments (AMZN grouped with MELI)
     "AMZN": "E-comm", "MELI": "E-comm",
     "GOOGL": "Ads", "META": "Ads",
     "AAPL": "Ecosystem", "MSFT": "Ecosystem",
     "NFLX": "Media",
-
     # Consumer & retail — 4 segments
     "WMT": "Defensive", "RRTL.DE": "Defensive",
     "ANF": "Brands", "DECK": "Brands",
     "MC.PA": "Luxury", "RMS.PA": "Luxury",
     "CMG": "Services", "DASH": "Services", "BYDDY": "Services",
-
     # Fintech & financials — 4 segments
     "HOOD": "Brokerage",
     "NU": "Fintech",
     "PGR": "Insurance", "MUV2.DE": "Insurance",
     "UCG.MI": "Bank/Yield", "ARR": "Bank/Yield",
-
     # Healthcare — 2 segments (still <= 4)
     "ISRG": "Medtech",
     "LLY": "Pharma", "NVO": "Pharma",
-
     # Energy & Nuclear — 4 segments
     "VST": "Power", "CEG": "Power",
     "CCJ": "Uranium",
     "LEU": "FuelCycle",
     "OKLO": "SMR", "SMR": "SMR",
-
     # Quantum — single segment
     "IONQ": "Quantum", "QBTS": "Quantum",
-
     # Venezuela Oil — 4 segments (keep cluster order in tables)
     "NAT": "Tanker", "INSW": "Tanker", "TNK": "Tanker", "FRO": "Tanker",
     "MPC": "Refiner", "PSX": "Refiner", "VLO": "Refiner",
     "CVX": "Integrated", "REP.MC": "Integrated",
     "MAU.PA": "Upstream",
 }
-
 # Friendly display-name overrides for report presentation
 DISPLAY_NAME_OVERRIDES: Dict[str, str] = {
     "000660.KS": "SK Hynix",
     "000660": "SK Hynix",
 }
-
 def _base_ticker(t: str) -> str:
     # Display ticker without exchange suffix (e.g., MC.PA -> MC, RRTL.DE -> RRTL)
     return t.split(".", 1)[0] if "." in t else t
-
 def _display_name(t: str) -> str:
     """Human-friendly labels for tickers in the report.
-
     - Exchange suffixes are removed for equities (e.g., MC.PA -> MC).
     - Commodity continuous futures (e.g., SI=F) are shown as the commodity name.
     """
     t = str(t).strip()
-
     # Commodities: prefer explicit commodity names over the Yahoo symbol.
     if t in COMMODITY_NAME_OVERRIDES:
         return COMMODITY_NAME_OVERRIDES[t]
-
     if t in DISPLAY_NAME_OVERRIDES:
         return DISPLAY_NAME_OVERRIDES[t]
-
     base = _base_ticker(t)
-
     if base in COMMODITY_NAME_OVERRIDES:
         return COMMODITY_NAME_OVERRIDES[base]
-
     return DISPLAY_NAME_OVERRIDES.get(base, base)
-
 # Ticker display labels: include segment tag when available, but hide exchange suffix.
 TICKER_LABELS: Dict[str, str] = {t: f"{_display_name(t)} ({seg})" for t, seg in SEGMENT_TAGS.items()}
-
 def display_ticker(t: str) -> str:
     """Plain display for tickers in tables/headers (no segment tags)."""
     return _display_name(t)
-
 def display_ticker_tagged(t: str) -> str:
     """Optional: ticker with segment tag, e.g., NVDA (Compute/IP)."""
     return TICKER_LABELS.get(t, _display_name(t))
@@ -285,7 +239,6 @@ SEGMENT_ORDER: Dict[str, List[str]] = {
     "Quantum": ["Quantum"],
     "Venezuela Oil": ["Tanker", "Refiner", "Integrated", "Upstream"],
 }
-
 # Build per-ticker rank so watchlist performance table clusters segments (e.g., refiners together).
 TICKER_SEGMENT_RANK: Dict[str, int] = {}
 for _cat, _ticks in WATCHLIST_GROUPS.items():
@@ -303,45 +256,37 @@ BASE_DIR = Path(__file__).resolve().parent
 CONFIG_DIR = BASE_DIR / "config"
 DOCS_DIR = BASE_DIR / "docs"
 IMG_DIR = DOCS_DIR / "img"
-
 DOCS_DIR.mkdir(parents=True, exist_ok=True)
 IMG_DIR.mkdir(parents=True, exist_ok=True)
-
 STATE_PATH = DOCS_DIR / "state.json"
 REPORT_PATH = DOCS_DIR / "report.md"
 INDEX_PATH = DOCS_DIR / "index.md"
+EMAIL_REPORT_PATH = DOCS_DIR / "email.md"
 EMAIL_MD_PATH = DOCS_DIR / "email.md"
 EMAIL_TXT_PATH = DOCS_DIR / "email.txt"
-
 CUSTOM_TICKERS_PATH = CONFIG_DIR / "tickers_custom.txt"
 SP500_LOCAL = CONFIG_DIR / "universe_sp500.txt"
 NDX_LOCAL = CONFIG_DIR / "universe_nasdaq100.txt"
 MSCI_WORLD_CLASSIFICATION_CSV = CONFIG_DIR / "msci_world_classification.csv"
-
-
 # ----------------------------
 # Config knobs
 # ----------------------------
 MOVER_THRESHOLD_PCT = 4.0
-
 ATR_N = 14
 ATR_CONFIRM_MULT = 0.5     # confirmed breakout/breakdown threshold
 EARLY_MULT = 0.5           # early callout threshold (within 0.5 ATR)
 VALIDATE_BARS = 4         # validated requires breakout day + next 3 sessions all holding confirmation gates
 DCB_EARLY_MAX_BARS = 5     # dead-cat-bounce EARLY expires after 5 bars from event low (fresh shock only)
 DCB_EARLY_MAX_FROM_BOUNCE = 4  # ...and max 4 bars from bounce high
-
 VOL_CONFIRM_MULT = 1.25   # volume must be >= 1.25x AvgVol(20) for CONFIRMED
 CLV_BREAKOUT_MIN = 0.70   # CLV in [-1..+1] must be >= +0.70 for breakout confirmation
 CLV_BREAKDOWN_MAX = -0.70  # CLV in [-1..+1] must be <= -0.70 for breakdown confirmation
-
 LOOKBACK_DAYS = 190
 # HS/IHS minimum formation duration (daily bars) to avoid too-short (≈2-3 week) false positives
 HS_MIN_BARS = 30
 HS_MIN_SIDE_BARS = 10
 # HS/IHS maximum formation duration (daily bars) to avoid stale multi-month patterns
 HS_MAX_BARS = 90
-
 # Geometry diagnostics / guardrails
 HS_SYMMETRY_MIN_RATIO = 0.70   # min(min(dL,dR)/max(dL,dR))
 HS_VALLEY_ATR_MULT = 2.0       # valley depth threshold vs ATR at head
@@ -358,30 +303,23 @@ VALIDATED_MIN_AGE_BARS = 3
 VALIDATED_MAX_AGE_BARS = 30
 # Dead Cat Bounce: event must be an overnight gap-down of at least 10% (open vs prior close)
 DCB_MIN_GAP_PCT = 0.10
-
 # Chart window (timeline) for all signal charts
 CHART_WINDOW_DAYS = 190   # ~6 months
 CHART_MIN_BARS = 120
-
-
 # EARLY callouts must be fresh: pattern completion must be recent (prevents old formations resurfacing)
 EARLY_MAX_AGE_FROM_PATTERN_END_BARS = 30
 DOWNLOAD_PERIOD = "3y"
 DOWNLOAD_INTERVAL = "1d"
 CHUNK_SIZE = 80
-
 MAX_CHARTS_EARLY = 30
 MAX_CHARTS_CONFIRMED = 30
 MAX_CHARTS_VALIDATED = 5
 MAX_CHARTS_TRIGGERED = 18
-
 USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
     "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
 )
-
 FIELDS = ["Open", "High", "Low", "Close", "Volume"]
-
 # Volume Profile (VP) runway gate — deterministic, daily OHLCV approximation
 # Purpose: after a signal becomes VALIDATED, estimate remaining runway to the
 # nearest significant opposing High-Volume Node (HVN) and display it as %.
@@ -397,8 +335,6 @@ VP_PEAK_REL_MAX_MIN = 0.18     # peak must be >= 18% of max smoothed profile
 VP_CLUSTER_FLOOR_FRAC_PEAK = 0.35
 VP_CLUSTER_FLOOR_REL_MAX = 0.08
 VP_MIN_CLUSTER_MASS_FRAC = 0.05  # node must contain >= 5% of profile volume
-
-
 # ----------------------------
 # Helpers: IO
 # ----------------------------
@@ -412,13 +348,9 @@ def read_lines(path: Path) -> List[str]:
             continue
         out.append(ln)
     return out
-
-
 def write_text(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
-
-
 def load_state() -> Dict:
     if STATE_PATH.exists():
         try:
@@ -426,12 +358,8 @@ def load_state() -> Dict:
         except Exception:
             return {}
     return {}
-
-
 def save_state(state: Dict) -> None:
     write_text(STATE_PATH, json.dumps(state, indent=2, ensure_ascii=False))
-
-
 # ----------------------------
 # Helpers: Markdown table alignment
 # ----------------------------
@@ -441,7 +369,6 @@ def _patch_markdown_alignment(md: str, aligns: Tuple[str, ...]) -> str:
       left:  :---
       right: ---:
       center::---:
-
     Pandas' to_markdown may not always emit alignment; this function forces it.
     """
     if not md or not isinstance(md, str):
@@ -449,18 +376,15 @@ def _patch_markdown_alignment(md: str, aligns: Tuple[str, ...]) -> str:
     lines = md.splitlines()
     if len(lines) < 2:
         return md
-
     # Pandas markdown tables: line0 header, line1 separator, then rows.
     # Only patch if the table has the expected pipe structure.
     if "|" not in lines[0] or "|" not in lines[1]:
         return md
-
     # Ensure column count matches aligns length
     # Count columns by splitting header line on | and removing empties.
     header_cols = [c.strip() for c in lines[0].split("|") if c.strip() != ""]
     if len(header_cols) != len(aligns):
         return md
-
     sep = []
     for a in aligns:
         a = (a or "").lower()
@@ -472,11 +396,8 @@ def _patch_markdown_alignment(md: str, aligns: Tuple[str, ...]) -> str:
             sep.append(":---:")
         else:
             sep.append("---")
-
     lines[1] = "| " + " | ".join(sep) + " |"
     return "\n".join(lines)
-
-
 def df_to_markdown_aligned(df: pd.DataFrame, aligns: Tuple[str, ...], index: bool = False) -> str:
     """
     Generate markdown and force alignment row regardless of pandas/tabulate version.
@@ -486,9 +407,6 @@ def df_to_markdown_aligned(df: pd.DataFrame, aligns: Tuple[str, ...], index: boo
         df["Ticker"] = df["Ticker"].astype(str).map(display_ticker)
     md = df.to_markdown(index=index)
     return _patch_markdown_alignment(md, aligns)
-
-
-
 # ----------------------------
 # Web fetch (HTML/RSS) stdlib only
 # ----------------------------
@@ -496,18 +414,12 @@ def fetch_url_text(url: str, timeout: int = 30) -> str:
     req = Request(url, headers={"User-Agent": USER_AGENT})
     with urlopen(req, timeout=timeout) as resp:
         return resp.read().decode("utf-8", errors="ignore")
-
-
 def read_html_tables(url: str) -> List[pd.DataFrame]:
     html = fetch_url_text(url)
     return pd.read_html(html)
-
-
-
 def parse_rss(url: str, source_name: str, limit: int = 10) -> List[Dict[str, str]]:
     """
     Minimal RSS/Atom parser returning dict(title, link, pubDate, source).
-
     Supports:
       - RSS <item>
       - Atom <entry>
@@ -515,12 +427,9 @@ def parse_rss(url: str, source_name: str, limit: int = 10) -> List[Dict[str, str
     try:
         xml_text = fetch_url_text(url, timeout=30)
         root = ET.fromstring(xml_text)
-
         def norm(s: Optional[str]) -> str:
             return (s or "").strip()
-
         items: List[Dict[str, str]] = []
-
         # RSS
         for item in root.findall(".//item"):
             title = norm(item.findtext("title"))
@@ -528,7 +437,6 @@ def parse_rss(url: str, source_name: str, limit: int = 10) -> List[Dict[str, str
             pub = norm(item.findtext("pubDate"))
             if title:
                 items.append({"title": title, "link": link, "pubDate": pub, "source": source_name})
-
         # Atom
         if not items:
             for entry in root.findall(".//{*}entry"):
@@ -546,16 +454,11 @@ def parse_rss(url: str, source_name: str, limit: int = 10) -> List[Dict[str, str
                     link = norm(entry.findtext("{*}link"))
                 if title:
                     items.append({"title": title, "link": link, "pubDate": pub, "source": source_name})
-
         return items[:limit] if items else []
     except Exception:
         return []
-
-
-
 def fetch_rss_headlines(limit_total: int = 14) -> List[Dict[str, str]]:
     """Fetch RSS headlines from a small set of popular sources.
-
     Note: Financial Times dropped (paywall/open issues). Yahoo Finance included via multiple feeds for robustness.
     """
     feeds = [
@@ -570,11 +473,9 @@ def fetch_rss_headlines(limit_total: int = 14) -> List[Dict[str, str]]:
         ("WSJ Markets", "https://feeds.a.dj.com/rss/RSSMarketsMain.xml"),
         ("The Guardian Business", "https://www.theguardian.com/uk/business/rss"),
     ]
-
     all_items: List[Dict[str, str]] = []
     for name, url in feeds:
         all_items.extend(parse_rss(url, name, limit=12))
-
     # De-dupe by title (case-insensitive)
     seen = set()
     uniq: List[Dict[str, str]] = []
@@ -585,7 +486,6 @@ def fetch_rss_headlines(limit_total: int = 14) -> List[Dict[str, str]]:
             continue
         seen.add(key)
         uniq.append(it)
-
     # Simple relevancy: keep items that look finance/markets related first.
     def score(it: Dict[str, str]) -> int:
         txt = ((it.get("title", "") or "") + " " + (it.get("summary", "") or "")).lower()
@@ -596,23 +496,18 @@ def fetch_rss_headlines(limit_total: int = 14) -> List[Dict[str, str]]:
             if k in txt:
                 hits += 1
         return hits
-
     uniq.sort(key=score, reverse=True)
     return uniq[:limit_total]
-
 def _clean_ticker(t: str) -> str:
     t = str(t).strip()
     # Wikipedia uses BRK.B -> Yahoo uses BRK-B
     if re.fullmatch(r"[A-Z]+\.[A-Z]+", t):
         return t.replace(".", "-")
     return t
-
-
 def get_sp500_tickers() -> List[str]:
     local = read_lines(SP500_LOCAL)
     if local:
         return sorted({_clean_ticker(x) for x in local})
-
     try:
         url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
         tables = pd.read_html(url)
@@ -621,17 +516,13 @@ def get_sp500_tickers() -> List[str]:
         return sorted(set(tickers))
     except Exception:
         return []
-
-
 def get_nasdaq100_tickers() -> List[str]:
     local = read_lines(NDX_LOCAL)
     if local:
         return sorted({_clean_ticker(x) for x in local})
-
     try:
         url = "https://en.wikipedia.org/wiki/Nasdaq-100"
         tables = pd.read_html(url)
-
         df = None
         for t in tables:
             cols = [str(c).lower() for c in t.columns]
@@ -640,7 +531,6 @@ def get_nasdaq100_tickers() -> List[str]:
                 break
         if df is None:
             df = tables[0]
-
         col = None
         for c in df.columns:
             if str(c).lower() in ("ticker", "symbol"):
@@ -648,30 +538,23 @@ def get_nasdaq100_tickers() -> List[str]:
                 break
         if col is None:
             col = df.columns[0]
-
         tickers = [_clean_ticker(x) for x in df[col].astype(str).tolist()]
         tickers = [t for t in tickers if re.fullmatch(r"[\w\-\.\=]+", t)]
         return sorted(set(tickers))
     except Exception:
         return []
-
-
 def get_custom_tickers() -> List[str]:
     tickers = {_clean_ticker(x) for x in read_lines(CUSTOM_TICKERS_PATH)}
     # Always include the default  watchlist unless explicitly disabled.
     if os.environ.get("USE_DEFAULT_WATCHLIST", "1").strip().lower() not in ("0", "false", "no"):
         tickers.update(WATCHLIST_44)
-
     extra = os.environ.get("EXTRA_TICKERS", "").strip()
     if extra:
         for x in re.split(r"[,\s]+", extra):
             x = x.strip()
             if x:
                 tickers.add(_clean_ticker(x))
-
     return sorted(tickers)
-
-
 # ----------------------------
 # MSCI World classification (local CSV)
 # ----------------------------
@@ -688,7 +571,6 @@ SP500_11_SECTORS: Tuple[str, ...] = (
     "Real Estate",
     "Utilities",
 )
-
 _SECTOR_CANONICAL_MAP: Dict[str, str] = {
     "communication services": "Communication Services",
     "consumer discretionary": "Consumer Discretionary",
@@ -705,7 +587,6 @@ _SECTOR_CANONICAL_MAP: Dict[str, str] = {
     "real estate": "Real Estate",
     "utilities": "Utilities",
 }
-
 # ----------------------------
 # Watchlist sector overrides (S&P 500 11-sector taxonomy)
 # ----------------------------
@@ -726,13 +607,11 @@ WATCHLIST_SECTOR_OVERRIDES: Dict[str, str] = {
     "IONQ": "Information Technology",
     "QBTS": "Information Technology",
     "PLTR": "Information Technology",
-
     # Communication Services
     "GOOGL": "Communication Services",
     "META": "Communication Services",
     "NFLX": "Communication Services",
     "RRTL.DE": "Communication Services",
-
     # Consumer Discretionary
     "AMZN": "Consumer Discretionary",
     "MELI": "Consumer Discretionary",
@@ -743,35 +622,28 @@ WATCHLIST_SECTOR_OVERRIDES: Dict[str, str] = {
     "BYDDY": "Consumer Discretionary",
     "MC.PA": "Consumer Discretionary",
     "RMS.PA": "Consumer Discretionary",
-
     # Consumer Staples
     "WMT": "Consumer Staples",
-
     # Financials
     "HOOD": "Financials",
     "NU": "Financials",
     "PGR": "Financials",
     "MUV2.DE": "Financials",
     "UCG.MI": "Financials",
-
     # Real Estate
     "ARR": "Real Estate",
-
     # Health Care
     "ISRG": "Health Care",
     "LLY": "Health Care",
     "NVO": "Health Care",
-
     # Utilities (power & generators)
     "VST": "Utilities",
     "CEG": "Utilities",
     "OKLO": "Utilities",
     "SMR": "Utilities",
-
     # Materials / Industrials (uranium & fuel-cycle; best-effort mapping)
     "CCJ": "Materials",
     "LEU": "Industrials",
-
     # Energy (oil & refiners)
     "CVX": "Energy",
     "REP.MC": "Energy",
@@ -779,33 +651,25 @@ WATCHLIST_SECTOR_OVERRIDES: Dict[str, str] = {
     "MPC": "Energy",
     "PSX": "Energy",
     "VLO": "Energy",
-
     # Industrials (shipping / transport)
     "NAT": "Industrials",
     "INSW": "Industrials",
     "TNK": "Industrials",
     "FRO": "Industrials",
 }
-
 WATCHLIST_SECTOR_BY_TICKER: Dict[str, str] = { _clean_ticker(k): v for k, v in WATCHLIST_SECTOR_OVERRIDES.items() }
-
 WATCHLIST_CATEGORY_BY_TICKER: Dict[str, str] = {}
 for _cat_name, _tickers in WATCHLIST_GROUPS.items():
     for _t in _tickers:
         WATCHLIST_CATEGORY_BY_TICKER[str(_t).strip()] = _cat_name
-
-
 def _normalize_sp500_sector_label(x: str) -> str:
     s = str(x or "").strip()
     if not s:
         return ""
     key = re.sub(r"\s+", " ", s).strip().lower()
     return _SECTOR_CANONICAL_MAP.get(key, s)
-
-
 def load_msci_world_classification(path: Path = MSCI_WORLD_CLASSIFICATION_CSV) -> pd.DataFrame:
     """Load local MSCI World constituents + 11-sector classification CSV.
-
     Expected columns (flexible names): symbol/ticker, company/name (optional), country (optional), sector/category.
     Non-watchlist names should use one of the S&P 500 11 sector labels.
     """
@@ -817,17 +681,14 @@ def load_msci_world_classification(path: Path = MSCI_WORLD_CLASSIFICATION_CSV) -
     except Exception as e:
         print(f"[msci] failed reading classification csv: {e}")
         return pd.DataFrame(columns=cols)
-
     if raw is None or raw.empty:
         return pd.DataFrame(columns=cols)
-
     def _pick(names: List[str]) -> Optional[str]:
         low = {str(c).strip().lower(): c for c in raw.columns}
         for n in names:
             if n in low:
                 return low[n]
         return None
-
     col_t = _pick(["ticker", "symbol"])
     col_c = _pick(["company", "name", "security", "issuer"])
     col_s = _pick(["sector", "category", "gics_sector"])
@@ -835,7 +696,6 @@ def load_msci_world_classification(path: Path = MSCI_WORLD_CLASSIFICATION_CSV) -
     if col_t is None or col_s is None:
         print("[msci] classification csv missing required columns: ticker/symbol and sector/category")
         return pd.DataFrame(columns=cols)
-
     df = raw.copy()
     df["Ticker"] = df[col_t].astype(str).map(_clean_ticker).str.strip()
     df["Company"] = df[col_c].astype(str).str.strip() if col_c is not None else ""
@@ -843,24 +703,17 @@ def load_msci_world_classification(path: Path = MSCI_WORLD_CLASSIFICATION_CSV) -
     df["Sector"] = df[col_s].astype(str).map(_normalize_sp500_sector_label).str.strip()
     df = df[(df["Ticker"] != "") & (df["Ticker"].str.lower() != "nan")]
     df = df.drop_duplicates(subset=["Ticker"], keep="first")
-
     invalid = sorted({s for s in df["Sector"].dropna().astype(str) if s and s not in SP500_11_SECTORS})
     if invalid:
         print(f"[msci] warning: {len(invalid)} sector labels not in S&P 500 11 sectors (examples: {invalid[:5]})")
-
     return df[cols].reset_index(drop=True)
-
-
 def get_msci_world_tickers() -> List[str]:
     df = load_msci_world_classification(MSCI_WORLD_CLASSIFICATION_CSV)
     if df is None or df.empty:
         return []
     return sorted({str(x).strip() for x in df["Ticker"].astype(str).tolist() if str(x).strip()})
-
-
 def build_sector_resolver(msci_df: pd.DataFrame):
     """Resolve ticker -> S&P 11-sector label.
-
     Preference order:
       1) local MSCI/Sector classification CSV (more accurate when available)
       2) WATCHLIST_SECTOR_OVERRIDES fallback
@@ -873,31 +726,23 @@ def build_sector_resolver(msci_df: pd.DataFrame):
             s = str(r.get("Sector", "")).strip()
             if t and s:
                 msci_sector[t] = s
-
     def _resolve(ticker: str) -> str:
         t = str(ticker or "").strip()
         if not t:
             return ""
         base = _base_ticker(t)
-
         s = msci_sector.get(t) or msci_sector.get(base)
         if s:
             return s
-
         s2 = WATCHLIST_SECTOR_BY_TICKER.get(t) or WATCHLIST_SECTOR_BY_TICKER.get(base)
         if s2:
             return s2
-
         if t in COMMODITY_TICKERS or base in COMMODITY_TICKERS:
             return "Commodities"
-
         return "Unclassified"
-
     return _resolve
-
 # Backward-compatible alias (older code paths)
 build_sector_resolver = build_sector_resolver
-
 def _infer_country_from_ticker(ticker: str) -> str:
     t = str(ticker or "").strip().upper()
     if not t:
@@ -929,8 +774,6 @@ def _infer_country_from_ticker(ticker: str) -> str:
         return suffix_map[suffix]
     # US/default for unsuffixed tickers in the watchlist-centric report
     return "United States"
-
-
 def build_company_country_resolvers(msci_df: pd.DataFrame):
     msci_company: Dict[str, str] = {}
     msci_country: Dict[str, str] = {}
@@ -947,7 +790,6 @@ def build_company_country_resolvers(msci_df: pd.DataFrame):
             if ctry:
                 msci_country[t] = ctry
                 msci_country.setdefault(_base_ticker(t), ctry)
-
     def _name(ticker: str) -> str:
         t = str(ticker or "").strip()
         if not t:
@@ -955,9 +797,7 @@ def build_company_country_resolvers(msci_df: pd.DataFrame):
         base = _base_ticker(t)
         if t in COMMODITY_NAME_OVERRIDES or base in COMMODITY_NAME_OVERRIDES:
             return COMMODITY_NAME_OVERRIDES.get(t) or COMMODITY_NAME_OVERRIDES.get(base) or ""
-
         return msci_company.get(t) or msci_company.get(base) or _display_name(t)
-
     def _country(ticker: str) -> str:
         t = str(ticker or "").strip()
         if not t:
@@ -965,19 +805,14 @@ def build_company_country_resolvers(msci_df: pd.DataFrame):
         base = _base_ticker(t)
         if t in COMMODITY_TICKERS or base in COMMODITY_TICKERS:
             return ""
-
         return msci_country.get(t) or msci_country.get(base) or _infer_country_from_ticker(t)
-
     return _name, _country
-
-
 # ----------------------------
 # Market data (yfinance) - robust extraction
 # ----------------------------
 def extract_ohlcv_from_download(data: pd.DataFrame, ticker: str) -> Optional[pd.DataFrame]:
     if data is None or data.empty:
         return None
-
     # Single ticker: flat columns
     if not isinstance(data.columns, pd.MultiIndex):
         if not {"Open", "High", "Low", "Close"}.issubset(set(data.columns)):
@@ -986,9 +821,7 @@ def extract_ohlcv_from_download(data: pd.DataFrame, ticker: str) -> Optional[pd.
         keep = [c for c in FIELDS if c in df.columns]
         df = df[keep].dropna(subset=["Close"])
         return df if not df.empty else None
-
     cols = data.columns
-
     # Orientation A: (Field, Ticker)
     if ("Close", ticker) in cols:
         df = pd.DataFrame({
@@ -1000,7 +833,6 @@ def extract_ohlcv_from_download(data: pd.DataFrame, ticker: str) -> Optional[pd.
         })
         df = df.dropna(subset=["Close"])
         return df if not df.empty else None
-
     # Orientation B: (Ticker, Field)
     if (ticker, "Close") in cols:
         df = pd.DataFrame({
@@ -1012,10 +844,7 @@ def extract_ohlcv_from_download(data: pd.DataFrame, ticker: str) -> Optional[pd.
         })
         df = df.dropna(subset=["Close"])
         return df if not df.empty else None
-
     return None
-
-
 def yf_download_chunk(tickers: List[str]) -> Dict[str, pd.DataFrame]:
     """Deterministic OHLCV downloader.
     - Sort tickers for stable ordering.
@@ -1025,10 +854,8 @@ def yf_download_chunk(tickers: List[str]) -> Dict[str, pd.DataFrame]:
     out: Dict[str, pd.DataFrame] = {}
     if not tickers:
         return out
-
     tickers = [str(t).strip() for t in tickers if str(t).strip()]
     tickers = sorted(dict.fromkeys(tickers))  # stable unique
-
     def _download_one(t: str) -> Optional[pd.DataFrame]:
         try:
             data = yf.download(
@@ -1044,12 +871,10 @@ def yf_download_chunk(tickers: List[str]) -> Dict[str, pd.DataFrame]:
             return df if df is not None and not df.empty else None
         except Exception:
             return None
-
     for i in range(0, len(tickers), CHUNK_SIZE):
         chunk = tickers[i:i + CHUNK_SIZE]
         if not chunk:
             continue
-
         data = None
         try:
             data = yf.download(
@@ -1063,30 +888,23 @@ def yf_download_chunk(tickers: List[str]) -> Dict[str, pd.DataFrame]:
             )
         except Exception:
             data = None
-
         if data is not None and not getattr(data, "empty", True):
             for t in chunk:
                 df = extract_ohlcv_from_download(data, t)
                 if df is not None and not df.empty:
                     out[t] = df
-
         # retry missing tickers individually (stabilizes watchlist & commodities)
         missing = [t for t in chunk if t not in out]
         for t in missing:
             df = _download_one(t)
             if df is not None and not df.empty:
                 out[t] = df
-
     return out
-
-
-
 def pct_change_last(df: pd.DataFrame) -> Optional[float]:
     c = df["Close"].dropna()
     if len(c) < 2:
         return None
     return float((c.iloc[-1] / c.iloc[-2] - 1.0) * 100.0)
-
 def _clv_at_bar(d: pd.DataFrame, i: int) -> float:
     """Close Location Value in [-1,+1] for bar i."""
     try:
@@ -1099,10 +917,6 @@ def _clv_at_bar(d: pd.DataFrame, i: int) -> float:
         return float(((c - l) - (h - c)) / rng)
     except Exception:
         return float("nan")
-
-
-
-
 def atr(df: pd.DataFrame, n: int = ATR_N) -> pd.Series:
     h = df["High"]
     l = df["Low"]
@@ -1113,8 +927,6 @@ def atr(df: pd.DataFrame, n: int = ATR_N) -> pd.Series:
         (l - c.shift(1)).abs()
     ], axis=1).max(axis=1)
     return tr.rolling(n).mean()
-
-
 # ----------------------------
 # Snapshot: cross-asset + multi-horizon (NO WTI / DXY / 10Y)
 # ----------------------------
@@ -1123,15 +935,12 @@ def _extract_close_series(download_df: pd.DataFrame, sym: str) -> Optional[pd.Se
         return None
     if not isinstance(download_df.columns, pd.MultiIndex):
         return download_df["Close"].dropna() if "Close" in download_df.columns else None
-
     cols = download_df.columns
     if ("Close", sym) in cols:
         return download_df[("Close", sym)].dropna()
     if (sym, "Close") in cols:
         return download_df[(sym, "Close")].dropna()
     return None
-
-
 def _color_pct_cell(x: float) -> str:
     """
     No emojis/squares. Colored % only.
@@ -1143,8 +952,6 @@ def _color_pct_cell(x: float) -> str:
     if x < 0:
         return f'<span style="color:#b91c1c;">{x:+.2f}%</span>'
     return f'<span style="color:#6b7280;">{x:+.2f}%</span>'
-
-
 def _one_day_return(series: pd.Series) -> float:
     s = series.dropna()
     if len(s) < 2:
@@ -1154,34 +961,25 @@ def _one_day_return(series: pd.Series) -> float:
     if prev == 0:
         return float("nan")
     return (last / prev - 1.0) * 100.0
-
-
 def _return_since(series: pd.Series, days_back: int) -> float:
     s = series.dropna()
     if s.empty:
         return float("nan")
-
     idx = pd.to_datetime(s.index)
     if getattr(idx, "tz", None) is not None:
         idx = idx.tz_convert(None)
-
     s2 = s.copy()
     s2.index = idx
-
     last_dt = pd.Timestamp(s2.index[-1])
     target = last_dt - pd.Timedelta(days=days_back)
-
     past = s2.loc[:target]
     if past.empty:
         return float("nan")
-
     last = float(s2.iloc[-1])
     base = float(past.iloc[-1])
     if base == 0:
         return float("nan")
     return (last / base - 1.0) * 100.0
-
-
 def fetch_market_snapshot_multi() -> pd.DataFrame:
     """
     Instruments requested:
@@ -1199,22 +997,16 @@ def fetch_market_snapshot_multi() -> pd.DataFrame:
         ("DAX", "^GDAXI"),
         ("CAC 40", "^FCHI"),
         ("FTSE 100", "^FTSE"),
-
         ("VIX", "^VIX"),
         ("EUR/USD", "EURUSD=X"),
-
         ("WTI Crude", "CL=F"),
-
         ("Gold", "GC=F"),
         ("Silver", "SI=F"),
         ("Coffee", "KC=F"),
         ("Cocoa", "CC=F"),
-
         ("Bitcoin", "BTC-USD"),
     ]
-
     syms = [s for _, s in instruments]
-
     try:
         data = yf.download(
             tickers=syms,
@@ -1227,7 +1019,6 @@ def fetch_market_snapshot_multi() -> pd.DataFrame:
         )
     except Exception:
         return pd.DataFrame(columns=["Instrument", "Symbol", "Last", "1D", "7D", "1M", "3M", "6M"])
-
     rows = []
     for name, sym in instruments:
         close = _extract_close_series(data, sym)
@@ -1235,7 +1026,6 @@ def fetch_market_snapshot_multi() -> pd.DataFrame:
             continue
         close = close.dropna()
         last = float(close.iloc[-1])
-
         rows.append({
             "Instrument": name,
             "Symbol": sym,
@@ -1246,30 +1036,20 @@ def fetch_market_snapshot_multi() -> pd.DataFrame:
             "3M": _return_since(close, 90),
             "6M": _return_since(close, 180),
         })
-
     return pd.DataFrame(rows)
-
-
 def format_snapshot_table_multi(df: pd.DataFrame) -> str:
     if df is None or df.empty:
         return "_Snapshot unavailable._"
-
     d = df.copy()
-
     # Standardize Last: thousands comma + 2 decimals
     d["Last"] = pd.to_numeric(d["Last"], errors="coerce").map(lambda x: f"{x:,.2f}" if pd.notna(x) else "")
-
     for c in ["1D", "7D", "1M", "3M", "6M"]:
         d[c] = pd.to_numeric(d[c], errors="coerce").map(_color_pct_cell)
-
     cols = ["Instrument", "Last", "1D", "7D", "1M", "3M", "6M"]
     out = d[cols]
-
     # Force alignment: first column left, rest right
     aligns = ("left",) + tuple("right" for _ in cols[1:])
     return df_to_markdown_aligned(out, aligns=aligns, index=False)
-
-
 # ----------------------------
 # Google-Finance-like card charts (5Y): VIX and EUR/USD
 # ----------------------------
@@ -1280,15 +1060,11 @@ def _fmt_de(x: float, decimals: int = 2) -> str:
     # 1,234.56 -> 1.234,56
     s = s.replace(",", "X").replace(".", ",").replace("X", ".")
     return s
-
-
 def _fmt_de_signed(x: float, decimals: int = 2) -> str:
     if x is None or (isinstance(x, float) and np.isnan(x)):
         return "–"
     sign = "+" if x > 0 else ""
     return f"{sign}{_fmt_de(x, decimals)}"
-
-
 def _fmt_de_date(ts: pd.Timestamp) -> str:
     months = {
         1: "Jan.", 2: "Feb.", 3: "Mär.", 4: "Apr.", 5: "Mai", 6: "Jun.",
@@ -1296,8 +1072,6 @@ def _fmt_de_date(ts: pd.Timestamp) -> str:
     }
     ts = pd.Timestamp(ts)
     return f"{ts.day}. {months.get(ts.month, ts.strftime('%b'))} {ts.year}"
-
-
 def plot_gf_card_5y(
     symbol: str,
     title: str,
@@ -1326,41 +1100,31 @@ def plot_gf_card_5y(
         df = extract_ohlcv_from_download(data, symbol)
         if df is None or df.empty or df["Close"].dropna().empty:
             return None
-
         df = df.dropna(subset=["Close"]).copy()
         df.index = pd.to_datetime(df.index).tz_localize(None)
-
         last = float(df["Close"].iloc[-1])
         prev = float(df["Close"].iloc[-2]) if len(df) >= 2 else last
         chg = last - prev
         chg_pct = (chg / prev * 100.0) if prev != 0 else float("nan")
-
         o = float(df["Open"].iloc[-1]) if "Open" in df.columns and pd.notna(df["Open"].iloc[-1]) else float("nan")
         h = float(df["High"].iloc[-1]) if "High" in df.columns and pd.notna(df["High"].iloc[-1]) else float("nan")
         l = float(df["Low"].iloc[-1]) if "Low" in df.columns and pd.notna(df["Low"].iloc[-1]) else float("nan")
-
         df_52w = df.tail(252)
         hi_52 = float(df_52w["High"].max()) if "High" in df_52w.columns else float(df_52w["Close"].max())
         lo_52 = float(df_52w["Low"].min()) if "Low" in df_52w.columns else float(df_52w["Close"].min())
-
         s = df["Close"].dropna()
         max_idx = int(np.nanargmax(s.values))
         max_dt = s.index[max_idx]
         max_val = float(s.iloc[max_idx])
-
         change_color = "#188038" if chg >= 0 else "#d93025"
-
         fig = plt.figure(figsize=(12.5, 7.0))
         gs = fig.add_gridspec(nrows=3, ncols=1, height_ratios=[1.2, 4.2, 1.1], hspace=0.18)
-
         ax_head = fig.add_subplot(gs[0, 0]); ax_head.axis("off")
         ax = fig.add_subplot(gs[1, 0])
         ax_foot = fig.add_subplot(gs[2, 0]); ax_foot.axis("off")
-
         # Header
         ax_head.text(0.00, 0.78, title, fontsize=24, fontweight="bold", ha="left", va="center")
         ax_head.text(0.00, 0.38, subtitle, fontsize=12.5, color="#5f6368", ha="left", va="center")
-
         ax_head.text(0.00, -0.05, _fmt_de(last, decimals_last), fontsize=44, fontweight="bold",
                      ha="left", va="center")
         ax_head.text(0.00, -0.55,
@@ -1368,7 +1132,6 @@ def plot_gf_card_5y(
                      fontsize=16, color=change_color, ha="left", va="center")
         ax_head.text(0.00, -0.92, f"{_fmt_de_date(df.index[-1])}",
                      fontsize=11.5, color="#5f6368", ha="left", va="center")
-
         # Chart
         ax.plot(s.index, s.values, color=line_color, linewidth=2.2)
         ax.grid(True, axis="y", alpha=0.18)
@@ -1379,7 +1142,6 @@ def plot_gf_card_5y(
         ax.spines["bottom"].set_color("#dadce0")
         ax.tick_params(axis="x", colors="#5f6368")
         ax.tick_params(axis="y", colors="#5f6368")
-
         ax.scatter([max_dt], [max_val], s=60, color=line_color, zorder=4)
         label = f"{_fmt_de(max_val, decimals_last)}  {_fmt_de_date(max_dt)}"
         ax.annotate(
@@ -1391,12 +1153,10 @@ def plot_gf_card_5y(
             fontsize=10.5,
             color="#202124",
         )
-
         y_min = float(np.nanmin(s.values))
         y_max = float(np.nanmax(s.values))
         pad = (y_max - y_min) * 0.10 if y_max > y_min else max(1.0, y_max * 0.05)
         ax.set_ylim(y_min - pad, y_max + pad)
-
         # Footer stats
         stats_left = [
             ("Eröffnung", _fmt_de(o, decimals_last)),
@@ -1408,39 +1168,30 @@ def plot_gf_card_5y(
             ("52-Wo-Hoch", _fmt_de(hi_52, decimals_last)),
             ("52-Wo-Tief", _fmt_de(lo_52, decimals_last)),
         ]
-
         x0, y0 = 0.00, 0.75
         dx, dy = 0.24, 0.38
         for i, (k, v) in enumerate(stats_left):
             ax_foot.text(x0 + (i % 2) * dx, y0 - (i // 2) * dy, k, fontsize=11.5, color="#5f6368", ha="left")
             ax_foot.text(x0 + (i % 2) * dx + 0.12, y0 - (i // 2) * dy, v, fontsize=12.5, color="#202124", ha="left")
-
         x1 = 0.62
         for i, (k, v) in enumerate(stats_right):
             ax_foot.text(x1, y0 - i * dy, k, fontsize=11.5, color="#5f6368", ha="left")
             ax_foot.text(x1 + 0.18, y0 - i * dy, v, fontsize=12.5, color="#202124", ha="left")
-
         fig.tight_layout()
         out_path = IMG_DIR / out_name
         fig.savefig(out_path, dpi=175)
         plt.close(fig)
-
         return f"img/{out_name}"
-
     except Exception:
         return None
-
-
 # ----------------------------
 # Executive summary (plain-English, no “risk-on”)
 # ----------------------------
 def summarize_rss_themes(items: List[Dict[str, str]]) -> str:
     if not items:
         return "no reliable RSS feed at runtime"
-
     text = " ".join([it.get("title", "") for it in items]).lower()
     themes = []
-
     if any(k in text for k in ["fed", "fomc", "minutes", "powell", "rates", "yield", "treasury", "inflation"]):
         themes.append("Fed/rates")
     if any(k in text for k in ["ai", "chip", "semiconductor", "nvidia", "software", "cloud"]):
@@ -1449,18 +1200,13 @@ def summarize_rss_themes(items: List[Dict[str, str]]) -> str:
         themes.append("earnings/guidance")
     if any(k in text for k in ["oil", "energy", "geopolitic", "war"]):
         themes.append("macro/geopolitics")
-
     if not themes:
         themes.append("mixed macro")
-
     return ", ".join(themes[:3])
-
-
 # ----------------------------
 # Executive-summary headline selection (Yahoo + Investing + CNBC, market-only)
 # ----------------------------
 EXEC_SUMMARY_TARGET_SOURCES = ("Yahoo Finance", "Investing.com", "CNBC")
-
 _EXEC_MARKET_KEYWORDS = [
     "market", "markets", "stock", "stocks", "share", "shares", "equity", "equities", "futures", "index", "indexes",
     "nasdaq", "s&p", "dow", "stoxx", "dax", "vix",
@@ -1472,22 +1218,18 @@ _EXEC_MARKET_KEYWORDS = [
     "bitcoin", "crypto", "ethereum",
     "tariff", "trade",
 ]
-
 # Strong negatives to avoid random non-market headlines in top-news feeds.
 _EXEC_NON_MARKET_KEYWORDS = [
     "sports", "soccer", "football", "nfl", "nba", "nhl", "mlb", "tennis", "golf",
     "celebrity", "movie", "movies", "tv", "music", "showbiz", "entertainment",
     "lifestyle", "fashion", "dating", "pregnant", "women", "royal", "crime", "murder", "trial",
 ]
-
 _EXEC_THEME_STOPWORDS = {
     "the", "a", "an", "to", "of", "for", "and", "on", "in", "as", "at", "by", "with", "from", "after",
     "before", "into", "over", "under", "amid", "ahead", "today", "live", "updates", "update", "why", "how",
     "what", "this", "that", "is", "are", "was", "were", "be", "it", "its", "their", "his", "her",
     "yahoo", "finance", "cnbc", "investing", "com",
 }
-
-
 def _rss_source_family(source_name: str) -> Optional[str]:
     s = (source_name or "").strip().lower()
     if "yahoo" in s:
@@ -1497,31 +1239,25 @@ def _rss_source_family(source_name: str) -> Optional[str]:
     if "cnbc" in s:
         return "CNBC"
     return None
-
-
 def _market_headline_score(title: str, source_name: str = "", link: str = "") -> Tuple[int, List[str]]:
     t = (title or "").strip().lower()
     if not t:
         return (0, [])
     hits: List[str] = []
     score = 0
-
     for kw in _EXEC_MARKET_KEYWORDS:
         if kw in t:
             hits.append(kw)
             score += 3
-
     # Geopolitics only counts when clearly market-linked.
     geo = any(k in t for k in ["ukraine", "russia", "iran", "gaza", "middle east", "red sea"])
     geo_linked = any(k in t for k in ["oil", "crude", "gas", "energy", "shipping", "stocks", "markets", "futures"])
     if geo and geo_linked:
         hits.append("geo-linked")
         score += 4
-
     negative_hits = sum(1 for kw in _EXEC_NON_MARKET_KEYWORDS if kw in t)
     if negative_hits:
         score -= 6 * negative_hits
-
     src = (source_name or "").lower()
     if "cnbc markets" in src:
         score += 3
@@ -1529,18 +1265,14 @@ def _market_headline_score(title: str, source_name: str = "", link: str = "") ->
         score += 2
     if "investing.com" in src:
         score += 2
-
     # Guardrail: if geopolitics/news appears without clear market terms, penalize.
     if any(k in t for k in ["ukraine", "russia", "war", "gaza", "iran"]) and not any(
         k in t for k in ["market", "markets", "stocks", "futures", "oil", "crude", "yield", "rates"]
     ):
         score -= 8
-
     if score < 3:
         return (0, hits)
     return (score, hits)
-
-
 def _headline_tokens(title: str) -> set:
     toks = re.findall(r"[A-Za-z0-9]+", (title or "").lower())
     out = set()
@@ -1551,8 +1283,6 @@ def _headline_tokens(title: str) -> set:
             continue
         out.add(tok)
     return out
-
-
 def select_exec_summary_headlines(rss_items: List[Dict[str, str]]) -> Dict[str, object]:
     candidates: List[Dict[str, object]] = []
     for idx, it in enumerate(rss_items or []):
@@ -1563,11 +1293,9 @@ def select_exec_summary_headlines(rss_items: List[Dict[str, str]]) -> Dict[str, 
         family = _rss_source_family(src_raw)
         if family not in EXEC_SUMMARY_TARGET_SOURCES:
             continue
-
         score, hits = _market_headline_score(title, src_raw, (it.get("link", "") or "").strip())
         if score <= 0:
             continue
-
         candidates.append({
             "source": src_raw,
             "source_family": family,
@@ -1578,14 +1306,11 @@ def select_exec_summary_headlines(rss_items: List[Dict[str, str]]) -> Dict[str, 
             "keyword_hits": hits[:8],
             "_idx": idx,
         })
-
     by_family: Dict[str, List[Dict[str, object]]] = {k: [] for k in EXEC_SUMMARY_TARGET_SOURCES}
     for c in candidates:
         by_family[str(c["source_family"])].append(c)
-
     for fam in by_family:
         by_family[fam].sort(key=lambda x: (-int(x.get("market_score", 0)), int(x.get("_idx", 99999))))
-
     selected: List[Dict[str, object]] = []
     selected_by_source: List[Dict[str, str]] = []
     for fam in EXEC_SUMMARY_TARGET_SOURCES:
@@ -1599,7 +1324,6 @@ def select_exec_summary_headlines(rss_items: List[Dict[str, str]]) -> Dict[str, 
                 "link": str(c.get("link", "")),
                 "market_score": str(c.get("market_score", "")),
             })
-
     extras: List[Dict[str, object]] = []
     for fam in EXEC_SUMMARY_TARGET_SOURCES:
         extras.extend(by_family[fam][1:3])
@@ -1608,7 +1332,6 @@ def select_exec_summary_headlines(rss_items: List[Dict[str, str]]) -> Dict[str, 
         if len(selected) >= 6:
             break
         selected.append(c)
-
     if not selected:
         for idx, it in enumerate(rss_items or []):
             src_raw = (it.get("source", "") or "").strip()
@@ -1633,7 +1356,6 @@ def select_exec_summary_headlines(rss_items: List[Dict[str, str]]) -> Dict[str, 
                     "market_score": "1",
                 })
                 break
-
     dominant: Optional[Dict[str, object]] = None
     if selected:
         toks = [_headline_tokens(str(c.get("title", ""))) for c in selected]
@@ -1656,7 +1378,6 @@ def select_exec_summary_headlines(rss_items: List[Dict[str, str]]) -> Dict[str, 
             ranks.append((total, i))
         ranks.sort(reverse=True)
         dominant = selected[ranks[0][1]]
-
     selected_out = [{
         "source": str(c.get("source", "")),
         "source_family": str(c.get("source_family", "")),
@@ -1665,7 +1386,6 @@ def select_exec_summary_headlines(rss_items: List[Dict[str, str]]) -> Dict[str, 
         "pubDate": str(c.get("pubDate", "")),
         "market_score": str(c.get("market_score", "")),
     } for c in selected]
-
     dominant_out = None
     if dominant:
         dominant_out = {
@@ -1676,7 +1396,6 @@ def select_exec_summary_headlines(rss_items: List[Dict[str, str]]) -> Dict[str, 
             "pubDate": str(dominant.get("pubDate", "")),
             "market_score": str(dominant.get("market_score", "")),
         }
-
     return {
         "selected_headlines": selected_out,
         "selected_by_source": selected_by_source,
@@ -1687,12 +1406,8 @@ def select_exec_summary_headlines(rss_items: List[Dict[str, str]]) -> Dict[str, 
             "CNBC": len(by_family.get("CNBC", [])),
         },
     }
-
-
-
 def _normalize_openai_model_for_api(model: str) -> str:
     """Normalize ChatGPT-style model labels to API model IDs.
-
     In ChatGPT, users may think in terms of "GPT-5.2 Thinking" / "Instant".
     In the API, the main reasoning model is `gpt-5.2` (with `reasoning.effort`).
     """
@@ -1709,27 +1424,20 @@ def _normalize_openai_model_for_api(model: str) -> str:
         "gpt5.2": "gpt-5.2",
     }
     return aliases.get(ml, m)
-
-
 def _openai_responses_exec_summary(payload_text: str) -> Optional[str]:
     """Call OpenAI Responses API to generate a 2–3 sentence executive summary.
-
     Fixes two common failure modes:
     1) Invalid/unsupported model name (e.g., custom env values) -> model fallback ladder.
     2) 400s due to optional fields (reasoning/text) -> retry with minimal request.
-
     Returns None on failure so deterministic fallback can run.
     """
-
     api_key = os.environ.get("OPENAI_API_KEY", "").strip()
     if not api_key:
         return None
-
     preferred_raw = (os.environ.get("OPENAI_MODEL", "") or "").strip()
     preferred = _normalize_openai_model_for_api(preferred_raw)
     if preferred_raw and preferred_raw != preferred:
         print(f"[openai] normalized OPENAI_MODEL {preferred_raw} -> {preferred}")
-
     # Note: ChatGPT labels (e.g., "GPT-5.2 Thinking") do not always match API model IDs.
     # In the API, `gpt-5.2` + reasoning.effort is the main reasoning path.
     candidates = [m for m in [preferred, "gpt-5.2", "gpt-5.2-pro", "gpt-4.1", "gpt-4o"] if m]
@@ -1738,20 +1446,15 @@ def _openai_responses_exec_summary(payload_text: str) -> Optional[str]:
         m2 = _normalize_openai_model_for_api(m)
         if m2 not in seen:
             models.append(m2); seen.add(m2)
-
     effort = (os.environ.get("OPENAI_REASONING_EFFORT", "medium") or "medium").strip()
-
     instructions = """You are an experienced Financial Times markets editor.
-
 Task: Write the Executive summary for a daily market report.
-
 Output EXACTLY 2 or 3 sentences (no bullets, no headings).
 Format rules:
 - Sentence 1 must start with the provided THEME_PHRASE followed by a colon (normally "Headline:").
 - Sentence 1 should be a SYNTHESIZED market-theme headline in your own words (not a copied article title).
 - Sentence 2 should cover key market performance and context.
 - Sentence 3 (or the end of sentence 2 if only 2 sentences) should mention biggest movers >4% on either side.
-
 Hard rules:
 A) Use ONLY the provided market data + the provided selected headlines; do not invent events, names, or catalysts.
 B) Build the headline theme from the cross-source market headlines selected from Yahoo Finance, Investing.com, and CNBC.
@@ -1763,10 +1466,8 @@ D) Contextualize today inside the last 3–4 weeks as a narrative (continuation/
 E) Mention watchlist movers ≥4% on BOTH sides if present (up to 2 gainers + 2 losers). If none, say so.
 F) Use provided mover labels verbatim (e.g., "SK Hynix", not raw ticker codes) when available.
 G) Only mention oil/FX when justified by headlines or clear linkage; otherwise omit.
-
 Style: crisp, specific, FT-like. No filler (“markets moved”), no hype, no jargon like “risk-on”.
 """
-
     def _extract_text(data: dict) -> str:
         if isinstance(data.get("output_text"), str) and data["output_text"].strip():
             return data["output_text"].strip()
@@ -1786,7 +1487,6 @@ Style: crisp, specific, FT-like. No filler (“markets moved”), no hype, no ja
                                     parts.append(t.strip())
             return " ".join(parts).strip()
         return ""
-
     def _call(model: str, minimal: bool) -> Optional[str]:
         body = {
             "model": model,
@@ -1798,7 +1498,6 @@ Style: crisp, specific, FT-like. No filler (“markets moved”), no hype, no ja
         if not minimal:
             body["reasoning"] = {"effort": effort}
             body["text"] = {"verbosity": "low"}
-
         req = Request(
             "https://api.openai.com/v1/responses",
             data=json.dumps(body).encode("utf-8"),
@@ -1840,7 +1539,6 @@ Style: crisp, specific, FT-like. No filler (“markets moved”), no hype, no ja
         except Exception as e:
             print(f"[openai] exec model={model} minimal={minimal} failed: {e}")
             return None
-
     for m in models:
         out = _call(m, minimal=False)
         if out:
@@ -1848,23 +1546,16 @@ Style: crisp, specific, FT-like. No filler (“markets moved”), no hype, no ja
         out = _call(m, minimal=True)
         if out:
             return out
-
     return None
-
-
-
 def _openai_responses_watchlist_pulse(payload_text: str) -> Optional[str]:
     """Call OpenAI Responses API to rewrite the 'Emerging chart trends' watchlist pulse."""
     api_key = os.environ.get("OPENAI_API_KEY", "").strip()
     if not api_key:
         return None
-
     model = os.environ.get("OPENAI_MODEL", "gpt-5.2-pro").strip() or "gpt-5.2-pro"
     effort = os.environ.get("OPENAI_REASONING_EFFORT", "medium").strip() or "medium"
     instructions = """You are an experienced markets editor.
-
 Task: Summarize the watchlist technical-signal mix (“Emerging chart trends / so what”).
-
 Output 4–6 numbered bullets (e.g., “1.”, “2.”). No headings.
 Rules:
 - Use ONLY the provided category_stats facts; do not invent catalysts.
@@ -1872,7 +1563,6 @@ Rules:
 - Mention 1–3 tickers per bullet with their segment tags (in parentheses) when provided.
 - Keep each bullet to one sentence, crisp and action-oriented.
 """
-
     body = {
         "model": model,
         "instructions": instructions,
@@ -1882,7 +1572,6 @@ Rules:
         "reasoning": {"effort": effort},
         "text": {"verbosity": "low"},
     }
-
     try:
         req = Request(
             "https://api.openai.com/v1/responses",
@@ -1897,7 +1586,6 @@ Rules:
         with urlopen(req, timeout=90) as resp:
             raw = resp.read().decode("utf-8", errors="ignore")
         data = json.loads(raw)
-
         out_text = ""
         if isinstance(data, dict):
             if isinstance(data.get("output_text"), str) and data["output_text"].strip():
@@ -1918,11 +1606,9 @@ Rules:
                                         if isinstance(t, str) and t.strip():
                                             parts.append(t.strip())
                     out_text = "\n".join(parts).strip()
-
         out_text = out_text.strip()
         if not out_text:
             return None
-
         lines = [ln.strip() for ln in out_text.splitlines() if ln.strip()]
         numbered = [ln for ln in lines if re.match(r"^\d+\.", ln)]
         if len(numbered) >= 4:
@@ -1930,8 +1616,6 @@ Rules:
         return None
     except Exception:
         return None
-
-
 def _sig_stage_weight(sig: str) -> int:
     if sig.startswith("VALIDATED_"):
         return 4
@@ -1940,16 +1624,12 @@ def _sig_stage_weight(sig: str) -> int:
     if sig.startswith("EARLY_"):
         return 1
     return 1
-
-
 def _sig_direction(sig: str) -> int:
     if "BREAKOUT" in sig:
         return +1
     if "BREAKDOWN" in sig:
         return -1
     return 0
-
-
 def _dominant_signal(signals: List[Tuple[str, float, bool]]) -> Optional[Tuple[str, float, bool]]:
     if not signals:
         return None
@@ -1959,8 +1639,6 @@ def _dominant_signal(signals: List[Tuple[str, float, bool]]) -> Optional[Tuple[s
     ranked.sort(reverse=True)
     _, _, _, s, dist, is_new = ranked[0]
     return (s, dist, is_new)
-
-
 def build_watchlist_pulse_section_md(
     df_early_new: pd.DataFrame,
     df_early_old: pd.DataFrame,
@@ -1985,7 +1663,6 @@ def build_watchlist_pulse_section_md(
                 dist = float("nan")
             out.append((t, s, dist, is_new))
         return out
-
     rows = []
     rows += _iter_df(df_early_new, True)
     rows += _iter_df(df_early_old, False)
@@ -1993,13 +1670,11 @@ def build_watchlist_pulse_section_md(
     rows += _iter_df(df_conf_old, False)
     rows += _iter_df(df_val_new, True)
     rows += _iter_df(df_val_old, False)
-
     sigs_by_t: Dict[str, List[Tuple[str, float, bool]]] = {}
     for t, s, dist, is_new in rows:
         if not t or not s:
             continue
         sigs_by_t.setdefault(t, []).append((s, 0.0 if math.isnan(dist) else dist, is_new))
-
     cat_stats = {}
     for cat, tickers in watchlist_groups.items():
         counts = {"VALID_UP": 0, "VALID_DN": 0, "CONF_UP": 0, "CONF_DN": 0, "EARLY_UP": 0, "EARLY_DN": 0}
@@ -2027,7 +1702,6 @@ def build_watchlist_pulse_section_md(
         leaders.sort(reverse=True)
         top = [{"ticker": x[3], "signal": x[4]} for x in leaders[:3]]
         cat_stats[cat] = {"score": score, "counts": counts, "top": top}
-
     md = []
     md.append("### 4A) Watchlist emerging chart trends")
     md.append("")
@@ -2047,8 +1721,6 @@ def build_watchlist_pulse_section_md(
     # Table-only by user preference (no narrative bullets below the table).
     md.append("")
     return "\n".join(md)
-
-
 def _absolutize_md_links(md: str, base_url: str) -> str:
     """Rewrite relative links (img/...) to absolute URLs for email rendering."""
     base_url = (base_url or "").strip()
@@ -2057,8 +1729,6 @@ def _absolutize_md_links(md: str, base_url: str) -> str:
     base = base_url.rstrip("/")
     md = re.sub(r"\]\(img/", f"]({base}/img/", md)
     return md
-
-
 def write_email_assets(
     header_time: str,
     exec_summary: str,
@@ -2071,12 +1741,10 @@ def write_email_assets(
     """Create docs/email.md and docs/email.txt for the workflow email step."""
     email_md = _absolutize_md_links(report_md, base_url)
     write_text(EMAIL_MD_PATH, email_md)
-
     def fmt_movers(items: List[Tuple[str, float]]) -> str:
         if not items:
             return "None"
         return ", ".join([f"{t} ({p:+.2f}%)" for t, p in items])
-
     link = f"{base_url.rstrip('/')}/report.md" if base_url else ""
     lines = []
     lines.append(f"Daily Ticker Report — {header_time} ({SCAN_VERSION})")
@@ -2100,24 +1768,19 @@ def write_email_assets(
     lines.append("")
     lines.append("Note: Full report.md is attached.")
     write_text(EMAIL_TXT_PATH, "\n".join(lines).strip() + "\n")
-
-
 def build_exec_summary(
     snapshot_df: pd.DataFrame,
     rss_items: List[Dict[str, str]],
     watchlist_movers: Dict[str, List[Tuple[str, float]]],
 ) -> str:
     """Executive summary (2–3 sentences).
-
     Prefer GPT prose via OpenAI API; fall back to deterministic text if API missing/fails.
     """
     if snapshot_df is None or snapshot_df.empty:
         return "Market summary unavailable (snapshot empty)."
-
     def row(name: str) -> Optional[pd.Series]:
         x = snapshot_df.loc[snapshot_df["Instrument"] == name]
         return None if x.empty else x.iloc[0]
-
     ndx = row("Nasdaq 100")
     spx = row("S&P 500")
     vix = row("VIX")
@@ -2125,7 +1788,6 @@ def build_exec_summary(
     eur = row("EUR/USD")
     stx = row("STOXX Europe 600")
     dax = row("DAX")
-
     def f(r: Optional[pd.Series], key: str) -> float:
         try:
             if r is None:
@@ -2133,14 +1795,12 @@ def build_exec_summary(
             return float(r.get(key, np.nan))
         except Exception:
             return float("nan")
-
     # Executive-summary headline context: select only market-relevant headlines from Yahoo + Investing + CNBC.
     headline_ctx = select_exec_summary_headlines(rss_items or [])
     top_headlines = headline_ctx.get("selected_headlines", []) if isinstance(headline_ctx, dict) else []
     dominant = headline_ctx.get("dominant_headline") if isinstance(headline_ctx, dict) else None
     # Keep the user-facing structure stable: "Headline: ..." (the prose after the colon comes from OpenAI).
     theme_phrase = "Headline"
-
     def _fmt_exec_movers(items: List[Tuple[str, float]]) -> List[Tuple[str, float]]:
         out: List[Tuple[str, float]] = []
         for t, p in (items or []):
@@ -2152,7 +1812,6 @@ def build_exec_summary(
                 except Exception:
                     out.append((str(t), p))
         return out
-
     payload = {
         "market": {
             "NDX": {"1D": f(ndx, "1D"), "7D": f(ndx, "7D"), "1M": f(ndx, "1M")},
@@ -2177,7 +1836,6 @@ def build_exec_summary(
         "theme_phrase": theme_phrase,
         "headlines": top_headlines,
     }
-
     _exec_debug_on = str(os.environ.get("EXEC_SUMMARY_DEBUG", "0")).strip().lower() in ("1", "true", "yes", "on")
     if _exec_debug_on:
         try:
@@ -2188,7 +1846,6 @@ def build_exec_summary(
             pass
     else:
         print("[exec_summary][headline_debug] disabled (set EXEC_SUMMARY_DEBUG=1 to log selected headlines)")
-
     llm = _openai_responses_exec_summary(json.dumps(payload, ensure_ascii=False))
     if llm:
         # Enforce the user-requested opener so the first sentence always starts with "Headline:".
@@ -2203,12 +1860,10 @@ def build_exec_summary(
         except Exception:
             pass
         return llm
-
     # Deterministic fallback (only used if OpenAI API is missing/fails)
     # Keep the same structure: Headline / key market performance / movers >4%.
     dom_title = str((dominant or {}).get("title", "")).strip()
     dom_source = str((dominant or {}).get("source_family") or (dominant or {}).get("source") or "").strip()
-
     if dom_title:
         headline_text = dom_title
         # Clean and shorten raw headline into a more report-friendly line.
@@ -2221,16 +1876,13 @@ def build_exec_summary(
             s1 = f"{theme_phrase}: {headline_text}."
     else:
         s1 = f"{theme_phrase}: Markets were driven by a mix of macro, rates and company-specific headlines across Yahoo Finance, Investing.com and CNBC."
-
     movers = watchlist_movers.get("session", []) + watchlist_movers.get("after_hours", [])
     gainers = sorted([x for x in movers if x[1] >= MOVER_THRESHOLD_PCT], key=lambda z: z[1], reverse=True)
     losers = sorted([x for x in movers if x[1] <= -MOVER_THRESHOLD_PCT], key=lambda z: z[1])
-
     s2 = (
         f"The Nasdaq rose {f(ndx,'1D'):+.1f}% and the S&P 500 {'rose' if f(spx,'1D') >= 0 else 'fell'} {abs(f(spx,'1D')):.1f}%, while the VIX {'fell' if f(vix,'1D') <= 0 else 'rose'} {abs(f(vix,'1D')):.1f}%, with the session extending a choppy recent tape"
         + (f" (NDX {f(ndx,'1M'):+.1f}% over 1M)." if not math.isnan(f(ndx,'1M')) else ".")
     )
-
     if not gainers and not losers:
         s3 = "No watchlist names moved more than 4% (including after-hours)."
     else:
@@ -2242,10 +1894,7 @@ def build_exec_summary(
         if losers:
             parts.append(_fmt(losers[:2]))
         s3 = "Watchlist movers >4% included " + ("; ".join(parts)) + "."
-
     return s1 + " " + s2 + " " + s3
-
-
 def format_rss_digest(items: List[Dict[str, str]], max_items: int = 10) -> str:
     if not items:
         return "_No RSS items available._"
@@ -2259,8 +1908,6 @@ def format_rss_digest(items: List[Dict[str, str]], max_items: int = 10) -> str:
         else:
             out.append(f"- {title} — {src}")
     return "\n".join(out)
-
-
 # ----------------------------
 # Movers (>=4%)
 # ----------------------------
@@ -2273,7 +1920,6 @@ def fetch_session_movers_yahoo() -> Tuple[pd.DataFrame, pd.DataFrame]:
         "https://finance.yahoo.com/markets/stocks/losers/",
         "https://finance.yahoo.com/losers?count=100&offset=0",
     ]
-
     def pick_table(urls):
         for u in urls:
             try:
@@ -2284,13 +1930,9 @@ def fetch_session_movers_yahoo() -> Tuple[pd.DataFrame, pd.DataFrame]:
             except Exception:
                 continue
         return pd.DataFrame()
-
     return pick_table(gain_urls), pick_table(lose_urls)
-
-
 def yahoo_quote(symbols: List[str]) -> List[Dict]:
     """Fetch Yahoo Finance quote data (regular + extended hours) via the public quote endpoint.
-
     Robustness:
       - URL-encodes symbols safely
       - Retries on transient HTTP errors (429/5xx)
@@ -2300,7 +1942,6 @@ def yahoo_quote(symbols: List[str]) -> List[Dict]:
         return []
     from urllib.parse import quote
     import time
-
     def _fetch(sym_list: List[str]) -> List[Dict]:
         if not sym_list:
             return []
@@ -2316,7 +1957,6 @@ def yahoo_quote(symbols: List[str]) -> List[Dict]:
         if isinstance(res, list):
             return [x for x in res if isinstance(x, dict)]
         return []
-
     out: List[Dict] = []
     CH = 50  # smaller chunks are less likely to be throttled
     for i in range(0, len(symbols), CH):
@@ -2336,7 +1976,6 @@ def yahoo_quote(symbols: List[str]) -> List[Dict]:
             except Exception:
                 time.sleep(0.3 + 0.4 * attempt)
                 continue
-
         if not ok and len(chunk) > 1:
             # Fallback: per-symbol
             for s in chunk:
@@ -2344,20 +1983,15 @@ def yahoo_quote(symbols: List[str]) -> List[Dict]:
                     out.extend(_fetch([s]))
                 except Exception:
                     continue
-
     return out
-
 def fetch_watchlist_afterhours_movers_yahoo(symbols: List[str]) -> pd.DataFrame:
     """Compute AFTER-HOURS % moves for a given symbol list using Yahoo quote data.
-
     Primary:
       - postMarketChangePercent (if provided)
-
     Fallbacks (when Yahoo omits the percent field):
       - derive % from postMarketPrice vs regularMarketPrice
       - use postMarketChange vs regularMarketPrice
       - if post-market fields are missing (e.g., premarket run), fall back to preMarket* fields
-
     Output schema: ['symbol','pct'] where pct is in percent points (e.g., +10.2 for +10.2%).
     """
     q = yahoo_quote(symbols or [])
@@ -2367,14 +2001,11 @@ def fetch_watchlist_afterhours_movers_yahoo(symbols: List[str]) -> pd.DataFrame:
             sym = str(it.get("symbol") or "").strip()
             if not sym:
                 continue
-
             reg_price = it.get("regularMarketPrice")
             post_price = it.get("postMarketPrice")
             pre_price = it.get("preMarketPrice")
-
             pct = it.get("postMarketChangePercent")
             source = "postMarketChangePercent"
-
             if pct is None:
                 # Compute from prices (preferred)
                 if post_price is not None and reg_price not in (None, 0, 0.0):
@@ -2385,7 +2016,6 @@ def fetch_watchlist_afterhours_movers_yahoo(symbols: List[str]) -> pd.DataFrame:
                     if chg is not None and reg_price not in (None, 0, 0.0):
                         pct = (float(chg) / float(reg_price)) * 100.0
                         source = "postMarketChange/regularMarketPrice"
-
             # If still missing, allow pre-market as a last resort (keeps the section useful if the job runs early)
             if pct is None:
                 pct = it.get("preMarketChangePercent")
@@ -2393,33 +2023,26 @@ def fetch_watchlist_afterhours_movers_yahoo(symbols: List[str]) -> pd.DataFrame:
                 if pct is None and pre_price is not None and reg_price not in (None, 0, 0.0):
                     pct = (float(pre_price) / float(reg_price) - 1.0) * 100.0
                     source = "preMarketPrice/regularMarketPrice"
-
             if pct is None:
                 continue
-
             pct_f = float(pct)
-
             # Defensive: if Yahoo returns a fractional (0.10) instead of percent (10.0), recompute from prices.
             if abs(pct_f) <= 1.0 and post_price is not None and reg_price not in (None, 0, 0.0):
                 alt = (float(post_price) / float(reg_price) - 1.0) * 100.0
                 if abs(alt) >= 1.0 and abs(alt) > abs(pct_f) * 5:
                     pct_f = float(alt)
                     source = "postMarketPrice/regularMarketPrice(recomputed)"
-
             rows.append({"symbol": sym, "pct": pct_f, "_src": source})
         except Exception:
             continue
-
     if not rows:
         return pd.DataFrame(columns=["symbol", "pct"])
     df = pd.DataFrame(rows)
     # Keep the canonical schema; keep debug source only if explicitly requested.
     return df[["symbol", "pct"]]
-
 def fetch_afterhours_movers() -> Tuple[pd.DataFrame, pd.DataFrame]:
     gain = pd.DataFrame()
     lose = pd.DataFrame()
-
     try:
         tables = read_html_tables("https://stockanalysis.com/markets/afterhours/")
         if len(tables) >= 2:
@@ -2427,13 +2050,10 @@ def fetch_afterhours_movers() -> Tuple[pd.DataFrame, pd.DataFrame]:
             lose = tables[1]
     except Exception:
         pass
-
     def normalize(df: pd.DataFrame) -> pd.DataFrame:
         if df is None or df.empty:
             return pd.DataFrame(columns=["_symbol", "_pct"])
-
         out = df.copy()
-
         pct_col = None
         for c in out.columns:
             s = str(c).lower()
@@ -2445,7 +2065,6 @@ def fetch_afterhours_movers() -> Tuple[pd.DataFrame, pd.DataFrame]:
                 if "%" in str(c):
                     pct_col = c
                     break
-
         if pct_col is not None:
             out["_pct"] = (
                 out[pct_col].astype(str)
@@ -2456,7 +2075,6 @@ def fetch_afterhours_movers() -> Tuple[pd.DataFrame, pd.DataFrame]:
             out["_pct"] = pd.to_numeric(out["_pct"], errors="coerce")
         else:
             out["_pct"] = np.nan
-
         sym_col = None
         for c in out.columns:
             if str(c).lower() in ("symbol", "ticker"):
@@ -2464,14 +2082,10 @@ def fetch_afterhours_movers() -> Tuple[pd.DataFrame, pd.DataFrame]:
                 break
         if sym_col is None:
             sym_col = out.columns[0]
-
         out["_symbol"] = out[sym_col].astype(str).str.split().str[0]
         out = out.dropna(subset=["_pct"])
         return out[["_symbol", "_pct"]]
-
     return normalize(gain), normalize(lose)
-
-
 def filter_movers(df: pd.DataFrame) -> pd.DataFrame:
     """
     Always returns schema ['symbol','pct'] and preserves an existing numeric 'pct' column
@@ -2479,9 +2093,7 @@ def filter_movers(df: pd.DataFrame) -> pd.DataFrame:
     """
     if df is None or df.empty:
         return pd.DataFrame(columns=["symbol", "pct"])
-
     out = df.copy()
-
     # Preserve existing pct when present
     if "pct" in out.columns and "_pct" not in out.columns:
         out["pct"] = pd.to_numeric(out["pct"], errors="coerce")
@@ -2504,7 +2116,6 @@ def filter_movers(df: pd.DataFrame) -> pd.DataFrame:
                 .str.replace(",", "", regex=False)
             )
             out["pct"] = pd.to_numeric(out["pct"], errors="coerce")
-
     if "_symbol" in out.columns:
         out["symbol"] = out["_symbol"].astype(str)
     else:
@@ -2516,17 +2127,13 @@ def filter_movers(df: pd.DataFrame) -> pd.DataFrame:
         if sym_col is None:
             sym_col = out.columns[0]
         out["symbol"] = out[sym_col].astype(str).str.split().str[0]
-
     out = out.dropna(subset=["pct"])
     out = out.loc[out["pct"].abs() >= MOVER_THRESHOLD_PCT].copy()
-
     if out.empty:
         return pd.DataFrame(columns=["symbol", "pct"])
-
     # Sort by absolute move (biggest first)
     out = out.sort_values("pct", ascending=False, key=lambda s: s.abs())
     return out[["symbol", "pct"]].head(30)
-
 def movers_table(df: pd.DataFrame, title: str) -> str:
     if df is None or df.empty:
         return f"**{title}:** _None ≥ {MOVER_THRESHOLD_PCT:.0f}%_\n"
@@ -2536,7 +2143,6 @@ def movers_table(df: pd.DataFrame, title: str) -> str:
     out = t[["Ticker", "pct"]]
     md = df_to_markdown_aligned(out, aligns=("left", "right"), index=False)
     return f"**{title}:**\n\n" + md + "\n"
-
 # ----------------------------
 # Earnings calendar (watchlist)
 # ----------------------------
@@ -2559,8 +2165,6 @@ def _to_date(x) -> Optional[dt.date]:
         return dt.datetime.fromisoformat(str(x)[:19]).date()
     except Exception:
         return None
-
-
 def get_watchlist_earnings_next_days(tickers: List[str], days: int = 14) -> "pd.DataFrame":
     """
     Returns a dataframe of upcoming earnings dates for the supplied tickers within the next `days`.
@@ -2568,16 +2172,13 @@ def get_watchlist_earnings_next_days(tickers: List[str], days: int = 14) -> "pd.
     """
     import pandas as pd  # local import for faster CLI startup
     import yfinance as yf  # type: ignore
-
     today = dt.date.today()
     end_date = today + dt.timedelta(days=days)
-
     rows = []
     for tkr in tickers:
         try:
             yt = yf.Ticker(tkr)
             next_date: Optional[dt.date] = None
-
             # Preferred: earnings dates dataframe
             if hasattr(yt, "get_earnings_dates"):
                 try:
@@ -2591,7 +2192,6 @@ def get_watchlist_earnings_next_days(tickers: List[str], days: int = 14) -> "pd.
                                 break
                 except Exception:
                     pass
-
             # Fallback: calendar
             if next_date is None:
                 try:
@@ -2604,7 +2204,6 @@ def get_watchlist_earnings_next_days(tickers: List[str], days: int = 14) -> "pd.
                             next_date = _to_date(ed)
                 except Exception:
                     pass
-
             if next_date and (today <= next_date <= end_date):
                 rows.append({
                     "Ticker": tkr,
@@ -2613,14 +2212,11 @@ def get_watchlist_earnings_next_days(tickers: List[str], days: int = 14) -> "pd.
                 })
         except Exception:
             continue
-
     df_out = pd.DataFrame(rows)
     if df_out.empty:
         return df_out
     df_out = df_out.sort_values(["Days", "Ticker"]).reset_index(drop=True)
     return df_out
-
-
 def earnings_section_md(watchlist: List[str], days: int = 14) -> str:
     """
     Markdown section for upcoming earnings for watchlist tickers.
@@ -2630,7 +2226,6 @@ def earnings_section_md(watchlist: List[str], days: int = 14) -> str:
         df = get_watchlist_earnings_next_days(watchlist, days=days)
         if df is None or df.empty:
             return f"## 3) Earnings next {days} days (your watchlist)\n\n_None from watchlist in the next {days} days._\n"
-
         # Render as markdown table (right-align numeric)
         md = []
         md.append(f"## 3) Earnings next {days} days (your watchlist)\n")
@@ -2639,10 +2234,6 @@ def earnings_section_md(watchlist: List[str], days: int = 14) -> str:
         return "\n".join(md) + "\n"
     except Exception:
         return f"## 3) Earnings next {days} days (your watchlist)\n\n_(Failed to fetch earnings calendar.)_\n"
-
-
-
-
 # ----------------------------
 # Technical patterns (deterministic rules engine)
 # ----------------------------
@@ -2667,16 +2258,12 @@ class LevelSignal:
     vp_hvn_zone_low: Optional[float] = None
     vp_hvn_zone_high: Optional[float] = None
     meta: Optional[Dict[str, Any]] = None
-
-
 @dataclass
 class PatternCandidate:
     pattern: str
     direction: str   # BREAKOUT / BREAKDOWN
     level: float
     meta: Optional[Dict[str, Any]] = None
-
-
 def _safe_float(x, default: float = float("nan")) -> float:
     try:
         v = float(x)
@@ -2685,15 +2272,11 @@ def _safe_float(x, default: float = float("nan")) -> float:
         return v
     except Exception:
         return default
-
-
 def _median_close(df: pd.DataFrame, start: int = 0, end: Optional[int] = None) -> float:
     if df is None or df.empty or "Close" not in df.columns:
         return float("nan")
     s = pd.to_numeric(df["Close"].iloc[start:end], errors="coerce").dropna()
     return float(s.median()) if not s.empty else float("nan")
-
-
 def _median_atr(df: pd.DataFrame, start: int = 0, end: Optional[int] = None) -> float:
     try:
         a = atr(df, ATR_N)
@@ -2707,10 +2290,6 @@ def _median_atr(df: pd.DataFrame, start: int = 0, end: Optional[int] = None) -> 
     if pd.notna(mc):
         return max(mc * 0.01, 1e-6)
     return 1e-6
-
-
-
-
 def _vp_context_slice(d: pd.DataFrame, end_idx: Optional[int] = None, lookback: int = VP_CONTEXT_BARS) -> pd.DataFrame:
     if d is None or d.empty:
         return pd.DataFrame()
@@ -2721,11 +2300,8 @@ def _vp_context_slice(d: pd.DataFrame, end_idx: Optional[int] = None, lookback: 
     start_idx = max(0, end_idx - int(lookback) + 1)
     out = d.iloc[start_idx : end_idx + 1].copy()
     return out
-
-
 def _vp_build_histogram_daily(context: pd.DataFrame) -> Optional[Dict[str, Any]]:
     """Build a deterministic daily-OHLCV volume-at-price approximation.
-
     Implementation choice (speed + consistency): weight each bar's typical price (HLC3)
     by traded volume. This is an approximation (not tick-level volume profile), but it is
     stable enough for cross-sectional screening and backtests.
@@ -2735,63 +2311,51 @@ def _vp_build_histogram_daily(context: pd.DataFrame) -> Optional[Dict[str, Any]]
     req = [c for c in ("High", "Low", "Close", "Volume") if c in context.columns]
     if len(req) < 4:
         return None
-
     c = context.dropna(subset=["High", "Low", "Close", "Volume"]).copy()
     if len(c) < VP_MIN_CONTEXT_BARS:
         return None
-
     hi = pd.to_numeric(c["High"], errors="coerce").to_numpy(dtype=float)
     lo = pd.to_numeric(c["Low"], errors="coerce").to_numpy(dtype=float)
     cl = pd.to_numeric(c["Close"], errors="coerce").to_numpy(dtype=float)
     vol = pd.to_numeric(c["Volume"], errors="coerce").to_numpy(dtype=float)
-
     mask = np.isfinite(hi) & np.isfinite(lo) & np.isfinite(cl) & np.isfinite(vol) & (vol > 0)
     if mask.sum() < VP_MIN_CONTEXT_BARS:
         return None
-
     hi = hi[mask]
     lo = lo[mask]
     cl = cl[mask]
     vol = vol[mask]
     tp = (hi + lo + cl) / 3.0
-
     pmin = float(np.nanmin(lo))
     pmax = float(np.nanmax(hi))
     if not np.isfinite(pmin) or not np.isfinite(pmax) or pmax <= pmin:
         return None
-
     try:
         a_ctx = atr(c, ATR_N)
         med_atr = float(pd.to_numeric(a_ctx, errors="coerce").dropna().median()) if a_ctx is not None else float("nan")
     except Exception:
         med_atr = float("nan")
-
     last_close = float(cl[-1]) if len(cl) else float("nan")
     if not np.isfinite(last_close) or last_close <= 0:
         last_close = max((pmin + pmax) / 2.0, 1e-6)
-
     bin_size = float("nan")
     if np.isfinite(med_atr) and med_atr > 0:
         bin_size = max(med_atr * VP_BIN_ATR_FRACTION, last_close * VP_BIN_PCT_FLOOR)
     else:
         bin_size = max(last_close * VP_BIN_PCT_FLOOR, (pmax - pmin) / 50.0)
-
     price_range = max(pmax - pmin, 1e-9)
     bins_n = int(math.ceil(price_range / max(bin_size, 1e-9)))
     bins_n = int(max(VP_BINS_MIN, min(VP_BINS_MAX, bins_n)))
-
     edges = np.linspace(pmin, pmax, bins_n + 1)
     hist_raw, _ = np.histogram(tp, bins=edges, weights=vol)
     if hist_raw.size == 0 or not np.isfinite(hist_raw).any() or np.nansum(hist_raw) <= 0:
         return None
-
     k = VP_SMOOTH_KERNEL.astype(float)
     if np.nansum(k) <= 0:
         k = np.array([1.0], dtype=float)
     k = k / np.nansum(k)
     hist_smooth = np.convolve(hist_raw.astype(float), k, mode="same")
     centers = (edges[:-1] + edges[1:]) / 2.0
-
     return {
         "edges": edges,
         "centers": centers,
@@ -2800,8 +2364,6 @@ def _vp_build_histogram_daily(context: pd.DataFrame) -> Optional[Dict[str, Any]]
         "total_vol": float(np.nansum(hist_raw)),
         "bin_size": float((edges[1] - edges[0]) if len(edges) >= 2 else np.nan),
     }
-
-
 def _vp_detect_hvn_zones(profile: Optional[Dict[str, Any]]) -> List[Dict[str, float]]:
     if not profile:
         return []
@@ -2810,16 +2372,13 @@ def _vp_detect_hvn_zones(profile: Optional[Dict[str, Any]]) -> List[Dict[str, fl
     edges = np.asarray(profile.get("edges", []), dtype=float)
     centers = np.asarray(profile.get("centers", []), dtype=float)
     total_vol = float(profile.get("total_vol", 0.0) or 0.0)
-
     if raw.size < 3 or sm.size != raw.size or centers.size != raw.size or edges.size != raw.size + 1 or total_vol <= 0:
         return []
-
     sm = np.nan_to_num(sm, nan=0.0, posinf=0.0, neginf=0.0)
     raw = np.nan_to_num(raw, nan=0.0, posinf=0.0, neginf=0.0)
     sm_max = float(np.max(sm)) if sm.size else 0.0
     if sm_max <= 0:
         return []
-
     # Candidate peaks: local maxima in smoothed profile above relative threshold
     peaks: List[int] = []
     peak_floor = VP_PEAK_REL_MAX_MIN * sm_max
@@ -2829,30 +2388,25 @@ def _vp_detect_hvn_zones(profile: Optional[Dict[str, Any]]) -> List[Dict[str, fl
         if sm[i] >= sm[i - 1] and sm[i] >= sm[i + 1]:
             if sm[i] > sm[i - 1] or sm[i] > sm[i + 1]:
                 peaks.append(i)
-
     if not peaks:
         i = int(np.argmax(sm))
         peaks = [i] if sm[i] > 0 else []
     if not peaks:
         return []
-
     zones: List[Dict[str, float]] = []
     for p in peaks:
         peak_val = float(sm[p])
         floor_val = max(VP_CLUSTER_FLOOR_FRAC_PEAK * peak_val, VP_CLUSTER_FLOOR_REL_MAX * sm_max)
-
         l = p
         while l - 1 >= 0 and sm[l - 1] >= floor_val:
             l -= 1
         r = p
         while r + 1 < len(sm) and sm[r + 1] >= floor_val:
             r += 1
-
         mass = float(np.sum(raw[l:r + 1]))
         mass_frac = mass / total_vol if total_vol > 0 else 0.0
         if mass_frac < VP_MIN_CLUSTER_MASS_FRAC:
             continue
-
         zones.append({
             "peak": float(centers[p]),
             "peak_val": float(raw[p]),
@@ -2865,10 +2419,8 @@ def _vp_detect_hvn_zones(profile: Optional[Dict[str, Any]]) -> List[Dict[str, fl
             "i_r": float(r),
             "i_p": float(p),
         })
-
     if not zones:
         return []
-
     # Merge overlapping zones (keep stronger peak and combine mass/range)
     zones = sorted(zones, key=lambda z: (z["low"], z["high"]))
     merged: List[Dict[str, float]] = []
@@ -2885,10 +2437,7 @@ def _vp_detect_hvn_zones(profile: Optional[Dict[str, Any]]) -> List[Dict[str, fl
         if z.get("smooth_peak", 0.0) > m.get("smooth_peak", 0.0):
             for k in ("peak", "peak_val", "smooth_peak", "i_p"):
                 m[k] = z.get(k, m.get(k))
-
     return merged
-
-
 def _vp_nearest_opposing_hvn_zone(d: pd.DataFrame, close: float, direction: str, end_idx: Optional[int] = None) -> Optional[Dict[str, float]]:
     if not VP_ENABLE_RUNWAY:
         return None
@@ -2897,7 +2446,6 @@ def _vp_nearest_opposing_hvn_zone(d: pd.DataFrame, close: float, direction: str,
     zones = _vp_detect_hvn_zones(profile)
     if not zones:
         return None
-
     direction = str(direction or "").upper()
     if direction == "BREAKOUT":
         # opposing node is the first significant overhead HVN zone. Use zone lower bound as the wall start.
@@ -2914,14 +2462,10 @@ def _vp_nearest_opposing_hvn_zone(d: pd.DataFrame, close: float, direction: str,
         below.sort(key=lambda z: (close - min(float(z.get("high", -np.inf)), close), -float(z.get("high", -np.inf))))
         return below[0]
     return None
-
-
 def _vp_runway_to_hvn_pct(d: pd.DataFrame, close: float, direction: str, end_idx: Optional[int] = None) -> Tuple[Optional[float], Optional[Dict[str, float]]]:
     """Return signed runway % in the signal direction to nearest opposing HVN zone.
-
     Longs (BREAKOUT):  ((zone_low  - close) / close) * 100
     Shorts (BREAKDOWN):((close - zone_high) / close) * 100
-
     Positive => runway remains. Negative => price is already inside/past the HVN wall.
     """
     try:
@@ -2930,11 +2474,9 @@ def _vp_runway_to_hvn_pct(d: pd.DataFrame, close: float, direction: str, end_idx
         return None, None
     if not np.isfinite(close) or close <= 0:
         return None, None
-
     z = _vp_nearest_opposing_hvn_zone(d, close=close, direction=direction, end_idx=end_idx)
     if not z:
         return None, None
-
     direction = str(direction or "").upper()
     try:
         if direction == "BREAKOUT":
@@ -2950,15 +2492,11 @@ def _vp_runway_to_hvn_pct(d: pd.DataFrame, close: float, direction: str, end_idx
         return float(pct), z
     except Exception:
         return None, z
-
-
 def _pivot_tolerance(df: pd.DataFrame, start: int = 0, end: Optional[int] = None) -> float:
     atr_med = _median_atr(df, start, end)
     close_med = _median_close(df, start, end)
     cterm = 0.0075 * close_med if pd.notna(close_med) else 0.0
     return float(max(0.35 * atr_med, cterm, 1e-6))
-
-
 def _swing_points(series: pd.Series, window: int = 3) -> Tuple[List[int], List[int]]:
     """Legacy close-based pivots (kept for backwards compatibility / fallbacks)."""
     s = series.values
@@ -2972,9 +2510,6 @@ def _swing_points(series: pd.Series, window: int = 3) -> Tuple[List[int], List[i
         if s[i] == np.min(seg):
             lows.append(i)
     return highs, lows
-
-
-
 def _diagnose_swing_high(
     df: pd.DataFrame,
     ts: str,
@@ -2983,7 +2518,6 @@ def _diagnose_swing_high(
 ) -> Dict[str, Any]:
     """Explain deterministically why a given bar *is / is not* a swing-high pivot under _swing_points_ohlc()."""
     out: Dict[str, Any] = {"ts_req": ts, "ok": False}
-
     try:
         dd0 = df.dropna(subset=["High", "Low", "Close"]).copy()
         if dd0.empty:
@@ -2999,12 +2533,10 @@ def _diagnose_swing_high(
         if dd.empty:
             out["reason"] = "empty_df_after_dropna"
             return out
-
         t_req = pd.to_datetime(ts, errors="coerce")
         if pd.isna(t_req):
             out["reason"] = "bad_ts"
             return out
-
         # Find exact match; else choose nearest index (deterministic).
         if isinstance(dd.index, pd.DatetimeIndex):
             try:
@@ -3019,17 +2551,13 @@ def _diagnose_swing_high(
         else:
             out["reason"] = "non_datetime_index"
             return out
-
         out["ts_hit"] = str(t_hit)
         out["i"] = int(i)
-
         if i < window or i >= len(dd) - window:
             out["reason"] = "too_close_to_edges_for_window"
             return out
-
         hi = dd["High"].astype(float).values
         lo = dd["Low"].astype(float).values
-
         hwin = hi[i - window : i + window + 1]
         lwin = lo[i - window : i + window + 1]
         out["hwin_max"] = float(np.max(hwin))
@@ -3037,7 +2565,6 @@ def _diagnose_swing_high(
         out["hi_i"] = float(hi[i])
         out["lo_i"] = float(lo[i])
         out["close_i"] = float(dd["Close"].iloc[i])
-
         # ATR at i (mirror logic in _swing_points_ohlc)
         atr_s = atr(dd, ATR_N)
         atr_v = pd.to_numeric(atr_s, errors="coerce").values if atr_s is not None else np.full(len(dd), np.nan)
@@ -3048,20 +2575,16 @@ def _diagnose_swing_high(
             atr_i = med if np.isfinite(med) else np.nan
         if not np.isfinite(atr_i):
             atr_i = max(float(np.nanmedian((hwin - lwin))), 1e-6)
-
         out["atr_i"] = float(atr_i)
-
         is_local_max = bool(hi[i] == np.max(hwin))
         is_unique = bool(np.sum(hwin == hi[i]) == 1)
         prominence = float(hi[i] - np.min(lwin))
         thresh = float(prominence_atr_mult * atr_i)
-
         out["is_local_max"] = is_local_max
         out["is_unique_max"] = is_unique
         out["prominence"] = float(prominence)
         out["prom_thresh"] = float(thresh)
         out["prom_ok"] = bool(prominence >= thresh)
-
         out["ok"] = bool(is_local_max and is_unique and prominence >= thresh)
         if not out["ok"]:
             reasons = []
@@ -3076,9 +2599,6 @@ def _diagnose_swing_high(
     except Exception as e:
         out["reason"] = f"exception:{type(e).__name__}"
         return out
-
-
-
 def _swing_highs_on_close(
     df: pd.DataFrame,
     window: int = 3,
@@ -3098,14 +2618,12 @@ def _swing_highs_on_close(
     lo = dd["Low"].astype(float).values
     atr_s = atr(dd, ATR_N)
     atr_v = pd.to_numeric(atr_s, errors="coerce").values if atr_s is not None else np.full(len(dd), np.nan)
-
     highs: List[int] = []
     for i in range(window, len(dd) - window):
         cwin = cl[i - window : i + window + 1]
         lwin = lo[i - window : i + window + 1]
         if np.isnan(cwin).any() or np.isnan(lwin).any():
             continue
-
         atr_i = atr_v[i] if i < len(atr_v) and np.isfinite(atr_v[i]) else np.nan
         if not np.isfinite(atr_i):
             lo_i = max(0, i - 20)
@@ -3113,11 +2631,9 @@ def _swing_highs_on_close(
             atr_i = med if np.isfinite(med) else np.nan
         if not np.isfinite(atr_i):
             atr_i = max(float(np.nanmedian((np.nanmax(dd["High"].values[i-window:i+window+1]) - lwin))), 1e-6)
-
         is_local_max = bool(cl[i] == np.max(cwin))
         if not is_local_max:
             continue
-
         is_unique = bool(np.sum(cwin == cl[i]) == 1)
         ok_tie = False
         if (not is_unique) and allow_tie_high_2dp:
@@ -3129,14 +2645,11 @@ def _swing_highs_on_close(
                     ok_tie = (i == chosen_global) and (round(float(cl[i]), 2) == mx2)
             except Exception:
                 ok_tie = False
-
         if is_unique or ok_tie:
             prominence = float(cl[i] - np.min(lwin))
             if prominence >= float(prominence_atr_mult * atr_i):
                 highs.append(i)
     return highs
-
-
 def _swing_lows_on_close(
     df: pd.DataFrame,
     window: int = 3,
@@ -3156,14 +2669,12 @@ def _swing_lows_on_close(
     hi = dd["High"].astype(float).values
     atr_s = atr(dd, ATR_N)
     atr_v = pd.to_numeric(atr_s, errors="coerce").values if atr_s is not None else np.full(len(dd), np.nan)
-
     lows: List[int] = []
     for i in range(window, len(dd) - window):
         cwin = cl[i - window : i + window + 1]
         hwin = hi[i - window : i + window + 1]
         if np.isnan(cwin).any() or np.isnan(hwin).any():
             continue
-
         atr_i = atr_v[i] if i < len(atr_v) and np.isfinite(atr_v[i]) else np.nan
         if not np.isfinite(atr_i):
             lo_i = max(0, i - 20)
@@ -3171,11 +2682,9 @@ def _swing_lows_on_close(
             atr_i = med if np.isfinite(med) else np.nan
         if not np.isfinite(atr_i):
             atr_i = max(float(np.nanmedian((hwin - np.nanmin(dd["Low"].values[i-window:i+window+1])))), 1e-6)
-
         is_local_min = bool(cl[i] == np.min(cwin))
         if not is_local_min:
             continue
-
         is_unique = bool(np.sum(cwin == cl[i]) == 1)
         ok_tie = False
         if (not is_unique) and allow_tie_low_2dp:
@@ -3187,14 +2696,11 @@ def _swing_lows_on_close(
                     ok_tie = (i == chosen_global) and (round(float(cl[i]), 2) == mn2)
             except Exception:
                 ok_tie = False
-
         if is_unique or ok_tie:
             prominence = float(np.max(hwin) - cl[i])
             if prominence >= float(prominence_atr_mult * atr_i):
                 lows.append(i)
     return lows
-
-
 def _diagnose_swing_high_close(
     df: pd.DataFrame,
     ts: str,
@@ -3217,16 +2723,13 @@ def _diagnose_swing_high_close(
         if dd.empty:
             out["reason"] = "empty_df_after_dropna"
             return out
-
         t_req = pd.to_datetime(ts, errors="coerce")
         if pd.isna(t_req):
             out["reason"] = "bad_ts"
             return out
-
         if not isinstance(dd.index, pd.DatetimeIndex):
             out["reason"] = "non_datetime_index"
             return out
-
         try:
             i = int(dd.index.get_loc(t_req))
             t_hit = dd.index[i]
@@ -3235,24 +2738,19 @@ def _diagnose_swing_high_close(
             i = int(np.nanargmin(diffs))
             t_hit = dd.index[i]
             out["nearest"] = True
-
         out["ts_hit"] = str(t_hit)
         out["i"] = int(i)
-
         if i < window or i >= len(dd) - window:
             out["reason"] = "too_close_to_edges_for_window"
             return out
-
         cl = dd["Close"].astype(float).values
         lo = dd["Low"].astype(float).values
-
         cwin = cl[i - window : i + window + 1]
         lwin = lo[i - window : i + window + 1]
         out["cwin_max"] = float(np.max(cwin))
         out["cwin_max_count"] = int(np.sum(cwin == cl[i]))
         out["close_i"] = float(cl[i])
         out["low_i"] = float(lo[i])
-
         atr_s = atr(dd, ATR_N)
         atr_v = pd.to_numeric(atr_s, errors="coerce").values if atr_s is not None else np.full(len(dd), np.nan)
         atr_i = atr_v[i] if i < len(atr_v) and np.isfinite(atr_v[i]) else np.nan
@@ -3262,19 +2760,16 @@ def _diagnose_swing_high_close(
             atr_i = med if np.isfinite(med) else np.nan
         if not np.isfinite(atr_i):
             atr_i = max(float(np.nanmedian((dd["High"].astype(float).values[i-window:i+window+1] - lwin))), 1e-6)
-
         out["atr_i"] = float(atr_i)
         is_local_max = bool(cl[i] == np.max(cwin))
         is_unique = bool(np.sum(cwin == cl[i]) == 1)
         prominence = float(cl[i] - np.min(lwin))
         thresh = float(prominence_atr_mult * atr_i)
-
         out["is_local_max"] = is_local_max
         out["is_unique_max"] = is_unique
         out["prominence"] = float(prominence)
         out["prom_thresh"] = float(thresh)
         out["prom_ok"] = bool(prominence >= thresh)
-
         out["ok"] = bool(is_local_max and is_unique and prominence >= thresh)
         if not out["ok"]:
             reasons = []
@@ -3289,9 +2784,6 @@ def _diagnose_swing_high_close(
     except Exception as e:
         out["reason"] = f"exception:{type(e).__name__}"
         return out
-
-
-
 def _swing_points_ohlc(
     df: pd.DataFrame,
     window: int = 3,
@@ -3310,29 +2802,24 @@ def _swing_points_ohlc(
     lo = dd["Low"].astype(float).values
     atr_s = atr(dd, ATR_N)
     atr_v = pd.to_numeric(atr_s, errors="coerce").values if atr_s is not None else np.full(len(dd), np.nan)
-
     highs: List[int] = []
     lows: List[int] = []
-
     for i in range(window, len(dd) - window):
         hwin = hi[i - window : i + window + 1]
         lwin = lo[i - window : i + window + 1]
         if np.isnan(hwin).any() or np.isnan(lwin).any():
             continue
-
         atr_i = atr_v[i] if i < len(atr_v) and np.isfinite(atr_v[i]) else np.nan
         if not np.isfinite(atr_i):
             lo_i = max(0, i - 20)
             atr_i = np.nanmedian(atr_v[lo_i : i + 1]) if np.isfinite(np.nanmedian(atr_v[lo_i : i + 1])) else np.nan
         if not np.isfinite(atr_i):
             atr_i = max(float(np.nanmedian((hwin - lwin))), 1e-6)
-
         # High pivot
         if hi[i] == np.max(hwin) and np.sum(hwin == hi[i]) == 1:
             prominence = float(hi[i] - np.min(lwin))
             if prominence >= float(prominence_atr_mult * atr_i):
                 highs.append(i)
-
         # Low pivot
         if lo[i] == np.min(lwin):
             ok_unique = (np.sum(lwin == lo[i]) == 1)
@@ -3348,16 +2835,11 @@ def _swing_points_ohlc(
                         ok_tie = (i == chosen_global) and (round(float(lo[i]), 2) == min2)
                 except Exception:
                     ok_tie = False
-
             if ok_unique or ok_tie:
                 prominence = float(np.max(hwin) - lo[i])
                 if prominence >= float(prominence_atr_mult * atr_i):
                     lows.append(i)
-
     return highs, lows
-
-
-
 def _diagnose_swing_high(
     df: pd.DataFrame,
     ts: str,
@@ -3366,19 +2848,16 @@ def _diagnose_swing_high(
 ) -> Dict[str, Any]:
     """Explain deterministically why a given bar *is / is not* a swing-high pivot under _swing_points_ohlc()."""
     out: Dict[str, Any] = {"ts_req": ts, "ok": False}
-
     try:
         dd = df.tail(LOOKBACK_DAYS).dropna(subset=["High", "Low", "Close"]).copy()
         dd = _latest_completed_close_df(dd)
         if dd.empty:
             out["reason"] = "empty_df_after_dropna"
             return out
-
         t_req = pd.to_datetime(ts, errors="coerce")
         if pd.isna(t_req):
             out["reason"] = "bad_ts"
             return out
-
         # Find exact match; else choose nearest index (deterministic).
         if isinstance(dd.index, pd.DatetimeIndex):
             try:
@@ -3393,17 +2872,13 @@ def _diagnose_swing_high(
         else:
             out["reason"] = "non_datetime_index"
             return out
-
         out["ts_hit"] = str(t_hit)
         out["i"] = int(i)
-
         if i < window or i >= len(dd) - window:
             out["reason"] = "too_close_to_edges_for_window"
             return out
-
         hi = dd["High"].astype(float).values
         lo = dd["Low"].astype(float).values
-
         hwin = hi[i - window : i + window + 1]
         lwin = lo[i - window : i + window + 1]
         out["hwin_max"] = float(np.max(hwin))
@@ -3411,7 +2886,6 @@ def _diagnose_swing_high(
         out["hi_i"] = float(hi[i])
         out["lo_i"] = float(lo[i])
         out["close_i"] = float(dd["Close"].iloc[i])
-
         # ATR at i (mirror logic in _swing_points_ohlc)
         atr_s = atr(dd, ATR_N)
         atr_v = pd.to_numeric(atr_s, errors="coerce").values if atr_s is not None else np.full(len(dd), np.nan)
@@ -3422,20 +2896,16 @@ def _diagnose_swing_high(
             atr_i = med if np.isfinite(med) else np.nan
         if not np.isfinite(atr_i):
             atr_i = max(float(np.nanmedian((hwin - lwin))), 1e-6)
-
         out["atr_i"] = float(atr_i)
-
         is_local_max = bool(hi[i] == np.max(hwin))
         is_unique = bool(np.sum(hwin == hi[i]) == 1)
         prominence = float(hi[i] - np.min(lwin))
         thresh = float(prominence_atr_mult * atr_i)
-
         out["is_local_max"] = is_local_max
         out["is_unique_max"] = is_unique
         out["prominence"] = float(prominence)
         out["prom_thresh"] = float(thresh)
         out["prom_ok"] = bool(prominence >= thresh)
-
         out["ok"] = bool(is_local_max and is_unique and prominence >= thresh)
         if not out["ok"]:
             reasons = []
@@ -3450,19 +2920,13 @@ def _diagnose_swing_high(
     except Exception as e:
         out["reason"] = f"exception:{type(e).__name__}"
         return out
-
-
 def _line_fit(x: np.ndarray, y: np.ndarray) -> Tuple[float, float]:
     if len(x) < 2:
         return (0.0, float(y[-1]) if len(y) else 0.0)
     a, b = np.polyfit(x, y, 1)
     return float(a), float(b)
-
-
 def _line_eval(a: float, b: float, x: float) -> float:
     return float(a * x + b)
-
-
 def _trend_context_label(c: pd.Series, pattern_start: int, atr_med: float) -> str:
     """
     Prior-trend classifier for top/bottom labeling:
@@ -3491,14 +2955,10 @@ def _trend_context_label(c: pd.Series, pattern_start: int, atr_med: float) -> st
     if a < 0 and net < -thresh:
         return "BOTTOM"
     return "NEUTRAL"
-
-
 def _horizontal_slope_threshold(df: pd.DataFrame, start: int = 0, end: Optional[int] = None) -> float:
     # "horizontal" if |slope| <= 0.05*ATR per bar
     atr_med = _median_atr(df, start, end)
     return float(max(0.05 * atr_med, 1e-8))
-
-
 def _touch_indices_for_line(
     pivot_indices: List[int],
     pivot_prices: np.ndarray,
@@ -3511,8 +2971,6 @@ def _touch_indices_for_line(
         if abs(float(px) - _line_eval(a, b, float(idx))) <= tol:
             out.append(int(idx))
     return out
-
-
 def _alternation_count(events: List[Tuple[int, str]]) -> int:
     if not events:
         return 0
@@ -3527,15 +2985,11 @@ def _alternation_count(events: List[Tuple[int, str]]) -> int:
             cnt += 1
             prev = side
     return cnt
-
-
 def _iso_ts(idx_val) -> str:
     try:
         return pd.Timestamp(idx_val).isoformat()
     except Exception:
         return str(idx_val)
-
-
 def _after_close_cutoff_berlin(now: Optional[dt.datetime] = None) -> bool:
     """Simple rule: if local Berlin time >= 22:10, assume the latest daily candle is closed."""
     try:
@@ -3544,8 +2998,6 @@ def _after_close_cutoff_berlin(now: Optional[dt.datetime] = None) -> bool:
     except Exception:
         now2 = now or dt.datetime.now()
     return (now2.hour, now2.minute) >= (22, 10)
-
-
 def _latest_completed_close_df(d: pd.DataFrame) -> pd.DataFrame:
     """Return df sliced to the latest completed daily close.
     Rule:
@@ -3570,36 +3022,26 @@ def _latest_completed_close_df(d: pd.DataFrame) -> pd.DataFrame:
         return d
     except Exception:
         return d
-
-
-
 def _point_meta(df: pd.DataFrame, i: int, price: float, label: str, kind: str = "point") -> Dict[str, Any]:
     return {"t": _iso_ts(df.index[i]), "p": float(price), "label": str(label), "kind": kind, "i": int(i)}
-
-
 def _line_meta(df: pd.DataFrame, i1: int, y1: float, i2: int, y2: float, label: str) -> Dict[str, Any]:
     return {
         "t1": _iso_ts(df.index[i1]), "y1": float(y1),
         "t2": _iso_ts(df.index[i2]), "y2": float(y2),
         "label": str(label), "i1": int(i1), "i2": int(i2)
     }
-
-
-
 def _reindex_meta_to_df(meta: Dict[str, Any], d: pd.DataFrame) -> Optional[Dict[str, Any]]:
     """Re-map meta indices onto the current df slice using timestamps in meta ("t","t1","t2")."""
     if meta is None or not isinstance(meta, dict) or d is None or d.empty:
         return None
     if not isinstance(d.index, pd.DatetimeIndex):
         return None
-
     date_to_pos: Dict[str, int] = {}
     for pos, ts in enumerate(d.index):
         try:
             date_to_pos[pd.Timestamp(ts).date().isoformat()] = int(pos)
         except Exception:
             pass
-
     def _pos_from_iso(iso: Any) -> Optional[int]:
         try:
             t = pd.to_datetime(str(iso), utc=True, errors="coerce")
@@ -3611,9 +3053,7 @@ def _reindex_meta_to_df(meta: Dict[str, Any], d: pd.DataFrame) -> Optional[Dict[
             return int(date_to_pos[k]) if k in date_to_pos else None
         except Exception:
             return None
-
     m = json.loads(json.dumps(meta))
-
     pts = m.get("points")
     if isinstance(pts, list):
         for p in pts:
@@ -3623,7 +3063,6 @@ def _reindex_meta_to_df(meta: Dict[str, Any], d: pd.DataFrame) -> Optional[Dict[
             if pos is None:
                 return None
             p["i"] = int(pos)
-
     lns = m.get("lines")
     if isinstance(lns, list):
         for ln in lns:
@@ -3635,7 +3074,6 @@ def _reindex_meta_to_df(meta: Dict[str, Any], d: pd.DataFrame) -> Optional[Dict[
                 return None
             ln["i1"] = int(p1)
             ln["i2"] = int(p2)
-
     # pattern start/end from LS/RS points if present
     if isinstance(pts, list):
         ls_i = None
@@ -3652,11 +3090,7 @@ def _reindex_meta_to_df(meta: Dict[str, Any], d: pd.DataFrame) -> Optional[Dict[
             m["pattern_start_i"] = int(ls_i)
         if rs_i is not None:
             m["pattern_end_i"] = int(rs_i)
-
     return m
-
-
-
 def _build_band_pattern_meta(
     df: pd.DataFrame,
     pattern: str,
@@ -3698,8 +3132,6 @@ def _build_band_pattern_meta(
     if extra:
         meta.update(extra)
     return meta
-
-
 def _pick_recent_hs_triplet(
     highs_idx: List[int],
     lows_idx: List[int],
@@ -3710,7 +3142,6 @@ def _pick_recent_hs_triplet(
 ) -> Optional[Tuple[int, int, int, int, int, float, float, float]]:
     """
     Head-first H&S / Inverse H&S selector (deterministic).
-
     Why this version exists:
     - For HS_TOP we anchor the Head as the global extreme Close in the working window.
     - Shoulders are selected from Close-based local extrema (primary pivots).
@@ -3719,16 +3150,13 @@ def _pick_recent_hs_triplet(
       (bars right into / out of the head are part of the head run-up, not shoulders).
     - We enforce a minimum reaction depth: between each shoulder and head there must be a valley/peak
       with depth ≥ 2.0 * ATR (config inside this function).
-
     Returns (p1, p2, p3, t1, t2, px1, px2, px3).
     """
     if len(c) < 10 or d is None or d.empty:
         return None
-
     def bump(k: str) -> None:
         if isinstance(explain, dict):
             explain[k] = int(explain.get(k, 0)) + 1
-
     # Primary (shoulder/head) pivots and "between" reaction pivots
     if inverse:
         pivots_primary = [int(x) for x in lows_idx]   # Close-based swing lows
@@ -3736,11 +3164,9 @@ def _pick_recent_hs_triplet(
     else:
         pivots_primary = [int(x) for x in highs_idx]  # Close-based swing highs
         pivots_between = [int(x) for x in lows_idx]   # OHLC swing lows (reaction lows)
-
     if len(pivots_primary) < 2:
         bump("not_enough_primary_pivots")
         return None
-
     # Head anchor: absolute extreme close in the window (pick MOST RECENT if tied)
     try:
         head_val = float(np.nanmin(c.values)) if inverse else float(np.nanmax(c.values))
@@ -3752,17 +3178,14 @@ def _pick_recent_hs_triplet(
         bump("no_head")
         return None
     p2 = int(head_target)
-
     # Candidate shoulder windows around the head (limit search and respect max duration)
     head_zone = int(HS_MIN_SIDE_BARS)  # exclude ± head_zone around head
     L_lo = max(0, p2 - int(HS_MAX_BARS))
     L_hi = max(L_lo, p2 - head_zone)  # exclusive upper
     R_lo = min(len(c), p2 + 1 + head_zone)  # inclusive lower
     R_hi = min(len(c), p2 + 1 + int(HS_MAX_BARS))
-
     left = [i for i in pivots_primary if L_lo <= i < L_hi]
     right = [i for i in pivots_primary if R_lo <= i < R_hi]
-
     # Prioritize candidate shoulders by CLOSE (higher first).
     try:
         left = sorted(left, key=lambda i: (float(c.iloc[int(i)]), int(i)), reverse=True)
@@ -3773,22 +3196,18 @@ def _pick_recent_hs_triplet(
         right = sorted(right, key=lambda i: (-float(c.iloc[int(i)]), int(i)))
     except Exception:
         right = list(right)
-
     if not left or not right:
         bump("no_shoulder_candidates")
         return None
-
     # Helper: fallback neckline reaction points when swing "between" pivots are missing
     def _safe_nanargmax(v: np.ndarray) -> Optional[int]:
         if v is None or len(v) == 0 or np.all(np.isnan(v)):
             return None
         return int(np.nanargmax(v))
-
     def _safe_nanargmin(v: np.ndarray) -> Optional[int]:
         if v is None or len(v) == 0 or np.all(np.isnan(v)):
             return None
         return int(np.nanargmin(v))
-
     def _fallback_t1_t2(p1i: int, p2i: int, p3i: int) -> Optional[Tuple[int, int]]:
         if p2i <= p1i + 1 or p3i <= p2i + 1:
             return None
@@ -3806,13 +3225,10 @@ def _pick_recent_hs_triplet(
             if j1 is None or j2 is None:
                 return None
             return (p1i + 1 + j1, p2i + 1 + j2)
-
     # Stronger HS definition: need meaningful pullback between shoulder and head
     REACT_DEPTH_ATR = 2.0
-
     best: Optional[Tuple[int, int, int, int, int, float, float, float]] = None
     best_score = -1e18
-
     # Deterministic dominance: a shoulder cannot be "lower" if a higher primary pivot exists
     # in the same shoulder region (excluding the head zone).
     # This prevents selecting Dec 11 when Jan 5 exists, and prevents head-run-up bars invalidating shoulders.
@@ -3823,7 +3239,6 @@ def _pick_recent_hs_triplet(
                 if float(c.iloc[j]) > px1 + 1e-9:
                     return False
         return True
-
     def _is_dominant_right(p3i: int) -> bool:
         px3 = float(c.iloc[p3i])
         for j in right:
@@ -3831,7 +3246,6 @@ def _pick_recent_hs_triplet(
                 if float(c.iloc[j]) > px3 + 1e-9:
                     return False
         return True
-
     # Iterate candidate shoulder pairs
     for p1 in left:
         p1 = int(p1)
@@ -3840,7 +3254,6 @@ def _pick_recent_hs_triplet(
         if not _is_dominant_left(p1):
             bump("ls_not_dominant_left")
             continue
-
         for p3 in right:
             p3 = int(p3)
             if p3 <= p2 + head_zone:
@@ -3850,31 +3263,25 @@ def _pick_recent_hs_triplet(
             if not _is_dominant_right(p3):
                 bump("rs_not_dominant_right")
                 continue
-
             span = int(p3 - p1)
             if span < int(HS_MIN_BARS) or span > int(HS_MAX_BARS):
                 bump("duration_or_sidebars")
                 continue
-
             dL = int(p2 - p1)
             dR = int(p3 - p2)
             if dL < int(HS_MIN_SIDE_BARS) or dR < int(HS_MIN_SIDE_BARS):
                 bump("duration_or_sidebars")
                 continue
-
             ratio = float(dL) / float(max(1, dR))
             if ratio < 0.33 or ratio > 3.0:
                 bump("time_symmetry")
                 continue
-
             px1 = float(c.iloc[p1]); px2 = float(c.iloc[p2]); px3 = float(c.iloc[p3])
-
             # ATR context
             atr_med = _median_atr(d, p1, p3 + 1)
             price_ref = float(np.nanmedian([px1, px2, px3]))
             min_head_gap = max(0.5 * atr_med, 0.02 * max(price_ref, 1e-6))
             shoulder_tol = max(1.0 * atr_med, 0.05 * max((px1 + px3) / 2.0, 1e-6))
-
             # Neckline reaction points
             between1 = [x for x in pivots_between if p1 < int(x) < p2]
             between2 = [x for x in pivots_between if p2 < int(x) < p3]
@@ -3891,7 +3298,6 @@ def _pick_recent_hs_triplet(
                     bump("fallback_t1t2_failed")
                     continue
                 t1, t2 = fb
-
             # Reaction depth (meaningful pullback into neckline)
             try:
                 if inverse:
@@ -3915,7 +3321,6 @@ def _pick_recent_hs_triplet(
             except Exception:
                 bump("reaction_depth")
                 continue
-
             # Head/shoulder geometry
             if inverse:
                 if not (px2 <= min(px1, px3) - min_head_gap):
@@ -3933,7 +3338,6 @@ def _pick_recent_hs_triplet(
                     bump("shoulder_mismatch")
                     continue
                 head_gap_quality = min(px2 - px1, px2 - px3)
-
             # Ensure head is extreme between LS and RS (should be true, but protect against window jitter)
             seg = c.iloc[p1 : p3 + 1]
             if inverse:
@@ -3944,7 +3348,6 @@ def _pick_recent_hs_triplet(
                 if px2 < float(seg.max()) * (1.0 - 1e-6):
                     bump("head_not_extreme")
                     continue
-
             # Trend label enforcement
             trend = _trend_context_label(c, int(p2), atr_med)  # anchor on HEAD, not LS
             if inverse and trend != "BOTTOM":
@@ -3953,7 +3356,6 @@ def _pick_recent_hs_triplet(
             if (not inverse) and trend != "TOP":
                 bump("trend_label")
                 continue
-
             # Score
             if inverse:
                 n1 = float(d["High"].iloc[int(t1)]); n2 = float(d["High"].iloc[int(t2)])
@@ -3965,15 +3367,9 @@ def _pick_recent_hs_triplet(
             if score > best_score:
                 best_score = score
                 best = (int(p1), int(p2), int(p3), int(t1), int(t2), float(px1), float(px2), float(px3))
-
     if best is None:
         bump("no_triplet")
     return best
-
-
-
-
-
 def _hs_geometry_diagnostics(
     d: pd.DataFrame,
     p1: int,
@@ -3986,7 +3382,6 @@ def _hs_geometry_diagnostics(
     shoulder_valley_mult: float = HS_SHOULDER_VALLEY_ATR_MULT,
 ) -> Dict[str, Any]:
     """Compute deterministic HS/IHS geometry checks on the *same detector window* d.
-
     Returns a dict with:
       - pass_all: bool
       - head_is_global_span: bool + head_span_arg_idx
@@ -3999,33 +3394,33 @@ def _hs_geometry_diagnostics(
         out["pass_all"] = False
         out["reason"] = "empty"
         return out
-
     close = d["Close"].astype(float).values
     high = d["High"].astype(float).values
     low  = d["Low"].astype(float).values
     n = len(close)
-
     p1 = int(p1); p2 = int(p2); p3 = int(p3)
     if not (0 <= p1 < p2 < p3 < n):
         out["pass_all"] = False
         out["reason"] = "bad_indices"
         return out
-
     # 1) Head must be absolute extreme CLOSE in [LS..RS] span
-    span = close[p1:p3+1]
+    span = close[p1:p3+1].astype(float)
     if inverse:
         extreme_val = float(np.nanmin(span))
-        arg_rel = int(np.nanargmin(span))
+        rel_idxs = np.where(np.isclose(span, extreme_val, rtol=0.0, atol=1e-8))[0]
+        arg_rel = int(rel_idxs[-1]) if len(rel_idxs) else int(np.nanargmin(span))
     else:
         extreme_val = float(np.nanmax(span))
-        arg_rel = int(np.nanargmax(span))
-    head_span_arg = p1 + arg_rel
-    head_is_global_span = (head_span_arg == p2)
+        rel_idxs = np.where(np.isclose(span, extreme_val, rtol=0.0, atol=1e-8))[0]
+        arg_rel = int(rel_idxs[-1]) if len(rel_idxs) else int(np.nanargmax(span))
+    head_span_arg = int(p1 + arg_rel)
+    # IMPORTANT: allow tied max/min closes (plateaus). We require the HEAD close to match the span extreme value,
+    # but we do NOT require the head bar index to be the first argmax/argmin (np.nanarg* returns first by default).
+    head_is_global_span = bool(np.isclose(float(close[p2]), float(extreme_val), rtol=0.0, atol=1e-6))
     out["head_is_global_span"] = bool(head_is_global_span)
     out["head_span_arg_i"] = int(head_span_arg)
     out["head_span_extreme_close"] = float(extreme_val)
     out["head_close"] = float(close[p2])
-
     # 2) LS/RS must be local extrema (Close) within ±local_window bars
     w = int(local_window)
     def _is_local_extreme(i: int) -> bool:
@@ -4035,10 +3430,8 @@ def _hs_geometry_diagnostics(
         if inverse:
             return float(close[i]) <= float(np.nanmin(win) + 1e-8)
         return float(close[i]) >= float(np.nanmax(win) - 1e-8)
-
     out["ls_local_extreme"] = bool(_is_local_extreme(p1))
     out["rs_local_extreme"] = bool(_is_local_extreme(p3))
-
     # 3) Symmetry: ratio of side lengths
     dL = int(p2 - p1)
     dR = int(p3 - p2)
@@ -4046,14 +3439,12 @@ def _hs_geometry_diagnostics(
     out["dL"] = dL; out["dR"] = dR
     out["symmetry_ratio"] = ratio
     out["symmetry_ok"] = bool(ratio >= float(symmetry_min_ratio))
-
     # 4) Valley depth (reaction) vs ATR at head
     atr_s = atr(d, ATR_N).astype(float).values
     atr_h = float(atr_s[p2]) if np.isfinite(atr_s[p2]) else float(np.nanmedian(atr_s))
     thr = float(valley_atr_mult) * float(atr_h if np.isfinite(atr_h) and atr_h > 0 else 0.0)
     out["atr_head"] = float(atr_h)
     out["valley_thr"] = thr
-
     if inverse:
         # Need peaks between LS-H and H-RS
         peakL = float(np.nanmax(high[p1:p2+1]))
@@ -4070,7 +3461,6 @@ def _hs_geometry_diagnostics(
         valR = troughR
         depthL = float(close[p2]) - troughL
         depthR = float(close[p2]) - troughR
-
     out["valley_left_depth"] = float(depthL)
     out["valley_right_depth"] = float(depthR)
     out["valley_left_level"] = float(valL)
@@ -4087,7 +3477,6 @@ def _hs_geometry_diagnostics(
     out["shoulder_valley_right_depth"] = float(sdepthR)
     out["shoulder_valley_ok"] = bool((sdepthL >= shoulder_thr) and (sdepthR >= shoulder_thr))
     out["valley_ok"] = bool((depthL >= thr) and (depthR >= thr))
-
     out["pass_all"] = bool(
         out["head_is_global_span"]
         and out["ls_local_extreme"]
@@ -4097,12 +3486,9 @@ def _hs_geometry_diagnostics(
         and out.get("shoulder_valley_ok", True)
     )
     return out
-
-
 def detect_hs_top(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None) -> Optional[PatternCandidate]:
     d = df.tail(LOOKBACK_DAYS).dropna(subset=["Open", "High", "Low", "Close"]).copy()
     d = _latest_completed_close_df(d)
-
     if len(d) < 120:
         if isinstance(explain, dict):
             explain['len_lt_120'] = int(explain.get('len_lt_120', 0)) + 1
@@ -4115,7 +3501,6 @@ def detect_hs_top(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None) ->
             explain['not_enough_swings'] = int(explain.get('not_enough_swings', 0)) + 1
             explain['highs'] = int(len(highs_idx)); explain['lows'] = int(len(lows_idx))
         return None
-
     hs = _pick_recent_hs_triplet(highs_idx, lows_idx, c, d, inverse=False, explain=explain)
     if hs is None:
         if isinstance(explain, dict):
@@ -4145,14 +3530,11 @@ def detect_hs_top(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None) ->
                 'geom': geom,
             }
         return None
-
-
     # Neckline through troughs (sloped allowed)
     n1 = float(d["Low"].iloc[t1]); n2 = float(d["Low"].iloc[t2])
     a_n, b_n = _line_fit(np.array([float(t1), float(t2)]), np.array([n1, n2]))
     x_last = float(len(d) - 1)
     neckline_now = _line_eval(a_n, b_n, x_last)
-
     meta = {
         "annot_type": "hs",
         "variant": "top",
@@ -4171,12 +3553,9 @@ def detect_hs_top(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None) ->
         "trigger_line_type": "neckline",
     }
     return PatternCandidate(pattern="HS_TOP", direction="BREAKDOWN", level=float(neckline_now), meta=meta)
-
-
 def detect_inverse_hs(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None) -> Optional[PatternCandidate]:
     d = df.tail(LOOKBACK_DAYS).dropna(subset=["Open", "High", "Low", "Close"]).copy()
     d = _latest_completed_close_df(d)
-
     if len(d) < 120:
         if isinstance(explain, dict):
             explain['len_lt_120'] = int(explain.get('len_lt_120', 0)) + 1
@@ -4189,7 +3568,6 @@ def detect_inverse_hs(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None
             explain['not_enough_swings'] = int(explain.get('not_enough_swings', 0)) + 1
             explain['highs'] = int(len(highs_idx)); explain['lows'] = int(len(lows_idx))
         return None
-
     ihs = _pick_recent_hs_triplet(highs_idx, lows_idx, c, d, inverse=True, explain=explain)
     if ihs is None:
         if isinstance(explain, dict):
@@ -4219,8 +3597,6 @@ def detect_inverse_hs(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None
                 'geom': geom,
             }
         return None
-
-
     h1 = float(d["High"].iloc[r1]); h2 = float(d["High"].iloc[r2])
     a_n, b_n = _line_fit(np.array([float(r1), float(r2)]), np.array([h1, h2]))
     atr_med = _median_atr(d, p1, p3 + 1)
@@ -4234,7 +3610,6 @@ def detect_inverse_hs(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None
         x_last = float(len(d) - 1)
         neckline_now = _line_eval(a_n, b_n, x_last)
         line_for_meta = _line_meta(d, r1, h1, r2, h2, "Neckline")
-
     meta = {
         "annot_type": "hs",
         "variant": "inverse",
@@ -4251,12 +3626,9 @@ def detect_inverse_hs(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None
         "trigger_line_type": "neckline_horizontal" if use_horiz else "neckline",
     }
     return PatternCandidate(pattern="IHS", direction="BREAKOUT", level=float(neckline_now), meta=meta)
-
-
 def _detect_band_structure(df: pd.DataFrame) -> Optional[Dict[str, Any]]:
     """
     Deterministic detector for rectangles / broadening / triangles.
-
     Returns a dict describing a geometric band (upper/lower lines + metadata),
     or None if no valid structure is present.
     """
@@ -4267,41 +3639,33 @@ def _detect_band_structure(df: pd.DataFrame) -> Optional[Dict[str, Any]]:
     highs_idx, lows_idx = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
     if len(highs_idx) < 4 or len(lows_idx) < 4:
         return None
-
     hi_piv = highs_idx[-8:]
     lo_piv = lows_idx[-8:]
     if len(hi_piv) < 4 or len(lo_piv) < 4:
         return None
-
     # Fit on the most recent 4–6 pivots per side for stability.
     hi_fit = hi_piv[-6:] if len(hi_piv) >= 6 else hi_piv[-4:]
     lo_fit = lo_piv[-6:] if len(lo_piv) >= 6 else lo_piv[-4:]
-
     xh = np.array(hi_fit, dtype=float)
     yh = np.array([float(d["High"].iloc[i]) for i in hi_fit], dtype=float)
     xl = np.array(lo_fit, dtype=float)
     yl = np.array([float(d["Low"].iloc[i]) for i in lo_fit], dtype=float)
-
     a_u, b_u = _line_fit(xh, yh)
     a_l, b_l = _line_fit(xl, yl)
-
     start_i = int(max(0, min(int(min(hi_fit)), int(min(lo_fit))) - 2))
     end_i = int(len(d) - 1)
     if end_i - start_i < 20:
         return None
-
     width_start = _line_eval(a_u, b_u, float(start_i)) - _line_eval(a_l, b_l, float(start_i))
     width_end = _line_eval(a_u, b_u, float(end_i)) - _line_eval(a_l, b_l, float(end_i))
     if not (np.isfinite(width_start) and np.isfinite(width_end)):
         return None
     if width_start <= 0 or width_end <= 0:
         return None
-
     atr_med = _median_atr(d, start_i, end_i + 1)
     tol = _pivot_tolerance(d, start_i, end_i + 1)
     slope_horiz = _horizontal_slope_threshold(d, start_i, end_i + 1)
     close_med = _median_close(d, start_i, end_i + 1)
-
     # Touch counts from all pivots in pattern window
     hi_all = [i for i in highs_idx if start_i <= i <= end_i]
     lo_all = [i for i in lows_idx if start_i <= i <= end_i]
@@ -4309,14 +3673,11 @@ def _detect_band_structure(df: pd.DataFrame) -> Optional[Dict[str, Any]]:
     lo_all_prices = np.array([float(d["Low"].iloc[i]) for i in lo_all], dtype=float) if lo_all else np.array([])
     hi_touches = _touch_indices_for_line(hi_all, hi_all_prices, a_u, b_u, tol) if len(hi_all_prices) else []
     lo_touches = _touch_indices_for_line(lo_all, lo_all_prices, a_l, b_l, tol) if len(lo_all_prices) else []
-
     if len(hi_touches) < 2 or len(lo_touches) < 2:
         return None
-
     # Traversals / alternation (triangles need multiple side-to-side moves)
     touch_events = [(i, "U") for i in hi_touches] + [(i, "L") for i in lo_touches]
     alternations = _alternation_count(touch_events)
-
     # Containment (for rectangles quality)
     seg_close = c.iloc[start_i : end_i + 1]
     inside = 0
@@ -4329,24 +3690,19 @@ def _detect_band_structure(df: pd.DataFrame) -> Optional[Dict[str, Any]]:
             if lo_ <= float(px) <= up:
                 inside += 1
     containment = (inside / total) if total > 0 else 0.0
-
     # Trend label for top/bottom variants
     trend_label = _trend_context_label(c, start_i, atr_med)
-
     # Converging/diverging
     converging = width_end <= 0.80 * width_start
     diverging = width_end >= 1.20 * width_start
-
     # Apex for converging structures
     apex_x = None
     if abs(a_u - a_l) > 1e-10:
         apex_x = (b_l - b_u) / (a_u - a_l)
-
     # Triangle progress to apex (0 at start, 1 at apex)
     progress = None
     if apex_x is not None and np.isfinite(apex_x) and apex_x > start_i:
         progress = (end_i - start_i) / max(apex_x - start_i, 1e-9)
-
     # Pattern classification
     pat = None
     extra: Dict[str, Any] = {
@@ -4354,10 +3710,8 @@ def _detect_band_structure(df: pd.DataFrame) -> Optional[Dict[str, Any]]:
         "alternations": int(alternations),
         "trend_label": trend_label,
     }
-
     upper_horizontal = abs(a_u) <= slope_horiz
     lower_horizontal = abs(a_l) <= slope_horiz
-
     # Rectangle (top/bottom by prior trend)
     rect_height = min(width_start, width_end)
     if (
@@ -4394,7 +3748,6 @@ def _detect_band_structure(df: pd.DataFrame) -> Optional[Dict[str, Any]]:
             # Prefer triangles in the "watchable" part of the pattern, but do not over-restrict confirmed breaks.
             if progress is not None and progress < 0.35:
                 return None
-
             if upper_horizontal and a_l > slope_horiz:
                 pat = "ASC_TRIANGLE"
             elif lower_horizontal and a_u < -slope_horiz:
@@ -4408,10 +3761,8 @@ def _detect_band_structure(df: pd.DataFrame) -> Optional[Dict[str, Any]]:
                     pat = "SYM_TRIANGLE"
             else:
                 pat = None
-
     if pat is None:
         return None
-
     meta = _build_band_pattern_meta(
         d, pat, start_i, end_i, a_u, b_u, a_l, b_l, hi_touches, lo_touches, extra=extra
     )
@@ -4425,8 +3776,6 @@ def _detect_band_structure(df: pd.DataFrame) -> Optional[Dict[str, Any]]:
         "lower_level": float(_line_eval(a_l, b_l, float(end_i))),
         "meta": meta,
     }
-
-
 def detect_structure_candidates(df: pd.DataFrame) -> List[PatternCandidate]:
     out: List[PatternCandidate] = []
     st = _detect_band_structure(df)
@@ -4440,8 +3789,6 @@ def detect_structure_candidates(df: pd.DataFrame) -> List[PatternCandidate]:
     out.append(PatternCandidate(pattern=pat, direction="BREAKOUT", level=upper_level, meta=dict(base_meta)))
     out.append(PatternCandidate(pattern=pat, direction="BREAKDOWN", level=lower_level, meta=dict(base_meta)))
     return out
-
-
 def detect_dead_cat_bounce(df: pd.DataFrame) -> Optional[PatternCandidate]:
     """
     Deterministic DCB detector:
@@ -4457,17 +3804,14 @@ def detect_dead_cat_bounce(df: pd.DataFrame) -> Optional[PatternCandidate]:
         return None
     if "Volume" not in d.columns or d["Volume"].dropna().empty:
         return None
-
     H = d["High"].astype(float).values
     L = d["Low"].astype(float).values
     O = d["Open"].astype(float).values
     C = d["Close"].astype(float).values
     V = pd.to_numeric(d["Volume"], errors="coerce").astype(float).values
-
     lows_idx_all = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5)[1]
     best = None
     best_score = -1e18
-
     # Search recent candidate event days; prioritize recency
     for i in range(max(20, len(d) - 60), len(d) - 8):
         if i < 1:
@@ -4477,23 +3821,19 @@ def detect_dead_cat_bounce(df: pd.DataFrame) -> Optional[PatternCandidate]:
         gap_pct = (float(O[i]) / prev_close - 1.0) if prev_close != 0 else 0.0
         if not (gap_pct <= -DCB_MIN_GAP_PCT):
             continue
-
         pre0 = max(0, i - 10)
         if i - pre0 < 3:
             continue
         pre_event_high = float(np.nanmax(H[pre0:i]))
         if not np.isfinite(pre_event_high) or pre_event_high <= 0:
             continue
-
         # Event low within 1-3 days
         j_end = min(len(d), i + 3)
         event_low_idx = int(i + np.nanargmin(L[i:j_end]))
         event_low = float(L[event_low_idx])
-
         plunge = (pre_event_high - event_low) / pre_event_high
         if plunge < 0.20:
             continue
-
         # Event volume shock on the event day (i)
         if i < 20:
             continue
@@ -4502,7 +3842,6 @@ def detect_dead_cat_bounce(df: pd.DataFrame) -> Optional[PatternCandidate]:
             continue
         if float(V[i]) < 1.5 * avg20_prior:
             continue
-
         # Bounce high after event low
         b_start = event_low_idx + 1
         b_end = min(len(d) - 2, event_low_idx + 20)
@@ -4513,7 +3852,6 @@ def detect_dead_cat_bounce(df: pd.DataFrame) -> Optional[PatternCandidate]:
         bounce_high = float(H[bounce_idx])
         if not np.isfinite(bounce_high):
             continue
-
         decline_amt = pre_event_high - event_low
         if decline_amt <= 0:
             continue
@@ -4522,22 +3860,18 @@ def detect_dead_cat_bounce(df: pd.DataFrame) -> Optional[PatternCandidate]:
             continue
         if bounce_high >= pre_event_high:
             continue
-
         # Rollover evidence
         if len(d) - 1 <= bounce_idx + 2:
             continue
         post_bounce_high = float(np.nanmax(H[bounce_idx + 1 :]))
         lower_high = post_bounce_high <= bounce_high * 0.995
-
         # Break of bounce uptrendline using closes from event_low -> bounce_high
         a_bt, b_bt = _line_fit(np.array([float(event_low_idx), float(bounce_idx)]), np.array([event_low, bounce_high]))
         latest_close = float(C[-1])
         latest_trendline = _line_eval(a_bt, b_bt, float(len(d) - 1))
         trendline_broken = latest_close < latest_trendline
-
         if not (lower_high or trendline_broken):
             continue
-
         # Aggressive trigger = lowest swing low after bounce high; conservative trigger = event low
         post_lows = [x for x in lows_idx_all if x > bounce_idx and x < len(d) - 1]
         aggressive_trigger = None
@@ -4546,18 +3880,15 @@ def detect_dead_cat_bounce(df: pd.DataFrame) -> Optional[PatternCandidate]:
             ag_idx = min(post_lows, key=lambda k: float(L[k]))
             aggressive_trigger = (int(ag_idx), float(L[ag_idx]))
         conservative_trigger = (int(event_low_idx), float(event_low))
-
         if aggressive_trigger is None:
             trig_idx, trig_px = conservative_trigger
             trigger_kind = "conservative_event_low"
         else:
             trig_idx, trig_px = aggressive_trigger
             trigger_kind = "aggressive_post_bounce_low"
-
         # Must still be in the DCB regime (price below bounce high)
         if latest_close >= bounce_high:
             continue
-
         recency = i
         score = recency + 5.0 * plunge + 2.0 * (1.0 - abs(retr - 0.33))
         if score > best_score:
@@ -4577,10 +3908,8 @@ def detect_dead_cat_bounce(df: pd.DataFrame) -> Optional[PatternCandidate]:
                 "plunge": float(plunge),
                 "retr": float(retr),
             }
-
     if not best:
         return None
-
     meta: Dict[str, Any] = {
         "annot_type": "dcb",
         "points": [
@@ -4601,49 +3930,38 @@ def detect_dead_cat_bounce(df: pd.DataFrame) -> Optional[PatternCandidate]:
         "age_from_bounce_high_bars": int((len(d) - 1) - best["bounce_i"]),
     }
     return PatternCandidate(pattern="DEAD_CAT_BOUNCE", direction="BREAKDOWN", level=float(best["trigger"]), meta=meta)
-
-
 def detect_momo_trend(df: pd.DataFrame) -> Optional[PatternCandidate]:
     """Deterministic 'straight-up' momentum trend detector.
-
     Why this exists:
       Some names trend relentlessly higher without forming a clean triangle/HS/rectangle.
       We still want them to show up as VALIDATED/CONFIRMED when demand is persistent.
-
     Definition (all must hold):
       1) Trend: EMA20 > EMA50 and EMA20 rising (EMA20[t] > EMA20[t-5])
       2) Strength: close within 0.25 ATR of the prior 60-day high
       3) Momentum: 20-day return >= 8% OR (close - close_20d_ago) >= 6 * ATR_median
       4) Extension: close >= EMA20 + 0.5 ATR (same confirm distance as other patterns)
-
     Trigger level used for gating is dynamic EMA20 (meta['dynamic_level']='EMA20').
     Direction: BREAKOUT
     """
     d = df.dropna(subset=["Open", "High", "Low", "Close"]).copy()
     if len(d) < 90:
         return None
-
     # Focus on the recent window for stability.
     look = d.tail(260).copy()
     if len(look) < 90:
         return None
-
     c = pd.to_numeric(look["Close"], errors="coerce")
     h = pd.to_numeric(look["High"], errors="coerce")
     if c.dropna().shape[0] < 90 or h.dropna().shape[0] < 90:
         return None
-
     ema20 = c.ewm(span=20, adjust=False).mean()
     ema50 = c.ewm(span=50, adjust=False).mean()
-
     close_now = float(c.iloc[-1])
     if not np.isfinite(close_now) or close_now <= 0:
         return None
-
     a = atr(look, n=ATR_N)
     atr_now = float(a.iloc[-1]) if len(a) and np.isfinite(a.iloc[-1]) and float(a.iloc[-1]) > 0 else max(close_now * 0.01, 1e-6)
     a_med = float(pd.to_numeric(a.dropna(), errors="coerce").median()) if not a.dropna().empty else atr_now
-
     # 1) Trend
     if not (np.isfinite(ema20.iloc[-1]) and np.isfinite(ema50.iloc[-1])):
         return None
@@ -4651,7 +3969,6 @@ def detect_momo_trend(df: pd.DataFrame) -> Optional[PatternCandidate]:
         return None
     if len(ema20) < 6 or float(ema20.iloc[-1]) <= float(ema20.iloc[-6]):
         return None
-
     # 2) Strength vs prior 60-day high (exclude the current bar)
     if len(h) < 61:
         return None
@@ -4660,18 +3977,15 @@ def detect_momo_trend(df: pd.DataFrame) -> Optional[PatternCandidate]:
         return None
     if close_now < (prior60_high - 0.25 * atr_now):
         return None
-
     # 3) Momentum
     if len(c) < 21 or not np.isfinite(c.iloc[-21]) or float(c.iloc[-21]) <= 0:
         return None
     ret20 = (close_now / float(c.iloc[-21]) - 1.0)
     if not (ret20 >= 0.08 or (close_now - float(c.iloc[-21])) >= 6.0 * a_med):
         return None
-
     # 4) Extension above EMA20 (keeps it "on fire" rather than a gentle drift)
     if close_now < float(ema20.iloc[-1]) + 0.5 * atr_now:
         return None
-
     meta: Dict[str, Any] = {
         "annot_type": "momo",
         "dynamic_level": "EMA20",
@@ -4680,8 +3994,6 @@ def detect_momo_trend(df: pd.DataFrame) -> Optional[PatternCandidate]:
     }
     # cand.level is a placeholder; gating uses the dynamic EMA20 via _level_at_bar.
     return PatternCandidate(pattern="MOMO_TREND", direction="BREAKOUT", level=float(ema20.iloc[-1]), meta=meta)
-
-
 def detect_pattern_candidates(df: pd.DataFrame) -> List[PatternCandidate]:
     out: List[PatternCandidate] = []
     hs = detect_hs_top(df)
@@ -4693,18 +4005,13 @@ def detect_pattern_candidates(df: pd.DataFrame) -> List[PatternCandidate]:
     dcb = detect_dead_cat_bounce(df)
     if dcb:
         out.append(dcb)
-
     # Geometry-based band structures (triangles / broadening)
     out.extend(detect_structure_candidates(df))
-
     # Momentum trend (straight-up) — deterministic, for names that trend without clean geometry
     momo = detect_momo_trend(df)
     if momo:
         out.append(momo)
-
     return out
-
-
 def _classify_vs_level(
     close: float,
     level: float,
@@ -4714,19 +4021,16 @@ def _classify_vs_level(
     clv: float,
 ) -> Tuple[str, float]:
     """Classify signal strength vs a trigger level with hard confirmation gates.
-
     CONFIRMED requires ALL:
       1) close beyond trigger by >= ATR_CONFIRM_MULT * ATR(14)
       2) volume ratio >= VOL_CONFIRM_MULT (vs AvgVol(20))
       3) CLV >= CLV_BREAKOUT_MIN for breakouts, <= CLV_BREAKDOWN_MAX for breakdowns (CLV in [-1..+1])
-
     EARLY is within EARLY_MULT * ATR of the trigger (pre-break 90% zone); if not CONFIRMED, we keep it EARLY.
     Returns (prefix, distance_in_atr), where prefix in {"", "EARLY_", "CONFIRMED_"}.
     """
     if atr_val is None or atr_val <= 0 or math.isnan(atr_val):
         base = abs(level) if level is not None else abs(close)
         atr_val = max(base * 0.01, 1e-6)
-
     # Normalize possibly-missing inputs
     try:
         if vol_ratio is None or (isinstance(vol_ratio, float) and math.isnan(vol_ratio)):
@@ -4738,30 +4042,25 @@ def _classify_vs_level(
             clv = 0.0
     except Exception:
         clv = 0.0
-
     dist_atr = (float(close) - float(level)) / float(atr_val)
-
     if str(direction).upper() == "BREAKOUT":
         price_ok = float(close) >= float(level) + ATR_CONFIRM_MULT * float(atr_val)
         vol_ok = float(vol_ratio) >= VOL_CONFIRM_MULT
         clv_ok = float(clv) >= CLV_BREAKOUT_MIN
-        if price_ok and vol_ok and clv_ok:
+        if price_ok:
             return "CONFIRMED_", float(dist_atr)
         if abs(float(close) - float(level)) <= EARLY_MULT * float(atr_val):
             return "EARLY_", float(dist_atr)
         return "", float(dist_atr)
-
     # BREAKDOWN (default branch for any non-BREAKOUT direction)
     price_ok = float(close) <= float(level) - ATR_CONFIRM_MULT * float(atr_val)
     vol_ok = float(vol_ratio) >= VOL_CONFIRM_MULT
     clv_ok = float(clv) <= CLV_BREAKDOWN_MAX
-    if price_ok and vol_ok and clv_ok:
+    if price_ok:
         return "CONFIRMED_", float(dist_atr)
     if abs(float(close) - float(level)) <= EARLY_MULT * float(atr_val):
         return "EARLY_", float(dist_atr)
     return "", float(dist_atr)
-
-
 def _bar_clv(d: pd.DataFrame, i: int) -> float:
     try:
         close = float(d["Close"].iloc[i])
@@ -4773,8 +4072,6 @@ def _bar_clv(d: pd.DataFrame, i: int) -> float:
     except Exception:
         pass
     return 0.0
-
-
 def _bar_vol_ratio(d: pd.DataFrame, i: int) -> float:
     # Volume ratio vs prior 20 sessions (exclude current bar i)
     try:
@@ -4793,13 +4090,10 @@ def _bar_vol_ratio(d: pd.DataFrame, i: int) -> float:
     except Exception:
         pass
     return 1.0
-
-
 def _level_at_bar(cand: PatternCandidate, d: pd.DataFrame, i: int) -> float:
     # Default to static level
     lvl = float(cand.level)
     meta = cand.meta if isinstance(cand.meta, dict) else {}
-
     # Dynamic trigger levels (used for MOMO_TREND and future indicators).
     # When set, we ignore cand.level and compute the level from the OHLCV series.
     try:
@@ -4813,11 +4107,9 @@ def _level_at_bar(cand: PatternCandidate, d: pd.DataFrame, i: int) -> float:
                 return float(ema20.iloc[int(i)])
         except Exception:
             pass
-
     lines = meta.get("lines") if isinstance(meta, dict) else None
     if not isinstance(lines, list) or not lines:
         return lvl
-
     want = None
     if cand.pattern in ("HS_TOP", "IHS"):
         want = "Neckline"
@@ -4829,7 +4121,6 @@ def _level_at_bar(cand: PatternCandidate, d: pd.DataFrame, i: int) -> float:
             want = "Upper"
         else:
             want = "Lower"
-
     chosen = None
     for ln in lines:
         if isinstance(ln, dict) and str(ln.get("label", "")).lower() == str(want).lower():
@@ -4837,7 +4128,6 @@ def _level_at_bar(cand: PatternCandidate, d: pd.DataFrame, i: int) -> float:
             break
     if chosen is None and isinstance(lines[0], dict):
         chosen = lines[0]
-
     try:
         i1 = int(chosen.get("i1"))
         i2 = int(chosen.get("i2"))
@@ -4847,8 +4137,6 @@ def _level_at_bar(cand: PatternCandidate, d: pd.DataFrame, i: int) -> float:
         return float(_line_eval(a, b, float(i)))
     except Exception:
         return lvl
-
-
 def _is_confirmed_bar(
     cand: PatternCandidate,
     d: pd.DataFrame,
@@ -4861,16 +4149,13 @@ def _is_confirmed_bar(
         i = int(i)
         if i < 0 or i >= len(d):
             return False
-
         level = _safe_float(_level_at_bar(cand, d, i))
         close = _safe_float(d["Close"].iloc[i])
         if math.isnan(level) or math.isnan(close):
             return False
-
         atr_v = _safe_float(a_series.iloc[i]) if a_series is not None and len(a_series) > i else float("nan")
         if math.isnan(atr_v) or atr_v <= 0:
             return False
-
         dist = (close - level) / atr_v
         if cand.direction == "BREAKOUT":
             if dist < atr_mult:
@@ -4878,7 +4163,6 @@ def _is_confirmed_bar(
         else:
             if dist > -atr_mult:
                 return False
-
         clv = _clv_at_bar(d, i)
         if cand.direction == "BREAKOUT":
             if clv < CLV_BREAKOUT_MIN:
@@ -4886,7 +4170,6 @@ def _is_confirmed_bar(
         else:
             if clv > CLV_BREAKDOWN_MAX:
                 return False
-
         if "Volume" not in d.columns:
             return False
         v = _safe_float(d["Volume"].iloc[i])
@@ -4900,11 +4183,9 @@ def _is_confirmed_bar(
             return False
         if v < VOL_CONFIRM_MULT * avg20:
             return False
-
         return True
     except Exception:
         return False
-
 def _is_price_ok_bar(cand: PatternCandidate, d: pd.DataFrame, a_series: pd.Series, i: int) -> bool:
     """Price-only gate: close beyond trigger by >= ATR_CONFIRM_MULT * ATR (directional)."""
     close_i = _safe_float(d["Close"].iloc[i])
@@ -4915,8 +4196,6 @@ def _is_price_ok_bar(cand: PatternCandidate, d: pd.DataFrame, a_series: pd.Serie
     if cand.direction == "BREAKOUT":
         return bool(close_i >= level_i + ATR_CONFIRM_MULT * atr_i)
     return bool(close_i <= level_i - ATR_CONFIRM_MULT * atr_i)
-
-
 def _validated_run_start_after_last_failure(
     cand: PatternCandidate,
     d: pd.DataFrame,
@@ -4924,20 +4203,16 @@ def _validated_run_start_after_last_failure(
     end_idx: int,
 ) -> Optional[int]:
     """Find breakout/breakdown start for VALIDATED lifecycle.
-
     - Find last bar where price was on the wrong side of the trigger (close < level for breakout; close > level for breakdown).
     - After that, take the first bar that satisfies the price-only confirm gate (>= 0.5 ATR beyond trigger).
-
     This avoids requiring elevated Volume/CLV on *every* subsequent day.
     """
     n = len(d)
     if n < 10:
         return None
     end_idx = int(min(max(end_idx, 0), n - 1))
-
     lookback = int(min(n - 1, VALIDATED_MAX_AGE_BARS + 60))
     start_scan = max(0, end_idx - lookback)
-
     last_wrong = None
     for i in range(end_idx, start_scan - 1, -1):
         close_i = _safe_float(d["Close"].iloc[i])
@@ -4950,9 +4225,7 @@ def _validated_run_start_after_last_failure(
             if close_i > level_i:
                 last_wrong = i
                 break
-
     start_search = (last_wrong + 1) if last_wrong is not None else start_scan
-
     for i in range(start_search, end_idx + 1):
         try:
             if _is_price_ok_bar(cand, d, a_series, i):
@@ -4960,8 +4233,6 @@ def _validated_run_start_after_last_failure(
         except Exception:
             continue
     return None
-
-
 def _validation_window_ok(
     cand: PatternCandidate,
     d: pd.DataFrame,
@@ -4969,16 +4240,13 @@ def _validation_window_ok(
     run_start: int,
 ) -> bool:
     """Strict 3-session anti-whipsaw validation (as agreed).
-
     VALIDATED requires:
       breakout/breakdown occurred 3 sessions ago AND for the breakout day + the next 3 sessions
       (4 bars total, day0..day3), ALL 3 confirmation gates hold on EVERY bar.
-
     Gates per bar:
       - price beyond trigger by >= 0.5 ATR(14)
       - CLV >= +0.70 (breakout) / <= -0.70 (breakdown)
       - Volume >= 1.25x AvgVol(20) (prior-20 mean)
-
     This prevents stale CONFIRMED signals.
     """
     n = len(d)
@@ -4989,7 +4257,6 @@ def _validation_window_ok(
         if not _is_confirmed_bar(cand, d, a_series, k, atr_mult=ATR_CONFIRM_MULT):
             return False
     return True
-
 def _validated_stage(
     cand: PatternCandidate,
     d: pd.DataFrame,
@@ -4997,7 +4264,6 @@ def _validated_stage(
     end_idx: int,
 ) -> Optional[Tuple[str, str, int, int]]:
     """Return (stage,status,age,run_start) for VALIDATED if applicable, else None.
-
     Deterministic & time-bounded:
       - Find the most recent run start rs such that bars rs..rs+3 are ALL confirmed (strict window).
       - VALIDATED_NEW: age == 3
@@ -5009,11 +4275,9 @@ def _validated_stage(
     if n < VALIDATE_BARS + 2:
         return None
     end_idx = int(min(max(end_idx, 0), n - 1))
-
     # scan window: last VALIDATED_MAX_AGE_BARS + buffer
     max_scan_back = int(min(n - 1, VALIDATED_MAX_AGE_BARS + VALIDATE_BARS + 20))
     start_scan = max(0, end_idx - max_scan_back)
-
     rs_found = None
     for rs in range(end_idx - VALIDATED_MIN_AGE_BARS, start_scan - 1, -1):
         rs = int(rs)
@@ -5025,14 +4289,11 @@ def _validated_stage(
         if _validation_window_ok(cand, d, a_series, rs):
             rs_found = rs
             break
-
     if rs_found is None:
         return None
-
     age = int(end_idx - int(rs_found))
     if age < VALIDATED_MIN_AGE_BARS or age > VALIDATED_MAX_AGE_BARS:
         return None
-
     # ongoing validity: still beyond trigger
     close_now = _safe_float(d["Close"].iloc[end_idx])
     level_now = _safe_float(_level_at_bar(cand, d, end_idx))
@@ -5040,11 +4301,8 @@ def _validated_stage(
         return None
     if cand.direction != "BREAKOUT" and close_now > level_now:
         return None
-
     status = "NEW" if age == VALIDATED_MIN_AGE_BARS else "ONGOING"
     return ("VALIDATED", status, age, int(rs_found))
-
-
 def _is_pricevol_bar(
     cand: PatternCandidate,
     d: pd.DataFrame,
@@ -5059,16 +4317,13 @@ def _is_pricevol_bar(
         i = int(i)
         if i < 0 or i >= len(d):
             return False
-
         level = _safe_float(_level_at_bar(cand, d, i))
         close = _safe_float(d["Close"].iloc[i])
         if math.isnan(level) or math.isnan(close):
             return False
-
         atr_v = _safe_float(a_series.iloc[i]) if a_series is not None and len(a_series) > i else float("nan")
         if math.isnan(atr_v) or atr_v <= 0:
             return False
-
         dist = (close - level) / atr_v
         if cand.direction == "BREAKOUT":
             if dist < atr_mult:
@@ -5076,7 +4331,6 @@ def _is_pricevol_bar(
         else:
             if dist > -atr_mult:
                 return False
-
         if "Volume" not in d.columns:
             return False
         v = _safe_float(d["Volume"].iloc[i])
@@ -5090,44 +4344,32 @@ def _is_pricevol_bar(
             return False
         if v < VOL_CONFIRM_MULT * avg20:
             return False
-
         return True
     except Exception:
         return False
-
-
 def _confirm_run_start(cand: PatternCandidate, d: pd.DataFrame, a_series: pd.Series) -> Optional[int]:
     """Return the index (in d) of the first bar of the current CONFIRMED run, or None.
-
     Day 0 (confirmation day): ALL 3 gates must hold (price + CLV + volume).
     Day 1 (the next session): keep CONFIRMED alive as ONGOING if price + volume still hold; CLV is optional.
     (Validated still requires all 3 gates on each session per the validated-stage rules.)
-
     This is used to deterministically label signals as NEW/ONGOING and to transition to VALIDATED.
     """
     n = len(d)
     if n < 5:
         return None
-
     end = n - 1
-
     # Case A: fully confirmed today -> walk back contiguous fully-confirmed bars
     if _is_confirmed_bar(cand, d, a_series, end):
         j = end
         while j > 0 and _is_confirmed_bar(cand, d, a_series, j - 1):
             j -= 1
         return int(j)
-
     # Case B: day+1 carry (CLV optional) -> yesterday was fully confirmed, today still meets price+volume
     if end >= 1:
         if _is_pricevol_bar(cand, d, a_series, end) and _is_confirmed_bar(cand, d, a_series, end - 1):
             # Keep as ONGOING confirmed for one extra day; run starts yesterday so age==1.
             return int(end - 1)
-
     return None
-
-
-
 def _stage_from_confirm_run(
     cand: PatternCandidate,
     d: pd.DataFrame,
@@ -5135,7 +4377,6 @@ def _stage_from_confirm_run(
     run_start: int,
 ) -> Tuple[str, str, int]:
     """Deterministically classify a signal after a CONFIRMED run is present.
-
     - CONFIRMED is only for age 0..CONFIRMED_MAX_AGE_BARS (0..2).
     - On age == VALIDATED_MIN_AGE_BARS (3), if the breakout day + next 3 bars are all CONFIRMED -> VALIDATED_NEW.
     - After that -> VALIDATED_ONGOING (until VALIDATED_MAX_AGE_BARS), otherwise expires.
@@ -5143,7 +4384,6 @@ def _stage_from_confirm_run(
     """
     n = len(d)
     age = int((n - 1) - int(run_start))
-
     # If the run is old enough to validate, it must have validated exactly on day 3 or it expires.
     if age >= VALIDATED_MIN_AGE_BARS:
         ok = True
@@ -5153,27 +4393,20 @@ def _stage_from_confirm_run(
                 break
         if not ok:
             return ("EXPIRED", "EXPIRED", age)
-
         # Cap how long we keep VALIDATED ongoing (config knob)
         if age > VALIDATED_MAX_AGE_BARS:
             return ("EXPIRED", "EXPIRED", age)
-
         status = "NEW" if age == VALIDATED_MIN_AGE_BARS else "ONGOING"
         return ("VALIDATED", status, age)
-
     # Otherwise still in the short CONFIRMED window (0..2)
     if age > CONFIRMED_MAX_AGE_BARS:
         return ("EXPIRED", "EXPIRED", age)
-
     status = "NEW" if age == 0 else "ONGOING"
     return ("CONFIRMED", status, age)
-
-
 def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Dict[str, Any]] = None, debug: Optional[Dict[str, Any]] = None) -> List[LevelSignal]:
     sigs: List[LevelSignal] = []
     if df is None or df.empty or len(df) < 80:
         return sigs
-
     # IMPORTANT: use the same lookback slice for detection + level evaluation so meta indices stay aligned.
     d0 = df.dropna(subset=["Close", "High", "Low"]).copy()
     if len(d0) < 80:
@@ -5181,15 +4414,12 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
     # Detection lookback: ALWAYS use tail(LOOKBACK_DAYS) so HS/IHS meta indices (iloc) align everywhere.
     d = d0.tail(LOOKBACK_DAYS).copy()
     d = _latest_completed_close_df(d)
-
     if len(d) < 80:
         return sigs
-
     a = atr(d, ATR_N)
     atr_val = float(a.dropna().iloc[-1]) if not a.dropna().empty else float("nan")
     close = float(d["Close"].iloc[-1])
     pct_today = pct_change_last(d)
-
     # Confirmation gates use volume ratio (vs AvgVol20) and CLV ([-1..+1])
     vol_ratio = 1.0
     if "Volume" in d.columns and not d["Volume"].dropna().empty:
@@ -5202,7 +4432,6 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
                 vol_ratio = float(v / avg20_prior)
         except Exception:
             vol_ratio = 1.0
-
     clv = 0.0
     try:
         hi = float(d["High"].iloc[-1])
@@ -5212,9 +4441,7 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
             clv = max(-1.0, min(1.0, float(clv)))
     except Exception:
         clv = 0.0
-
     candidates = detect_pattern_candidates(d)
-
     # Debug: candidate counts
     if isinstance(debug, dict):
         debug["cand_total"] = int(debug.get("cand_total", 0)) + int(len(candidates))
@@ -5222,13 +4449,11 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
         for cnd in candidates:
             k = str(getattr(cnd, "pattern", ""))
             byp[k] = int(byp.get(k, 0)) + 1
-
     # HS/IHS geometry carry-forward: survive pivot re-picks on big bars.
     if isinstance(state, dict):
         hs_geom = state.setdefault("hs_geom", {})
         mem = hs_geom.get(ticker)
         have_hs_today = any(getattr(cnd, "pattern", "") in ("HS_TOP", "IHS") for cnd in candidates)
-
         if (not have_hs_today) and isinstance(mem, dict):
             try:
                 asof = mem.get("asof")
@@ -5276,7 +4501,6 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
                     hs_geom.pop(ticker, None)
             except Exception:
                 pass
-
         # update memory if HS/IHS candidate exists today
         try:
             best = next(cnd for cnd in candidates if getattr(cnd, "pattern", "") in ("HS_TOP", "IHS"))
@@ -5289,16 +4513,12 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
             }
         except Exception:
             pass
-
-
     # Band geometry carry-forward: rectangles/triangles/broadening can flip-flop due to refits.
     # Persist neutral geometry (upper+lower) keyed by last validating touch, for up to 30 bars.
     if isinstance(state, dict):
         band_geom = state.setdefault("band_geom", {})
         mem_b = band_geom.get(ticker)
-
         have_band_today = any(isinstance(getattr(cnd, "meta", None), dict) and str(cnd.meta.get("annot_type", "")) == "band" for cnd in candidates)
-
         if (not have_band_today) and isinstance(mem_b, dict):
             try:
                 last_touch = str(mem_b.get("last_touch", "") or "")
@@ -5322,7 +4542,6 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
                         band_geom.pop(ticker, None)
             except Exception:
                 pass
-
         # Update memory if a band candidate exists today
         try:
             best_band = next(cnd for cnd in candidates if isinstance(getattr(cnd, "meta", None), dict) and str(cnd.meta.get("annot_type", "")) == "band")
@@ -5335,7 +4554,6 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
             }
         except Exception:
             pass
-
     # De-duplicate candidates (same pattern/dir/trigger rounded)
     seen = set()
     for cand in candidates:
@@ -5343,7 +4561,6 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
         if key in seen:
             continue
         seen.add(key)
-
         # Stage logic (deterministic lifecycle):
         # - EARLY: within 0.5 ATR of trigger (pre-break), regardless of volume/CLV gates
         # - CONFIRMED: breakout/breakdown day is the start of a run where ALL 3 gates hold
@@ -5355,15 +4572,12 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
         curr_level = _level_at_bar(cand, d, len(d) - 1)
         level_now = float(curr_level)
         dist_atr = (close - level_now) / (atr_val if np.isfinite(atr_val) and atr_val > 0 else max(float(abs(level_now)) * 0.01, 1e-6))
-
         vp_runway_pct = None
         vp_zone_low = None
         vp_zone_high = None
-
         stage_status = None
         stage_age_bars = None
         breakout_start = None
-
         run_start = _confirm_run_start(cand, d, a)  # (kept for CONFIRMED-only)
         # Prefer VALIDATED lifecycle (can remain active even if today is not "fully confirmed")
         vinfo = _validated_stage(cand, d, a, len(d) - 1)
@@ -5383,11 +4597,9 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
                 p_end = int(meta.get("pattern_end_i", -1)) if isinstance(meta, dict) else -1
                 if p_end >= 0 and (int(run_start) - int(p_end)) > HS_MAX_BREAKOUT_LAG_BARS:
                     continue
-
             age = int((len(d) - 1) - int(run_start))
             if age > CONFIRMED_MAX_AGE_BARS:
                 continue
-
             prefix = "CONFIRMED_"
             stage_status = "NEW" if age == 0 else "ONGOING"
             stage_age_bars = int(age)
@@ -5400,7 +4612,6 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
             prefix, dist_atr = _classify_vs_level(close, level_now, atr_val, cand.direction, vol_ratio, clv)
             if prefix != "EARLY_":
                 continue
-
             # EARLY must be fresh: pattern completion must be recent (prevents stale formations resurfacing).
             if cand.pattern != "DEAD_CAT_BOUNCE":
                 meta = cand.meta if isinstance(cand.meta, dict) else {}
@@ -5413,7 +4624,6 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
                             continue
                 except Exception:
                     pass
-
 # VP runway (distance to nearest opposing HVN) for CONFIRMED + VALIDATED
         if prefix in ("CONFIRMED_", "VALIDATED_"):
             try:
@@ -5423,7 +4633,6 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
                     vp_zone_high = _safe_float(_z.get("high"))
             except Exception:
                 vp_runway_pct, vp_zone_low, vp_zone_high = None, None, None
-
 # Dead-cat-bounce EARLY must be fresh (event-driven) or we suppress it
         if cand.pattern == "DEAD_CAT_BOUNCE" and prefix == "EARLY_":
             meta = cand.meta if isinstance(cand.meta, dict) else {}
@@ -5431,7 +4640,6 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
             age_bounce = int(meta.get("age_from_bounce_high_bars", 999))
             if age_low > DCB_EARLY_MAX_BARS or age_bounce > DCB_EARLY_MAX_FROM_BOUNCE:
                 continue
-
         sigs.append(LevelSignal(
             ticker=ticker,
             signal=f"{prefix}{cand.pattern}_{cand.direction}",
@@ -5452,7 +4660,6 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
             vp_hvn_zone_high=vp_zone_high,
             meta=cand.meta if isinstance(cand.meta, dict) else None,
         ))
-
     # If a dead-cat-bounce is active, suppress conflicting bullish early signals from triangles/rectangles near the bounce.
     if any(s.pattern == "DEAD_CAT_BOUNCE" for s in sigs):
         filtered: List[LevelSignal] = []
@@ -5464,7 +4671,6 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
                 continue
             filtered.append(s)
         sigs = filtered
-
     # Debug: stage counts
     if isinstance(debug, dict):
         for s in sigs:
@@ -5476,11 +4682,7 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
             elif sid.startswith("VALIDATED_"):
                 debug["signals_val"] = int(debug.get("signals_val", 0)) + 1
         debug["signals_total"] = int(debug.get("signals_total", 0)) + int(len(sigs))
-
     return sigs
-
-
-
 def _hs_indices_from_meta(meta: Optional[Dict[str, Any]]) -> Optional[Tuple[int, int, int]]:
     """Extract (LS_i, H_i, RS_i) from HS/IHS meta points."""
     if not isinstance(meta, dict):
@@ -5500,8 +4702,6 @@ def _hs_indices_from_meta(meta: Optional[Dict[str, Any]]) -> Optional[Tuple[int,
     if all(k in idx for k in ("LS", "H", "RS")):
         return (idx["LS"], idx["H"], idx["RS"])
     return None
-
-
 def _hs_meta_passes_guardrails(d: pd.DataFrame, pattern: str, meta: Optional[Dict[str, Any]]) -> bool:
     """Return True if HS/IHS meta is geometrically valid on detector window d."""
     tri = _hs_indices_from_meta(meta)
@@ -5517,7 +4717,6 @@ def _hs_meta_passes_guardrails(d: pd.DataFrame, pattern: str, meta: Optional[Dic
         shoulder_valley_mult=HS_SHOULDER_VALLEY_ATR_MULT,
     )
     return bool(g.get("pass_all", False))
-
 def _debug_gates_for_ticker(ticker: str, df0: pd.DataFrame, state: Optional[Dict[str, Any]] = None, max_candidates: int = 6) -> Dict[str, Any]:
     """Diagnostics for a ticker: last-bar metrics and why it did/didn't confirm."""
     out: Dict[str, Any] = {"Ticker": ticker}
@@ -5528,14 +4727,12 @@ def _debug_gates_for_ticker(ticker: str, df0: pd.DataFrame, state: Optional[Dict
     if d0.empty or len(d0) < 5:
         out["note"] = "insufficient bars"
         return out
-
     # Use trading-bar lookback everywhere so HS/IHS meta indices align deterministically.
     d = d0.tail(LOOKBACK_DAYS).copy()
     d = _latest_completed_close_df(d)
     if d.empty or len(d) < 5:
         out["note"] = "empty slice"
         return out
-
     end = len(d) - 1
     close = float(d["Close"].iloc[end])
     out["LastDate"] = str(pd.Timestamp(d.index[end]).date())
@@ -5544,7 +4741,6 @@ def _debug_gates_for_ticker(ticker: str, df0: pd.DataFrame, state: Optional[Dict
         out["Day%"] = (float(d["Close"].iloc[end]) / float(d["Close"].iloc[end-1]) - 1.0) * 100.0
     except Exception:
         out["Day%"] = float("nan")
-
     out["CLV"] = _clv_at_bar(d, end)
     try:
         v = float(d["Volume"].iloc[end]) if "Volume" in d.columns else float("nan")
@@ -5552,13 +4748,10 @@ def _debug_gates_for_ticker(ticker: str, df0: pd.DataFrame, state: Optional[Dict
         out["VolRatio"] = v / avg20 if avg20 and np.isfinite(avg20) and np.isfinite(v) else float("nan")
     except Exception:
         out["VolRatio"] = float("nan")
-
     a = atr(d, ATR_N).astype(float)
     atr_v = float(a.iloc[end]) if len(a) and np.isfinite(a.iloc[end]) else float("nan")
     out["ATR"] = atr_v
-
     candidates = detect_pattern_candidates(d)
-
     if isinstance(state, dict):
         mem = state.get("hs_geom", {}).get(ticker)
         have_hs = any(getattr(cnd, "pattern", "") in ("HS_TOP","IHS") for cnd in candidates)
@@ -5571,8 +4764,6 @@ def _debug_gates_for_ticker(ticker: str, df0: pd.DataFrame, state: Optional[Dict
                     level=float(mem.get("level",0.0)),
                     meta=meta2
                 ))
-
-
     # HARD FAIL: never keep HS/IHS candidates whose geometry does not pass deterministic guardrails
     # on the same detector window used for level evaluation.
     try:
@@ -5582,9 +4773,7 @@ def _debug_gates_for_ticker(ticker: str, df0: pd.DataFrame, state: Optional[Dict
         ]
     except Exception:
         pass
-
     out["Cand#"] = len(candidates)
-
     rows = []
     for cnd in candidates[:max_candidates]:
         try:
@@ -5593,7 +4782,6 @@ def _debug_gates_for_ticker(ticker: str, df0: pd.DataFrame, state: Optional[Dict
             price_ok = (dist >= ATR_CONFIRM_MULT) if cnd.direction == "BREAKOUT" else (dist <= -ATR_CONFIRM_MULT)
             clv_ok = (out["CLV"] >= CLV_BREAKOUT_MIN) if cnd.direction == "BREAKOUT" else (out["CLV"] <= CLV_BREAKDOWN_MAX)
             vol_ok = (out["VolRatio"] >= VOL_CONFIRM_MULT) if np.isfinite(out["VolRatio"]) else False
-
             hs_lag = ""
             if cnd.pattern in ("HS_TOP","IHS"):
                 try:
@@ -5601,7 +4789,6 @@ def _debug_gates_for_ticker(ticker: str, df0: pd.DataFrame, state: Optional[Dict
                     hs_lag = str(int(end - pe))
                 except Exception:
                     hs_lag = ""
-
             rows.append({
                 "pattern": cnd.pattern,
                 "dir": cnd.direction,
@@ -5615,7 +4802,6 @@ def _debug_gates_for_ticker(ticker: str, df0: pd.DataFrame, state: Optional[Dict
             })
         except Exception:
             continue
-
     best = None
     best_score = -1
     for r in rows:
@@ -5623,14 +4809,9 @@ def _debug_gates_for_ticker(ticker: str, df0: pd.DataFrame, state: Optional[Dict
         if sc > best_score:
             best_score = sc
             best = r
-
     out["Best"] = best
     out["Top"] = rows
     return out
-
-
-
-
 # ----------------------------
 # Charting (signals)
 # ----------------------------
@@ -5645,13 +4826,9 @@ def _pivots(arr: np.ndarray, w: int = 5, kind: str = "high") -> List[int]:
             if arr[i] == np.min(window) and np.sum(window == arr[i]) == 1:
                 piv.append(i)
     return piv
-
 def pivots(arr: np.ndarray, w: int = 5, kind: str = "high") -> List[int]:
     """Alias for _pivots (backward-compatible)."""
     return _pivots(arr, w=w, kind=kind)
-
-
-
 def _annotate_hs_top(ax, close: np.ndarray, low: np.ndarray) -> None:
     piv = _pivots(close, w=5, kind="high")[-12:]
     if len(piv) < 3:
@@ -5674,8 +4851,6 @@ def _annotate_hs_top(ax, close: np.ndarray, low: np.ndarray) -> None:
     neckline = (n1 + n2) / 2.0
     ax.axhline(neckline, linestyle="--", linewidth=1)
     ax.text(len(close) - 1, neckline, " Neckline", va="bottom")
-
-
 def _annotate_ihs(ax, close: np.ndarray, high: np.ndarray) -> None:
     piv = _pivots(close, w=5, kind="low")[-12:]
     if len(piv) < 3:
@@ -5698,12 +4873,6 @@ def _annotate_ihs(ax, close: np.ndarray, high: np.ndarray) -> None:
     neckline = (n1 + n2) / 2.0
     ax.axhline(neckline, linestyle="--", linewidth=1)
     ax.text(len(close) - 1, neckline, " Neckline", va="bottom")
-
-
-
-
-
-
 def _annotate_hs_top_dt(ax, dates, close, low) -> Optional[float]:
     """Date-aware HS-top labeling (avoids date-axis distortion)."""
     piv_hi = pivots(close, w=5, kind="high")[-10:]
@@ -5718,22 +4887,18 @@ def _annotate_hs_top_dt(ax, dates, close, low) -> Optional[float]:
     if not best:
         best = (piv_hi[-3], piv_hi[-2], piv_hi[-1])
     ls, head, rs = best
-
     for idxp, label in [(ls, "LS"), (head, "H"), (rs, "RS")]:
         ax.scatter([dates[idxp]], [close[idxp]], s=40)
         ax.annotate(label, (dates[idxp], close[idxp]),
                     xytext=(dates[idxp], close[idxp] + 3),
                     textcoords="data",
                     arrowprops=dict(arrowstyle="->", lw=1))
-
     n1 = float(np.min(low[min(ls, head):max(ls, head) + 1]))
     n2 = float(np.min(low[min(head, rs):max(head, rs) + 1]))
     neckline = (n1 + n2) / 2.0
     ax.axhline(neckline, linestyle="--", linewidth=1)
     ax.text(dates[-1], neckline, " Neckline", va="bottom")
     return neckline
-
-
 def _annotate_ihs_dt(ax, dates, close, high) -> Optional[float]:
     """Date-aware IHS labeling (avoids date-axis distortion)."""
     piv_lo = pivots(close, w=5, kind="low")[-10:]
@@ -5748,14 +4913,12 @@ def _annotate_ihs_dt(ax, dates, close, high) -> Optional[float]:
     if not best:
         best = (piv_lo[-3], piv_lo[-2], piv_lo[-1])
     ls, head, rs = best
-
     for idxp, label in [(ls, "LS"), (head, "H"), (rs, "RS")]:
         ax.scatter([dates[idxp]], [close[idxp]], s=40)
         ax.annotate(label, (dates[idxp], close[idxp]),
                     xytext=(dates[idxp], close[idxp] - 4),
                     textcoords="data",
                     arrowprops=dict(arrowstyle="->", lw=1))
-
     n1 = float(np.max(high[min(ls, head):max(ls, head) + 1]))
     n2 = float(np.max(high[min(head, rs):max(head, rs) + 1]))
     neckline = (n1 + n2) / 2.0
@@ -5771,7 +4934,6 @@ def _annotate_wedge(ax, dates, high, low, lookback: int = 120) -> None:
     Works for both WEDGE_UP_* and WEDGE_DOWN_*.
     """
     import numpy as _np
-
     n = len(high)
     if n < 40:
         return
@@ -5779,7 +4941,6 @@ def _annotate_wedge(ax, dates, high, low, lookback: int = 120) -> None:
     hi = _np.asarray(high[-lb:], dtype=float)
     lo = _np.asarray(low[-lb:], dtype=float)
     dts = dates[-lb:]
-
     def pivots(arr, w=4, kind="high"):
         out = []
         for i in range(w, len(arr)-w):
@@ -5791,50 +4952,40 @@ def _annotate_wedge(ax, dates, high, low, lookback: int = 120) -> None:
                 if arr[i] == _np.min(win):
                     out.append(i)
         return out
-
     piv_hi = pivots(hi, w=4, kind="high")[-4:]
     piv_lo = pivots(lo, w=4, kind="low")[-4:]
     if len(piv_hi) < 2 or len(piv_lo) < 2:
         return
-
     xh = _np.array(piv_hi, dtype=float)
     yh = hi[piv_hi]
     xl = _np.array(piv_lo, dtype=float)
     yl = lo[piv_lo]
-
     # Fit lines y = a*x + b
     ah, bh = _np.polyfit(xh, yh, 1)
     al, bl = _np.polyfit(xl, yl, 1)
-
     xs = _np.arange(lb, dtype=float)
     upper = ah*xs + bh
     lower = al*xs + bl
-
     # plot lines
     ax.plot(dts, upper, linestyle="--", linewidth=1)
     ax.plot(dts, lower, linestyle="--", linewidth=1)
     # touches
     ax.scatter([dts[i] for i in piv_hi], yh, s=22)
     ax.scatter([dts[i] for i in piv_lo], yl, s=22)
-
     # label
     ax.text(dts[int(lb*0.02)], upper[int(lb*0.05)], "Wedge upper", fontsize=9)
     ax.text(dts[int(lb*0.02)], lower[int(lb*0.10)], "Wedge lower", fontsize=9)
-
 def _annotate_from_signal_meta(ax, sig: LevelSignal) -> bool:
     """Render pattern geometry from deterministic detector metadata. Returns True if used."""
     meta = getattr(sig, "meta", None)
     if not isinstance(meta, dict) or not meta:
         return False
-
     used = False
-
     def _to_ts(x):
         try:
             return pd.to_datetime(x)
         except Exception:
             return None
-
     # Draw lines first
     for ln in meta.get("lines", []) or []:
         try:
@@ -5849,7 +5000,6 @@ def _annotate_from_signal_meta(ax, sig: LevelSignal) -> bool:
             used = True
         except Exception:
             continue
-
     # Draw touch points / pivots
     for pt in meta.get("touch_points", []) or []:
         try:
@@ -5860,7 +5010,6 @@ def _annotate_from_signal_meta(ax, sig: LevelSignal) -> bool:
             used = True
         except Exception:
             continue
-
     for pt in meta.get("points", []) or []:
         try:
             t = _to_ts(pt.get("t")); y = float(pt.get("p"))
@@ -5880,7 +5029,6 @@ def _annotate_from_signal_meta(ax, sig: LevelSignal) -> bool:
             used = True
         except Exception:
             continue
-
     # Helpful title note for DCB
     if meta.get("annot_type") == "dcb":
         try:
@@ -5891,9 +5039,7 @@ def _annotate_from_signal_meta(ax, sig: LevelSignal) -> bool:
             used = True
         except Exception:
             pass
-
     return used
-
 def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal, name_resolver=None) -> Optional[str]:
     """
     Chart output (last ~1Y, with indicators):
@@ -5910,14 +5056,12 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal, name_reso
     fname = re.sub(r"[^A-Za-z0-9_\-\.]+", "_", fname)
     out_path = IMG_DIR / fname
     IMG_DIR.mkdir(parents=True, exist_ok=True)
-
     # Display label for charts: Company (TICKER)
     try:
         nm = str(name_resolver(ticker) or "").strip() if callable(name_resolver) else ""
     except Exception:
         nm = ""
     label = f"{nm} ({ticker})" if nm and nm.upper() != str(ticker).upper() else str(ticker)
-
     def placeholder(reason: str) -> str:
         fig = plt.figure(figsize=(10.5, 5.0))
         ax = fig.add_subplot(111)
@@ -5930,10 +5074,8 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal, name_reso
         fig.savefig(out_path, dpi=160)
         plt.close(fig)
         return f"img/{fname}"
-
     if df is None or df.empty:
         return placeholder("no data")
-
     # --- Clean + ensure datetime index ---
     d0 = df.copy()
     # keep needed
@@ -5943,12 +5085,10 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal, name_reso
                 d0[col] = np.nan
             else:
                 return placeholder(f"missing column {col}")
-
     # Drop rows with invalid OHLC (common on weekends/partials for some tickers)
     d0 = d0.dropna(subset=["Close", "High", "Low"]).copy()
     if d0.empty or len(d0) < 80:
         return placeholder("insufficient history")
-
     try:
         # Ensure datetime index; avoid accidental epoch (1970) axes
         if not isinstance(d0.index, pd.DatetimeIndex):
@@ -5963,15 +5103,11 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal, name_reso
             idx = pd.to_datetime(d0.index, errors="coerce")
             d0 = d0.loc[~idx.isna()].copy()
             d0.index = pd.to_datetime(d0.index, errors="coerce")
-
         if d0.empty:
             return placeholder("could not parse dates")
-
         d0 = d0.sort_index()
-
         # Guard against epoch/outlier dates (e.g., 1970) by using last 400 rows then date-filter
         d_full = d0.tail(420).copy()
-
         # Plot window = last ~1 year
         # Use the same detector-style window as pattern indices (tail LOOKBACK_DAYS).
         # This avoids index/date mismatches where annotations point to the wrong bar.
@@ -5979,22 +5115,17 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal, name_reso
         d = _latest_completed_close_df(d)
         if len(d) < CHART_MIN_BARS:
             d = d_full.tail(CHART_MIN_BARS).copy()
-
-
         # Indicators (computed on d_full so SMA200 works)
         sma50_full = d_full["Close"].rolling(50).mean()
         sma200_full = d_full["Close"].rolling(200).mean()
         sma50 = sma50_full.loc[d.index]
         sma200 = sma200_full.loc[d.index]
-
         # ATR(14)
         atr_s = atr(d_full, 14)
         atr_last = float(atr_s.dropna().iloc[-1]) if atr_s is not None and len(atr_s.dropna()) else 0.0
-
         # Confirm line per rule
         direction = 1 if "BREAKOUT" in sig.signal else -1 if "BREAKDOWN" in sig.signal else 0
         confirm = sig.level + direction * 0.5 * atr_last
-
         # --- Build figure with volume subplot ---
         fig, (ax, axv) = plt.subplots(
             2, 1,
@@ -6002,66 +5133,52 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal, name_reso
             sharex=True,
             gridspec_kw={"height_ratios": [3.2, 1.0]}
         )
-
         # Price + SMAs
         ax.plot(d.index, d["Close"].astype(float).values)
         ax.plot(d.index, sma50.astype(float).values)
         ax.plot(d.index, sma200.astype(float).values)
-
         # Trigger + confirm
         ax.axhline(sig.level, linestyle="-.", linewidth=1)
         ax.axhline(confirm, linestyle=":", linewidth=1)
-
         ax.text(d.index[-1], sig.level, " Trigger", va="bottom")
         ax.text(d.index[-1], confirm, " Confirm (±0.5 ATR)", va="bottom")
-
         # Pattern markings
         close = d["Close"].astype(float).values
         high = d["High"].astype(float).values
         low = d["Low"].astype(float).values
-
         used_meta_annotation = _annotate_from_signal_meta(ax, sig)
         if not used_meta_annotation:
             # Minimal fallbacks: avoid drawing helper pivot labels (R1/R2/T1/T2) and extra lines.
             if "WEDGE" in sig.signal:
                 _annotate_wedge(ax, d.index.to_list(), high, low, lookback=min(140, len(d)))
-
         # Latest close marker
         ax.scatter([d.index[-1]], [close[-1]], s=60)
         ax.annotate("Close", (d.index[-1], close[-1]),
                     xytext=(d.index[-1], close[-1]),
                     textcoords="data")
-
         # Trade-prep box
         box = f"Trigger: {sig.level:.2f}\\nConfirm: {confirm:.2f}\\nDist: {sig.dist_atr:+.2f} ATR"
         ax.text(0.02, 0.02, box, transform=ax.transAxes, fontsize=9, va="bottom",
                 bbox=dict(boxstyle="round", fc="white", ec="black", lw=0.6))
-
         # Volume subplot
         vol = d["Volume"].fillna(0).astype(float).values
         axv.bar(d.index, vol, width=1.0)
         axv.set_ylabel("Vol")
-
         title = f"{label} | {sig.signal}"
         ax.set_title(title)
         ax.set_ylabel("Close")
         axv.set_xlabel("Date")
-
         fig.tight_layout()
         fig.savefig(out_path, dpi=160)
         plt.close(fig)
         return f"img/{fname}"
-
     except Exception as e:
         try:
             plt.close("all")
         except Exception:
             pass
         return placeholder(str(e))
-
-
 # ----------------------------
-
 def blurb_for_new_signal(sig: LevelSignal) -> str:
     """
     Short explanation for NEW early callouts (used in 4A).
@@ -6083,7 +5200,6 @@ def blurb_for_new_signal(sig: LevelSignal) -> str:
     return "\n".join(lines)
 # Reporting utilities
 # ----------------------------
-
 def _pct_change_n(c: pd.Series, n: int) -> Optional[float]:
     c = pd.to_numeric(c, errors="coerce").dropna()
     if len(c) <= n:
@@ -6093,8 +5209,6 @@ def _pct_change_n(c: pd.Series, n: int) -> Optional[float]:
     if prev == 0:
         return None
     return (last / prev - 1.0) * 100.0
-
-
 def _pct_ytd(c: pd.Series) -> Optional[float]:
     c = pd.to_numeric(c, errors="coerce").dropna()
     if c.empty:
@@ -6112,8 +5226,6 @@ def _pct_ytd(c: pd.Series) -> Optional[float]:
         return (last / base - 1.0) * 100.0
     except Exception:
         return None
-
-
 def build_watchlist_performance_section_md(
     ohlcv: Dict[str, pd.DataFrame],
     sector_resolver,
@@ -6121,14 +5233,12 @@ def build_watchlist_performance_section_md(
     country_resolver=None,
 ) -> str:
     """Section 6: Watchlist performance (all tickers) — grouped by watchlist segments.
-
     Columns (as requested):
       Name of Company | Ticker | Country | Sector | Close | Day% | CLV | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M
     """
     md: List[str] = []
     md.append("## 6) Watchlist performance (all tickers)\n")
     md.append("Columns: **Name of Company | Ticker | Country | Sector | Close | Day% | CLV | ATR(14) | ATR Δ14d | Vol/AvgVol(20) | 1D | 7D | 1M | 3M**\n")
-
     def _safe_name(t: str) -> str:
         # Name overrides (full caps) + commodities display names
         try:
@@ -6143,14 +5253,12 @@ def build_watchlist_performance_section_md(
                 return str(COMMODITY_NAME_OVERRIDES[base]).upper()
         except Exception:
             pass
-
         if callable(name_resolver):
             try:
                 return str(name_resolver(t) or "").upper()
             except Exception:
                 return ""
         return 
-
     def _safe_country(t: str) -> str:
         if callable(country_resolver):
             try:
@@ -6158,7 +5266,6 @@ def build_watchlist_performance_section_md(
             except Exception:
                 return ""
         return ""
-
     def _safe_sector(t: str) -> str:
         if callable(sector_resolver):
             try:
@@ -6166,7 +5273,6 @@ def build_watchlist_performance_section_md(
             except Exception:
                 return ""
         return ""
-
     def _clv_bar(df: pd.DataFrame) -> float:
         try:
             hi = float(df["High"].iloc[-1]); lo = float(df["Low"].iloc[-1]); cl = float(df["Close"].iloc[-1])
@@ -6176,7 +5282,6 @@ def build_watchlist_performance_section_md(
         except Exception:
             pass
         return float("nan")
-
     def _vol_ratio(df: pd.DataFrame) -> float:
         try:
             v = float(df["Volume"].iloc[-1])
@@ -6189,7 +5294,6 @@ def build_watchlist_performance_section_md(
         except Exception:
             pass
         return float("nan")
-
     def _pct_n(series: pd.Series, n: int) -> float:
         try:
             s = series.dropna()
@@ -6198,7 +5302,6 @@ def build_watchlist_performance_section_md(
             return float((float(s.iloc[-1]) / float(s.iloc[-(n+1)]) - 1.0) * 100.0)
         except Exception:
             return float("nan")
-
     def _atr_delta14(df: pd.DataFrame) -> float:
         try:
             a = atr(df, ATR_N).dropna()
@@ -6211,7 +5314,6 @@ def build_watchlist_performance_section_md(
         except Exception:
             pass
         return float("nan")
-
     # Keep the original segment order from WATCHLIST_GROUPS
     for seg, tickers in WATCHLIST_GROUPS.items():
         rows: List[Dict[str, Any]] = []
@@ -6240,24 +5342,19 @@ def build_watchlist_performance_section_md(
                 "1M": _pct_n(close_s, 21),
                 "3M": _pct_n(close_s, 63),
             })
-
         md.append(f"### {seg}\n")
         if not rows:
             md.append("<em>None</em>\n")
             continue
-
         dfp = pd.DataFrame(rows)
         # Sort: strongest 1M then 3M within segment
         dfp["_1m"] = pd.to_numeric(dfp["1M"], errors="coerce")
         dfp["_3m"] = pd.to_numeric(dfp["3M"], errors="coerce")
         dfp = dfp.sort_values(by=["_1m","_3m","Ticker"], ascending=[False, False, True]).drop(columns=["_1m","_3m"])
-
         cols = ["Name of Company","Ticker","Country","Sector","Close","Day%","CLV","ATR(14)","ATR Δ14d","Vol/AvgVol20","1D","7D","1M","3M"]
         md.append(html_table_from_df(dfp, cols=cols, max_rows=200))
         md.append("")
-
     return "\n".join(md)
-
 def signals_to_df(
     signals: List[LevelSignal],
     sector_resolver=None,
@@ -6304,9 +5401,6 @@ def signals_to_df(
             "Chart": s.chart_path or "",
         })
     return pd.DataFrame(rows)
-
-
-
 def md_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 30) -> str:
     if df is None or df.empty:
         return "_None_"
@@ -6333,57 +5427,42 @@ def md_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 30) -> s
         d["Last"] = pd.to_numeric(d["Last"], errors="coerce").map(lambda x: f"{x:,.2f}" if pd.notna(x) else "")
     if "Chart" in d.columns:
         d["Chart"] = d["Chart"].apply(lambda p: f"[chart]({p})" if isinstance(p, str) and p else "")
-
     out = d[cols]
-
     # Alignment: textual columns left, numeric-ish columns right
     left_cols = {"Name of Company", "Name", "Ticker", "Country", "Sector", "Signal", "Pattern", "Dir", "Chart", "Instrument", "Symbol", "symbol"}
     aligns = tuple("left" if c in left_cols else "right" for c in cols)
-
     return df_to_markdown_aligned(out, aligns=aligns, index=False)
-
-
 def html_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 80) -> str:
     """HTML table for GitHub Pages (auto layout; horizontal scroll).
-
     Formats common numeric columns used across the report.
     """
     if df is None or df.empty:
         return "<em>None</em>"
-
     d = df.copy().head(max_rows)
-
     # Price-like columns
     for c in ["Close", "Level", "Threshold", "Last", "ATR(14)"]:
         if c in d.columns:
             d[c] = pd.to_numeric(d[c], errors="coerce").map(lambda x: f"{x:,.2f}" if pd.notna(x) else "")
-
     # Distance columns
     if "Dist(ATR)" in d.columns:
         d["Dist(ATR)"] = pd.to_numeric(d["Dist(ATR)"], errors="coerce").map(lambda x: f"{x:+.2f}" if pd.notna(x) else "")
-
     # HVN runway
     if "HVN Runway%" in d.columns:
         d["HVN Runway%"] = pd.to_numeric(d["HVN Runway%"], errors="coerce").map(lambda x: f"{x:+.2f}%" if pd.notna(x) else "")
-
     # Volume ratio
     for vc in ["Vol/AvgVol20", "Vol/AvgVol(20)"]:
         if vc in d.columns:
             d[vc] = pd.to_numeric(d[vc], errors="coerce").map(lambda x: f"{x:.2f}×" if pd.notna(x) else "")
-
     # CLV
     if "CLV" in d.columns:
         d["CLV"] = pd.to_numeric(d["CLV"], errors="coerce").map(lambda x: f"{x:+.2f}" if pd.notna(x) else "")
-
     # Percent columns
     for pc in ["Day%", "1D", "7D", "1M", "3M", "Week%", "Month%", "YTD%"]:
         if pc in d.columns:
             d[pc] = pd.to_numeric(d[pc], errors="coerce").map(lambda x: f"{x:+.1f}%" if pd.notna(x) else "")
-
     # ATR delta percent
     if "ATR Δ14d" in d.columns:
         d["ATR Δ14d"] = pd.to_numeric(d["ATR Δ14d"], errors="coerce").map(lambda x: f"{x:+.1f}%" if pd.notna(x) else "")
-
     # Chart links
     if "Chart" in d.columns:
         def _mk(p):
@@ -6392,18 +5471,14 @@ def html_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 80) ->
                 return f'<a href="{u}" target="_blank">chart</a>'
             return ""
         d["Chart"] = d["Chart"].apply(_mk)
-
     cols_use = [c for c in cols if c in d.columns]
     if not cols_use:
         return "<em>None</em>"
-
     num_cols = {
         "Close","Last","Level","Threshold","Dist(ATR)","HVN Runway%","Vol/AvgVol20","Vol/AvgVol(20)","CLV",
         "Day%","1D","7D","1M","3M","Week%","Month%","YTD%","ATR(14)","ATR Δ14d"
     }
-
     thead = "<thead><tr>" + "".join([f"<th>{c}</th>" for c in cols_use]) + "</tr></thead>"
-
         # Color-code selected performance columns (requested for Section 6: 1D/7D/1M/3M).
     color_pct_cols = {"1D", "7D", "1M", "3M"}
     def _colorize_pct_cell(v: Any) -> Any:
@@ -6426,7 +5501,6 @@ def html_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 80) ->
             return v
         except Exception:
             return v
-
     rows_html = []
     for _, r in d[cols_use].iterrows():
         tds = []
@@ -6440,7 +5514,6 @@ def html_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 80) ->
             tds.append(f'<td class="{cls}">{"" if v is None else v}</td>')
         rows_html.append("<tr>" + "".join(tds) + "</tr>")
     tbody = "<tbody>" + "".join(rows_html) + "</tbody>"
-
     style = (
         "<style>"
         "table.tblauto{table-layout:auto;width:100%;border-collapse:collapse;margin:8px 0;}"
@@ -6451,12 +5524,9 @@ def html_table_from_df(df: pd.DataFrame, cols: List[str], max_rows: int = 80) ->
         "table.tblauto td.wrap{white-space:normal;}"
         "</style>"
     )
-
     return style + f'<div style="overflow-x:auto"><table class="tblauto">{thead}{tbody}</table></div>'
-
 def enrich_confirmed_rules(df: pd.DataFrame, ohlcv: Dict[str, pd.DataFrame]) -> pd.DataFrame:
     """Add confirmation-gate diagnostics to CONFIRMED tables.
-
     Adds:
       - Threshold (same as Level)
       - Vol/AvgVol20
@@ -6465,24 +5535,20 @@ def enrich_confirmed_rules(df: pd.DataFrame, ohlcv: Dict[str, pd.DataFrame]) -> 
     """
     if df is None or df.empty:
         return df
-
     d = df.copy()
     if "Threshold" not in d.columns:
         d["Threshold"] = d["Level"] if "Level" in d.columns else np.nan
-
     vols = []
     clvs = []
     price_ok = []
     vol_ok = []
     clv_ok = []
-
     for _, r in d.iterrows():
         t = str(r.get("Ticker", "")).strip()
         sig = str(r.get("Signal", ""))
         dist = pd.to_numeric(r.get("Dist(ATR)", np.nan), errors="coerce")
         is_breakout = "BREAKOUT" in sig and "BREAKDOWN" not in sig
         is_breakdown = "BREAKDOWN" in sig
-
         # Price gate from Dist(ATR)
         p_ok = False
         if pd.notna(dist):
@@ -6516,7 +5582,6 @@ def enrich_confirmed_rules(df: pd.DataFrame, ohlcv: Dict[str, pd.DataFrame]) -> 
                             vr = v / avg20
                     except Exception:
                         vr = np.nan
-
         v_ok = bool(pd.notna(vr) and vr >= VOL_CONFIRM_MULT)
         c_ok = False
         if pd.notna(cv):
@@ -6524,31 +5589,24 @@ def enrich_confirmed_rules(df: pd.DataFrame, ohlcv: Dict[str, pd.DataFrame]) -> 
                 c_ok = cv >= CLV_BREAKOUT_MIN
             elif is_breakdown:
                 c_ok = cv <= CLV_BREAKDOWN_MAX
-
         vols.append(vr)
         clvs.append(cv)
         price_ok.append("✅" if p_ok else "❌")
         vol_ok.append("✅" if v_ok else "❌")
         clv_ok.append("✅" if c_ok else "❌")
-
     d["Vol/AvgVol20"] = vols
     d["CLV"] = clvs
     d["PriceOK"] = price_ok
     d["VolOK"] = vol_ok
     d["CLVOK"] = clv_ok
     return d
-
-
 def diff_new_ended(prev: Dict[str, List[str]], cur: Dict[str, List[str]]) -> Tuple[List[str], List[str]]:
     prev_set = set(prev.get("signals", []))
     cur_set = set(cur.get("signals", []))
     return sorted(cur_set - prev_set), sorted(prev_set - cur_set)
-
-
 # ----------------------------
 # Main
 # ----------------------------
-
 def _dedupe_macro_cards(md_str: str) -> str:
     """Ensure VIX/EURUSD macro card images appear only once in the markdown.
     Some email/renderer paths can duplicate blocks; we keep the first occurrence."""
@@ -6562,19 +5620,27 @@ def _dedupe_macro_cards(md_str: str) -> str:
         # rebuild keeping first occurrence only
         md_str = parts[0] + key + "".join(p.replace(key, "") for p in parts[1:])
     return md_str
-
-
+def _strip_macro_images_for_email(md_str: str) -> str:
+    """Remove macro card images from the email markdown to prevent iOS mail clients from duplicating them as attachments.
+    Web report keeps the images in section 1; email version uses links only (no inline macro images).
+    """
+    if not md_str:
+        return md_str
+    out_lines = []
+    for ln in md_str.splitlines():
+        if "macro_vix_5y.png" in ln or "macro_eurusd_5y.png" in ln:
+            continue
+        out_lines.append(ln)
+    return "\n".join(out_lines).strip() + "\n"
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--mode", choices=["full", "custom"], default=os.environ.get("MODE", "custom"))
     ap.add_argument("--max-tickers", type=int, default=int(os.environ.get("MAX_TICKERS", "0")))
     args = ap.parse_args()
-
     custom = get_custom_tickers()
     # Extend universe to commodities (no country; sector=Commodities)
     custom = sorted(set(custom + COMMODITY_TICKERS))
     watchlist_set = set(custom)
-
     # Base universe (unchanged behavior for movers/early callouts)
     if args.mode == "full":
         spx = get_sp500_tickers()
@@ -6582,10 +5648,8 @@ def main():
         base_universe = sorted(set(custom + spx + ndx))
     else:
         base_universe = custom
-
     if args.max_tickers and args.max_tickers > 0:
         base_universe = base_universe[:args.max_tickers]
-
     # Optional MSCI World expansion for CONFIRMED technical signals (4B only), driven by local classification CSV.
     msci_df = load_msci_world_classification(MSCI_WORLD_CLASSIFICATION_CSV)
     msci_tickers = [] if msci_df is None or msci_df.empty else [str(x).strip() for x in msci_df["Ticker"].astype(str).tolist()]
@@ -6594,11 +5658,9 @@ def main():
         print(f"[msci] loaded {len(msci_tickers)} non-watchlist/non-base tickers from {MSCI_WORLD_CLASSIFICATION_CSV}")
     else:
         print(f"[msci] no extra tickers loaded from {MSCI_WORLD_CLASSIFICATION_CSV} (4B remains base universe only)")
-
     tech_scan_universe = sorted(set(base_universe + msci_tickers))
     sector_resolver = build_sector_resolver(msci_df)
     company_name_for_ticker, country_for_ticker = build_company_country_resolvers(msci_df)
-
     now = dt.datetime.now(dt.timezone.utc)
     global PUBLIC_BASE_URL, CACHE_BUST
     CACHE_BUST = now.strftime("%Y%m%d%H%M%S")
@@ -6607,13 +5669,10 @@ def main():
     def _cb_img(src: str) -> str:
         return _asset_url(src)
     header_time = now.astimezone().strftime("%Y-%m-%d %H:%M %Z")
-
     # RSS
     rss_items = fetch_rss_headlines(limit_total=14)
-
     # 1) Snapshot table + exec summary
     snapshot_df = fetch_market_snapshot_multi()
-
     # 1) Macro "card" charts (5Y)
     vix_card = plot_gf_card_5y(
         "^VIX",
@@ -6631,10 +5690,8 @@ def main():
         decimals_last=2,
         line_color="#d93025",
     )
-
     # Download OHLCV once (for technicals)
     ohlcv = yf_download_chunk(tech_scan_universe)
-
     # Load state early (used for HS/Band geometry carry-forward) + initialize debug counters
     state = load_state()
     debug: Dict[str, Any] = {
@@ -6649,7 +5706,6 @@ def main():
         'hs_restored': 0,
         'band_restored': 0,
     }
-
     # 2) Movers
     # Compute session movers from the watchlist universe (more reliable than scraping Yahoo gainers/losers).
     # With MSCI expansion enabled, the large batch download can occasionally miss a few watchlist names;
@@ -6673,7 +5729,6 @@ def main():
             continue
         pct = (c1 / c0 - 1.0) * 100.0
         session_rows.append({"symbol": t, "pct": float(pct)})
-
     if missing_for_movers:
         try:
             ohlcv_movers_fb = yf_download_chunk(sorted(set(missing_for_movers)))
@@ -6698,7 +5753,6 @@ def main():
     session_lf = session_all[session_all["pct"] <= -MOVER_THRESHOLD_PCT].sort_values("pct", ascending=True)
     # After-hours movers (watchlist) via Yahoo quote endpoint (postMarketChangePercent)
     ah_all = fetch_watchlist_afterhours_movers_yahoo(mover_universe)
-
     # Fallback: if Yahoo returns no extended-hours data for some tickers, supplement from StockAnalysis after-hours tables.
     try:
         fb_gain, fb_lose = fetch_afterhours_movers()
@@ -6720,12 +5774,9 @@ def main():
                     ah_all = pd.concat([ah_all, fb2], ignore_index=True)
     except Exception:
         pass
-
     ah_all = filter_movers(ah_all)
-
     ah_gf = ah_all[ah_all['pct'] >= MOVER_THRESHOLD_PCT].sort_values('pct', ascending=False)
     ah_lf = ah_all[ah_all['pct'] <= -MOVER_THRESHOLD_PCT].sort_values('pct', ascending=True)
-
     # Watchlist movers (>|4%|, incl. after-hours) for executive summary
     wl_set = set(custom)
     def _wl_extract(df: pd.DataFrame) -> List[Tuple[str, float]]:
@@ -6743,21 +5794,17 @@ def main():
         for _, r in pd.concat([g, l], ignore_index=True).iterrows():
             out.append((str(r["symbol"]), float(r["pct"])))
         return out
-
     # session_gf/session_lf already filtered to >= 4% absolute movers
     session_combined = pd.concat([session_gf, session_lf], ignore_index=True) if (session_gf is not None and session_lf is not None) else pd.DataFrame(columns=["symbol","pct"])
     ah_combined = pd.concat([ah_gf, ah_lf], ignore_index=True) if (ah_gf is not None and ah_lf is not None) else pd.DataFrame(columns=["symbol","pct"])
-
     watchlist_movers = {
         "session": _wl_extract(session_combined),
         "after_hours": _wl_extract(ah_combined),
     }
-
     if not ah_lf.empty:
         ah_lf = ah_lf.sort_values("pct", ascending=True)
 # 4) # 4) Technical triggers
     all_signals: List[LevelSignal] = []
-
     # Watchlist/base universe: keep EARLY + CONFIRMED + VALIDATED (drives 4A + watchlist trend table)
     base_set = set(base_universe)
     for t in base_universe:
@@ -6768,7 +5815,6 @@ def main():
         if len(df) >= 80:
             debug['tickers_usable'] += 1
         all_signals.extend(compute_signals_for_ticker(t, df, state=state, debug=debug))
-
     # MSCI expansion: include EARLY as well (to tune rules on a larger universe)
     if msci_tickers:
         for t in msci_tickers:
@@ -6781,11 +5827,9 @@ def main():
             sigs = compute_signals_for_ticker(t, df, state=state, debug=debug)
             if sigs:
                 all_signals.extend(sigs)
-
     validated = [s for s in all_signals if s.signal.startswith("VALIDATED_")]
     confirmed = [s for s in all_signals if s.signal.startswith("CONFIRMED_")]
     early = [s for s in all_signals if s.signal.startswith("EARLY_")]
-
     def rank_signal(s: LevelSignal) -> Tuple[int, float]:
         # Higher priority: VALIDATED > CONFIRMED > EARLY; tie-break by proximity to trigger
         if s.signal.startswith("VALIDATED_"):
@@ -6795,11 +5839,9 @@ def main():
         else:
             tier = 2
         return (tier, abs(s.dist_atr))
-
     validated_sorted = sorted(validated, key=rank_signal)
     confirmed_sorted = sorted(confirmed, key=rank_signal)
     early_sorted = sorted(early, key=rank_signal)
-
     # Charts: VALIDATED (cap) then CONFIRMED (cap)
     val_charts = 0
     for s in validated_sorted:
@@ -6807,14 +5849,12 @@ def main():
             continue
         s.chart_path = plot_signal_chart(s.ticker, ohlcv.get(s.ticker), s, name_resolver=company_name_for_ticker)
         val_charts += 1
-
     conf_charts = 0
     for s in confirmed_sorted:
         if conf_charts >= int(MAX_CHARTS_CONFIRMED):
             continue
         s.chart_path = plot_signal_chart(s.ticker, ohlcv.get(s.ticker), s, name_resolver=company_name_for_ticker)
         conf_charts += 1
-
     # Charts: EARLY across all tickers (cap to keep report readable)
     early_charts = 0
     for s in early_sorted:
@@ -6826,14 +5866,11 @@ def main():
     # (state/debug already initialized above; do not reload here)
     prev_all = {"signals": state.get("signals", [])}
     prev_early = {"signals": state.get("early", [])}
-
     cur_all_ids = [f"{s.ticker}|{s.signal}" for s in all_signals]
     cur_early_ids = [f"{s.ticker}|{s.signal}" for s in early_sorted]
-
     state["signals"] = cur_all_ids
     state["early"] = cur_early_ids
     save_state(state)
-
     new_ids, ended_ids = diff_new_ended(prev_all, {"signals": cur_all_ids})
     # Group ended signals by stage prefix and show them inside Section 4 (no separate changelog).
     ended_by_stage = {"EARLY": [], "CONFIRMED": [], "VALIDATED": []}
@@ -6848,10 +5885,8 @@ def main():
             ended_by_stage["CONFIRMED"].append(_x)
         elif str(_sig).startswith("VALIDATED_"):
             ended_by_stage["VALIDATED"].append(_x)
-
     new_early_ids, _ended_early_ids = diff_new_ended(prev_early, {"signals": cur_early_ids})
     new_set = set(new_early_ids)
-
     def mark_new(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
         if df is None or df.empty:
             return df, df
@@ -6860,27 +5895,22 @@ def main():
         d_new = d[d["_id"].isin(new_set)].drop(columns=["_id"])
         d_old = d[~d["_id"].isin(new_set)].drop(columns=["_id"])
         return d_new, d_old
-
         # EARLY new/ongoing is diffed vs last run (pre-break proximity is transient).
     df_early = signals_to_df(early_sorted, sector_resolver=sector_resolver, name_resolver=company_name_for_ticker, country_resolver=country_for_ticker)
     df_early_new, df_early_old = mark_new(df_early)
-
     # CONFIRMED / VALIDATED new/ongoing is deterministic (based on breakout-day age), independent of whether the script ran.
     conf_new = [s for s in confirmed_sorted if getattr(s, "stage_status", None) == "NEW"]
     conf_old = [s for s in confirmed_sorted if getattr(s, "stage_status", None) == "ONGOING"]
     val_new = [s for s in validated_sorted if getattr(s, "stage_status", None) == "NEW"]
     val_old = [s for s in validated_sorted if getattr(s, "stage_status", None) == "ONGOING"]
-
     df_conf_new = signals_to_df(conf_new, sector_resolver=sector_resolver, name_resolver=company_name_for_ticker, country_resolver=country_for_ticker)
     df_conf_old = signals_to_df(conf_old, sector_resolver=sector_resolver, name_resolver=company_name_for_ticker, country_resolver=country_for_ticker)
     df_val_new = signals_to_df(val_new, sector_resolver=sector_resolver, name_resolver=company_name_for_ticker, country_resolver=country_for_ticker)
     df_val_old = signals_to_df(val_old, sector_resolver=sector_resolver, name_resolver=company_name_for_ticker, country_resolver=country_for_ticker)
-
     # Assemble markdown
     md: List[str] = []
     md.append("# Daily Report\n")
     md.append(f"_Generated: **{header_time}** | Version: **{SCAN_VERSION}**_\n")
-
     # 1) Market recap & positioning (EXEC SUMMARY FIRST)
     md.append("## 1) Market recap & positioning\n")
     md.append("**Executive summary:**\n")
@@ -6890,7 +5920,6 @@ def main():
     md.append("**Key tape (multi-horizon):**\n")
     md.append(format_snapshot_table_multi(snapshot_df))
     md.append("")
-
     md.append("**Macro charts (5Y):**\n")
     # Render as HTML with explicit sizing so dashboard + email match
     W = 414
@@ -6906,20 +5935,16 @@ def main():
     elif eur_card:
         md.append(f"<img src='{_cb_img(eur_card)}' width='{W}' style='width:{W}px;max-width:{W}px;height:auto;'>\n")
     md.append("")
-
     # 2) Movers
     md.append("## 2) Biggest movers (≥ 4%)\n")
     md.append(movers_table(session_gf, "Session gainers"))
     md.append(movers_table(session_lf, "Session losers"))
     md.append(movers_table(ah_gf, "After-hours gainers"))
     md.append(movers_table(ah_lf, "After-hours losers"))
-
     # 3) Earnings (watchlist)
     md.append(earnings_section_md(WATCHLIST_44, days=14))
-
     # 4) Technical triggers
     md.append("## 4) Technical triggers\n")
-
 # ----------------------------
     # Signal engine health (diagnostics)
     # ----------------------------
@@ -6929,14 +5954,12 @@ def main():
         byp = debug.get("cand_by_pattern", {}) if isinstance(debug.get("cand_by_pattern", {}), dict) else {}
         top_pats = sorted([(k, int(v)) for k, v in byp.items()], key=lambda x: x[1], reverse=True)[:8]
         top_pats_str = ", ".join([f"{k}:{v}" for k, v in top_pats]) if top_pats else "None"
-
         md.append("### Signal engine health (diagnostics)\n")
         md.append(f"- Tickers scanned: **{int(debug.get('tickers_scanned', 0))}**; usable OHLCV: **{int(debug.get('tickers_usable', 0))}**\n")
         md.append(f"- Candidates found: **{cand_total}** (top patterns: {top_pats_str})\n")
         md.append(f"- Live signals: EARLY **{int(debug.get('signals_early', 0))}**, CONFIRMED **{int(debug.get('signals_conf', 0))}**, VALIDATED **{int(debug.get('signals_val', 0))}** (total {sig_total})\n")
         md.append(f"- Geometry restored today: HS/IHS **{int(debug.get('hs_restored', 0))}**, Band **{int(debug.get('band_restored', 0))}**\n")
         md.append("\n")
-
         big_rows: List[Dict[str, Any]] = []
         for t in WATCHLIST_44:
             df = ohlcv.get(t)
@@ -6973,11 +5996,7 @@ def main():
             md.append("\n")
     except Exception:
         pass
-
-
-
     # Emerging chart trends (watchlist pulse) — before early callouts
-
     # Focus tickers deep-dive (always shown) — NU + CEG with explicit “why not detected” + charts
     md.append("### Focus tickers deep-dive (always shown)\n")
     for ft in FOCUS_TICKERS:
@@ -6986,7 +6005,6 @@ def main():
             if df_ft is None or df_ft.empty:
                 md.append(f"**{ft}** — no data\n\n")
                 continue
-
             # Align all focus diagnostics and charts to the same detector window (trading-bar lookback).
             d_local = df_ft.dropna(subset=["Open","High","Low","Close"]).copy()
             d_local = d_local.tail(LOOKBACK_DAYS).copy()
@@ -6994,18 +6012,14 @@ def main():
             if d_local.empty or len(d_local) < 5:
                 md.append(f"**{ft}** — insufficient bars\n\n")
                 continue
-
             info = _debug_gates_for_ticker(ft, df_ft, state=state, max_candidates=12)
             best = info.get("Best") or {}
             nm = company_name_for_ticker(ft)
             nm_disp = (NAME_OVERRIDES.get(ft) or nm or ft).upper()
             md.append(f"**{nm_disp} ({ft})**\n")
-
             top_list = info.get("Top") or []
             hs_seen = any((isinstance(r, dict) and r.get("pattern") in ("HS_TOP", "IHS")) for r in top_list)
             md.append(f"- HS/IHS detected today: **{'YES' if hs_seen else 'NO'}**\n")
-
-
             # Always compute HS/IHS gate diagnostics for focus tickers (even if a HS/IHS was detected).
             exp_top: Dict[str, Any] = {}
             exp_inv: Dict[str, Any] = {}
@@ -7017,7 +6031,6 @@ def main():
                 _ = detect_inverse_hs(df_ft, explain=exp_inv)
             except Exception:
                 pass
-
             def _fmt(exp: Dict[str, Any]) -> str:
                 items = []
                 for k, v in exp.items():
@@ -7028,7 +6041,6 @@ def main():
                 items.sort(key=lambda x: x[1], reverse=True)
                 top = items[:10]
                 return ", ".join([f"{k}:{v}" for k, v in top]) if top else "None"
-
             md.append(f"- HS_TOP reject summary: {_fmt(exp_top)}\n")
             md.append(f"- IHS reject summary: {_fmt(exp_inv)}\n")
             # If HS/IHS was rejected by guardrails, show the last rejected geometry for transparency (focus tickers).
@@ -7043,14 +6055,63 @@ def main():
                     md.append(f"  - 3) Symmetry ≥ {HS_SYMMETRY_MIN_RATIO:.2f}: {'YES' if g.get('symmetry_ok') else 'NO'} (dL={g.get('dL')}, dR={g.get('dR')}, ratio={g.get('symmetry_ratio')})\n")
                     md.append(f"  - 4) Valley ≥ {HS_VALLEY_ATR_MULT:.1f}×ATR: {'YES' if g.get('valley_ok') else 'NO'} (left={g.get('valley_left_depth')}, right={g.get('valley_right_depth')}, thr={g.get('valley_thr')}, ATR={g.get('atr_head')})\n")
                     md.append(f"  - 5) Shoulder→Valley ≥ {HS_SHOULDER_VALLEY_ATR_MULT:.1f}×ATR: {'YES' if g.get('shoulder_valley_ok') else 'NO'} (left={g.get('shoulder_valley_left_depth')}, right={g.get('shoulder_valley_right_depth')}, thr={g.get('shoulder_valley_thr')})\n")
+                # If no last rejected geometry was captured (e.g., rejection happened before guardrails),
+                # produce a best-effort diagnostic geometry so focus tickers still show the deterministic checks.
+                try:
+                    lr2 = exp_top.get("_last_reject_geom") if isinstance(exp_top, dict) else None
+                    if not (isinstance(lr2, dict) and isinstance(lr2.get("geom"), dict)):
+                        d_det2 = df_ft.tail(LOOKBACK_DAYS).dropna(subset=["Open","High","Low","Close"]).copy()
+                        d_det2 = _latest_completed_close_df(d_det2)
+                        if len(d_det2) >= 60:
+                            c2 = d_det2["Close"].astype(float).values
+                            head_val2 = float(np.nanmax(c2))
+                            head_idxs2 = np.where(np.isclose(c2, head_val2, rtol=0.0, atol=1e-8))[0]
+                            p2_dbg = int(head_idxs2[-1]) if len(head_idxs2) else int(np.nanargmax(c2))
+                            head_zone2 = int(HS_MIN_SIDE_BARS)
+                            # Close-peak candidates for shoulders (same as HS_TOP)
+                            hi2 = _swing_highs_on_close(d_det2, window=5, prominence_atr_mult=0.5, allow_tie_high_2dp=True)
+                            L_lo2 = max(0, p2_dbg - int(HS_MAX_BARS))
+                            L_hi2 = max(L_lo2, p2_dbg - head_zone2)
+                            R_lo2 = min(len(d_det2), p2_dbg + 1 + head_zone2)
+                            R_hi2 = min(len(d_det2), p2_dbg + 1 + int(HS_MAX_BARS))
+                            left2 = [int(i) for i in hi2 if L_lo2 <= int(i) < L_hi2]
+                            right2 = [int(i) for i in hi2 if R_lo2 <= int(i) < R_hi2]
+                            left2_sorted = sorted(left2, key=lambda i: (float(d_det2["Close"].iloc[i]), int(i)), reverse=True)
+                            right2_sorted = sorted(right2, key=lambda i: (float(d_det2["Close"].iloc[i]), -int(i)), reverse=True)
+                            md.append(f"- HS diagnostic head anchor: H={_iso_ts(d_det2.index[p2_dbg])} (i={p2_dbg}) | Close={float(d_det2['Close'].iloc[p2_dbg]):.2f}\n")
+                            if left2_sorted:
+                                md.append("  - Left shoulder candidates (top 5): " + ", ".join([f"{_iso_ts(d_det2.index[i])}({float(d_det2['Close'].iloc[i]):.2f})" for i in left2_sorted[:5]]) + "\n")
+                            else:
+                                md.append("  - Left shoulder candidates: NONE (after head-zone exclusion)\n")
+                            if right2_sorted:
+                                md.append("  - Right shoulder candidates (top 5): " + ", ".join([f"{_iso_ts(d_det2.index[i])}({float(d_det2['Close'].iloc[i]):.2f})" for i in right2_sorted[:5]]) + "\n")
+                            else:
+                                md.append("  - Right shoulder candidates: NONE (after head-zone exclusion)\n")
+                            if left2_sorted and right2_sorted:
+                                p1_dbg = int(left2_sorted[0])
+                                p3_dbg = int(right2_sorted[0])
+                                geom2 = _hs_geometry_diagnostics(
+                                    d_det2, p1_dbg, p2_dbg, p3_dbg,
+                                    inverse=False, local_window=HS_LOCAL_WINDOW,
+                                    symmetry_min_ratio=HS_SYMMETRY_MIN_RATIO,
+                                    valley_atr_mult=HS_VALLEY_ATR_MULT
+                                )
+                                md.append("- Best attempted HS geometry (diagnostic):\n")
+                                md.append(f"  - LS/H/RS (ts): LS={_iso_ts(d_det2.index[p1_dbg])}, H={_iso_ts(d_det2.index[p2_dbg])}, RS={_iso_ts(d_det2.index[p3_dbg])}\n")
+                                md.append("  - Geometry checks (deterministic):\n")
+                                md.append(f"    - 1) H is absolute extreme Close in [LS..RS]: {'YES' if geom2.get('head_is_global_span') else 'NO'} (H_Close={geom2.get('head_close'):.2f}, span_extreme={geom2.get('head_span_extreme_close'):.2f}, extreme_i={geom2.get('head_span_arg_i')})\n")
+                                md.append(f"    - 2) LS local extreme (±{HS_LOCAL_WINDOW}): {'YES' if geom2.get('ls_local_extreme') else 'NO'} | RS local extreme: {'YES' if geom2.get('rs_local_extreme') else 'NO'}\n")
+                                md.append(f"    - 3) Symmetry ratio ≥ {HS_SYMMETRY_MIN_RATIO:.2f}: {'YES' if geom2.get('symmetry_ok') else 'NO'} (dL={geom2.get('dL')}, dR={geom2.get('dR')}, ratio={geom2.get('symmetry_ratio'):.2f})\n")
+                                md.append(f"    - 4) Valley depth ≥ {HS_VALLEY_ATR_MULT:.1f}×ATR(head): {'YES' if geom2.get('valley_ok') else 'NO'} (left={geom2.get('valley_left_depth'):.2f}, right={geom2.get('valley_right_depth'):.2f}, thr={geom2.get('valley_thr'):.2f}, ATR={geom2.get('atr_head'):.2f})\n")
+                                md.append(f"    - 5) Shoulder→Valley ≥ {HS_SHOULDER_VALLEY_ATR_MULT:.1f}×ATR(head): {'YES' if geom2.get('shoulder_valley_ok') else 'NO'} (left={geom2.get('shoulder_valley_left_depth'):.2f}, right={geom2.get('shoulder_valley_right_depth'):.2f}, thr={geom2.get('shoulder_valley_thr'):.2f})\n")
+                except Exception:
+                    pass
             except Exception:
                 pass
-
             if "highs" in exp_top or "lows" in exp_top:
                 md.append(f"- Swings (HS_TOP): highs={exp_top.get('highs','?')} lows={exp_top.get('lows','?')}\n")
             if "highs" in exp_inv or "lows" in exp_inv:
                 md.append(f"- Swings (IHS): highs={exp_inv.get('highs','?')} lows={exp_inv.get('lows','?')}\n")
-
             # NU-specific diagnostics: why Jan 5 is / is not a swing high + whether HS_MIN_BARS is forcing LS backward
             if str(ft).upper() == "NU":
                 try:
@@ -7072,9 +6133,6 @@ def main():
                         )
                 except Exception:
                     pass
-
-
-
                 # NU: show the actual left/right shoulder candidate peaks around the head (CLOSE-based) and why Jan 5 might lose.
                 try:
                     d_det = df_ft.tail(LOOKBACK_DAYS).dropna(subset=["Open","High","Low","Close"]).copy()
@@ -7096,7 +6154,6 @@ def main():
                         right = [int(i) for i in hi_det if R_lo <= int(i) < R_hi]
                         left_sorted = sorted(left, key=lambda i: (float(c_det.iloc[i]), int(i)), reverse=True)
                         right_sorted = sorted(right, key=lambda i: (-float(c_det.iloc[i]), int(i)))
-
                         md.append(f"- NU HS_TOP head anchor (detector window): H={d_det.index[p2_det].date()} (i={p2_det}) | Close={float(c_det.iloc[p2_det]):.2f} | head_zone=±{head_zone} bars\n")
                         # Show top left candidates
                         if left_sorted:
@@ -7105,7 +6162,6 @@ def main():
                                 md.append(f"  - L{k+1}: {d_det.index[i].date()} (i={i}) Close={float(c_det.iloc[i]):.2f}\n")
                         else:
                             md.append("- NU left-shoulder candidates: NONE (after head-zone exclusion)\n")
-
                         # Explicitly check Jan 5 membership
                         ts_j5 = pd.to_datetime('2026-01-05')
                         if ts_j5 in d_det.index:
@@ -7139,7 +6195,6 @@ def main():
                 hs_lag = str(best.get("hs_lag", ""))
                 lvl = float(best.get("level", 0.0)) if best.get("level") is not None else float("nan")
                 meta = best.get("meta")
-
                 md.append(f"- Best candidate: **{patt} / {direc}** | Dist(ATR) **{dist:+.2f}** | Gates: Price **{'Y' if price_ok else 'N'}**, CLV **{'Y' if clv_ok else 'N'}**, Vol **{'Y' if vol_ok else 'N'}** | HS lag **{hs_lag}**\n")
                 try:
                     clv_val = info.get('CLV', None)
@@ -7163,7 +6218,6 @@ def main():
                                 ls_i = int(pLS.get("i")); h_i = int(pH.get("i")); rs_i = int(pRS.get("i"))
                                 md.append(f"  - LS/H/RS geometry (idx): LS={ls_i}, H={h_i}, RS={rs_i}\n")
                                 md.append(f"  - LS/H/RS geometry (ts): LS={pLS.get('t')}, H={pH.get('t')}, RS={pRS.get('t')}\n")
-
                                 # Deterministic geometry checks (requested)
                                 try:
                                     geom_chk = _hs_geometry_diagnostics(d_local, ls_i, h_i, rs_i, inverse=(patt == "IHS"),
@@ -7178,7 +6232,6 @@ def main():
                                     md.append(f"    - 5) Shoulder→Valley ≥ {HS_SHOULDER_VALLEY_ATR_MULT:.1f}×ATR(head): {'YES' if geom_chk.get('shoulder_valley_ok') else 'NO'} (left={geom_chk.get('shoulder_valley_left_depth'):.2f}, right={geom_chk.get('shoulder_valley_right_depth'):.2f}, thr={geom_chk.get('shoulder_valley_thr'):.2f})\n")
                                 except Exception:
                                     pass
-
                                 # Use the SAME detector window (tail LOOKBACK_DAYS), so meta indices (iloc) always align.
                                 d_local = df_ft.tail(LOOKBACK_DAYS).dropna(subset=["Open","High","Low","Close"]).copy()
                                 d_local = _latest_completed_close_df(d_local)
@@ -7256,11 +6309,8 @@ def main():
                                             md.append(f"  - Post-head maxClose between (H,RS): {float(seg2.max()):.2f} at {d_local.index[j2]} | RS_Close={float(d_local['Close'].iloc[rs_i]):.2f}\n")
                     except Exception:
                         pass
-
                 except Exception:
                     pass
-
-
                 sig = LevelSignal(
                     ticker=ft,
                     signal=f"FOCUS_{patt}_{direc}",
@@ -7286,14 +6336,12 @@ def main():
                     pct_today=float(info.get("Day%", float("nan"))),
                     meta=None,
                 )
-
             sig.chart_path = plot_signal_chart(ft, df_ft, sig, name_resolver=company_name_for_ticker)
             if getattr(sig, "chart_path", ""):
                 md.append(f"<a href='{_cb_img(sig.chart_path)}' target='_blank'><img src='{_cb_img(sig.chart_path)}' width='980' style='max-width:980px;height:auto;'></a>\n")
             md.append("\n")
         except Exception as e:
             md.append(f"**{ft}** — focus analysis failed: `{e}`\n\n")
-
     md.append(build_watchlist_pulse_section_md(
         df_early_new=df_early_new,
         df_early_old=df_early_old,
@@ -7304,8 +6352,6 @@ def main():
         watchlist_groups=WATCHLIST_GROUPS,
         ticker_labels=TICKER_LABELS,
     ))
-
-
     md.append("### 4B) Early callouts (~90% complete)\n")
     md.append("_Close enough to pre-plan. “Close enough” = within 0.5 ATR of the trigger (neckline/boundary). No SOFT tier — anything not CONFIRMED stays in EARLY._\n")
     md.append("**NEW (today):**\n")
@@ -7343,11 +6389,9 @@ def main():
                 md.append("- **HS/IHS read:** neckline is the trigger; chart labels LS/H/RS and draws the neckline + confirmation band.")
             else:
                 md.append("- **Setup:** watch for confirmation close beyond trigger by ≥ 0.5 ATR, or a clean retest/failure in the direction of the signal.")
-
             if isinstance(chart_p, str) and chart_p:
                 md.append(f'<img src="{_cb_img(chart_p)}" width="720" style="max-width:100%;height:auto;">')
             md.append("")
-
     md.append("\n**ONGOING:**\n")
     df_early_old_tbl = df_early_old.copy()
     if "Level" in df_early_old_tbl.columns and "Threshold" not in df_early_old_tbl.columns:
@@ -7358,9 +6402,7 @@ def main():
         for x in ended_by_stage["EARLY"][:120]:
             md.append(f"- {x}")
         md.append("")
-
     md.append("")
-
     md.append("### 4C) Confirmed breakouts / breakdowns (watchlist + MSCI World)\n")
     md.append("_Includes **CONFIRMED** only: close beyond trigger by ≥0.5 ATR AND Volume ≥1.25×AvgVol(20) AND CLV ≥+0.70 (breakout) / ≤−0.70 (breakdown). All tickers use S&P 500 11-sector labels (Sector)._ \n")
     md.append("**NEW (today):**\n")
@@ -7382,9 +6424,7 @@ def main():
         for x in ended_by_stage["CONFIRMED"][:120]:
             md.append(f"- {x}")
         md.append("")
-
     md.append("")
-
     # 5) Catalysts
     md.append("")
     md.append("### 4D) Validated breakouts / breakdowns (3-session anti-whipsaw)\n")
@@ -7408,13 +6448,11 @@ def main():
         for x in ended_by_stage["VALIDATED"][:120]:
             md.append(f"- {x}")
         md.append("")
-
     md.append("")
     md.append("## 5) Needle-moving catalysts (RSS digest)\n")
     md.append("_Linked digest for drill-down._\n")
     md.append(format_rss_digest(rss_items, max_items=10))
     md.append("")
-
     # Section 6: Watchlist performance
     md.append(build_watchlist_performance_section_md(
         ohlcv,
@@ -7422,19 +6460,16 @@ def main():
         name_resolver=company_name_for_ticker,
         country_resolver=country_for_ticker,
     ))
-
-
     md_text = "\n".join(md).strip() + "\n"
     md_text = _dedupe_macro_cards(md_text)
-
     write_text(REPORT_PATH, md_text)
     write_text(INDEX_PATH, md_text)
-
+    # Email-friendly version: strip macro card images (VIX/EURUSD) to avoid duplicate attachments in some clients.
+    email_text = _strip_macro_images_for_email(md_text)
+    write_text(EMAIL_REPORT_PATH, email_text)
     print(f"Wrote: {REPORT_PATH}")
     print(f"Wrote: {INDEX_PATH}")
     print(f"Universe(base={len(base_universe)}, tech_scan={len(tech_scan_universe)})  Signals: early={len(early_sorted)} confirmed={len(confirmed_sorted)} validated={len(validated_sorted)}")
-
-
 if __name__ == "__main__":
     try:
         main()
