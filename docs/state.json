@@ -202,6 +202,7 @@
     "LII|EARLY_IHS_BREAKOUT",
     "LNT|CONFIRMED_MOMO_TREND_BREAKOUT",
     "MAS|EARLY_IHS_BREAKOUT",
+    "MC|CONFIRMED_HS_TOP_BREAKDOWN",
     "PG|CONFIRMED_MOMO_TREND_BREAKOUT",
     "PG|CONFIRMED_IHS_BREAKOUT",
     "REG|CONFIRMED_IHS_BREAKOUT",
@@ -4416,11 +4417,11 @@
             "i": 34
           },
           {
-            "t": "2025-12-03T00:00:00",
+            "t": "2025-12-05T00:00:00",
             "p": 3842.0,
             "label": "H",
             "kind": "point",
-            "i": 67
+            "i": 69
           },
           {
             "t": "2026-02-02T00:00:00",
@@ -15640,11 +15641,11 @@
             "i": 93
           },
           {
-            "t": "2026-01-28T00:00:00",
+            "t": "2026-01-29T00:00:00",
             "p": 18.760000228881836,
             "label": "H",
             "kind": "point",
-            "i": 109
+            "i": 110
           },
           {
             "t": "2026-02-20T00:00:00",
@@ -23123,6 +23124,67 @@
         ],
         "pattern_start_i": 17,
         "pattern_end_i": 106,
+        "trigger_line_type": "neckline"
+      },
+      "asof": "2026-02-27T00:00:00"
+    },
+    "MC": {
+      "pattern": "HS_TOP",
+      "direction": "BREAKDOWN",
+      "level": 67.51249480247498,
+      "meta": {
+        "annot_type": "hs",
+        "variant": "top",
+        "points": [
+          {
+            "t": "2025-12-11T00:00:00",
+            "p": 70.9800033569336,
+            "label": "LS",
+            "kind": "point",
+            "i": 78
+          },
+          {
+            "t": "2026-01-15T00:00:00",
+            "p": 77.75,
+            "label": "H",
+            "kind": "point",
+            "i": 101
+          },
+          {
+            "t": "2026-02-06T00:00:00",
+            "p": 73.25,
+            "label": "RS",
+            "kind": "point",
+            "i": 116
+          },
+          {
+            "t": "2025-12-16T00:00:00",
+            "p": 68.37000274658203,
+            "label": "T1",
+            "kind": "point",
+            "i": 81
+          },
+          {
+            "t": "2026-02-03T00:00:00",
+            "p": 67.80999755859375,
+            "label": "T2",
+            "kind": "point",
+            "i": 113
+          }
+        ],
+        "lines": [
+          {
+            "t1": "2025-12-16T00:00:00",
+            "y1": 68.37000274658203,
+            "t2": "2026-02-03T00:00:00",
+            "y2": 67.80999755859375,
+            "label": "Neckline",
+            "i1": 81,
+            "i2": 113
+          }
+        ],
+        "pattern_start_i": 78,
+        "pattern_end_i": 116,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-02-27T00:00:00"

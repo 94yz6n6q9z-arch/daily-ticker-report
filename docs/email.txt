@@ -1,12 +1,12 @@
 # Daily Report
 
-_Generated: **2026-03-02 12:18 CET**_
+_Generated: **2026-03-02 12:50 CET**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Headline: Equities slipped as the Iran conflict jolted energy markets, sending oil sharply higher and unsettling the recent cooling in volatility. The Nasdaq 100 fell 0.3% and the S&P 500 lost 0.4% while the VIX jumped 16.4%, a renewed bout of nerves after a choppy few weeks for tech (NDX -4.1% over 1M) even as WTI surged 7.4% on Strait of Hormuz shipping fears. Biggest movers were NFLX up 13.8% and NAT up 6.1%, while OKLO fell 8.9% and QBTS slid 6.8%.
+Headline: Equities slipped as the Iran conflict jolted energy markets, sending oil sharply higher and keeping investors on edge. The Nasdaq 100 fell 0.3% and the S&P 500 lost 0.4% while the VIX jumped 16.0%, extending a choppier tone of the past month (NDX -4.1% 1M) as WTI surged 7.2%. Biggest movers on the watchlist were NFLX up 13.8%, MAU up 6.6% and NAT up 6.1%, while OKLO fell 8.9%, QBTS slid 6.8% and IONQ dropped 6.1%.
 
 **Key tape (multi-horizon):**
 
@@ -14,18 +14,18 @@ Headline: Equities slipped as the Iran conflict jolted energy markets, sending o
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Nasdaq 100       | 24,960.04 | <span style="color:#b91c1c;">-0.30%</span>  | <span style="color:#b91c1c;">-0.21%</span>  | <span style="color:#b91c1c;">-4.08%</span>  | <span style="color:#b91c1c;">-1.87%</span>  | <span style="color:#11823b;">+6.60%</span>   |
 | S&P 500          | 6,878.88  | <span style="color:#b91c1c;">-0.43%</span>  | <span style="color:#b91c1c;">-0.44%</span>  | <span style="color:#b91c1c;">-1.42%</span>  | <span style="color:#11823b;">+0.43%</span>  | <span style="color:#11823b;">+6.48%</span>   |
-| STOXX Europe 600 | 624.93    | <span style="color:#b91c1c;">-1.41%</span>  | <span style="color:#b91c1c;">-0.44%</span>  | <span style="color:#11823b;">+2.28%</span>  | <span style="color:#11823b;">+8.56%</span>  | <span style="color:#11823b;">+14.29%</span>  |
-| DAX              | 24,831.15 | <span style="color:#b91c1c;">-1.79%</span>  | <span style="color:#b91c1c;">-0.64%</span>  | <span style="color:#11823b;">+1.19%</span>  | <span style="color:#11823b;">+4.72%</span>  | <span style="color:#11823b;">+5.24%</span>   |
-| CAC 40           | 8,438.52  | <span style="color:#b91c1c;">-1.66%</span>  | <span style="color:#b91c1c;">-0.69%</span>  | <span style="color:#11823b;">+3.84%</span>  | <span style="color:#11823b;">+4.51%</span>  | <span style="color:#11823b;">+9.31%</span>   |
-| FTSE 100         | 10,805.44 | <span style="color:#b91c1c;">-0.96%</span>  | <span style="color:#11823b;">+1.13%</span>  | <span style="color:#11823b;">+5.69%</span>  | <span style="color:#11823b;">+11.38%</span> | <span style="color:#11823b;">+17.73%</span>  |
-| VIX              | 23.11     | <span style="color:#11823b;">+16.36%</span> | <span style="color:#11823b;">+10.00%</span> | <span style="color:#11823b;">+32.51%</span> | <span style="color:#11823b;">+39.30%</span> | <span style="color:#11823b;">+41.35%</span>  |
-| EUR/USD          | 1.17      | <span style="color:#b91c1c;">-0.58%</span>  | <span style="color:#b91c1c;">-0.85%</span>  | <span style="color:#b91c1c;">-1.93%</span>  | <span style="color:#11823b;">+1.09%</span>  | <span style="color:#11823b;">+0.84%</span>   |
-| WTI Crude        | 72.00     | <span style="color:#11823b;">+7.43%</span>  | <span style="color:#11823b;">+8.58%</span>  | <span style="color:#11823b;">+10.41%</span> | <span style="color:#11823b;">+22.78%</span> | <span style="color:#11823b;">+12.55%</span>  |
-| Gold             | 5,401.30  | <span style="color:#11823b;">+3.27%</span>  | <span style="color:#11823b;">+3.78%</span>  | <span style="color:#11823b;">+14.58%</span> | <span style="color:#11823b;">+29.01%</span> | <span style="color:#11823b;">+50.32%</span>  |
-| Silver           | 95.32     | <span style="color:#11823b;">+2.84%</span>  | <span style="color:#11823b;">+10.16%</span> | <span style="color:#11823b;">+21.75%</span> | <span style="color:#11823b;">+64.38%</span> | <span style="color:#11823b;">+129.44%</span> |
-| Coffee           | 279.90    | <span style="color:#b91c1c;">-1.65%</span>  | <span style="color:#b91c1c;">-0.44%</span>  | <span style="color:#b91c1c;">-15.76%</span> | <span style="color:#b91c1c;">-30.98%</span> | <span style="color:#b91c1c;">-27.35%</span>  |
-| Cocoa            | 2,966.00  | <span style="color:#11823b;">+6.00%</span>  | <span style="color:#b91c1c;">-1.26%</span>  | <span style="color:#b91c1c;">-28.79%</span> | <span style="color:#b91c1c;">-45.08%</span> | <span style="color:#b91c1c;">-60.32%</span>  |
-| Bitcoin          | 66,133.32 | <span style="color:#11823b;">+0.60%</span>  | <span style="color:#11823b;">+2.35%</span>  | <span style="color:#b91c1c;">-15.88%</span> | <span style="color:#b91c1c;">-27.60%</span> | <span style="color:#b91c1c;">-40.81%</span>  |
+| STOXX Europe 600 | 625.35    | <span style="color:#b91c1c;">-1.34%</span>  | <span style="color:#b91c1c;">-0.37%</span>  | <span style="color:#11823b;">+2.35%</span>  | <span style="color:#11823b;">+8.63%</span>  | <span style="color:#11823b;">+14.37%</span>  |
+| DAX              | 24,812.05 | <span style="color:#b91c1c;">-1.87%</span>  | <span style="color:#b91c1c;">-0.72%</span>  | <span style="color:#11823b;">+1.11%</span>  | <span style="color:#11823b;">+4.64%</span>  | <span style="color:#11823b;">+5.16%</span>   |
+| CAC 40           | 8,438.97  | <span style="color:#b91c1c;">-1.65%</span>  | <span style="color:#b91c1c;">-0.68%</span>  | <span style="color:#11823b;">+3.84%</span>  | <span style="color:#11823b;">+4.51%</span>  | <span style="color:#11823b;">+9.32%</span>   |
+| FTSE 100         | 10,809.29 | <span style="color:#b91c1c;">-0.93%</span>  | <span style="color:#11823b;">+1.17%</span>  | <span style="color:#11823b;">+5.73%</span>  | <span style="color:#11823b;">+11.42%</span> | <span style="color:#11823b;">+17.77%</span>  |
+| VIX              | 23.03     | <span style="color:#11823b;">+15.96%</span> | <span style="color:#11823b;">+9.61%</span>  | <span style="color:#11823b;">+32.05%</span> | <span style="color:#11823b;">+38.82%</span> | <span style="color:#11823b;">+40.86%</span>  |
+| EUR/USD          | 1.17      | <span style="color:#b91c1c;">-0.50%</span>  | <span style="color:#b91c1c;">-0.77%</span>  | <span style="color:#b91c1c;">-1.85%</span>  | <span style="color:#11823b;">+1.17%</span>  | <span style="color:#11823b;">+0.93%</span>   |
+| WTI Crude        | 71.85     | <span style="color:#11823b;">+7.21%</span>  | <span style="color:#11823b;">+8.35%</span>  | <span style="color:#11823b;">+10.18%</span> | <span style="color:#11823b;">+22.53%</span> | <span style="color:#11823b;">+12.32%</span>  |
+| Gold             | 5,410.50  | <span style="color:#11823b;">+3.44%</span>  | <span style="color:#11823b;">+3.95%</span>  | <span style="color:#11823b;">+14.78%</span> | <span style="color:#11823b;">+29.23%</span> | <span style="color:#11823b;">+50.58%</span>  |
+| Silver           | 95.58     | <span style="color:#11823b;">+3.13%</span>  | <span style="color:#11823b;">+10.47%</span> | <span style="color:#11823b;">+22.08%</span> | <span style="color:#11823b;">+64.84%</span> | <span style="color:#11823b;">+130.08%</span> |
+| Coffee           | 279.95    | <span style="color:#b91c1c;">-1.63%</span>  | <span style="color:#b91c1c;">-0.43%</span>  | <span style="color:#b91c1c;">-15.74%</span> | <span style="color:#b91c1c;">-30.97%</span> | <span style="color:#b91c1c;">-27.33%</span>  |
+| Cocoa            | 2,957.00  | <span style="color:#11823b;">+5.68%</span>  | <span style="color:#b91c1c;">-1.56%</span>  | <span style="color:#b91c1c;">-29.00%</span> | <span style="color:#b91c1c;">-45.25%</span> | <span style="color:#b91c1c;">-60.44%</span>  |
+| Bitcoin          | 66,373.12 | <span style="color:#11823b;">+0.97%</span>  | <span style="color:#11823b;">+2.72%</span>  | <span style="color:#b91c1c;">-15.58%</span> | <span style="color:#b91c1c;">-27.34%</span> | <span style="color:#b91c1c;">-40.59%</span>  |
 
 **Macro charts (5Y):**
 
@@ -39,9 +39,10 @@ Headline: Equities slipped as the Iran conflict jolted energy markets, sending o
 | Ticker   | pct     |
 | :--- | ---: |
 | NFLX     | +13.77% |
+| MAU      | +6.55%  |
 | NAT      | +6.11%  |
-| Cocoa    | +5.75%  |
-| MAU      | +5.66%  |
+| Cocoa    | +5.83%  |
+| REP      | +4.65%  |
 | INSW     | +4.16%  |
 
 **Session losers:**
@@ -75,9 +76,9 @@ _Upcoming earnings dates for your  watchlist._
 
 - Tickers scanned: **1277**; usable OHLCV: **799**
 
-- Candidates found: **367** (top patterns: IHS:140, MOMO_TREND:104, HS_TOP:56, RECT:20, RECT_BOTTOM:18, RECT_TOP:16, DEAD_CAT_BOUNCE:11, DESC_TRIANGLE:2)
+- Candidates found: **368** (top patterns: IHS:140, MOMO_TREND:104, HS_TOP:57, RECT:20, RECT_BOTTOM:18, RECT_TOP:16, DEAD_CAT_BOUNCE:11, DESC_TRIANGLE:2)
 
-- Live signals: EARLY **34**, CONFIRMED **49**, VALIDATED **1** (total 84)
+- Live signals: EARLY **34**, CONFIRMED **50**, VALIDATED **1** (total 85)
 
 - Geometry restored today: HS/IHS **185**, Band **7**
 
@@ -106,17 +107,39 @@ _Upcoming earnings dates for your  watchlist._
 
   - hit=2026-01-05 00:00:00 (i=152) | High=18.14 | hwin_max=18.37 (count=1) | prom=1.49 vs thr=0.20 (ATR=0.39)
 
+- NU HS_TOP head anchor (detector window): H=2026-01-29 (i=169) | Close=18.76 | head_zone=±10 bars
+
+- NU left-shoulder CLOSE-peak candidates (top 6):
+
+  - L1: 2026-01-05 (i=152) Close=17.94
+
+  - L2: 2025-12-04 (i=132) Close=17.65
+
+  - L3: 2025-12-12 (i=138) Close=16.90
+
+  - L4: 2025-11-11 (i=116) Close=16.39
+
+  - L5: 2025-09-22 (i=80) Close=16.30
+
+  - L6: 2025-10-08 (i=92) Close=15.46
+
+- NU Jan 5 index in detector window: i=152 Close=17.94 | in_left_candidates=True
+
+  - Left-candidate winner by CLOSE: 2026-01-05 (i=152) Close=17.94
+
+  - Jan 5 loses only if another LEFT candidate has higher CLOSE outside the head-zone.
+
 - Best candidate: **HS_TOP / BREAKDOWN** | Dist(ATR) **-1.97** | Gates: Price **Y**, CLV **N**, Vol **Y** | HS lag **5**
 
   - Gate inputs: CLV=0.11999893188476562 | VolRatio=2.1237622474130693
 
-  - LS/H/RS geometry (idx): LS=93, H=109, RS=125
+  - LS/H/RS geometry (idx): LS=93, H=110, RS=125
 
-  - LS/H/RS geometry (ts): LS=2026-01-05T00:00:00, H=2026-01-28T00:00:00, RS=2026-02-20T00:00:00
+  - LS/H/RS geometry (ts): LS=2026-01-05T00:00:00, H=2026-01-29T00:00:00, RS=2026-02-20T00:00:00
 
-  - Pre-head maxClose between (LS,H): 18.55 at 2026-01-27 00:00:00 | LS_Close=17.94
+  - Pre-head maxClose between (LS,H): 16.11 at 2025-10-31 00:00:00 | LS_Close=15.37
 
-  - Post-head maxClose between (H,RS): 18.76 at 2026-01-29 00:00:00 | RS_Close=17.53
+  - Post-head maxClose between (H,RS): 16.39 at 2025-11-11 00:00:00 | RS_Close=15.92
 
 <img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/NU_FOCUS_HS_TOP_BREAKDOWN.png' width='980' style='max-width:980px;height:auto;'>
 
@@ -138,9 +161,9 @@ _Upcoming earnings dates for your  watchlist._
 
   - LS/H/RS geometry (ts): LS=2025-09-23T00:00:00, H=2025-12-04T00:00:00, RS=2026-01-15T00:00:00
 
-  - Pre-head maxClose (swing pivot) between (LS,H): 403.95 at 2025-10-15 00:00:00 | LS_Close=336.65
+  - Pre-head maxClose (swing pivot) between (LS,H): 354.89 at 2025-08-04 00:00:00 | LS_Close=322.76
 
-  - Post-head maxClose (swing pivot) between (H,RS): 366.25 at 2026-01-02 00:00:00 | RS_Close=341.20
+  - Post-head maxClose (swing pivot) between (H,RS): 403.95 at 2025-10-15 00:00:00 | RS_Close=358.79
 
 <img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/CEG_FOCUS_HS_TOP_BREAKDOWN.png' width='980' style='max-width:980px;height:auto;'>
 
@@ -166,8 +189,4 @@ _Logic: score each ticker by stage (EARLY=1, CONFIRMED=3, VALIDATED=4) × direct
 
 ### 4B) Early callouts (~90% complete)
 
-_Close enough to pre-plan. “Close enough” = within 0.5 ATR of the trigger (neckline/boundary). No SOFT tier — anything not CONFIRMED stays in EARLY._
-
-**NEW (today):**
-
-<style>table.tblauto{table-layout:auto;width:100%;border-collapse:collapse;margin:8px 0;}table.tblauto th,table.tblauto td{border:1px solid #e5e7eb;padding:6px 8px;vertical-align:top;}table.tblauto th{background:#f6f8fa;font-weight:600;white-space:nowrap;}table.tblauto td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}table.tblauto td.txt{white-space:nowrap;}table.tblauto td.wrap{white-space:normal;}</style><div style="overflow-x:auto"><table class="tblauto"><thead><tr><th>Name of 
+_Close enough to pre-plan. “Close enough” = within 0.5 ATR of 
