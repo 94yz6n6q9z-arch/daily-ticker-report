@@ -3682,9 +3682,11 @@ def _pick_recent_hs_triplet(
         bump("not_enough_primary_pivots")
         return None
 
-    # Head anchor: absolute extreme close in the window
+    # Head anchor: absolute extreme close in the window (pick MOST RECENT if tied)
     try:
-        head_target = int(np.nanargmin(c.values)) if inverse else int(np.nanargmax(c.values))
+        head_val = float(np.nanmin(c.values)) if inverse else float(np.nanmax(c.values))
+        idxs = np.where(np.isclose(c.values.astype(float), head_val, rtol=0.0, atol=1e-8))[0]
+        head_target = int(idxs[-1]) if len(idxs) else (int(np.nanargmin(c.values)) if inverse else int(np.nanargmax(c.values)))
     except Exception:
         head_target = None
     if head_target is None:
@@ -6707,6 +6709,53 @@ def main():
                 except Exception:
                     pass
 
+
+
+                # NU: show the actual left/right shoulder candidate peaks around the head (CLOSE-based) and why Jan 5 might lose.
+                try:
+                    d_det = df_ft.tail(LOOKBACK_DAYS).dropna(subset=["Open","High","Low","Close"]).copy()
+                    d_det = _latest_completed_close_df(d_det)
+                    if len(d_det) > 20 and isinstance(d_det.index, pd.DatetimeIndex):
+                        c_det = d_det["Close"].astype(float)
+                        # Same pivot definition as HS_TOP: Close swing highs with window=5
+                        hi_det = _swing_highs_on_close(d_det, window=5, prominence_atr_mult=0.5, allow_tie_high_2dp=True)
+                        # Head = most recent global max close
+                        head_val = float(np.nanmax(c_det.values))
+                        head_idxs = np.where(np.isclose(c_det.values.astype(float), head_val, rtol=0.0, atol=1e-8))[0]
+                        p2_det = int(head_idxs[-1]) if len(head_idxs) else int(np.nanargmax(c_det.values))
+                        head_zone = int(HS_MIN_SIDE_BARS)
+                        L_lo = max(0, p2_det - int(HS_MAX_BARS))
+                        L_hi = max(L_lo, p2_det - head_zone)
+                        R_lo = min(len(c_det), p2_det + 1 + head_zone)
+                        R_hi = min(len(c_det), p2_det + 1 + int(HS_MAX_BARS))
+                        left = [int(i) for i in hi_det if L_lo <= int(i) < L_hi]
+                        right = [int(i) for i in hi_det if R_lo <= int(i) < R_hi]
+                        left_sorted = sorted(left, key=lambda i: (float(c_det.iloc[i]), int(i)), reverse=True)
+                        right_sorted = sorted(right, key=lambda i: (-float(c_det.iloc[i]), int(i)))
+
+                        md.append(f"- NU HS_TOP head anchor (detector window): H={d_det.index[p2_det].date()} (i={p2_det}) | Close={float(c_det.iloc[p2_det]):.2f} | head_zone=±{head_zone} bars\n")
+                        # Show top left candidates
+                        if left_sorted:
+                            md.append("- NU left-shoulder CLOSE-peak candidates (top 6):\n")
+                            for k,i in enumerate(left_sorted[:6]):
+                                md.append(f"  - L{k+1}: {d_det.index[i].date()} (i={i}) Close={float(c_det.iloc[i]):.2f}\n")
+                        else:
+                            md.append("- NU left-shoulder candidates: NONE (after head-zone exclusion)\n")
+
+                        # Explicitly check Jan 5 membership
+                        ts_j5 = pd.to_datetime('2026-01-05')
+                        if ts_j5 in d_det.index:
+                            i_j5 = int(d_det.index.get_loc(ts_j5))
+                            in_left = (i_j5 in left)
+                            md.append(f"- NU Jan 5 index in detector window: i={i_j5} Close={float(c_det.iloc[i_j5]):.2f} | in_left_candidates={in_left}\n")
+                            if in_left and left_sorted:
+                                top_i = left_sorted[0]
+                                md.append(f"  - Left-candidate winner by CLOSE: {d_det.index[top_i].date()} (i={top_i}) Close={float(c_det.iloc[top_i]):.2f}\n")
+                                md.append(f"  - Jan 5 loses only if another LEFT candidate has higher CLOSE outside the head-zone.\n")
+                        else:
+                            md.append("- NU Jan 5 not found in detector window index (data mismatch / missing bar)\n")
+                except Exception:
+                    pass
                 try:
                     dr = exp_top.get("_dur_reject_best")
                     if isinstance(dr, dict):
@@ -6747,13 +6796,8 @@ def main():
                                 ls_i = int(pLS.get("i")); h_i = int(pH.get("i")); rs_i = int(pRS.get("i"))
                                 md.append(f"  - LS/H/RS geometry (idx): LS={ls_i}, H={h_i}, RS={rs_i}\n")
                                 md.append(f"  - LS/H/RS geometry (ts): LS={pLS.get('t')}, H={pH.get('t')}, RS={pRS.get('t')}\n")
-                                # Use the SAME calendar-day window as detection (CHART_WINDOW_DAYS), so meta indices align.
-                                d0 = df_ft.dropna(subset=["Open","High","Low","Close"]).copy()
-                                if isinstance(d0.index, pd.DatetimeIndex):
-                                    cutoff = d0.index[-1] - pd.Timedelta(days=CHART_WINDOW_DAYS)
-                                    d_local = d0.loc[d0.index >= cutoff].copy()
-                                else:
-                                    d_local = d0.tail(LOOKBACK_DAYS).copy()
+                                # Use the SAME detector window (tail LOOKBACK_DAYS), so meta indices (iloc) always align.
+                                d_local = df_ft.tail(LOOKBACK_DAYS).dropna(subset=["Open","High","Low","Close"]).copy()
                                 d_local = _latest_completed_close_df(d_local)
                                 # max close between LS..H (exclusive)
                                 if h_i > ls_i + 1:
@@ -6762,10 +6806,10 @@ def main():
                                         piv = []
                                         try:
                                             if patt == "HS_TOP":
-                                                piv_all = _swing_highs_on_close(d_local, window=3, prominence_atr_mult=0.5, allow_tie_high_2dp=True)
+                                                piv_all = _swing_highs_on_close(d_local, window=5, prominence_atr_mult=0.5, allow_tie_high_2dp=True)
                                                 piv = [int(x) for x in piv_all if int(ls_i) < int(x) < (int(h_i) - HS_MIN_SIDE_BARS)]
                                             elif patt == "IHS":
-                                                piv_all = _swing_lows_on_close(d_local, window=3, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
+                                                piv_all = _swing_lows_on_close(d_local, window=5, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
                                                 piv = [int(x) for x in piv_all if int(ls_i) < int(x) < (int(h_i) - HS_MIN_SIDE_BARS)]
                                         except Exception:
                                             piv = []
@@ -6790,10 +6834,10 @@ def main():
                                         piv = []
                                         try:
                                             if patt == "HS_TOP":
-                                                piv_all = _swing_highs_on_close(d_local, window=3, prominence_atr_mult=0.5, allow_tie_high_2dp=True)
+                                                piv_all = _swing_highs_on_close(d_local, window=5, prominence_atr_mult=0.5, allow_tie_high_2dp=True)
                                                 piv = [int(x) for x in piv_all if (int(h_i) + HS_MIN_SIDE_BARS) < int(x) < int(rs_i)]
                                             elif patt == "IHS":
-                                                piv_all = _swing_lows_on_close(d_local, window=3, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
+                                                piv_all = _swing_lows_on_close(d_local, window=5, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
                                                 piv = [int(x) for x in piv_all if (int(h_i) + HS_MIN_SIDE_BARS) < int(x) < int(rs_i)]
                                         except Exception:
                                             piv = []
