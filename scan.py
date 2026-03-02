@@ -37,7 +37,7 @@ import yfinance as yf
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-SCAN_VERSION: str = "v73"
+SCAN_VERSION: str = "v74"
 # ----------------------------
 # Public asset URLs (email-safe) + cache busting
 # ----------------------------
@@ -3552,11 +3552,12 @@ def detect_hs_top(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None) ->
                 'geom': geom,
             }
         return None
-    # Neckline through troughs (sloped allowed)
-    n1 = float(d["Low"].iloc[t1]); n2 = float(d["Low"].iloc[t2])
-    a_n, b_n = _line_fit(np.array([float(t1), float(t2)]), np.array([n1, n2]))
-    x_last = float(len(d) - 1)
-    neckline_now = _line_eval(a_n, b_n, x_last)
+    
+    # Neckline rule (deterministic): trough points are closing valleys; trigger = closing height at T2 (second trough).
+    n1 = float(d["Close"].iloc[t1])
+    n2 = float(d["Close"].iloc[t2])
+    use_horiz = True
+    neckline_now = float(n2)
     meta = {
         "annot_type": "hs",
         "variant": "top",
@@ -3568,12 +3569,23 @@ def detect_hs_top(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None) ->
             _point_meta(d, t2, n2, "T2"),
         ],
         "lines": [
-            _line_meta(d, t1, n1, t2, n2, "Neckline"),
+            _line_meta(d, t2, neckline_now, len(d) - 1, neckline_now, "Neckline"),
         ],
         "pattern_start_i": int(p1),
         "pattern_end_i": int(p3),
         "trigger_line_type": "neckline",
     }
+
+    # Hard exclusion: do not allow HS if a Dead Cat Bounce overlaps the formation span
+    try:
+        dcb = detect_dead_cat_bounce(df)
+        if dcb and _dcb_overlaps_span(dcb, d.index[p1], d.index[p3]):
+            if isinstance(explain, dict):
+                explain["dcb_overlap"] = int(explain.get("dcb_overlap", 0)) + 1
+            return None
+    except Exception:
+        pass
+
     return PatternCandidate(pattern="HS_TOP", direction="BREAKDOWN", level=float(neckline_now), meta=meta)
 def detect_inverse_hs(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None) -> Optional[PatternCandidate]:
     d = df.tail(LOOKBACK_DAYS).dropna(subset=["Open", "High", "Low", "Close"]).copy()
@@ -3619,19 +3631,11 @@ def detect_inverse_hs(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None
                 'geom': geom,
             }
         return None
-    h1 = float(d["High"].iloc[r1]); h2 = float(d["High"].iloc[r2])
-    a_n, b_n = _line_fit(np.array([float(r1), float(r2)]), np.array([h1, h2]))
-    atr_med = _median_atr(d, p1, p3 + 1)
-    # "Too steep neckline" safeguard -> horizontal trigger at higher reaction high
-    if abs(a_n) > 0.20 * max(atr_med, 1e-6):
-        use_horiz = True
-        neckline_now = float(max(h1, h2))
-        line_for_meta = _line_meta(d, min(r1, r2), neckline_now, len(d) - 1, neckline_now, "Neckline")
-    else:
-        use_horiz = False
-        x_last = float(len(d) - 1)
-        neckline_now = _line_eval(a_n, b_n, x_last)
-        line_for_meta = _line_meta(d, r1, h1, r2, h2, "Neckline")
+    h1 = float(d["Close"].iloc[r1]); h2 = float(d["Close"].iloc[r2])  # reaction highs on Close
+        # Neckline rule (deterministic): use the closing height at R2 (second reaction high).
+    use_horiz = True
+    neckline_now = float(h2)
+    line_for_meta = _line_meta(d, r2, neckline_now, len(d) - 1, neckline_now, "Neckline")
     meta = {
         "annot_type": "hs",
         "variant": "inverse",
@@ -3647,6 +3651,16 @@ def detect_inverse_hs(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None
         "pattern_end_i": int(p3),
         "trigger_line_type": "neckline_horizontal" if use_horiz else "neckline",
     }
+
+    # Hard exclusion: do not allow IHS if a Dead Cat Bounce overlaps the formation span
+    try:
+        dcb = detect_dead_cat_bounce(df)
+        if dcb and _dcb_overlaps_span(dcb, d.index[p1], d.index[p3]):
+            if isinstance(explain, dict):
+                explain["dcb_overlap"] = int(explain.get("dcb_overlap", 0)) + 1
+            return None
+    except Exception:
+        pass
     return PatternCandidate(pattern="IHS", direction="BREAKOUT", level=float(neckline_now), meta=meta)
 def _detect_band_structure(df: pd.DataFrame) -> Optional[Dict[str, Any]]:
     """
@@ -3841,7 +3855,10 @@ def detect_dead_cat_bounce(df: pd.DataFrame) -> Optional[PatternCandidate]:
         prev_low = float(L[i - 1]); prev_close = float(C[i - 1])
         strict_gap = float(H[i]) < prev_low  # meta only (legacy); not used for gating anymore
         gap_pct = (float(O[i]) / prev_close - 1.0) if prev_close != 0 else 0.0
-        if not (gap_pct <= -DCB_MIN_GAP_PCT):
+        day_ret = (float(C[i]) / prev_close - 1.0) if prev_close != 0 else 0.0
+        atr_prev = float(A[i - 1]) if np.isfinite(A[i - 1]) else float("nan")
+        drop_atr = ((prev_close - float(C[i])) / atr_prev) if (np.isfinite(atr_prev) and atr_prev > 0) else 0.0
+        if not ((gap_pct <= -DCB_MIN_GAP_PCT) or (day_ret <= -0.10) or (drop_atr >= 5.0)):
             continue
         pre0 = max(0, i - 10)
         if i - pre0 < 3:
@@ -4485,6 +4502,48 @@ def _exit_check_giveback(
         return out
     return out
 
+
+
+def _historical_confirm_then_retest(
+    cand: PatternCandidate,
+    d: pd.DataFrame,
+    a: pd.Series,
+    start_i: int,
+) -> bool:
+    """
+    If the pattern has already CONFIRMED in the past (all 3 gates on some bar >= start_i),
+    and price has since returned to/below the trigger (excess<=0), treat current near-trigger
+    as a failed retest (do NOT re-flag as EARLY).
+    """
+    try:
+        n = len(d)
+        if n < 10:
+            return False
+        si = int(max(0, min(int(start_i), n - 1)))
+        confirmed_i = None
+        for j in range(si, n):
+            g = _gates_for_signal(cand, d, a, j)
+            if g.get("price") and g.get("clv") and g.get("vol"):
+                confirmed_i = j
+                break
+        if confirmed_i is None:
+            return False
+        atr_ref = _atr_ref_for_exit(cand, d, a, confirmed_i)
+        if not np.isfinite(atr_ref) or atr_ref <= 0:
+            atr_ref = float(a.iloc[confirmed_i]) if np.isfinite(a.iloc[confirmed_i]) else 1e-6
+        if atr_ref <= 0:
+            return False
+        for j in range(confirmed_i, n):
+            lvl = _safe_float(_level_at_bar(cand, d, j))
+            close = _safe_float(d["Close"].iloc[j])
+            if not (np.isfinite(lvl) and np.isfinite(close)):
+                continue
+            excess = (close - lvl) / atr_ref if cand.direction == "BREAKOUT" else (lvl - close) / atr_ref
+            if excess <= 0:
+                return True
+        return False
+    except Exception:
+        return False
 def _confirm_run_start(cand: PatternCandidate, d: pd.DataFrame, a_series: pd.Series) -> Optional[int]:
     """Return the index (in d) of the first bar of the current CONFIRMED run, or None.
     Day 0 (confirmation day): ALL 3 gates must hold (price + CLV + volume).
@@ -4752,6 +4811,23 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
             prefix, dist_atr = _classify_vs_level(close, level_now, atr_val, cand.direction, vol_ratio, clv)
             if prefix != "EARLY_":
                 continue
+
+                # Suppress EARLY resurfacing after a prior confirmed move that later reverted back through the trigger.
+                # Prevents cases like PHM/PSA being flagged as EARLY long after an actual breakout happened.
+                try:
+                    meta = cand.meta if isinstance(cand.meta, dict) else {}
+                    start_i = int(meta.get("pattern_end_i", meta.get("p3", meta.get("p2", 0))))
+                except Exception:
+                    start_i = 0
+                if cand.pattern in ("HS_TOP", "IHS") and _historical_confirm_then_retest(cand, d, a, start_i):
+                    if isinstance(debug, dict):
+                        debug.setdefault("suppressed_early_retests", []).append({
+                            "ticker": ticker,
+                            "pattern": cand.pattern,
+                            "dir": cand.direction,
+                            "start_i": start_i,
+                        })
+                    continue
             # EARLY must be fresh: pattern completion must be recent (prevents stale formations resurfacing).
             if cand.pattern != "DEAD_CAT_BOUNCE":
                 meta = cand.meta if isinstance(cand.meta, dict) else {}
@@ -6675,10 +6751,11 @@ def main():
     ))
     md_text = "\n".join(md).strip() + "\n"
     md_text = _dedupe_macro_cards(md_text)
-    write_text(REPORT_PATH, md_text)
+    # Web page keeps macro charts
     write_text(INDEX_PATH, md_text)
-    # Email-friendly version: strip macro card images (VIX/EURUSD) to avoid duplicate attachments in some clients.
+    # Email/report version strips macro images (prevents iOS mail clients from re-attaching them at the end)
     email_text = _strip_macro_images_for_email(md_text)
+    write_text(REPORT_PATH, email_text)
     write_text(EMAIL_REPORT_PATH, email_text)
     print(f"Wrote: {REPORT_PATH}")
     print(f"Wrote: {INDEX_PATH}")
