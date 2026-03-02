@@ -1,55 +1,59 @@
 # Daily Report
 
-_Generated: **2026-03-02 15:34 CET**_
+_Generated: **2026-03-02 17:04 CET**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Headline: Iran strikes jolted global markets, sending oil sharply higher and dragging on equities as investors reassessed geopolitical risk. The Nasdaq 100 fell 0.8% and the S&P 500 slid 0.8% while the VIX jumped 18.6%, extending a choppier three-to-four-week tape for US stocks (NDX -3.1% over 1M) as WTI surged 7.7%. Biggest movers on the watchlist were MAU (+7.8%), REP (+7.2%) and Cocoa (+6.9%) higher, with UCG (-4.2%), MC (-4.2%) and NVDA (-4.2%) lower.
+Headline: Equities slipped as US–Iran tensions pushed oil sharply higher, while Apple’s new lower-cost iPhone and M4 iPad launch and a mixed earnings tape did little to steady sentiment. The Nasdaq 100 fell 0.4% and the S&P 500 lost 0.3% as volatility jumped, with the VIX up 9.2%, extending the choppy, fragile tone of the past month (NDX -2.7% 1M). Biggest movers were NFLX up 13.8% and Cocoa up 8.2%, while Silver fell 4.8% and MC slid 4.2%.
 
 **Key tape (multi-horizon):**
 
-| Instrument       | Last      | 1D                                          | 7D                                          | 1M                                          | 3M                                          | 6M                                           |
+| Instrument       | Last      | 1D                                         | 7D                                         | 1M                                          | 3M                                          | 6M                                           |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Nasdaq 100       | 24,767.79 | <span style="color:#b91c1c;">-0.77%</span>  | <span style="color:#11823b;">+0.24%</span>  | <span style="color:#b91c1c;">-3.07%</span>  | <span style="color:#b91c1c;">-3.08%</span>  | <span style="color:#11823b;">+5.78%</span>   |
-| S&P 500          | 6,823.54  | <span style="color:#b91c1c;">-0.80%</span>  | <span style="color:#b91c1c;">-0.21%</span>  | <span style="color:#b91c1c;">-1.66%</span>  | <span style="color:#b91c1c;">-0.09%</span>  | <span style="color:#11823b;">+5.82%</span>   |
-| STOXX Europe 600 | 621.57    | <span style="color:#b91c1c;">-1.94%</span>  | <span style="color:#b91c1c;">-0.98%</span>  | <span style="color:#11823b;">+1.73%</span>  | <span style="color:#11823b;">+7.98%</span>  | <span style="color:#11823b;">+13.68%</span>  |
-| DAX              | 24,604.23 | <span style="color:#b91c1c;">-2.69%</span>  | <span style="color:#b91c1c;">-1.55%</span>  | <span style="color:#11823b;">+0.27%</span>  | <span style="color:#11823b;">+3.77%</span>  | <span style="color:#11823b;">+4.28%</span>   |
-| CAC 40           | 8,385.40  | <span style="color:#b91c1c;">-2.28%</span>  | <span style="color:#b91c1c;">-1.32%</span>  | <span style="color:#11823b;">+3.19%</span>  | <span style="color:#11823b;">+3.85%</span>  | <span style="color:#11823b;">+8.62%</span>   |
-| FTSE 100         | 10,732.40 | <span style="color:#b91c1c;">-1.63%</span>  | <span style="color:#11823b;">+0.45%</span>  | <span style="color:#11823b;">+4.98%</span>  | <span style="color:#11823b;">+10.62%</span> | <span style="color:#11823b;">+16.94%</span>  |
-| VIX              | 23.55     | <span style="color:#11823b;">+18.58%</span> | <span style="color:#11823b;">+12.09%</span> | <span style="color:#11823b;">+35.03%</span> | <span style="color:#11823b;">+41.95%</span> | <span style="color:#11823b;">+44.04%</span>  |
-| EUR/USD          | 1.17      | <span style="color:#b91c1c;">-0.73%</span>  | <span style="color:#b91c1c;">-1.00%</span>  | <span style="color:#b91c1c;">-2.08%</span>  | <span style="color:#11823b;">+0.94%</span>  | <span style="color:#11823b;">+0.69%</span>   |
-| WTI Crude        | 72.16     | <span style="color:#11823b;">+7.67%</span>  | <span style="color:#11823b;">+8.82%</span>  | <span style="color:#11823b;">+10.66%</span> | <span style="color:#11823b;">+23.06%</span> | <span style="color:#11823b;">+12.80%</span>  |
-| Gold             | 5,367.10  | <span style="color:#11823b;">+2.61%</span>  | <span style="color:#11823b;">+3.12%</span>  | <span style="color:#11823b;">+13.86%</span> | <span style="color:#11823b;">+28.20%</span> | <span style="color:#11823b;">+49.37%</span>  |
-| Silver           | 91.26     | <span style="color:#b91c1c;">-1.53%</span>  | <span style="color:#11823b;">+5.48%</span>  | <span style="color:#11823b;">+16.57%</span> | <span style="color:#11823b;">+57.40%</span> | <span style="color:#11823b;">+119.69%</span> |
-| Coffee           | 279.05    | <span style="color:#b91c1c;">-1.95%</span>  | <span style="color:#b91c1c;">-0.75%</span>  | <span style="color:#b91c1c;">-16.01%</span> | <span style="color:#b91c1c;">-31.19%</span> | <span style="color:#b91c1c;">-27.57%</span>  |
-| Cocoa            | 2,993.00  | <span style="color:#11823b;">+6.97%</span>  | <span style="color:#b91c1c;">-0.37%</span>  | <span style="color:#b91c1c;">-28.14%</span> | <span style="color:#b91c1c;">-44.58%</span> | <span style="color:#b91c1c;">-59.96%</span>  |
-| Bitcoin          | 65,865.19 | <span style="color:#11823b;">+0.19%</span>  | <span style="color:#11823b;">+1.93%</span>  | <span style="color:#b91c1c;">-16.22%</span> | <span style="color:#b91c1c;">-27.90%</span> | <span style="color:#b91c1c;">-41.05%</span>  |
+| Nasdaq 100       | 24,868.59 | <span style="color:#b91c1c;">-0.37%</span> | <span style="color:#11823b;">+0.65%</span> | <span style="color:#b91c1c;">-2.68%</span>  | <span style="color:#b91c1c;">-2.69%</span>  | <span style="color:#11823b;">+6.21%</span>   |
+| S&P 500          | 6,856.86  | <span style="color:#b91c1c;">-0.32%</span> | <span style="color:#11823b;">+0.28%</span> | <span style="color:#b91c1c;">-1.18%</span>  | <span style="color:#11823b;">+0.40%</span>  | <span style="color:#11823b;">+6.34%</span>   |
+| STOXX Europe 600 | 622.61    | <span style="color:#b91c1c;">-1.77%</span> | <span style="color:#b91c1c;">-0.81%</span> | <span style="color:#11823b;">+1.90%</span>  | <span style="color:#11823b;">+8.16%</span>  | <span style="color:#11823b;">+13.87%</span>  |
+| DAX              | 24,650.44 | <span style="color:#b91c1c;">-2.51%</span> | <span style="color:#b91c1c;">-1.37%</span> | <span style="color:#11823b;">+0.45%</span>  | <span style="color:#11823b;">+3.96%</span>  | <span style="color:#11823b;">+4.47%</span>   |
+| CAC 40           | 8,382.61  | <span style="color:#b91c1c;">-2.31%</span> | <span style="color:#b91c1c;">-1.35%</span> | <span style="color:#11823b;">+3.15%</span>  | <span style="color:#11823b;">+3.81%</span>  | <span style="color:#11823b;">+8.59%</span>   |
+| FTSE 100         | 10,768.91 | <span style="color:#b91c1c;">-1.30%</span> | <span style="color:#11823b;">+0.79%</span> | <span style="color:#11823b;">+5.33%</span>  | <span style="color:#11823b;">+11.00%</span> | <span style="color:#11823b;">+17.33%</span>  |
+| VIX              | 21.68     | <span style="color:#11823b;">+9.16%</span> | <span style="color:#11823b;">+3.19%</span> | <span style="color:#11823b;">+24.31%</span> | <span style="color:#11823b;">+30.68%</span> | <span style="color:#11823b;">+32.60%</span>  |
+| EUR/USD          | 1.17      | <span style="color:#b91c1c;">-1.02%</span> | <span style="color:#b91c1c;">-1.29%</span> | <span style="color:#b91c1c;">-2.37%</span>  | <span style="color:#11823b;">+0.64%</span>  | <span style="color:#11823b;">+0.40%</span>   |
+| WTI Crude        | 71.39     | <span style="color:#11823b;">+6.52%</span> | <span style="color:#11823b;">+7.66%</span> | <span style="color:#11823b;">+9.48%</span>  | <span style="color:#11823b;">+21.74%</span> | <span style="color:#11823b;">+11.60%</span>  |
+| Gold             | 5,345.50  | <span style="color:#11823b;">+2.20%</span> | <span style="color:#11823b;">+2.71%</span> | <span style="color:#11823b;">+13.40%</span> | <span style="color:#11823b;">+27.68%</span> | <span style="color:#11823b;">+48.77%</span>  |
+| Silver           | 89.71     | <span style="color:#b91c1c;">-3.20%</span> | <span style="color:#11823b;">+3.69%</span> | <span style="color:#11823b;">+14.59%</span> | <span style="color:#11823b;">+54.73%</span> | <span style="color:#11823b;">+115.96%</span> |
+| Coffee           | 284.95    | <span style="color:#11823b;">+0.12%</span> | <span style="color:#11823b;">+1.35%</span> | <span style="color:#b91c1c;">-14.24%</span> | <span style="color:#b91c1c;">-29.74%</span> | <span style="color:#b91c1c;">-26.04%</span>  |
+| Cocoa            | 3,030.00  | <span style="color:#11823b;">+8.29%</span> | <span style="color:#11823b;">+0.87%</span> | <span style="color:#b91c1c;">-27.25%</span> | <span style="color:#b91c1c;">-43.90%</span> | <span style="color:#b91c1c;">-59.46%</span>  |
+| Bitcoin          | 69,185.31 | <span style="color:#11823b;">+5.24%</span> | <span style="color:#11823b;">+7.07%</span> | <span style="color:#b91c1c;">-12.00%</span> | <span style="color:#b91c1c;">-24.26%</span> | <span style="color:#b91c1c;">-38.07%</span>  |
 
 **Macro charts (5Y):**
 
-<table><tr><td style='padding-right:12px;'><img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/macro_vix_5y.png?v=20260302143426' width='414' style='width:414px;max-width:414px;height:auto;'></td><td><img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/macro_eurusd_5y.png?v=20260302143426' width='414' style='width:414px;max-width:414px;height:auto;'></td></tr></table>
+<table><tr><td style='padding-right:12px;'><img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/macro_vix_5y.png?v=20260302160402' width='414' style='width:414px;max-width:414px;height:auto;'></td><td><img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/macro_eurusd_5y.png?v=20260302160402' width='414' style='width:414px;max-width:414px;height:auto;'></td></tr></table>
 
 
 ## 2) Biggest movers (≥ 4%)
 
 **Session gainers:**
 
-| Ticker   | pct    |
+| Ticker   | pct     |
 | :--- | ---: |
-| MAU      | +7.79% |
-| REP      | +7.23% |
-| Cocoa    | +6.86% |
-| NAT      | +4.54% |
+| NFLX     | +13.77% |
+| Cocoa    | +8.18%  |
+| MAU      | +6.72%  |
+| PLTR     | +6.18%  |
+| REP      | +5.81%  |
+| BYDDY    | +5.08%  |
+| MPC      | +4.39%  |
+| NAT      | +4.01%  |
 
 **Session losers:**
 
 | Ticker   | pct    |
 | :--- | ---: |
-| UCG      | -4.21% |
-| MC       | -4.17% |
-| NVDA     | -4.16% |
+| Silver   | -4.79% |
+| MC       | -4.21% |
+| UCG      | -4.00% |
 
 **After-hours gainers:** _None ≥ 4%_
 
@@ -72,17 +76,17 @@ _Upcoming earnings dates for your  watchlist._
 
 - Tickers scanned: **1277**; usable OHLCV: **799**
 
-- Candidates found: **313** (top patterns: MOMO_TREND:104, IHS:101, HS_TOP:41, RECT:20, RECT_BOTTOM:18, RECT_TOP:16, DEAD_CAT_BOUNCE:11, DESC_TRIANGLE:2)
+- Candidates found: **252** (top patterns: MOMO_TREND:104, IHS:47, HS_TOP:36, RECT:20, RECT_BOTTOM:16, RECT_TOP:16, DEAD_CAT_BOUNCE:11, DESC_TRIANGLE:2)
 
-- Live signals: EARLY **26**, CONFIRMED **44**, VALIDATED **1** (total 71)
+- Live signals: EARLY **18**, CONFIRMED **38**, VALIDATED **1** (total 57)
 
-- Geometry restored today: HS/IHS **52**, Band **7**
+- Geometry restored today: HS/IHS **47**, Band **7**
 
 
 
 ### Watchlist big movers diagnostics (|Day%| ≥ 7%)
 
-<style>table.tblauto{table-layout:auto;width:100%;border-collapse:collapse;margin:8px 0;}table.tblauto th,table.tblauto td{border:1px solid #e5e7eb;padding:6px 8px;vertical-align:top;}table.tblauto th{background:#f6f8fa;font-weight:600;white-space:nowrap;}table.tblauto td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}table.tblauto td.txt{white-space:nowrap;}table.tblauto td.wrap{white-space:normal;}</style><div style="overflow-x:auto"><table class="tblauto"><thead><tr><th>Name of Company</th><th>Ticker</th><th>Close</th><th>Day%</th><th>BestPattern</th><th>Dir</th><th>Dist(ATR)</th><th>PriceGate</th><th>CLVGate</th><th>VolGate</th><th>HS lag</th><th>Cand#</th></tr></thead><tbody><tr><td class="wrap">NU</td><td class="txt">NU</td><td class="num">14.47</td><td class="num">-3.4%</td><td class="txt">HS_TOP</td><td class="txt">BREAKDOWN</td><td class="num">-1.97</td><td class="txt">Y</td><td class="txt">N</td><td class="txt">Y</td><td class="txt">5</td><td class="txt">1</td></tr><tr><td class="wrap">CONSTELLATION ENERGY CORP</td><td class="txt">CEG</td><td class="num">328.17</td><td class="num">-0.5%</td><td class="txt">HS_TOP</td><td class="txt">BREAKDOWN</td><td class="num">+0.61</td><td class="txt">N</td><td class="txt">N</td><td class="txt">N</td><td class="txt">29</td><td class="txt">1</td></tr><tr><td class="wrap">MAU</td><td class="txt">MAU</td><td class="num">9.62</td><td class="num">+7.8%</td><td class="txt">IHS</td><td class="txt">BREAKOUT</td><td class="num">+9.80</td><td class="txt">Y</td><td class="txt">N</td><td class="txt">N</td><td class="txt">63</td><td class="txt">1</td></tr><tr><td class="wrap">REP</td><td class="txt">REP</td><td class="num">20.39</td><td class="num">+7.2%</td><td class="txt">MOMO_TREND</td><td class="txt">BREAKOUT</td><td class="num">+2.96</td><td class="txt">Y</td><td class="txt">N</td><td class="txt">N</td><td class="txt"></td><td class="txt">2</td></tr></tbody></table></div>
+<style>table.tblauto{table-layout:auto;width:100%;border-collapse:collapse;margin:8px 0;}table.tblauto th,table.tblauto td{border:1px solid #e5e7eb;padding:6px 8px;vertical-align:top;}table.tblauto th{background:#f6f8fa;font-weight:600;white-space:nowrap;}table.tblauto td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}table.tblauto td.txt{white-space:nowrap;}table.tblauto td.wrap{white-space:normal;}</style><div style="overflow-x:auto"><table class="tblauto"><thead><tr><th>Name of Company</th><th>Ticker</th><th>Close</th><th>Day%</th><th>BestPattern</th><th>Dir</th><th>Dist(ATR)</th><th>PriceGate</th><th>CLVGate</th><th>VolGate</th><th>HS lag</th><th>Cand#</th></tr></thead><tbody><tr><td class="wrap">NFLX</td><td class="txt">NFLX</td><td class="num">96.24</td><td class="num">+13.8%</td><td class="txt"></td><td class="txt"></td><td class="num"></td><td class="txt">N</td><td class="txt">N</td><td class="txt">N</td><td class="txt"></td><td class="txt">0</td></tr><tr><td class="wrap">NU</td><td class="txt">NU</td><td class="num">15.02</td><td class="num">+0.2%</td><td class="txt">HS_TOP</td><td class="txt">BREAKDOWN</td><td class="num">-1.97</td><td class="txt">Y</td><td class="txt">N</td><td class="txt">Y</td><td class="txt">5</td><td class="txt">1</td></tr><tr><td class="wrap">CONSTELLATION ENERGY CORP</td><td class="txt">CEG</td><td class="num">331.34</td><td class="num">+0.4%</td><td class="txt">HS_TOP</td><td class="txt">BREAKDOWN</td><td class="num">+0.61</td><td class="txt">N</td><td class="txt">N</td><td class="txt">N</td><td class="txt">29</td><td class="txt">1</td></tr></tbody></table></div>
 
 
 ### Focus tickers deep-dive (always shown)
@@ -103,7 +107,7 @@ _Upcoming earnings dates for your  watchlist._
 
   - 2) LS local (±3): YES | RS local: YES
 
-  - 3) Symmetry ≥ 0.50: YES (dL=17, dR=15, ratio=0.8823529411764706)
+  - 3) Symmetry ≥ 0.70: YES (dL=17, dR=15, ratio=0.8823529411764706)
 
   - 4) Valley ≥ 2.0×ATR: YES (left=2.4549999237060547, right=2.3899993896484375, thr=1.0735716138567244, ATR=0.5367858069283622)
 
@@ -151,7 +155,7 @@ _Upcoming earnings dates for your  watchlist._
 
   - Post-head maxClose between (H,RS): 16.39 at 2025-11-11 00:00:00 | RS_Close=15.89
 
-<a href='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/NU_FOCUS_HS_TOP_BREAKDOWN.png?v=20260302143426' target='_blank'><img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/NU_FOCUS_HS_TOP_BREAKDOWN.png?v=20260302143426' width='980' style='max-width:980px;height:auto;'></a>
+<a href='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/NU_FOCUS_HS_TOP_BREAKDOWN.png?v=20260302160402' target='_blank'><img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/NU_FOCUS_HS_TOP_BREAKDOWN.png?v=20260302160402' width='980' style='max-width:980px;height:auto;'></a>
 
 
 
@@ -177,12 +181,16 @@ _Upcoming earnings dates for your  watchlist._
 
     - 2) LS local extreme (±3 bars): NO | RS local extreme: NO
 
-    - 3) Symmetry ratio min(dL,dR)/max(dL,dR) ≥ 0.50: YES (dL=51, dR=28, ratio=0.55)
+    - 3) Symmetry ratio min(dL,dR)/max(dL,dR) ≥ 0.70: NO (dL=51, dR=28, ratio=0.55)
 
     - 4) Valley depth ≥ 2.0×ATR(head): YES (left=3.62, right=0.95, thr=0.91, ATR=0.46)
+
+    - 5) Shoulder→valley depth ≥ 1.0×ATR(head): YES (L=1.36, R=0.85, thr=0.46)
 
   - Detector window maxClose: 403.95 at 2025-10-15 00:00:00 | H_Close=320.00
 
   - Pre-head maxClose (swing pivot) between (LS,H): 354.89 at 2025-08-04 00:00:00 | LS_Close=320.17
 
-  - Post-head maxClose (swing
+  - Post-head maxClose (swing pivot) between (H,RS): 403.95 at 2025-10-15 00:00:00 | RS_Close=370.00
+
+<a href='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/CEG_FOCUS_HS_TOP_BREAKDOWN.png?v=20260302160402' 
