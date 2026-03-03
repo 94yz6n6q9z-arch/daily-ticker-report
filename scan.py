@@ -15,8 +15,6 @@ NEW (this update):
   (Key tape, Movers, Technical trigger tables) by patching the markdown
   alignment row to use ---: on numeric columns.
 - Added VP runway metric for VALIDATED signals: distance to nearest opposing HVN (%).
-- v79: Fix HS/IHS neckline angle measurement by normalizing slope using median ATR on the reaction segment (not ATR(head)).
-- v79: Ensure watchlist tickers display company names (NAME_OVERRIDES / yfinance fallback) instead of bare tickers in Section 4.
 """
 from __future__ import annotations
 import argparse
@@ -800,6 +798,8 @@ def build_company_country_resolvers(msci_df: pd.DataFrame):
             if ctry:
                 msci_country[t] = ctry
                 msci_country.setdefault(_base_ticker(t), ctry)
+    _wl_base = {_base_ticker(x) for x in WATCHLIST_44}
+    _yf_name_cache: Dict[str, str] = {}
     def _name(ticker: str) -> str:
         t = str(ticker or "").strip()
         if not t:
@@ -807,11 +807,26 @@ def build_company_country_resolvers(msci_df: pd.DataFrame):
         base = _base_ticker(t)
         if t in COMMODITY_NAME_OVERRIDES or base in COMMODITY_NAME_OVERRIDES:
             return COMMODITY_NAME_OVERRIDES.get(t) or COMMODITY_NAME_OVERRIDES.get(base) or ""
-        if t in NAME_OVERRIDES:
-            return NAME_OVERRIDES[t]
-        if base in NAME_OVERRIDES:
-            return NAME_OVERRIDES[base]
-        return msci_company.get(t) or msci_company.get(base) or _display_name(t)
+        nm = msci_company.get(t) or msci_company.get(base)
+        if nm:
+            return nm
+
+        # Watchlist tickers: if MSCI lookup is missing, try to resolve a proper company name via yfinance (cached).
+        # This keeps Section 4 from showing bare tickers like "OKLO" instead of "Oklo Inc".
+        if base in _wl_base:
+            if base in _yf_name_cache:
+                return _yf_name_cache[base]
+            try:
+                info = yf.Ticker(t).info or {}
+                nm2 = (info.get("shortName") or info.get("longName") or info.get("displayName") or "").strip()
+                if nm2:
+                    _yf_name_cache[base] = nm2
+                    return nm2
+            except Exception:
+                pass
+
+        return _display_name(t)
+
     def _country(ticker: str) -> str:
         t = str(ticker or "").strip()
         if not t:
@@ -3584,27 +3599,32 @@ def _hs_geometry_diagnostics(
     else:
         out["react_local_ok"] = bool(_is_local_min(r1) and _is_local_min(r2))
 
-    # 9) Neckline slope angle (ATR-normalized) must be within ±HS_NECKLINE_MAX_ANGLE_DEG
+    # 9) Neckline slope angle must be within ±HS_NECKLINE_MAX_ANGLE_DEG
+
     dc = float(close[r2] - close[r1])
+
     db = float(r2 - r1)
+
     angle_deg = float("nan")
-    atr_neck = float("nan")
-    # NOTE: v79 fix — use a representative ATR on the neckline segment (median ATR between the two reaction points),
-    # rather than ATR(head). ATR(head) can be inflated by the shock bar (earnings/gap), which understates the true slope.
-    if db > 0:
-        lo = int(min(r1, r2))
-        hi = int(max(r1, r2))
-        try:
-            seg = atr_s[lo:hi+1]
-            atr_neck = float(np.nanmedian(seg)) if getattr(seg, "size", 0) else float("nan")
-        except Exception:
-            atr_neck = float("nan")
-        atr_ref = atr_neck if (np.isfinite(atr_neck) and atr_neck > 0) else atr_h
-        if np.isfinite(atr_ref) and atr_ref > 0:
-            m_atr = (dc / db) / float(atr_ref)
-            angle_deg = float(math.degrees(math.atan(m_atr)))
-    out["neckline_atr_ref"] = float(atr_neck)
+
+    angle_atr_deg = float("nan")
+
+    if db != 0 and np.isfinite(db):
+
+        # Raw price-per-bar angle (matches “angle from horizon” on a standard price-vs-bar chart)
+
+        angle_deg = float(math.degrees(math.atan2(dc, db)))
+
+        # Diagnostic: ATR-normalized angle (previous v78 behavior)
+
+        if np.isfinite(atr_h) and atr_h > 0:
+
+            angle_atr_deg = float(math.degrees(math.atan2(dc / float(atr_h), db)))
+
     out["neckline_angle_deg"] = float(angle_deg)
+
+    out["neckline_angle_atr_deg"] = float(angle_atr_deg)
+
     out["neckline_angle_ok"] = bool(np.isfinite(angle_deg) and (abs(angle_deg) <= float(HS_NECKLINE_MAX_ANGLE_DEG) + 1e-9))
     out["pass_all"] = bool(
         out["head_is_global_span"]
@@ -4647,14 +4667,14 @@ def _historical_confirm_then_retest(
             if g.get("price"):
                 attempt_i = j
                 break
-        if confirmed_i is None:
+        if attempt_i is None:
             return False
-        atr_ref = _atr_ref_for_exit(cand, d, a, confirmed_i)
+        atr_ref = _atr_ref_for_exit(cand, d, a, attempt_i)
         if not np.isfinite(atr_ref) or atr_ref <= 0:
-            atr_ref = float(a.iloc[confirmed_i]) if np.isfinite(a.iloc[confirmed_i]) else 1e-6
+            atr_ref = float(a.iloc[attempt_i]) if np.isfinite(a.iloc[attempt_i]) else 1e-6
         if atr_ref <= 0:
             return False
-        for j in range(confirmed_i, n):
+        for j in range(attempt_i, n):
             lvl = _safe_float(_level_at_bar(cand, d, j))
             close = _safe_float(d["Close"].iloc[j])
             if not (np.isfinite(lvl) and np.isfinite(close)):
@@ -4933,23 +4953,24 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
             if prefix != "EARLY_":
                 continue
 
-                # Suppress EARLY resurfacing after a prior confirmed move that later reverted back through the trigger.
-                # Prevents cases like PHM/PSA being flagged as EARLY long after an actual breakout happened.
-                try:
-                    meta = cand.meta if isinstance(cand.meta, dict) else {}
-                    start_i = int(meta.get("pattern_end_i", meta.get("p3", meta.get("p2", 0))))
-                except Exception:
-                    start_i = 0
-                if cand.pattern in ("HS_TOP", "IHS") and _historical_confirm_then_retest(cand, d, a, start_i):
-                    if isinstance(debug, dict):
-                        debug.setdefault("suppressed_early_retests", []).append({
-                            "ticker": ticker,
-                            "pattern": cand.pattern,
-                            "dir": cand.direction,
-                            "start_i": start_i,
-                        })
-                    continue
-            # EARLY must be fresh: pattern completion must be recent (prevents stale formations resurfacing).
+            # Suppress EARLY resurfacing after a prior confirmed move that later reverted back through the trigger.
+            # Prevents cases like PHM being flagged as EARLY long after an actual breakout happened.
+            try:
+                meta = cand.meta if isinstance(cand.meta, dict) else {}
+                start_i = int(meta.get("pattern_end_i", meta.get("p3", meta.get("p2", 0))))
+            except Exception:
+                start_i = 0
+            if cand.pattern in ("HS_TOP", "IHS") and _historical_confirm_then_retest(cand, d, a, start_i):
+                if isinstance(debug, dict):
+                    debug.setdefault("suppressed_early_retests", []).append({
+                        "ticker": ticker,
+                        "pattern": cand.pattern,
+                        "dir": cand.direction,
+                        "start_i": start_i,
+                    })
+                continue
+
+# EARLY must be fresh: pattern completion must be recent (prevents stale formations resurfacing).
             if cand.pattern != "DEAD_CAT_BOUNCE":
                 meta = cand.meta if isinstance(cand.meta, dict) else {}
                 p_end = meta.get("pattern_end_i", meta.get("end_i", None))
@@ -6024,50 +6045,6 @@ def main():
     tech_scan_universe = sorted(set(base_universe + msci_tickers))
     sector_resolver = build_sector_resolver(msci_df)
     company_name_for_ticker, country_for_ticker = build_company_country_resolvers(msci_df)
-    # v79: ensure watchlist tickers show company names (not just ticker labels) in Section 4/6.
-    # If a watchlist ticker is not in the MSCI mapping and has no NAME_OVERRIDES entry,
-    # we fetch a lightweight name from yfinance (watchlist only) and use it as an override.
-    watchlist_company_extra: Dict[str, str] = {}
-    try:
-        missing: List[str] = []
-        for _t in sorted(watchlist_set):
-            _t = str(_t or "").strip()
-            if not _t:
-                continue
-            if _t in COMMODITY_NAME_OVERRIDES or _base_ticker(_t) in COMMODITY_NAME_OVERRIDES:
-                continue
-            nm0 = str(company_name_for_ticker(_t) or "").strip()
-            # If the resolver collapses to ticker-like label, try to enrich.
-            if (not nm0) or (nm0.upper() == _display_name(_t).upper()):
-                missing.append(_t)
-        # Safety: avoid hammering Yahoo; watchlist is small, but still guard.
-        missing = missing[:80]
-        if missing:
-            for _t in missing:
-                try:
-                    info = yf.Ticker(_t).info or {}
-                    nm = (info.get("shortName") or info.get("longName") or info.get("displayName") or "").strip()
-                    if nm:
-                        nmU = nm.upper()
-                        watchlist_company_extra[_t] = nmU
-                        watchlist_company_extra.setdefault(_base_ticker(_t), nmU)
-                except Exception:
-                    continue
-    except Exception:
-        watchlist_company_extra = {}
-    if watchlist_company_extra:
-        _base_name_resolver = company_name_for_ticker
-        def company_name_for_ticker(ticker: str) -> str:
-            t = str(ticker or "").strip()
-            if not t:
-                return ""
-            base = _base_ticker(t)
-            if t in watchlist_company_extra:
-                return watchlist_company_extra[t]
-            if base in watchlist_company_extra:
-                return watchlist_company_extra[base]
-            return _base_name_resolver(t)
-
     now = dt.datetime.now(dt.timezone.utc)
     global PUBLIC_BASE_URL, CACHE_BUST
     CACHE_BUST = now.strftime("%Y%m%d%H%M%S")
@@ -6557,7 +6534,7 @@ def main():
                                 md.append(f"    - 6) Span bars in [{HS_MIN_BARS}..{HS_MAX_BARS}]: {'YES' if geom2.get('span_ok') else 'NO'} (span={geom2.get('span_bars')})\n")
                                 md.append(f"    - 7) Sidebars ≥ {HS_MIN_SIDE_BARS} bars: {'YES' if geom2.get('sidebars_ok') else 'NO'} (dL={geom2.get('dL')}, dR={geom2.get('dR')})\n")
                                 md.append(f"    - 8) Reaction pivots local (±{HS_LOCAL_WINDOW}): {'YES' if geom2.get('react_local_ok') else 'NO'} (p1={geom2.get('react_i1')}, p2={geom2.get('react_i2')}, ok1={geom2.get('react1_local')}, ok2={geom2.get('react2_local')})\n")
-                                md.append(f"    - 9) Neckline angle within ±{HS_NECKLINE_MAX_ANGLE_DEG:.1f}° (abs): {'YES' if geom2.get('neckline_angle_ok') else 'NO'} (angle={geom2.get('neckline_angle_deg'):.2f}°, ATRref={geom2.get('neckline_atr_ref', float('nan')):.2f})\n")
+                                md.append(f"    - 9) Neckline angle within ±{HS_NECKLINE_MAX_ANGLE_DEG:.1f}° (abs): {'YES' if geom2.get('neckline_angle_ok') else 'NO'} (angle={geom2.get('neckline_angle_deg'):.2f}°; angle_ATR={geom2.get('neckline_angle_atr_deg'):.2f}°)\n")
                 except Exception:
                     pass
             except Exception:
@@ -6687,7 +6664,7 @@ def main():
                                     md.append(f"    - 6) Span bars in [{HS_MIN_BARS}..{HS_MAX_BARS}]: {'YES' if geom_chk.get('span_ok') else 'NO'} (span={geom_chk.get('span_bars')})\n")
                                     md.append(f"    - 7) Sidebars ≥ {HS_MIN_SIDE_BARS} bars: {'YES' if geom_chk.get('sidebars_ok') else 'NO'} (dL={geom_chk.get('dL')}, dR={geom_chk.get('dR')})\n")
                                     md.append(f"    - 8) Reaction pivots local (±{HS_LOCAL_WINDOW}): {'YES' if geom_chk.get('react_local_ok') else 'NO'} (p1={geom_chk.get('react_i1')}, p2={geom_chk.get('react_i2')}, ok1={geom_chk.get('react1_local')}, ok2={geom_chk.get('react2_local')})\n")
-                                    md.append(f"    - 9) Neckline angle within ±{HS_NECKLINE_MAX_ANGLE_DEG:.1f}° (abs): {'YES' if geom_chk.get('neckline_angle_ok') else 'NO'} (angle={geom_chk.get('neckline_angle_deg'):.2f}°, ATRref={geom_chk.get('neckline_atr_ref', float('nan')):.2f})\n")
+                                    md.append(f"    - 9) Neckline angle within ±{HS_NECKLINE_MAX_ANGLE_DEG:.1f}° (abs): {'YES' if geom_chk.get('neckline_angle_ok') else 'NO'} (angle={geom_chk.get('neckline_angle_deg'):.2f}°)\n")
                                 except Exception:
                                     pass
                                 # Use the SAME detector window (tail LOOKBACK_DAYS), so meta indices (iloc) always align.
