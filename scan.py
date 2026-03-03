@@ -4654,7 +4654,7 @@ def _historical_confirm_then_retest(
     except Exception:
         return False
 
-ddef _historical_big_pierce_then_revert(
+def _historical_big_pierce_then_revert(
     cand: PatternCandidate,
     d: pd.DataFrame,
     a: pd.Series,
