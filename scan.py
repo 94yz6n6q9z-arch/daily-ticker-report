@@ -37,7 +37,7 @@ import yfinance as yf
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-SCAN_VERSION: str = "v74"
+SCAN_VERSION: str = "v75"
 # ----------------------------
 # Public asset URLs (email-safe) + cache busting
 # ----------------------------
@@ -3844,6 +3844,9 @@ def detect_dead_cat_bounce(df: pd.DataFrame) -> Optional[PatternCandidate]:
     L = d["Low"].astype(float).values
     O = d["Open"].astype(float).values
     C = d["Close"].astype(float).values
+    # ATR series used for ATR-based shock gating (e.g., >=5x ATR down day).
+    # NOTE: this was previously referenced as `A[...]` without being defined.
+    A = atr(d, ATR_N).astype(float).values
     V = pd.to_numeric(d["Volume"], errors="coerce").astype(float).values
     lows_idx_all = _swing_points_ohlc(d, window=3, prominence_atr_mult=0.5)[1]
     best = None
