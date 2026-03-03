@@ -15,8 +15,8 @@ NEW (this update):
   (Key tape, Movers, Technical trigger tables) by patching the markdown
   alignment row to use ---: on numeric columns.
 - Added VP runway metric for VALIDATED signals: distance to nearest opposing HVN (%).
-- v80: Fix HS/IHS neckline angle measurement by normalizing slope using median ATR on the reaction segment (not ATR(head)).
-- v80: Ensure watchlist tickers display company names (NAME_OVERRIDES / yfinance fallback) instead of bare tickers in Section 4.
+- v81: Fix HS/IHS neckline angle measurement by normalizing slope using median ATR on the reaction segment (not ATR(head)).
+- v81: Ensure watchlist tickers display company names (NAME_OVERRIDES / yfinance fallback) instead of bare tickers in Section 4.
 """
 from __future__ import annotations
 import argparse
@@ -39,7 +39,7 @@ import yfinance as yf
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-SCAN_VERSION: str = "v80"
+SCAN_VERSION: str = "v81"
 # ----------------------------
 # Public asset URLs (email-safe) + cache busting
 # ----------------------------
@@ -4653,6 +4653,64 @@ def _historical_confirm_then_retest(
         return False
     except Exception:
         return False
+
+ddef _historical_big_pierce_then_revert(
+    cand: PatternCandidate,
+    d: pd.DataFrame,
+    a: pd.Series,
+    start_i: int,
+    pierce_mult: float = 2.0,
+) -> bool:
+    """
+    EARLY exit (close-based blow-off failure) — deterministic.
+
+    Trigger an EARLY exit if, after start_i:
+      - BREAKOUT: Close >= level + pierce_mult * ATR(14)  AND the bar is NOT confirmed (fails CLV and/or Volume gate)
+      - BREAKDOWN: Close <= level - pierce_mult * ATR(14) AND the bar is NOT confirmed
+
+    No intraday High/Low logic (too noisy). No "later revert" requirement: the moment we close that far beyond
+    the level without confirmation, we treat it as a failed/unstable attempt and exit EARLY.
+    """
+    try:
+        n = len(d)
+        if n < 10:
+            return False
+        si = int(max(0, min(int(start_i), n - 2)))
+
+        def _atr_at(j: int) -> float:
+            try:
+                v = float(a.iloc[j])
+                return v if np.isfinite(v) and v > 0 else 0.0
+            except Exception:
+                return 0.0
+
+        def _cl_at(j: int) -> float:
+            try:
+                return float(d["Close"].iloc[j])
+            except Exception:
+                return float("nan")
+
+        for j in range(si, n):
+            lvl = _safe_float(_level_at_bar(cand, d, j))
+            atr_j = _atr_at(j)
+            cl = _cl_at(j)
+            if not (np.isfinite(lvl) and np.isfinite(atr_j) and atr_j > 0 and np.isfinite(cl)):
+                continue
+
+            # Close-based pierce
+            if cand.direction == "BREAKOUT":
+                if cl >= float(lvl) + float(pierce_mult) * float(atr_j):
+                    # If it is confirmed, we don't treat it as a blow-off failure.
+                    if not _is_confirmed_bar(cand, d, a_series=a, i=j, atr_mult=ATR_CONFIRM_MULT):
+                        return True
+            else:
+                if cl <= float(lvl) - float(pierce_mult) * float(atr_j):
+                    if not _is_confirmed_bar(cand, d, a_series=a, i=j, atr_mult=ATR_CONFIRM_MULT):
+                        return True
+
+        return False
+    except Exception:
+        return False
 def _confirm_run_start(cand: PatternCandidate, d: pd.DataFrame, a_series: pd.Series) -> Optional[int]:
     """Return the index (in d) of the first bar of the current CONFIRMED run, or None.
     Day 0 (confirmation day): ALL 3 gates must hold (price + CLV + volume).
@@ -4937,7 +4995,7 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
                             "start_i": start_i,
                         })
                     continue
-            # EARLY must be fresh: pattern completion must be recent (prevents stale formations resurfacing).
+            # EARLY exits: staleness TTL (pattern-specific) + blow-off failure (2x ATR pierce without confirmation, then revert)
             if cand.pattern != "DEAD_CAT_BOUNCE":
                 meta = cand.meta if isinstance(cand.meta, dict) else {}
                 p_end = meta.get("pattern_end_i", meta.get("end_i", None))
@@ -4945,8 +5003,27 @@ def compute_signals_for_ticker(ticker: str, df: pd.DataFrame, state: Optional[Di
                     if p_end is not None:
                         p_end_i = int(p_end)
                         age_from_end = int((len(d) - 1) - p_end_i)
-                        if age_from_end > EARLY_MAX_AGE_FROM_PATTERN_END_BARS:
+
+                        # Staleness TTL:
+                        # - HS/IHS: 20 trading sessions from RS (pattern_end_i is RS for HS/IHS)
+                        # - RECT/TRIANGLE/BROADEN: 20 trading sessions since last validating touch (pattern_end_i)
+                        # - others: fallback to generic cap
+                        if cand.pattern in ("HS_TOP", "IHS"):
+                            ttl = 20
+                        elif ("RECT" in cand.pattern) or ("TRIANGLE" in cand.pattern) or ("BROADEN" in cand.pattern):
+                            ttl = 20
+                        else:
+                            ttl = int(EARLY_MAX_AGE_FROM_PATTERN_END_BARS) if "EARLY_MAX_AGE_FROM_PATTERN_END_BARS" in globals() else int(EARLY_MAX_AGE_FROM_PATTERN_END_BARS)
+
+                        if age_from_end > int(ttl):
                             continue
+
+                        # Blow-off failure exit:
+                        # If intraday pierces >= 2x ATR beyond the level without price-confirm close, then later reverts through the level,
+                        # suppress resurfacing as EARLY.
+                        if (cand.pattern in ("HS_TOP", "IHS")) or ("RECT" in cand.pattern) or ("TRIANGLE" in cand.pattern) or ("BROADEN" in cand.pattern):
+                            if _historical_big_pierce_then_revert(cand, d, a, start_i=p_end_i, pierce_mult=2.0):
+                                continue
                 except Exception:
                     pass
 # VP runway (distance to nearest opposing HVN) for CONFIRMED + VALIDATED
@@ -6012,7 +6089,7 @@ def main():
     tech_scan_universe = sorted(set(base_universe + msci_tickers))
     sector_resolver = build_sector_resolver(msci_df)
     company_name_for_ticker, country_for_ticker = build_company_country_resolvers(msci_df)
-    # v80: ensure watchlist tickers show company names (not just ticker labels) in Section 4/6.
+    # v81: ensure watchlist tickers show company names (not just ticker labels) in Section 4/6.
     # If a watchlist ticker is not in the MSCI mapping and has no NAME_OVERRIDES entry,
     # we fetch a lightweight name from yfinance (watchlist only) and use it as an override.
     watchlist_company_extra: Dict[str, str] = {}
