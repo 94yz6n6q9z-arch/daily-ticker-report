@@ -6770,8 +6770,14 @@ def main():
                             if pLS and pH and pRS:
                                 ls_i = int(pLS.get("i")); h_i = int(pH.get("i")); rs_i = int(pRS.get("i"))
                                 md.append(f"  - LS/H/RS geometry (idx): LS={ls_i}, H={h_i}, RS={rs_i}\n")
-                                md.append(f"  - LS/H/RS geometry (ts):  # Point alignment (p vs Close): values should be ~0 if points are on the Close line.
- LS={pLS.get('t')}, H={pH.get('t')}, RS={pRS.get('t')}\n")
+                                md.append(f"  - LS/H/RS geometry (ts): LS={pLS.get('t')}, H={pH.get('t')}, RS={pRS.get('t')}\\n")
+                                try:
+                                    ls_p = _safe_float(pLS.get("p")); h_p = _safe_float(pH.get("p")); rs_p = _safe_float(pRS.get("p"))
+                                    ls_c = _safe_float(d_local["Close"].iloc[ls_i]); h_c = _safe_float(d_local["Close"].iloc[h_i]); rs_c = _safe_float(d_local["Close"].iloc[rs_i])
+                                    if np.isfinite(ls_p) and np.isfinite(ls_c) and np.isfinite(h_p) and np.isfinite(h_c) and np.isfinite(rs_p) and np.isfinite(rs_c):
+                                        md.append(f"  - Point alignment (p vs Close): LSΔ={ls_p-ls_c:+.4f}, HΔ={h_p-h_c:+.4f}, RSΔ={rs_p-rs_c:+.4f}\\n")
+                                except Exception:
+                                    pass
                                 # Deterministic geometry checks (requested)
                                 try:
                                     geom_chk = _hs_geometry_diagnostics(d_local, ls_i, h_i, rs_i, inverse=(patt == "IHS"),
