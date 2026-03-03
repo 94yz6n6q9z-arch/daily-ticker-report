@@ -130,62 +130,42 @@
     "TRIGGER_WEDGE_BREAKOUT"
   ],
   "signals": [
-    "FRO|CONFIRMED_MOMO_TREND_BREAKOUT",
-    "INSW|CONFIRMED_MOMO_TREND_BREAKOUT",
-    "MPC|CONFIRMED_MOMO_TREND_BREAKOUT",
-    "NAT|VALIDATED_MOMO_TREND_BREAKOUT",
-    "TNK|VALIDATED_MOMO_TREND_BREAKOUT",
+    "REP.MC|CONFIRMED_MOMO_TREND_BREAKOUT",
     "VLO|CONFIRMED_MOMO_TREND_BREAKOUT",
     "0669.HK|VALIDATED_IHS_BREAKOUT",
-    "1308.HK|CONFIRMED_MOMO_TREND_BREAKOUT",
-    "3038.T|EARLY_RECT_BREAKDOWN",
-    "4188.T|VALIDATED_MOMO_TREND_BREAKOUT",
-    "5019.T|CONFIRMED_MOMO_TREND_BREAKOUT",
-    "5020.T|CONFIRMED_MOMO_TREND_BREAKOUT",
-    "7011.T|VALIDATED_MOMO_TREND_BREAKOUT",
+    "7270.T|CONFIRMED_RECT_BREAKDOWN",
+    "7701.T|CONFIRMED_RECT_TOP_BREAKDOWN",
     "7911.T|CONFIRMED_RECT_TOP_BREAKOUT",
-    "7911.T|CONFIRMED_MOMO_TREND_BREAKOUT",
-    "8031.T|CONFIRMED_MOMO_TREND_BREAKOUT",
-    "9104.T|VALIDATED_MOMO_TREND_BREAKOUT",
-    "9107.T|CONFIRMED_MOMO_TREND_BREAKOUT",
     "ALL|EARLY_RECT_BREAKOUT",
     "AWK|EARLY_RECT_BOTTOM_BREAKOUT",
-    "BN|EARLY_RECT_BREAKDOWN",
     "BS6.SI|VALIDATED_MOMO_TREND_BREAKOUT",
-    "CRH|EARLY_RECT_TOP_BREAKDOWN",
     "D05.SI|CONFIRMED_HS_TOP_BREAKDOWN",
+    "DAL|EARLY_RECT_TOP_BREAKDOWN",
     "DELL|CONFIRMED_DESC_TRIANGLE_BREAKOUT",
-    "DELL|CONFIRMED_MOMO_TREND_BREAKOUT",
-    "DKS|EARLY_RECT_BOTTOM_BREAKOUT",
     "EOG|CONFIRMED_MOMO_TREND_BREAKOUT",
-    "H|EARLY_RECT_BREAKDOWN",
-    "LHX|CONFIRMED_MOMO_TREND_BREAKOUT",
-    "NOC|CONFIRMED_MOMO_TREND_BREAKOUT",
+    "EQR|EARLY_RECT_BREAKDOWN",
+    "REGN|EARLY_RECT_TOP_BREAKDOWN",
     "RKT|EARLY_HS_TOP_BREAKDOWN",
-    "SY1.DE|EARLY_IHS_BREAKOUT",
-    "TOST|VALIDATED_HS_TOP_BREAKDOWN",
-    "TSN|VALIDATED_IHS_BREAKOUT",
+    "SMCI|EARLY_RECT_BOTTOM_BREAKDOWN",
     "WRB|EARLY_RECT_BREAKOUT",
     "WTRG|EARLY_RECT_BOTTOM_BREAKOUT"
   ],
   "early": [
-    "3038.T|EARLY_RECT_BREAKDOWN",
-    "WRB|EARLY_RECT_BREAKOUT",
-    "SY1.DE|EARLY_IHS_BREAKOUT",
-    "CRH|EARLY_RECT_TOP_BREAKDOWN",
+    "DAL|EARLY_RECT_TOP_BREAKDOWN",
+    "REGN|EARLY_RECT_TOP_BREAKDOWN",
+    "EQR|EARLY_RECT_BREAKDOWN",
     "RKT|EARLY_HS_TOP_BREAKDOWN",
-    "BN|EARLY_RECT_BREAKDOWN",
-    "H|EARLY_RECT_BREAKDOWN",
-    "AWK|EARLY_RECT_BOTTOM_BREAKOUT",
+    "ALL|EARLY_RECT_BREAKOUT",
     "WTRG|EARLY_RECT_BOTTOM_BREAKOUT",
-    "DKS|EARLY_RECT_BOTTOM_BREAKOUT",
-    "ALL|EARLY_RECT_BREAKOUT"
+    "AWK|EARLY_RECT_BOTTOM_BREAKOUT",
+    "WRB|EARLY_RECT_BREAKOUT",
+    "SMCI|EARLY_RECT_BOTTOM_BREAKDOWN"
   ],
   "hs_geom": {
     "AAPL": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 270.9700012207031,
+      "level": 281.5338134765625,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -228,25 +208,25 @@
         ],
         "lines": [
           {
-            "t1": "2025-12-22T00:00:00",
-            "y1": 270.9700012207031,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 270.9700012207031,
+            "t1": "2025-11-20T00:00:00",
+            "y1": 266.25,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 281.5338134765625,
             "label": "Neckline",
-            "i1": 142,
-            "i2": 188
+            "i1": 121,
+            "i2": 189
           }
         ],
         "pattern_start_i": 114,
         "pattern_end_i": 144,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "ARR": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 17.059999465942383,
+      "level": 15.797499179840088,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -289,20 +269,20 @@
         ],
         "lines": [
           {
-            "t1": "2026-02-02T00:00:00",
-            "y1": 17.059999465942383,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 17.059999465942383,
+            "t1": "2026-01-08T00:00:00",
+            "y1": 18.06999969482422,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 15.797499179840088,
             "label": "Neckline",
-            "i1": 169,
-            "i2": 188
+            "i1": 153,
+            "i2": 189
           }
         ],
         "pattern_start_i": 142,
         "pattern_end_i": 178,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "AVGO": {
       "pattern": "HS_TOP",
@@ -1400,7 +1380,7 @@
         "pattern_end_i": 149,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "1113.HK": {
       "pattern": "HS_TOP",
@@ -3540,7 +3520,7 @@
     "7532.T": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 977.2999877929688,
+      "level": 978.2742658342634,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -3583,20 +3563,20 @@
         ],
         "lines": [
           {
-            "t1": "2026-02-13T00:00:00",
-            "y1": 977.2999877929688,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 977.2999877929688,
+            "t1": "2025-12-19T00:00:00",
+            "y1": 974.2000122070312,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 978.2742658342634,
             "label": "Neckline",
-            "i1": 178,
-            "i2": 188
+            "i1": 143,
+            "i2": 189
           }
         ],
         "pattern_start_i": 141,
         "pattern_end_i": 180,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "7701.T": {
       "pattern": "HS_TOP",
@@ -3967,7 +3947,7 @@
     "8267.T": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 2266.0,
+      "level": 2268.1666666666665,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -4010,20 +3990,20 @@
         ],
         "lines": [
           {
-            "t1": "2025-12-11T00:00:00",
-            "y1": 2266.0,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 2266.0,
+            "t1": "2025-11-06T00:00:00",
+            "y1": 2265.0,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 2268.1666666666665,
             "label": "Neckline",
-            "i1": 137,
-            "i2": 188
+            "i1": 113,
+            "i2": 189
           }
         ],
         "pattern_start_i": 110,
         "pattern_end_i": 143,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "8766.T": {
       "pattern": "IHS",
@@ -4638,7 +4618,7 @@
     "A": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 136.07000732421875,
+      "level": 129.2716451245685,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -4681,20 +4661,20 @@
         ],
         "lines": [
           {
-            "t1": "2025-12-31T00:00:00",
-            "y1": 136.07000732421875,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 136.07000732421875,
+            "t1": "2025-10-29T00:00:00",
+            "y1": 143.1999969482422,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 129.2716451245685,
             "label": "Neckline",
-            "i1": 148,
-            "i2": 188
+            "i1": 105,
+            "i2": 189
           }
         ],
         "pattern_start_i": 102,
         "pattern_end_i": 154,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "A5G.IR": {
       "pattern": "HS_TOP",
@@ -4938,7 +4918,7 @@
         "pattern_end_i": 169,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "AMD": {
       "pattern": "HS_TOP",
@@ -5004,7 +4984,7 @@
     "AMP": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 510.239990234375,
+      "level": 517.8706241730721,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -5047,20 +5027,20 @@
         ],
         "lines": [
           {
-            "t1": "2026-01-06T00:00:00",
-            "y1": 510.239990234375,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 510.239990234375,
+            "t1": "2025-10-07T00:00:00",
+            "y1": 497.7900085449219,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 517.8706241730721,
             "label": "Neckline",
-            "i1": 151,
-            "i2": 188
+            "i1": 89,
+            "i2": 189
           }
         ],
         "pattern_start_i": 85,
         "pattern_end_i": 160,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "AMT": {
       "pattern": "IHS",
@@ -5609,7 +5589,7 @@
         "pattern_end_i": 142,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "BKNG": {
       "pattern": "IHS",
@@ -6041,7 +6021,7 @@
     "CL": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 80.93000030517578,
+      "level": 84.18863573941317,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -6084,20 +6064,20 @@
         ],
         "lines": [
           {
-            "t1": "2025-11-21T00:00:00",
-            "y1": 80.93000030517578,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 80.93000030517578,
+            "t1": "2025-10-22T00:00:00",
+            "y1": 79.86000061035156,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 84.18863573941317,
             "label": "Neckline",
-            "i1": 122,
-            "i2": 188
+            "i1": 100,
+            "i2": 189
           }
         ],
         "pattern_start_i": 78,
         "pattern_end_i": 150,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "CLX": {
       "pattern": "IHS",
@@ -6407,7 +6387,7 @@
     "CPAY": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 316.29998779296875,
+      "level": 318.5780973434448,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -6450,20 +6430,20 @@
         ],
         "lines": [
           {
-            "t1": "2025-12-11T00:00:00",
-            "y1": 316.29998779296875,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 316.29998779296875,
+            "t1": "2025-09-11T00:00:00",
+            "y1": 313.6000061035156,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 318.5780973434448,
             "label": "Neckline",
-            "i1": 135,
-            "i2": 188
+            "i1": 71,
+            "i2": 189
           }
         ],
         "pattern_start_i": 70,
         "pattern_end_i": 140,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "CRDO": {
       "pattern": "HS_TOP",
@@ -6585,7 +6565,7 @@
         "pattern_end_i": 169,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "CRWD": {
       "pattern": "HS_TOP",
@@ -7200,7 +7180,7 @@
     "DKNG": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 42.63999938964844,
+      "level": 42.245383335993836,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -7243,20 +7223,20 @@
         ],
         "lines": [
           {
-            "t1": "2025-09-17T00:00:00",
-            "y1": 42.63999938964844,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 42.63999938964844,
+            "t1": "2025-08-11T00:00:00",
+            "y1": 42.72999954223633,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 42.245383335993836,
             "label": "Neckline",
-            "i1": 75,
-            "i2": 188
+            "i1": 49,
+            "i2": 189
           }
         ],
         "pattern_start_i": 41,
         "pattern_end_i": 78,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "DKS": {
       "pattern": "IHS",
@@ -7322,7 +7302,7 @@
     "DLR": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 180.97000122070312,
+      "level": 181.21460683722245,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -7365,25 +7345,25 @@
         ],
         "lines": [
           {
-            "t1": "2026-02-13T00:00:00",
-            "y1": 180.97000122070312,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 180.97000122070312,
+            "t1": "2025-10-24T00:00:00",
+            "y1": 179.27999877929688,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 181.21460683722245,
             "label": "Neckline",
-            "i1": 178,
-            "i2": 188
+            "i1": 102,
+            "i2": 189
           }
         ],
         "pattern_start_i": 99,
         "pattern_end_i": 182,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "DOC": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 18.079999923706055,
+      "level": 17.953513222771722,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -7426,20 +7406,20 @@
         ],
         "lines": [
           {
-            "t1": "2026-01-23T00:00:00",
-            "y1": 18.079999923706055,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 18.079999923706055,
+            "t1": "2025-11-28T00:00:00",
+            "y1": 18.260000228881836,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 17.953513222771722,
             "label": "Neckline",
-            "i1": 163,
-            "i2": 188
+            "i1": 126,
+            "i2": 189
           }
         ],
         "pattern_start_i": 118,
         "pattern_end_i": 170,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "DPZ": {
       "pattern": "IHS",
@@ -7988,7 +7968,7 @@
         "pattern_end_i": 82,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "EQH": {
       "pattern": "IHS",
@@ -8420,7 +8400,7 @@
     "FAST": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 47.119998931884766,
+      "level": 53.55548280285251,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -8463,20 +8443,20 @@
         ],
         "lines": [
           {
-            "t1": "2025-09-17T00:00:00",
-            "y1": 47.119998931884766,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 47.119998931884766,
+            "t1": "2025-08-04T00:00:00",
+            "y1": 45.369998931884766,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 53.55548280285251,
             "label": "Neckline",
-            "i1": 75,
-            "i2": 188
+            "i1": 44,
+            "i2": 189
           }
         ],
         "pattern_start_i": 37,
         "pattern_end_i": 84,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "FE": {
       "pattern": "HS_TOP",
@@ -8720,7 +8700,7 @@
         "pattern_end_i": 161,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "FSLR": {
       "pattern": "HS_TOP",
@@ -8781,7 +8761,7 @@
         "pattern_end_i": 184,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "FTNT": {
       "pattern": "HS_TOP",
@@ -9030,7 +9010,7 @@
     "GEHC": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 78.77999877929688,
+      "level": 75.02842230545848,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -9073,25 +9053,25 @@
         ],
         "lines": [
           {
-            "t1": "2026-01-29T00:00:00",
-            "y1": 78.77999877929688,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 78.77999877929688,
+            "t1": "2025-12-31T00:00:00",
+            "y1": 82.0199966430664,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 75.02842230545848,
             "label": "Neckline",
-            "i1": 167,
-            "i2": 188
+            "i1": 148,
+            "i2": 189
           }
         ],
         "pattern_start_i": 135,
         "pattern_end_i": 171,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "GGG": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 87.91999816894531,
+      "level": 88.96096103162651,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -9134,20 +9114,20 @@
         ],
         "lines": [
           {
-            "t1": "2026-01-16T00:00:00",
-            "y1": 87.91999816894531,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 87.91999816894531,
+            "t1": "2025-09-18T00:00:00",
+            "y1": 85.04000091552734,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 88.96096103162651,
             "label": "Neckline",
-            "i1": 159,
-            "i2": 188
+            "i1": 76,
+            "i2": 189
           }
         ],
         "pattern_start_i": 72,
         "pattern_end_i": 160,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "GIB-A.TO": {
       "pattern": "IHS",
@@ -9269,7 +9249,7 @@
         "pattern_end_i": 166,
         "trigger_line_type": "neckline_horizontal"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "GLPI": {
       "pattern": "IHS",
@@ -9879,7 +9859,7 @@
         "pattern_end_i": 136,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "IBKR": {
       "pattern": "HS_TOP",
@@ -10006,7 +9986,7 @@
     "ICE": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 172.22999572753906,
+      "level": 149.73900299072267,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -10049,20 +10029,20 @@
         ],
         "lines": [
           {
-            "t1": "2025-09-10T00:00:00",
-            "y1": 172.22999572753906,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 172.22999572753906,
+            "t1": "2025-07-15T00:00:00",
+            "y1": 179.7899932861328,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 149.73900299072267,
             "label": "Neckline",
-            "i1": 70,
-            "i2": 188
+            "i1": 30,
+            "i2": 189
           }
         ],
         "pattern_start_i": 20,
         "pattern_end_i": 71,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "ILMN": {
       "pattern": "HS_TOP",
@@ -10428,7 +10408,7 @@
         "pattern_end_i": 166,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "JKHY": {
       "pattern": "HS_TOP",
@@ -10611,7 +10591,7 @@
         "pattern_end_i": 162,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "KR": {
       "pattern": "IHS",
@@ -10921,7 +10901,7 @@
     "LIN": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 473.3299865722656,
+      "level": 478.69792906878746,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -10964,20 +10944,20 @@
         ],
         "lines": [
           {
-            "t1": "2026-02-04T00:00:00",
-            "y1": 473.3299865722656,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 473.3299865722656,
+            "t1": "2025-10-20T00:00:00",
+            "y1": 451.55999755859375,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 478.69792906878746,
             "label": "Neckline",
-            "i1": 171,
-            "i2": 188
+            "i1": 98,
+            "i2": 189
           }
         ],
         "pattern_start_i": 96,
         "pattern_end_i": 173,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "LNG": {
       "pattern": "IHS",
@@ -11038,7 +11018,7 @@
         "pattern_end_i": 169,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "LNT": {
       "pattern": "HS_TOP",
@@ -11165,7 +11145,7 @@
     "LYB": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 48.34000015258789,
+      "level": 11.281176623176123,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -11208,20 +11188,20 @@
         ],
         "lines": [
           {
-            "t1": "2025-08-11T00:00:00",
-            "y1": 48.34000015258789,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 48.34000015258789,
+            "t1": "2025-06-23T00:00:00",
+            "y1": 57.34000015258789,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 11.281176623176123,
             "label": "Neckline",
-            "i1": 49,
-            "i2": 188
+            "i1": 15,
+            "i2": 189
           }
         ],
         "pattern_start_i": 11,
         "pattern_end_i": 58,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "MA": {
       "pattern": "IHS",
@@ -11470,7 +11450,7 @@
     "MDT": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 96.05000305175781,
+      "level": 102.35527199193051,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -11513,20 +11493,20 @@
         ],
         "lines": [
           {
-            "t1": "2026-01-02T00:00:00",
-            "y1": 96.05000305175781,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 96.05000305175781,
+            "t1": "2025-11-06T00:00:00",
+            "y1": 90.05999755859375,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 102.35527199193051,
             "label": "Neckline",
-            "i1": 149,
-            "i2": 188
+            "i1": 111,
+            "i2": 189
           }
         ],
         "pattern_start_i": 88,
         "pattern_end_i": 170,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "MKC": {
       "pattern": "IHS",
@@ -11714,7 +11694,7 @@
     "MO": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 63.619998931884766,
+      "level": 67.43332968817816,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -11757,20 +11737,20 @@
         ],
         "lines": [
           {
-            "t1": "2026-01-27T00:00:00",
-            "y1": 63.619998931884766,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 63.619998931884766,
+            "t1": "2025-12-16T00:00:00",
+            "y1": 59.33000183105469,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 67.43332968817816,
             "label": "Neckline",
-            "i1": 165,
-            "i2": 188
+            "i1": 138,
+            "i2": 189
           }
         ],
         "pattern_start_i": 131,
         "pattern_end_i": 167,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "MPWR": {
       "pattern": "HS_TOP",
@@ -11892,7 +11872,7 @@
         "pattern_end_i": 150,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "MS": {
       "pattern": "HS_TOP",
@@ -11958,7 +11938,7 @@
     "MSI": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 448.0299987792969,
+      "level": 417.96193636380707,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -12001,20 +11981,20 @@
         ],
         "lines": [
           {
-            "t1": "2025-10-02T00:00:00",
-            "y1": 448.0299987792969,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 448.0299987792969,
+            "t1": "2025-08-26T00:00:00",
+            "y1": 455.6199951171875,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 417.96193636380707,
             "label": "Neckline",
-            "i1": 86,
-            "i2": 188
+            "i1": 60,
+            "i2": 189
           }
         ],
         "pattern_start_i": 50,
         "pattern_end_i": 90,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "NBIS": {
       "pattern": "HS_TOP",
@@ -12324,7 +12304,7 @@
     "NLY": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 22.540000915527344,
+      "level": 22.711429777599516,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -12367,20 +12347,20 @@
         ],
         "lines": [
           {
-            "t1": "2026-02-02T00:00:00",
-            "y1": 22.540000915527344,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 22.540000915527344,
+            "t1": "2025-12-31T00:00:00",
+            "y1": 22.360000610351562,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 22.711429777599516,
             "label": "Neckline",
-            "i1": 169,
-            "i2": 188
+            "i1": 148,
+            "i2": 189
           }
         ],
         "pattern_start_i": 142,
         "pattern_end_i": 178,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "NOC": {
       "pattern": "IHS",
@@ -12746,7 +12726,7 @@
         "pattern_end_i": 160,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "PAH3.DE": {
       "pattern": "IHS",
@@ -12990,12 +12970,12 @@
         "pattern_end_i": 166,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "PM": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 162.63999938964844,
+      "level": 160.2530404795771,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -13038,25 +13018,25 @@
         ],
         "lines": [
           {
-            "t1": "2025-12-24T00:00:00",
-            "y1": 162.63999938964844,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 162.63999938964844,
+            "t1": "2025-09-17T00:00:00",
+            "y1": 166.3000030517578,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 160.2530404795771,
             "label": "Neckline",
-            "i1": 144,
-            "i2": 188
+            "i1": 75,
+            "i2": 189
           }
         ],
         "pattern_start_i": 73,
         "pattern_end_i": 152,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "PPG": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 104.31999969482422,
+      "level": 103.13619304838635,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -13099,20 +13079,20 @@
         ],
         "lines": [
           {
-            "t1": "2025-12-26T00:00:00",
-            "y1": 104.31999969482422,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 104.31999969482422,
+            "t1": "2025-10-27T00:00:00",
+            "y1": 105.44999694824219,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 103.13619304838635,
             "label": "Neckline",
-            "i1": 145,
-            "i2": 188
+            "i1": 103,
+            "i2": 189
           }
         ],
         "pattern_start_i": 82,
         "pattern_end_i": 148,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "PSTG": {
       "pattern": "HS_TOP",
@@ -13361,7 +13341,7 @@
     "RIVN": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 14.4399995803833,
+      "level": 15.762664985656738,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -13404,25 +13384,25 @@
         ],
         "lines": [
           {
-            "t1": "2025-09-03T00:00:00",
-            "y1": 14.4399995803833,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 14.4399995803833,
+            "t1": "2025-07-22T00:00:00",
+            "y1": 14.119999885559082,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 15.762664985656738,
             "label": "Neckline",
-            "i1": 65,
-            "i2": 188
+            "i1": 35,
+            "i2": 189
           }
         ],
         "pattern_start_i": 12,
         "pattern_end_i": 72,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "RKLB": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 66.01000213623047,
+      "level": 64.45827799829944,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -13465,20 +13445,20 @@
         ],
         "lines": [
           {
-            "t1": "2026-02-12T00:00:00",
-            "y1": 66.01000213623047,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 66.01000213623047,
+            "t1": "2025-12-31T00:00:00",
+            "y1": 69.76000213623047,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 64.45827799829944,
             "label": "Neckline",
-            "i1": 177,
-            "i2": 188
+            "i1": 148,
+            "i2": 189
           }
         ],
         "pattern_start_i": 142,
         "pattern_end_i": 181,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "RKT": {
       "pattern": "HS_TOP",
@@ -13539,7 +13519,7 @@
         "pattern_end_i": 175,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "RMD": {
       "pattern": "IHS",
@@ -13600,7 +13580,7 @@
         "pattern_end_i": 163,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "ROL": {
       "pattern": "IHS",
@@ -13661,7 +13641,7 @@
         "pattern_end_i": 133,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "RPM": {
       "pattern": "IHS",
@@ -13905,7 +13885,7 @@
         "pattern_end_i": 132,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "VLO": {
       "pattern": "HS_TOP",
@@ -13971,7 +13951,7 @@
     "RXL": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 50.90999984741211,
+      "level": 50.8235707964216,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -14014,20 +13994,20 @@
         ],
         "lines": [
           {
-            "t1": "2026-01-29T00:00:00",
-            "y1": 50.90999984741211,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 50.90999984741211,
+            "t1": "2025-12-17T00:00:00",
+            "y1": 51.02000045776367,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 50.8235707964216,
             "label": "Neckline",
-            "i1": 167,
-            "i2": 188
+            "i1": 139,
+            "i2": 189
           }
         ],
         "pattern_start_i": 137,
         "pattern_end_i": 173,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "SHW": {
       "pattern": "IHS",
@@ -14332,7 +14312,7 @@
         "pattern_end_i": 169,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "STE": {
       "pattern": "HS_TOP",
@@ -14520,7 +14500,7 @@
     "TOST": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 42.0099983215332,
+      "level": 35.161104131627965,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -14563,20 +14543,20 @@
         ],
         "lines": [
           {
-            "t1": "2025-08-19T00:00:00",
-            "y1": 42.0099983215332,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 42.0099983215332,
+            "t1": "2025-07-11T00:00:00",
+            "y1": 43.38999938964844,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 35.161104131627965,
             "label": "Neckline",
-            "i1": 55,
-            "i2": 188
+            "i1": 28,
+            "i2": 189
           }
         ],
         "pattern_start_i": 24,
         "pattern_end_i": 63,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "TSLA": {
       "pattern": "HS_TOP",
@@ -15008,7 +14988,7 @@
     "SMCI": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 34.380001068115234,
+      "level": 36.660002390543625,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -15051,20 +15031,20 @@
         ],
         "lines": [
           {
-            "t1": "2026-02-06T00:00:00",
-            "y1": 34.380001068115234,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 34.380001068115234,
+            "t1": "2026-01-02T00:00:00",
+            "y1": 30.959999084472656,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 36.660002390543625,
             "label": "Neckline",
-            "i1": 173,
-            "i2": 188
+            "i1": 149,
+            "i2": 189
           }
         ],
         "pattern_start_i": 140,
         "pattern_end_i": 180,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "VRSN": {
       "pattern": "IHS",
@@ -15435,7 +15415,7 @@
     "G1A.DE": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 62.599998474121094,
+      "level": 62.17376896592437,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -15478,20 +15458,20 @@
         ],
         "lines": [
           {
-            "t1": "2026-01-26T00:00:00",
-            "y1": 62.599998474121094,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 62.599998474121094,
+            "t1": "2025-10-24T00:00:00",
+            "y1": 63.599998474121094,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 62.17376896592437,
             "label": "Neckline",
-            "i1": 163,
-            "i2": 188
+            "i1": 102,
+            "i2": 189
           }
         ],
         "pattern_start_i": 97,
         "pattern_end_i": 165,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "MAU.PA": {
       "pattern": "IHS",
@@ -15557,7 +15537,7 @@
     "NU": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 16.809999465942383,
+      "level": 17.075624465942383,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -15600,20 +15580,20 @@
         ],
         "lines": [
           {
-            "t1": "2026-02-05T00:00:00",
-            "y1": 16.809999465942383,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 16.809999465942383,
+            "t1": "2026-01-13T00:00:00",
+            "y1": 16.559999465942383,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 17.075624465942383,
             "label": "Neckline",
-            "i1": 172,
-            "i2": 188
+            "i1": 156,
+            "i2": 189
           }
         ],
         "pattern_start_i": 150,
         "pattern_end_i": 182,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "NVDA": {
       "pattern": "HS_TOP",
@@ -16655,7 +16635,7 @@
     "DLTR": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 117.22000122070312,
+      "level": 115.44308002178485,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -16698,20 +16678,20 @@
         ],
         "lines": [
           {
-            "t1": "2026-02-02T00:00:00",
-            "y1": 117.22000122070312,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 117.22000122070312,
+            "t1": "2025-12-23T00:00:00",
+            "y1": 119.52999877929688,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 115.44308002178485,
             "label": "Neckline",
-            "i1": 169,
-            "i2": 188
+            "i1": 143,
+            "i2": 189
           }
         ],
         "pattern_start_i": 137,
         "pattern_end_i": 182,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "EVO": {
       "pattern": "HS_TOP",
@@ -17016,7 +16996,7 @@
         "pattern_end_i": 168,
         "trigger_line_type": "neckline_horizontal"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "TWLO": {
       "pattern": "HS_TOP",
@@ -17326,7 +17306,7 @@
     "ETN": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 396.0899963378906,
+      "level": 397.6170379208847,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -17369,20 +17349,20 @@
         ],
         "lines": [
           {
-            "t1": "2026-02-11T00:00:00",
-            "y1": 396.0899963378906,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 396.0899963378906,
+            "t1": "2025-10-29T00:00:00",
+            "y1": 387.75,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 397.6170379208847,
             "label": "Neckline",
-            "i1": 176,
-            "i2": 188
+            "i1": 105,
+            "i2": 189
           }
         ],
         "pattern_start_i": 100,
         "pattern_end_i": 183,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "GWW": {
       "pattern": "IHS",
@@ -17509,7 +17489,7 @@
     "IR": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 83.44000244140625,
+      "level": 82.6244945915378,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -17552,20 +17532,20 @@
         ],
         "lines": [
           {
-            "t1": "2025-12-11T00:00:00",
-            "y1": 83.44000244140625,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 83.44000244140625,
+            "t1": "2025-10-02T00:00:00",
+            "y1": 84.18000030517578,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 82.6244945915378,
             "label": "Neckline",
-            "i1": 135,
-            "i2": 188
+            "i1": 86,
+            "i2": 189
           }
         ],
         "pattern_start_i": 81,
         "pattern_end_i": 148,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "REGN": {
       "pattern": "HS_TOP",
@@ -17814,7 +17794,7 @@
     "SY1.DE": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 76.63999938964844,
+      "level": 75.56083265940349,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -17857,25 +17837,25 @@
         ],
         "lines": [
           {
-            "t1": "2026-02-10T00:00:00",
-            "y1": 76.63999938964844,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 76.63999938964844,
+            "t1": "2025-10-24T00:00:00",
+            "y1": 81.81999969482422,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 75.56083265940349,
             "label": "Neckline",
-            "i1": 174,
-            "i2": 188
+            "i1": 102,
+            "i2": 189
           }
         ],
         "pattern_start_i": 94,
         "pattern_end_i": 180,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "TSN": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 59.90999984741211,
+      "level": 63.032921306903546,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -17918,20 +17898,20 @@
         ],
         "lines": [
           {
-            "t1": "2025-12-12T00:00:00",
-            "y1": 59.90999984741211,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 59.90999984741211,
+            "t1": "2025-09-11T00:00:00",
+            "y1": 56.08000183105469,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 63.032921306903546,
             "label": "Neckline",
-            "i1": 136,
-            "i2": 188
+            "i1": 71,
+            "i2": 189
           }
         ],
         "pattern_start_i": 62,
         "pattern_end_i": 143,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "UDR": {
       "pattern": "IHS",
@@ -18663,7 +18643,7 @@
         "pattern_end_i": 183,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "JPM": {
       "pattern": "HS_TOP",
@@ -18785,7 +18765,7 @@
         "pattern_end_i": 179,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "KVUE": {
       "pattern": "IHS",
@@ -19888,7 +19868,7 @@
     "ACGL": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 97.12000274658203,
+      "level": 99.79811974291532,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -19931,20 +19911,20 @@
         ],
         "lines": [
           {
-            "t1": "2025-12-22T00:00:00",
-            "y1": 97.12000274658203,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 97.12000274658203,
+            "t1": "2025-10-07T00:00:00",
+            "y1": 94.0999984741211,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 99.79811974291532,
             "label": "Neckline",
-            "i1": 142,
-            "i2": 188
+            "i1": 89,
+            "i2": 189
           }
         ],
         "pattern_start_i": 60,
         "pattern_end_i": 149,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "AEE": {
       "pattern": "IHS",
@@ -20010,7 +19990,7 @@
     "ALL": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 214.32000732421875,
+      "level": 213.7381888941715,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -20053,25 +20033,25 @@
         ],
         "lines": [
           {
-            "t1": "2025-11-21T00:00:00",
-            "y1": 214.32000732421875,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 214.32000732421875,
+            "t1": "2025-09-30T00:00:00",
+            "y1": 214.64999389648438,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 213.7381888941715,
             "label": "Neckline",
-            "i1": 122,
-            "i2": 188
+            "i1": 84,
+            "i2": 189
           }
         ],
         "pattern_start_i": 59,
         "pattern_end_i": 140,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "AMCR": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 42.900001525878906,
+      "level": 42.08190095835719,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -20114,20 +20094,20 @@
         ],
         "lines": [
           {
-            "t1": "2025-11-13T00:00:00",
-            "y1": 42.900001525878906,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 42.900001525878906,
+            "t1": "2025-08-22T00:00:00",
+            "y1": 43.54999923706055,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 42.08190095835719,
             "label": "Neckline",
-            "i1": 116,
-            "i2": 188
+            "i1": 58,
+            "i2": 189
           }
         ],
         "pattern_start_i": 54,
         "pattern_end_i": 121,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "APP": {
       "pattern": "HS_TOP",
@@ -20254,7 +20234,7 @@
     "BBY": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 73.77999877929688,
+      "level": 81.63516761516703,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -20297,20 +20277,20 @@
         ],
         "lines": [
           {
-            "t1": "2025-11-20T00:00:00",
-            "y1": 73.77999877929688,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 73.77999877929688,
+            "t1": "2025-10-10T00:00:00",
+            "y1": 70.43000030517578,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 81.63516761516703,
             "label": "Neckline",
-            "i1": 121,
-            "i2": 188
+            "i1": 92,
+            "i2": 189
           }
         ],
         "pattern_start_i": 85,
         "pattern_end_i": 125,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "BLK": {
       "pattern": "HS_TOP",
@@ -20498,7 +20478,7 @@
     "CF": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 94.02999877929688,
+      "level": 94.57860671417623,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -20541,20 +20521,20 @@
         ],
         "lines": [
           {
-            "t1": "2026-01-29T00:00:00",
-            "y1": 94.02999877929688,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 94.02999877929688,
+            "t1": "2025-10-06T00:00:00",
+            "y1": 92.05999755859375,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 94.57860671417623,
             "label": "Neckline",
-            "i1": 167,
-            "i2": 188
+            "i1": 88,
+            "i2": 189
           }
         ],
         "pattern_start_i": 85,
         "pattern_end_i": 169,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "CMS": {
       "pattern": "IHS",
@@ -20615,7 +20595,7 @@
         "pattern_end_i": 163,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "COP": {
       "pattern": "IHS",
@@ -20676,7 +20656,7 @@
         "pattern_end_i": 145,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "D": {
       "pattern": "IHS",
@@ -20803,7 +20783,7 @@
     "DTE": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 137.07000732421875,
+      "level": 137.10201416015627,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -20846,20 +20826,20 @@
         ],
         "lines": [
           {
-            "t1": "2026-01-21T00:00:00",
-            "y1": 137.07000732421875,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 137.07000732421875,
+            "t1": "2025-11-28T00:00:00",
+            "y1": 137.02999877929688,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 137.10201416015627,
             "label": "Neckline",
-            "i1": 161,
-            "i2": 188
+            "i1": 126,
+            "i2": 189
           }
         ],
         "pattern_start_i": 120,
         "pattern_end_i": 163,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "DUK": {
       "pattern": "IHS",
@@ -21164,7 +21144,7 @@
         "pattern_end_i": 131,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "HPE": {
       "pattern": "HS_TOP",
@@ -21408,7 +21388,7 @@
         "pattern_end_i": 99,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "MAA": {
       "pattern": "IHS",
@@ -21652,7 +21632,7 @@
         "pattern_end_i": 96,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "NOW": {
       "pattern": "HS_TOP",
@@ -21713,7 +21693,7 @@
         "pattern_end_i": 93,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "NUE": {
       "pattern": "IHS",
@@ -21901,7 +21881,7 @@
     "OKE": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 76.33999633789062,
+      "level": 79.23999272560587,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -21944,20 +21924,20 @@
         ],
         "lines": [
           {
-            "t1": "2025-12-05T00:00:00",
-            "y1": 76.33999633789062,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 76.33999633789062,
+            "t1": "2025-09-26T00:00:00",
+            "y1": 73.88999938964844,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 79.23999272560587,
             "label": "Neckline",
-            "i1": 131,
-            "i2": 188
+            "i1": 82,
+            "i2": 189
           }
         ],
         "pattern_start_i": 77,
         "pattern_end_i": 138,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "PEG": {
       "pattern": "IHS",
@@ -22140,7 +22120,7 @@
         "pattern_end_i": 166,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "PNC": {
       "pattern": "IHS",
@@ -22450,7 +22430,7 @@
     "SW": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 43.33000183105469,
+      "level": 43.290547457608305,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -22493,20 +22473,20 @@
         ],
         "lines": [
           {
-            "t1": "2026-01-15T00:00:00",
-            "y1": 43.33000183105469,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 43.33000183105469,
+            "t1": "2025-10-27T00:00:00",
+            "y1": 43.400001525878906,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 43.290547457608305,
             "label": "Neckline",
-            "i1": 158,
-            "i2": 188
+            "i1": 103,
+            "i2": 189
           }
         ],
         "pattern_start_i": 88,
         "pattern_end_i": 160,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "TRGP": {
       "pattern": "IHS",
@@ -22567,7 +22547,7 @@
         "pattern_end_i": 118,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "TT": {
       "pattern": "IHS",
@@ -23055,7 +23035,7 @@
         "pattern_end_i": 163,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "MC": {
       "pattern": "HS_TOP",
@@ -23421,7 +23401,7 @@
         "pattern_end_i": 121,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "TFC": {
       "pattern": "IHS",
@@ -23482,7 +23462,7 @@
         "pattern_end_i": 118,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "WTW": {
       "pattern": "HS_TOP",
@@ -23548,7 +23528,7 @@
     "1928.HK": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 18.06999969482422,
+      "level": 13.507926940917969,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -23591,20 +23571,20 @@
         ],
         "lines": [
           {
-            "t1": "2025-10-17T00:00:00",
-            "y1": 18.06999969482422,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 18.06999969482422,
+            "t1": "2025-09-04T00:00:00",
+            "y1": 19.540000915527344,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 13.507926940917969,
             "label": "Neckline",
-            "i1": 99,
-            "i2": 188
+            "i1": 70,
+            "i2": 189
           }
         ],
         "pattern_start_i": 62,
         "pattern_end_i": 116,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "3088.T": {
       "pattern": "HS_TOP",
@@ -23792,7 +23772,7 @@
     "6752.T": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 1556.0,
+      "level": 1558.2166666666667,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -23835,20 +23815,20 @@
         ],
         "lines": [
           {
-            "t1": "2025-08-13T00:00:00",
-            "y1": 1556.0,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 1556.0,
+            "t1": "2025-06-30T00:00:00",
+            "y1": 1555.5,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 1558.2166666666667,
             "label": "Neckline",
-            "i1": 56,
-            "i2": 188
+            "i1": 26,
+            "i2": 189
           }
         ],
         "pattern_start_i": 21,
         "pattern_end_i": 69,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "9107.T": {
       "pattern": "IHS",
@@ -23914,7 +23894,7 @@
     "AER": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 124.41999816894531,
+      "level": 144.36444346110025,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -23957,25 +23937,25 @@
         ],
         "lines": [
           {
-            "t1": "2025-09-02T00:00:00",
-            "y1": 124.41999816894531,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 124.41999816894531,
+            "t1": "2025-06-27T00:00:00",
+            "y1": 117.23999786376953,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 144.36444346110025,
             "label": "Neckline",
-            "i1": 64,
-            "i2": 188
+            "i1": 19,
+            "i2": 189
           }
         ],
         "pattern_start_i": 17,
         "pattern_end_i": 73,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "ARES": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 175.07000732421875,
+      "level": 163.84650376263787,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -24018,25 +23998,25 @@
         ],
         "lines": [
           {
-            "t1": "2025-09-09T00:00:00",
-            "y1": 175.07000732421875,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 175.07000732421875,
+            "t1": "2025-07-22T00:00:00",
+            "y1": 178.25,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 163.84650376263787,
             "label": "Neckline",
-            "i1": 69,
-            "i2": 188
+            "i1": 35,
+            "i2": 189
           }
         ],
         "pattern_start_i": 32,
         "pattern_end_i": 71,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "CB": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 282.8900146484375,
+      "level": 267.08730061848956,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -24079,25 +24059,25 @@
         ],
         "lines": [
           {
-            "t1": "2025-09-11T00:00:00",
-            "y1": 282.8900146484375,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 282.8900146484375,
+            "t1": "2025-06-30T00:00:00",
+            "y1": 289.7200012207031,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 267.08730061848956,
             "label": "Neckline",
-            "i1": 71,
-            "i2": 188
+            "i1": 20,
+            "i2": 189
           }
         ],
         "pattern_start_i": 13,
         "pattern_end_i": 74,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "CCI": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 100.55000305175781,
+      "level": 94.70002365112305,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -24140,25 +24120,25 @@
         ],
         "lines": [
           {
-            "t1": "2025-08-18T00:00:00",
-            "y1": 100.55000305175781,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 100.55000305175781,
+            "t1": "2025-07-07T00:00:00",
+            "y1": 101.8499984741211,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 94.70002365112305,
             "label": "Neckline",
-            "i1": 54,
-            "i2": 188
+            "i1": 24,
+            "i2": 189
           }
         ],
         "pattern_start_i": 21,
         "pattern_end_i": 58,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "CME": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 285.0400085449219,
+      "level": 283.0082301309664,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -24201,25 +24181,25 @@
         ],
         "lines": [
           {
-            "t1": "2025-11-14T00:00:00",
-            "y1": 285.0400085449219,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 285.0400085449219,
+            "t1": "2025-08-04T00:00:00",
+            "y1": 287.1000061035156,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 283.0082301309664,
             "label": "Neckline",
-            "i1": 117,
-            "i2": 188
+            "i1": 44,
+            "i2": 189
           }
         ],
         "pattern_start_i": 39,
         "pattern_end_i": 120,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "COO": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 75.0,
+      "level": 74.51707049113948,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -24262,20 +24242,20 @@
         ],
         "lines": [
           {
-            "t1": "2025-10-21T00:00:00",
-            "y1": 75.0,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 75.0,
+            "t1": "2025-08-22T00:00:00",
+            "y1": 75.22000122070312,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 74.51707049113948,
             "label": "Neckline",
-            "i1": 99,
-            "i2": 188
+            "i1": 58,
+            "i2": 189
           }
         ],
         "pattern_start_i": 34,
         "pattern_end_i": 121,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "DHR": {
       "pattern": "IHS",
@@ -24341,7 +24321,7 @@
     "GPN": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 84.16000366210938,
+      "level": 107.82401428222656,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -24384,25 +24364,25 @@
         ],
         "lines": [
           {
-            "t1": "2025-09-15T00:00:00",
-            "y1": 84.16000366210938,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 84.16000366210938,
+            "t1": "2025-08-01T00:00:00",
+            "y1": 78.04000091552734,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 107.82401428222656,
             "label": "Neckline",
-            "i1": 73,
-            "i2": 188
+            "i1": 43,
+            "i2": 189
           }
         ],
         "pattern_start_i": 38,
         "pattern_end_i": 80,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "STLD": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 139.83999633789062,
+      "level": 145.5361216019611,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -24445,25 +24425,25 @@
         ],
         "lines": [
           {
-            "t1": "2025-09-18T00:00:00",
-            "y1": 139.83999633789062,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 139.83999633789062,
+            "t1": "2025-07-10T00:00:00",
+            "y1": 137.3699951171875,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 145.5361216019611,
             "label": "Neckline",
-            "i1": 76,
-            "i2": 188
+            "i1": 27,
+            "i2": 189
           }
         ],
         "pattern_start_i": 8,
         "pattern_end_i": 81,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "ZBH": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 99.12000274658203,
+      "level": 130.65226081109816,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -24506,25 +24486,25 @@
         ],
         "lines": [
           {
-            "t1": "2025-09-16T00:00:00",
-            "y1": 99.12000274658203,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 99.12000274658203,
+            "t1": "2025-08-01T00:00:00",
+            "y1": 90.62000274658203,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 130.65226081109816,
             "label": "Neckline",
-            "i1": 74,
-            "i2": 188
+            "i1": 43,
+            "i2": 189
           }
         ],
         "pattern_start_i": 38,
         "pattern_end_i": 78,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     },
     "ZM": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 86.83000183105469,
+      "level": 104.41962447256412,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -24567,20 +24547,20 @@
         ],
         "lines": [
           {
-            "t1": "2025-09-18T00:00:00",
-            "y1": 86.83000183105469,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 86.83000183105469,
+            "t1": "2025-07-03T00:00:00",
+            "y1": 78.58000183105469,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 104.41962447256412,
             "label": "Neckline",
-            "i1": 76,
-            "i2": 188
+            "i1": 23,
+            "i2": 189
           }
         ],
         "pattern_start_i": 10,
         "pattern_end_i": 93,
-        "trigger_line_type": "neckline_horizontal"
+        "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-02T00:00:00"
+      "asof": "2026-03-03T00:00:00"
     }
   },
   "band_geom": {
@@ -24589,25 +24569,25 @@
       "meta": {
         "annot_type": "band",
         "pattern": "RECT",
-        "start_i": 119,
+        "start_i": 118,
         "end_i": 179,
         "lines": [
           {
             "t1": "2025-12-03T00:00:00",
             "y1": 2205.051114413075,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 2183.12838038633,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 2182.7630014858837,
             "label": "Upper",
-            "i1": 119,
+            "i1": 118,
             "i2": 179
           },
           {
             "t1": "2025-12-03T00:00:00",
-            "y1": 2097.95521093157,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 1993.3212232946535,
+            "y1": 2097.9552109315696,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 1991.5773235007046,
             "label": "Lower",
-            "i1": 119,
+            "i1": 118,
             "i2": 179
           }
         ],
@@ -24617,54 +24597,54 @@
             "p": 2190.0,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 127
+            "i": 126
           },
           {
             "t": "2026-02-12T00:00:00",
             "p": 2203.0,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 167
+            "i": 166
           },
           {
             "t": "2025-12-03T00:00:00",
             "p": 2086.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 119
+            "i": 118
           },
           {
             "t": "2025-12-10T00:00:00",
             "p": 2087.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 124
+            "i": 123
           },
           {
             "t": "2025-12-24T00:00:00",
             "p": 2078.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 134
+            "i": 133
           },
           {
             "t": "2026-01-07T00:00:00",
             "p": 2060.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 141
+            "i": 140
           },
           {
             "t": "2026-01-20T00:00:00",
             "p": 2056.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 150
+            "i": 149
           }
         ],
-        "pattern_end_i": 167,
+        "pattern_end_i": 166,
         "pattern_end_t": "2026-02-12T00:00:00",
-        "containment": 0.8852459016393442,
+        "containment": 0.8709677419354839,
         "alternations": 3,
         "trend_label": "NEUTRAL"
       },
@@ -24675,25 +24655,25 @@
       "meta": {
         "annot_type": "band",
         "pattern": "RECT",
-        "start_i": 126,
+        "start_i": 125,
         "end_i": 179,
         "lines": [
           {
             "t1": "2025-12-09T00:00:00",
             "y1": 3973.073006724305,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 3865.1892411143144,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 3863.153698366957,
             "label": "Upper",
-            "i1": 126,
+            "i1": 125,
             "i2": 179
           },
           {
             "t1": "2025-12-09T00:00:00",
-            "y1": 3617.5305097696746,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 3687.313939526251,
+            "y1": 3617.5305097696764,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 3688.630608012226,
             "label": "Lower",
-            "i1": 126,
+            "i1": 125,
             "i2": 179
           }
         ],
@@ -24703,54 +24683,54 @@
             "p": 3992.0,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 130
+            "i": 129
           },
           {
             "t": "2026-02-13T00:00:00",
             "p": 3905.0,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 169
+            "i": 168
           },
           {
             "t": "2026-02-24T00:00:00",
             "p": 3850.0,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 175
+            "i": 174
           },
           {
             "t": "2025-12-11T00:00:00",
             "p": 3592.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 128
+            "i": 127
           },
           {
             "t": "2026-01-23T00:00:00",
             "p": 3667.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 155
+            "i": 154
           },
           {
             "t": "2026-02-06T00:00:00",
             "p": 3700.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 165
+            "i": 164
           },
           {
             "t": "2026-02-20T00:00:00",
             "p": 3681.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 174
+            "i": 173
           }
         ],
-        "pattern_end_i": 175,
+        "pattern_end_i": 174,
         "pattern_end_t": "2026-02-24T00:00:00",
-        "containment": 0.9814814814814815,
+        "containment": 0.9454545454545454,
         "alternations": 5,
         "trend_label": "NEUTRAL"
       },
@@ -24770,8 +24750,8 @@
             "t2": "2026-03-02T00:00:00",
             "y2": 3375.4980380758616,
             "label": "Upper",
-            "i1": 125,
-            "i2": 179
+            "i1": 134,
+            "i2": 188
           },
           {
             "t1": "2025-12-08T00:00:00",
@@ -24779,8 +24759,8 @@
             "t2": "2026-03-02T00:00:00",
             "y2": 3074.0272074659,
             "label": "Lower",
-            "i1": 125,
-            "i2": 179
+            "i1": 134,
+            "i2": 188
           }
         ],
         "touch_points": [
@@ -24898,25 +24878,25 @@
       "meta": {
         "annot_type": "band",
         "pattern": "RECT_TOP",
-        "start_i": 114,
+        "start_i": 113,
         "end_i": 179,
         "lines": [
           {
             "t1": "2025-11-20T00:00:00",
-            "y1": 4507.588204862909,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 4342.683911019141,
+            "y1": 4507.5882048629055,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 4340.146921883085,
             "label": "Upper",
-            "i1": 114,
+            "i1": 113,
             "i2": 179
           },
           {
             "t1": "2025-11-20T00:00:00",
-            "y1": 4201.401386263392,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 4096.877126654064,
+            "y1": 4201.401386263385,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 4095.2690611216117,
             "label": "Lower",
-            "i1": 114,
+            "i1": 113,
             "i2": 179
           }
         ],
@@ -24926,75 +24906,75 @@
             "p": 4499.0,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 127
+            "i": 126
           },
           {
             "t": "2026-01-14T00:00:00",
             "p": 4418.0,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 148
+            "i": 147
           },
           {
             "t": "2026-01-23T00:00:00",
             "p": 4434.0,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 155
+            "i": 154
           },
           {
             "t": "2026-02-05T00:00:00",
             "p": 4400.0,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 164
+            "i": 163
           },
           {
             "t": "2025-12-26T00:00:00",
             "p": 4140.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 139
+            "i": 138
           },
           {
             "t": "2026-01-07T00:00:00",
             "p": 4155.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 144
+            "i": 143
           },
           {
             "t": "2026-01-21T00:00:00",
             "p": 4166.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 153
+            "i": 152
           },
           {
             "t": "2026-01-30T00:00:00",
             "p": 4132.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 160
+            "i": 159
           },
           {
             "t": "2026-02-06T00:00:00",
             "p": 4130.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 165
+            "i": 164
           },
           {
             "t": "2026-02-18T00:00:00",
             "p": 4085.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 172
+            "i": 171
           }
         ],
-        "pattern_end_i": 172,
+        "pattern_end_i": 171,
         "pattern_end_t": "2026-02-18T00:00:00",
-        "containment": 1.0,
+        "containment": 0.9850746268656716,
         "alternations": 7,
         "trend_label": "TOP"
       },
@@ -25005,25 +24985,25 @@
       "meta": {
         "annot_type": "band",
         "pattern": "RECT_TOP",
-        "start_i": 117,
+        "start_i": 116,
         "end_i": 179,
         "lines": [
           {
             "t1": "2025-11-26T00:00:00",
-            "y1": 5128.739659367399,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 4861.958637469589,
+            "y1": 5128.739659367396,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 4857.655717761558,
             "label": "Upper",
-            "i1": 117,
+            "i1": 116,
             "i2": 179
           },
           {
             "t1": "2025-11-26T00:00:00",
-            "y1": 4656.05631276901,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 4497.831779053085,
+            "y1": 4656.056312769008,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 4495.279770444762,
             "label": "Lower",
-            "i1": 117,
+            "i1": 116,
             "i2": 179
           }
         ],
@@ -25033,54 +25013,54 @@
             "p": 5143.0,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 119
+            "i": 118
           },
           {
             "t": "2025-12-22T00:00:00",
             "p": 5032.0,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 135
+            "i": 134
           },
           {
             "t": "2026-01-23T00:00:00",
             "p": 4948.0,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 155
+            "i": 154
           },
           {
             "t": "2025-12-05T00:00:00",
             "p": 4582.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 124
+            "i": 123
           },
           {
             "t": "2025-12-19T00:00:00",
             "p": 4619.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 134
+            "i": 133
           },
           {
             "t": "2025-12-30T00:00:00",
             "p": 4616.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 141
+            "i": 140
           },
           {
             "t": "2026-01-29T00:00:00",
             "p": 4583.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 159
+            "i": 158
           }
         ],
-        "pattern_end_i": 159,
+        "pattern_end_i": 158,
         "pattern_end_t": "2026-01-29T00:00:00",
-        "containment": 0.9047619047619048,
+        "containment": 0.890625,
         "alternations": 5,
         "trend_label": "TOP"
       },
@@ -25091,25 +25071,25 @@
       "meta": {
         "annot_type": "band",
         "pattern": "RECT_TOP",
-        "start_i": 86,
+        "start_i": 85,
         "end_i": 179,
         "lines": [
           {
             "t1": "2025-10-09T00:00:00",
-            "y1": 1762.0378323754182,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 1864.0658750710538,
+            "y1": 1762.0378323754185,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 1865.1629507989637,
             "label": "Upper",
-            "i1": 86,
+            "i1": 85,
             "i2": 179
           },
           {
             "t1": "2025-10-09T00:00:00",
-            "y1": 1665.1052779337454,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 1616.2353906621177,
+            "y1": 1665.105277933745,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 1615.7099080032824,
             "label": "Lower",
-            "i1": 86,
+            "i1": 85,
             "i2": 179
           }
         ],
@@ -25119,47 +25099,47 @@
             "p": 1793.5,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 119
+            "i": 118
           },
           {
             "t": "2025-12-15T00:00:00",
             "p": 1806.5,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 130
+            "i": 129
           },
           {
             "t": "2025-10-14T00:00:00",
             "p": 1655.5,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 88
+            "i": 87
           },
           {
             "t": "2025-10-30T00:00:00",
             "p": 1661.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 100
+            "i": 99
           },
           {
             "t": "2025-11-19T00:00:00",
             "p": 1639.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 113
+            "i": 112
           },
           {
             "t": "2025-12-17T00:00:00",
             "p": 1646.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 132
+            "i": 131
           }
         ],
-        "pattern_end_i": 132,
+        "pattern_end_i": 131,
         "pattern_end_t": "2025-12-17T00:00:00",
-        "containment": 0.9042553191489362,
+        "containment": 0.8947368421052632,
         "alternations": 2,
         "trend_label": "TOP"
       },
@@ -25170,25 +25150,25 @@
       "meta": {
         "annot_type": "band",
         "pattern": "RECT",
-        "start_i": 83,
+        "start_i": 82,
         "end_i": 179,
         "lines": [
           {
             "t1": "2025-10-06T00:00:00",
-            "y1": 5175.833148558758,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 5238.041574279378,
+            "y1": 5175.833148558754,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 5238.689578713968,
             "label": "Upper",
-            "i1": 83,
+            "i1": 82,
             "i2": 179
           },
           {
             "t1": "2025-10-06T00:00:00",
-            "y1": 4748.6677127166395,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 4976.244062477712,
+            "y1": 4748.667712716637,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 4978.61464945439,
             "label": "Lower",
-            "i1": 83,
+            "i1": 82,
             "i2": 179
           }
         ],
@@ -25198,68 +25178,68 @@
             "p": 5205.0,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 85
+            "i": 84
           },
           {
             "t": "2026-02-04T00:00:00",
             "p": 5260.0,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 163
+            "i": 162
           },
           {
             "t": "2025-11-06T00:00:00",
             "p": 4818.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 104
+            "i": 103
           },
           {
             "t": "2025-11-12T00:00:00",
             "p": 4805.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 108
+            "i": 107
           },
           {
             "t": "2025-11-18T00:00:00",
             "p": 4842.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 112
+            "i": 111
           },
           {
             "t": "2025-11-26T00:00:00",
             "p": 4853.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 117
+            "i": 116
           },
           {
             "t": "2025-12-22T00:00:00",
             "p": 4869.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 135
+            "i": 134
           },
           {
             "t": "2026-01-27T00:00:00",
             "p": 4906.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 157
+            "i": 156
           },
           {
             "t": "2026-02-06T00:00:00",
             "p": 4971.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 165
+            "i": 164
           }
         ],
-        "pattern_end_i": 165,
+        "pattern_end_i": 164,
         "pattern_end_t": "2026-02-06T00:00:00",
-        "containment": 0.865979381443299,
+        "containment": 0.8571428571428571,
         "alternations": 3,
         "trend_label": "NEUTRAL"
       },
@@ -25279,8 +25259,8 @@
             "t2": "2026-03-02T00:00:00",
             "y2": 1553.5180467091293,
             "label": "Upper",
-            "i1": 100,
-            "i2": 179
+            "i1": 109,
+            "i2": 188
           },
           {
             "t1": "2025-10-30T00:00:00",
@@ -25288,8 +25268,8 @@
             "t2": "2026-03-02T00:00:00",
             "y2": 1464.5804028488756,
             "label": "Lower",
-            "i1": 100,
-            "i2": 179
+            "i1": 109,
+            "i2": 188
           }
         ],
         "touch_points": [
@@ -25435,25 +25415,25 @@
       "meta": {
         "annot_type": "band",
         "pattern": "RECT",
-        "start_i": 115,
+        "start_i": 114,
         "end_i": 179,
         "lines": [
           {
             "t1": "2025-11-25T00:00:00",
-            "y1": 213.1687666118261,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 215.0082536447182,
+            "y1": 213.16876661182604,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 215.0369956296072,
             "label": "Upper",
-            "i1": 115,
+            "i1": 114,
             "i2": 179
           },
           {
             "t1": "2025-11-25T00:00:00",
-            "y1": 200.69725930802161,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 197.62797481886196,
+            "y1": 200.6972593080215,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 197.58001724871872,
             "label": "Lower",
-            "i1": 115,
+            "i1": 114,
             "i2": 179
           }
         ],
@@ -25463,40 +25443,40 @@
             "p": 212.75999450683594,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 129
+            "i": 128
           },
           {
             "t": "2026-01-09T00:00:00",
             "p": 215.0,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 145
+            "i": 144
           },
           {
             "t": "2026-02-18T00:00:00",
             "p": 213.63999938964844,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 171
+            "i": 170
           },
           {
             "t": "2025-12-08T00:00:00",
             "p": 199.25999450683594,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 123
+            "i": 122
           },
           {
             "t": "2026-02-10T00:00:00",
             "p": 198.1699981689453,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 166
+            "i": 165
           }
         ],
-        "pattern_end_i": 171,
+        "pattern_end_i": 170,
         "pattern_end_t": "2026-02-18T00:00:00",
-        "containment": 0.8615384615384616,
+        "containment": 0.8636363636363636,
         "alternations": 3,
         "trend_label": "NEUTRAL"
       },
@@ -25579,25 +25559,25 @@
       "meta": {
         "annot_type": "band",
         "pattern": "DESC_TRIANGLE",
-        "start_i": 105,
+        "start_i": 104,
         "end_i": 179,
         "lines": [
           {
             "t1": "2025-11-11T00:00:00",
-            "y1": 178.89671358251326,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 164.5144718082072,
+            "y1": 178.89671358251337,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 164.3201171896356,
             "label": "Upper",
-            "i1": 105,
+            "i1": 104,
             "i2": 179
           },
           {
             "t1": "2025-11-11T00:00:00",
-            "y1": 169.20157517799123,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 161.12097647621002,
+            "y1": 169.20157517799134,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 161.0117791964562,
             "label": "Lower",
-            "i1": 105,
+            "i1": 104,
             "i2": 179
           }
         ],
@@ -25607,58 +25587,58 @@
             "p": 176.99000549316406,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 117
+            "i": 116
           },
           {
             "t": "2026-01-28T00:00:00",
             "p": 169.39999389648438,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 157
+            "i": 156
           },
           {
             "t": "2025-12-09T00:00:00",
             "p": 165.88999938964844,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 124
+            "i": 123
           },
           {
             "t": "2025-12-22T00:00:00",
             "p": 165.3699951171875,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 133
+            "i": 132
           },
           {
             "t": "2026-01-05T00:00:00",
             "p": 164.5,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 141
+            "i": 140
           },
           {
             "t": "2026-01-23T00:00:00",
             "p": 163.57000732421875,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 154
+            "i": 153
           },
           {
             "t": "2026-01-30T00:00:00",
             "p": 164.39999389648438,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 159
+            "i": 158
           }
         ],
-        "pattern_end_i": 159,
+        "pattern_end_i": 158,
         "pattern_end_t": "2026-01-30T00:00:00",
-        "containment": 0.76,
+        "containment": 0.75,
         "alternations": 3,
         "trend_label": "TOP",
-        "apex_x": 218.84971088931857,
-        "progress_to_apex": 0.6499796918407696
+        "apex_x": 217.84971088932076,
+        "progress_to_apex": 0.6587632011899566
       },
       "last_touch": "2026-01-30T00:00:00"
     },
@@ -25667,25 +25647,25 @@
       "meta": {
         "annot_type": "band",
         "pattern": "RECT_BOTTOM",
-        "start_i": 111,
+        "start_i": 110,
         "end_i": 179,
         "lines": [
           {
             "t1": "2025-11-19T00:00:00",
-            "y1": 133.60259277906985,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 134.41789278575172,
+            "y1": 133.60259277906982,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 134.42988249173231,
             "label": "Upper",
-            "i1": 111,
+            "i1": 110,
             "i2": 179
           },
           {
             "t1": "2025-11-19T00:00:00",
-            "y1": 129.94440968436487,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 121.49720350703842,
+            "y1": 129.94440968436484,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 121.37297988678357,
             "label": "Lower",
-            "i1": 111,
+            "i1": 110,
             "i2": 179
           }
         ],
@@ -25695,54 +25675,54 @@
             "p": 133.97999572753906,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 113
+            "i": 112
           },
           {
             "t": "2025-12-02T00:00:00",
             "p": 133.3699951171875,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 119
+            "i": 118
           },
           {
             "t": "2026-01-16T00:00:00",
             "p": 133.72999572753906,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 150
+            "i": 149
           },
           {
             "t": "2026-02-17T00:00:00",
             "p": 135.0,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 170
+            "i": 169
           },
           {
             "t": "2025-11-28T00:00:00",
             "p": 128.5,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 117
+            "i": 116
           },
           {
             "t": "2025-12-10T00:00:00",
             "p": 127.51000213623047,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 125
+            "i": 124
           },
           {
             "t": "2026-01-05T00:00:00",
             "p": 125.55999755859375,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 141
+            "i": 140
           }
         ],
-        "pattern_end_i": 170,
+        "pattern_end_i": 169,
         "pattern_end_t": "2026-02-17T00:00:00",
-        "containment": 0.9420289855072463,
+        "containment": 0.9285714285714286,
         "alternations": 4,
         "trend_label": "BOTTOM"
       },
@@ -25753,79 +25733,72 @@
       "meta": {
         "annot_type": "band",
         "pattern": "RECT",
-        "start_i": 121,
+        "start_i": 120,
         "end_i": 179,
         "lines": [
           {
             "t1": "2025-12-04T00:00:00",
-            "y1": 47.699965211174806,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 48.814848962220715,
+            "y1": 48.91190245770506,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 47.18178770627234,
             "label": "Upper",
-            "i1": 121,
+            "i1": 120,
             "i2": 179
           },
           {
             "t1": "2025-12-04T00:00:00",
-            "y1": 45.72321390393022,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 44.440951470873664,
+            "y1": 45.723213903930194,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 44.418843497889924,
             "label": "Lower",
-            "i1": 121,
+            "i1": 120,
             "i2": 179
           }
         ],
         "touch_points": [
           {
-            "t": "2025-12-11T00:00:00",
-            "p": 47.810001373291016,
-            "label": "H touch",
-            "kind": "touch_high",
-            "i": 126
-          },
-          {
             "t": "2026-01-15T00:00:00",
             "p": 48.13999938964844,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 149
+            "i": 148
           },
           {
-            "t": "2026-02-12T00:00:00",
-            "p": 48.790000915527344,
+            "t": "2026-01-29T00:00:00",
+            "p": 47.849998474121094,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 168
+            "i": 157
           },
           {
             "t": "2025-12-08T00:00:00",
             "p": 45.779998779296875,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 123
+            "i": 122
           },
           {
             "t": "2026-01-02T00:00:00",
             "p": 45.65999984741211,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 140
+            "i": 139
           },
           {
             "t": "2026-01-20T00:00:00",
             "p": 45.20000076293945,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 151
+            "i": 150
           }
         ],
-        "pattern_end_i": 168,
-        "pattern_end_t": "2026-02-12T00:00:00",
-        "containment": 0.847457627118644,
-        "alternations": 5,
+        "pattern_end_i": 157,
+        "pattern_end_t": "2026-01-29T00:00:00",
+        "containment": 0.8333333333333334,
+        "alternations": 3,
         "trend_label": "NEUTRAL"
       },
-      "last_touch": "2026-02-12T00:00:00"
+      "last_touch": "2026-01-29T00:00:00"
     },
     "CA": {
       "pattern": "RECT_TOP",
@@ -25967,25 +25940,25 @@
       "meta": {
         "annot_type": "band",
         "pattern": "RECT_TOP",
-        "start_i": 128,
+        "start_i": 127,
         "end_i": 179,
         "lines": [
           {
             "t1": "2025-12-15T00:00:00",
-            "y1": 129.98172671841417,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 127.02850794367968,
+            "y1": 129.98172671841428,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 126.9706016931947,
             "label": "Upper",
-            "i1": 128,
+            "i1": 127,
             "i2": 179
           },
           {
             "t1": "2025-12-15T00:00:00",
             "y1": 123.4922161915186,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 118.82519850751511,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 118.73368835684838,
             "label": "Lower",
-            "i1": 128,
+            "i1": 127,
             "i2": 179
           }
         ],
@@ -25995,61 +25968,61 @@
             "p": 128.9499969482422,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 129
+            "i": 128
           },
           {
             "t": "2025-12-26T00:00:00",
             "p": 129.27999877929688,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 136
+            "i": 135
           },
           {
             "t": "2026-02-03T00:00:00",
             "p": 128.2100067138672,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 161
+            "i": 160
           },
           {
             "t": "2026-02-20T00:00:00",
             "p": 126.6500015258789,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 173
+            "i": 172
           },
           {
             "t": "2025-12-17T00:00:00",
             "p": 122.79000091552734,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 130
+            "i": 129
           },
           {
             "t": "2026-01-08T00:00:00",
             "p": 121.77999877929688,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 144
+            "i": 143
           },
           {
             "t": "2026-02-03T00:00:00",
             "p": 121.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 161
+            "i": 160
           },
           {
             "t": "2026-02-17T00:00:00",
             "p": 120.29000091552734,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 170
+            "i": 169
           }
         ],
-        "pattern_end_i": 173,
+        "pattern_end_i": 172,
         "pattern_end_t": "2026-02-20T00:00:00",
-        "containment": 0.9423076923076923,
+        "containment": 0.9245283018867925,
         "alternations": 6,
         "trend_label": "TOP"
       },
@@ -26060,25 +26033,25 @@
       "meta": {
         "annot_type": "band",
         "pattern": "RECT_BOTTOM",
-        "start_i": 104,
+        "start_i": 103,
         "end_i": 179,
         "lines": [
           {
             "t1": "2025-11-10T00:00:00",
-            "y1": 151.68802309816738,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 168.04421300137315,
+            "y1": 151.6880230981673,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 168.26229553341585,
             "label": "Upper",
-            "i1": 104,
+            "i1": 103,
             "i2": 179
           },
           {
             "t1": "2025-11-10T00:00:00",
-            "y1": 138.06877324011816,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 149.66625783806813,
+            "y1": 138.06877324011813,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 149.82089096604074,
             "label": "Lower",
-            "i1": 104,
+            "i1": 103,
             "i2": 179
           }
         ],
@@ -26088,33 +26061,33 @@
             "p": 158.1999969482422,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 128
+            "i": 127
           },
           {
             "t": "2026-01-16T00:00:00",
             "p": 161.92999267578125,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 150
+            "i": 149
           },
           {
             "t": "2025-12-23T00:00:00",
             "p": 143.2899932861328,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 134
+            "i": 133
           },
           {
             "t": "2026-01-30T00:00:00",
             "p": 145.94000244140625,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 159
+            "i": 158
           }
         ],
-        "pattern_end_i": 159,
+        "pattern_end_i": 158,
         "pattern_end_t": "2026-01-30T00:00:00",
-        "containment": 0.868421052631579,
+        "containment": 0.8701298701298701,
         "alternations": 3,
         "trend_label": "BOTTOM"
       },
@@ -26134,8 +26107,8 @@
             "t2": "2026-03-02T00:00:00",
             "y2": 209.2171019608284,
             "label": "Upper",
-            "i1": 113,
-            "i2": 179
+            "i1": 122,
+            "i2": 188
           },
           {
             "t1": "2025-11-21T00:00:00",
@@ -26143,8 +26116,8 @@
             "t2": "2026-03-02T00:00:00",
             "y2": 194.8397504963931,
             "label": "Lower",
-            "i1": 113,
-            "i2": 179
+            "i1": 122,
+            "i2": 188
           }
         ],
         "touch_points": [
@@ -26197,25 +26170,25 @@
       "meta": {
         "annot_type": "band",
         "pattern": "RECT",
-        "start_i": 122,
+        "start_i": 121,
         "end_i": 179,
         "lines": [
           {
             "t1": "2025-12-05T00:00:00",
-            "y1": 61.992250302123956,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 65.42205570068354,
+            "y1": 62.32495076529286,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 64.96113448666182,
             "label": "Upper",
-            "i1": 122,
+            "i1": 121,
             "i2": 179
           },
           {
             "t1": "2025-12-05T00:00:00",
-            "y1": 59.06934278960643,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 62.2813760026689,
+            "y1": 59.06934278960642,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 62.337727462547164,
             "label": "Lower",
-            "i1": 122,
+            "i1": 121,
             "i2": 179
           }
         ],
@@ -26225,37 +26198,44 @@
             "p": 62.63999938964844,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 131
+            "i": 130
           },
           {
             "t": "2026-01-08T00:00:00",
             "p": 63.38999938964844,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 144
+            "i": 143
+          },
+          {
+            "t": "2026-02-26T00:00:00",
+            "p": 64.45999908447266,
+            "label": "H touch",
+            "kind": "touch_high",
+            "i": 176
           },
           {
             "t": "2026-01-28T00:00:00",
             "p": 60.61000061035156,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 157
+            "i": 156
           },
           {
             "t": "2026-02-05T00:00:00",
             "p": 61.290000915527344,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 163
+            "i": 162
           }
         ],
-        "pattern_end_i": 163,
-        "pattern_end_t": "2026-02-05T00:00:00",
-        "containment": 0.9655172413793104,
-        "alternations": 1,
+        "pattern_end_i": 176,
+        "pattern_end_t": "2026-02-26T00:00:00",
+        "containment": 0.9830508474576272,
+        "alternations": 2,
         "trend_label": "NEUTRAL"
       },
-      "last_touch": "2026-02-05T00:00:00"
+      "last_touch": "2026-02-26T00:00:00"
     },
     "ESS": {
       "pattern": "RECT",
@@ -26271,8 +26251,8 @@
             "t2": "2026-03-02T00:00:00",
             "y2": 262.5084726859948,
             "label": "Upper",
-            "i1": 115,
-            "i2": 179
+            "i1": 124,
+            "i2": 188
           },
           {
             "t1": "2025-11-25T00:00:00",
@@ -26280,8 +26260,8 @@
             "t2": "2026-03-02T00:00:00",
             "y2": 244.85489415181172,
             "label": "Lower",
-            "i1": 115,
-            "i2": 179
+            "i1": 124,
+            "i2": 188
           }
         ],
         "touch_points": [
@@ -26350,8 +26330,8 @@
             "t2": "2026-03-02T00:00:00",
             "y2": 178.94462779422105,
             "label": "Upper",
-            "i1": 126,
-            "i2": 179
+            "i1": 135,
+            "i2": 188
           },
           {
             "t1": "2025-12-11T00:00:00",
@@ -26359,8 +26339,8 @@
             "t2": "2026-03-02T00:00:00",
             "y2": 158.26557875220576,
             "label": "Lower",
-            "i1": 126,
-            "i2": 179
+            "i1": 135,
+            "i2": 188
           }
         ],
         "touch_points": [
@@ -26413,25 +26393,25 @@
       "meta": {
         "annot_type": "band",
         "pattern": "RECT",
-        "start_i": 125,
+        "start_i": 124,
         "end_i": 179,
         "lines": [
           {
             "t1": "2025-12-10T00:00:00",
-            "y1": 1450.6483178747246,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 1424.2844416333235,
+            "y1": 1450.648317874725,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 1423.7962217029271,
             "label": "Upper",
-            "i1": 125,
+            "i1": 124,
             "i2": 179
           },
           {
             "t1": "2025-12-10T00:00:00",
-            "y1": 1400.5035696211469,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 1319.8410269961378,
+            "y1": 1400.5035696211467,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 1318.3472762067852,
             "label": "Lower",
-            "i1": 125,
+            "i1": 124,
             "i2": 179
           }
         ],
@@ -26441,40 +26421,40 @@
             "p": 1425.0,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 161
+            "i": 160
           },
           {
             "t": "2026-02-10T00:00:00",
             "p": 1422.3599853515625,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 166
+            "i": 165
           },
           {
             "t": "2026-01-02T00:00:00",
             "p": 1384.47998046875,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 140
+            "i": 139
           },
           {
             "t": "2026-02-02T00:00:00",
             "p": 1356.0,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 160
+            "i": 159
           },
           {
             "t": "2026-02-12T00:00:00",
             "p": 1328.1700439453125,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 168
+            "i": 167
           }
         ],
-        "pattern_end_i": 168,
+        "pattern_end_i": 167,
         "pattern_end_t": "2026-02-12T00:00:00",
-        "containment": 0.8363636363636363,
+        "containment": 0.8392857142857143,
         "alternations": 2,
         "trend_label": "NEUTRAL"
       },
@@ -26485,25 +26465,25 @@
       "meta": {
         "annot_type": "band",
         "pattern": "RECT_BOTTOM",
-        "start_i": 132,
+        "start_i": 131,
         "end_i": 179,
         "lines": [
           {
             "t1": "2025-12-19T00:00:00",
-            "y1": 72.83092380553451,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 77.48438999511988,
+            "y1": 72.83092380553458,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 77.58339991404728,
             "label": "Upper",
-            "i1": 132,
+            "i1": 131,
             "i2": 179
           },
           {
             "t1": "2025-12-19T00:00:00",
-            "y1": 65.13408359829704,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 68.88794251019483,
+            "y1": 65.13408359829708,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 68.96781184874584,
             "label": "Lower",
-            "i1": 132,
+            "i1": 131,
             "i2": 179
           }
         ],
@@ -26513,47 +26493,47 @@
             "p": 74.98999786376953,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 153
+            "i": 152
           },
           {
             "t": "2026-01-28T00:00:00",
             "p": 75.9000015258789,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 157
+            "i": 156
           },
           {
             "t": "2026-02-12T00:00:00",
             "p": 76.83999633789062,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 168
+            "i": 167
           },
           {
             "t": "2026-02-20T00:00:00",
             "p": 75.61000061035156,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 173
+            "i": 172
           },
           {
             "t": "2025-12-23T00:00:00",
             "p": 65.41000366210938,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 134
+            "i": 133
           },
           {
             "t": "2025-12-31T00:00:00",
             "p": 66.72000122070312,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 139
+            "i": 138
           }
         ],
-        "pattern_end_i": 173,
+        "pattern_end_i": 172,
         "pattern_end_t": "2026-02-20T00:00:00",
-        "containment": 0.9166666666666666,
+        "containment": 0.8979591836734694,
         "alternations": 1,
         "trend_label": "BOTTOM"
       },
@@ -26564,25 +26544,25 @@
       "meta": {
         "annot_type": "band",
         "pattern": "RECT_BOTTOM",
-        "start_i": 123,
+        "start_i": 122,
         "end_i": 179,
         "lines": [
           {
             "t1": "2025-12-08T00:00:00",
-            "y1": 259.01635606790467,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 269.38308595636425,
+            "y1": 259.0163560679047,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 269.56820613294394,
             "label": "Upper",
-            "i1": 123,
+            "i1": 122,
             "i2": 179
           },
           {
             "t1": "2025-12-08T00:00:00",
-            "y1": 239.5105242740322,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 250.07296825624522,
+            "y1": 239.51052427403226,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 250.26158332735616,
             "label": "Lower",
-            "i1": 123,
+            "i1": 122,
             "i2": 179
           }
         ],
@@ -26592,47 +26572,47 @@
             "p": 259.989990234375,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 125
+            "i": 124
           },
           {
             "t": "2026-01-13T00:00:00",
             "p": 262.8699951171875,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 147
+            "i": 146
           },
           {
             "t": "2026-01-22T00:00:00",
             "p": 264.0899963378906,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 153
+            "i": 152
           },
           {
             "t": "2025-12-18T00:00:00",
             "p": 241.66000366210938,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 131
+            "i": 130
           },
           {
             "t": "2026-01-30T00:00:00",
             "p": 245.2100067138672,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 159
+            "i": 158
           },
           {
             "t": "2026-02-25T00:00:00",
             "p": 250.19000244140625,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 176
+            "i": 175
           }
         ],
-        "pattern_end_i": 176,
+        "pattern_end_i": 175,
         "pattern_end_t": "2026-02-25T00:00:00",
-        "containment": 0.9473684210526315,
+        "containment": 0.9482758620689655,
         "alternations": 3,
         "trend_label": "BOTTOM"
       },
@@ -26845,25 +26825,25 @@
       "meta": {
         "annot_type": "band",
         "pattern": "RECT_BOTTOM",
-        "start_i": 129,
+        "start_i": 128,
         "end_i": 179,
         "lines": [
           {
             "t1": "2025-12-16T00:00:00",
-            "y1": 39.137585935002555,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 40.226407513647025,
+            "y1": 39.13758593500255,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 40.24818394521991,
             "label": "Upper",
-            "i1": 129,
+            "i1": 128,
             "i2": 179
           },
           {
             "t1": "2025-12-16T00:00:00",
             "y1": 37.76635649174111,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 37.79781528498164,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 37.79844446084643,
             "label": "Lower",
-            "i1": 129,
+            "i1": 128,
             "i2": 179
           }
         ],
@@ -26873,40 +26853,40 @@
             "p": 39.220001220703125,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 131
+            "i": 130
           },
           {
             "t": "2026-01-26T00:00:00",
             "p": 39.939998626708984,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 155
+            "i": 154
           },
           {
             "t": "2026-02-17T00:00:00",
             "p": 40.130001068115234,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 170
+            "i": 169
           },
           {
             "t": "2025-12-22T00:00:00",
             "p": 37.689998626708984,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 133
+            "i": 132
           },
           {
             "t": "2026-01-28T00:00:00",
             "p": 38.06999969482422,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 157
+            "i": 156
           }
         ],
-        "pattern_end_i": 170,
+        "pattern_end_i": 169,
         "pattern_end_t": "2026-02-17T00:00:00",
-        "containment": 0.9019607843137255,
+        "containment": 0.9038461538461539,
         "alternations": 4,
         "trend_label": "BOTTOM"
       },
@@ -26917,25 +26897,25 @@
       "meta": {
         "annot_type": "band",
         "pattern": "RECT_BOTTOM",
-        "start_i": 110,
+        "start_i": 109,
         "end_i": 179,
         "lines": [
           {
             "t1": "2025-11-18T00:00:00",
-            "y1": 22.172321754307998,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 19.854814149232553,
+            "y1": 22.172321754307973,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 19.82122708249232,
             "label": "Upper",
-            "i1": 110,
+            "i1": 109,
             "i2": 179
           },
           {
             "t1": "2025-11-18T00:00:00",
-            "y1": 18.269477869189895,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 12.871398572686742,
+            "y1": 18.2694778691899,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 12.793165539404088,
             "label": "Lower",
-            "i1": 110,
+            "i1": 109,
             "i2": 179
           }
         ],
@@ -26945,40 +26925,40 @@
             "p": 22.690000534057617,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 112
+            "i": 111
           },
           {
             "t": "2026-01-21T00:00:00",
             "p": 21.149999618530273,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 152
+            "i": 151
           },
           {
             "t": "2026-01-28T00:00:00",
             "p": 20.924999237060547,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 157
+            "i": 156
           },
           {
             "t": "2025-12-01T00:00:00",
             "p": 18.049999237060547,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 118
+            "i": 117
           },
           {
             "t": "2026-02-05T00:00:00",
             "p": 14.680999755859375,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 163
+            "i": 162
           }
         ],
-        "pattern_end_i": 163,
+        "pattern_end_i": 162,
         "pattern_end_t": "2026-02-05T00:00:00",
-        "containment": 0.8857142857142857,
+        "containment": 0.8873239436619719,
         "alternations": 3,
         "trend_label": "BOTTOM"
       },
@@ -26989,25 +26969,25 @@
       "meta": {
         "annot_type": "band",
         "pattern": "RECT_BOTTOM",
-        "start_i": 115,
+        "start_i": 114,
         "end_i": 179,
         "lines": [
           {
             "t1": "2025-11-25T00:00:00",
             "y1": 180.5628596899035,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 173.20826833103536,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 173.09335284105302,
             "label": "Upper",
-            "i1": 115,
+            "i1": 114,
             "i2": 179
           },
           {
             "t1": "2025-11-25T00:00:00",
-            "y1": 156.94544684463372,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 151.17850499701723,
+            "y1": 156.94544684463364,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 151.08839653064817,
             "label": "Lower",
-            "i1": 115,
+            "i1": 114,
             "i2": 179
           }
         ],
@@ -27017,47 +26997,47 @@
             "p": 180.77000427246094,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 117
+            "i": 116
           },
           {
             "t": "2025-12-04T00:00:00",
             "p": 178.0500030517578,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 121
+            "i": 120
           },
           {
             "t": "2025-12-12T00:00:00",
             "p": 180.0,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 127
+            "i": 126
           },
           {
             "t": "2026-02-17T00:00:00",
             "p": 176.64999389648438,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 170
+            "i": 169
           },
           {
             "t": "2025-12-10T00:00:00",
             "p": 158.64999389648438,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 125
+            "i": 124
           },
           {
             "t": "2026-01-21T00:00:00",
             "p": 153.77000427246094,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 152
+            "i": 151
           }
         ],
-        "pattern_end_i": 170,
+        "pattern_end_i": 169,
         "pattern_end_t": "2026-02-17T00:00:00",
-        "containment": 0.9076923076923077,
+        "containment": 0.9090909090909091,
         "alternations": 4,
         "trend_label": "BOTTOM"
       },
@@ -27147,25 +27127,25 @@
       "meta": {
         "annot_type": "band",
         "pattern": "RECT",
-        "start_i": 137,
+        "start_i": 136,
         "end_i": 179,
         "lines": [
           {
             "t1": "2025-12-29T00:00:00",
-            "y1": 69.93731576352415,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 72.69268403302526,
+            "y1": 69.93731576352417,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 72.758288039442,
             "label": "Upper",
-            "i1": 137,
+            "i1": 136,
             "i2": 179
           },
           {
             "t1": "2025-12-29T00:00:00",
-            "y1": 66.3976302664825,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 68.99903467085477,
+            "y1": 66.39763026648245,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 69.06097287095888,
             "label": "Lower",
-            "i1": 137,
+            "i1": 136,
             "i2": 179
           }
         ],
@@ -27175,33 +27155,33 @@
             "p": 71.9000015258789,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 164
+            "i": 163
           },
           {
             "t": "2026-02-19T00:00:00",
             "p": 72.05999755859375,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 172
+            "i": 171
           },
           {
             "t": "2026-01-13T00:00:00",
             "p": 67.56999969482422,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 147
+            "i": 146
           },
           {
             "t": "2026-02-10T00:00:00",
             "p": 68.37000274658203,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 166
+            "i": 165
           }
         ],
-        "pattern_end_i": 172,
+        "pattern_end_i": 171,
         "pattern_end_t": "2026-02-19T00:00:00",
-        "containment": 0.9302325581395349,
+        "containment": 0.9318181818181818,
         "alternations": 3,
         "trend_label": "NEUTRAL"
       },
@@ -27356,111 +27336,111 @@
       "meta": {
         "annot_type": "band",
         "pattern": "RECT",
-        "start_i": 80,
-        "end_i": 130,
+        "start_i": 115,
+        "end_i": 179,
         "lines": [
           {
-            "t1": "2025-12-15T00:00:00",
-            "y1": 138.9942071611789,
-            "t2": "2026-02-27T00:00:00",
-            "y2": 136.76810753294322,
+            "t1": "2025-11-26T00:00:00",
+            "y1": 138.77388463247647,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 137.03401499599778,
             "label": "Upper",
-            "i1": 137,
-            "i2": 187
+            "i1": 115,
+            "i2": 179
           },
           {
-            "t1": "2025-12-15T00:00:00",
-            "y1": 133.86791570738777,
-            "t2": "2026-02-27T00:00:00",
-            "y2": 130.00450984665778,
+            "t1": "2025-11-26T00:00:00",
+            "y1": 133.77576714124896,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 130.83691591572406,
             "label": "Lower",
-            "i1": 137,
-            "i2": 187
+            "i1": 115,
+            "i2": 179
           }
         ],
         "touch_points": [
-          {
-            "t": "2026-01-09T00:00:00",
-            "p": 139.14999389648438,
-            "label": "H touch",
-            "kind": "touch_high",
-            "i": 97
-          },
-          {
-            "t": "2026-01-16T00:00:00",
-            "p": 137.1300048828125,
-            "label": "H touch",
-            "kind": "touch_high",
-            "i": 102
-          },
           {
             "t": "2026-02-11T00:00:00",
             "p": 137.83999633789062,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 119
+            "i": 166
+          },
+          {
+            "t": "2026-02-26T00:00:00",
+            "p": 136.27000427246094,
+            "label": "H touch",
+            "kind": "touch_high",
+            "i": 176
           },
           {
             "t": "2025-12-22T00:00:00",
             "p": 133.10000610351562,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 85
+            "i": 132
           },
           {
             "t": "2026-01-13T00:00:00",
             "p": 132.19000244140625,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 99
+            "i": 146
           },
           {
             "t": "2026-01-28T00:00:00",
             "p": 131.7899932861328,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 109
+            "i": 156
           },
           {
             "t": "2026-02-12T00:00:00",
             "p": 131.3699951171875,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 120
+            "i": 167
+          },
+          {
+            "t": "2026-02-25T00:00:00",
+            "p": 132.0,
+            "label": "L touch",
+            "kind": "touch_low",
+            "i": 175
           }
         ],
-        "pattern_end_i": 120,
-        "pattern_end_t": "2026-02-12T00:00:00",
-        "containment": 0.9607843137254902,
-        "alternations": 6,
+        "pattern_end_i": 176,
+        "pattern_end_t": "2026-02-26T00:00:00",
+        "containment": 0.9076923076923077,
+        "alternations": 3,
         "trend_label": "NEUTRAL"
       },
-      "last_touch": "2026-02-12T00:00:00"
+      "last_touch": "2026-02-26T00:00:00"
     },
     "CRWV": {
       "pattern": "RECT_BOTTOM",
       "meta": {
         "annot_type": "band",
         "pattern": "RECT_BOTTOM",
-        "start_i": 111,
+        "start_i": 110,
         "end_i": 179,
         "lines": [
           {
             "t1": "2025-11-19T00:00:00",
-            "y1": 84.6976738618485,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 107.01959565628411,
+            "y1": 84.69767386184846,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 107.34785921208451,
             "label": "Upper",
-            "i1": 111,
+            "i1": 110,
             "i2": 179
           },
           {
             "t1": "2025-11-19T00:00:00",
-            "y1": 62.13940618571565,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 85.96699020200663,
+            "y1": 62.13940618571564,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 86.317395849305,
             "label": "Lower",
-            "i1": 111,
+            "i1": 110,
             "i2": 179
           }
         ],
@@ -27470,47 +27450,47 @@
             "p": 83.48999786376953,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 112
+            "i": 111
           },
           {
             "t": "2025-12-09T00:00:00",
             "p": 91.22000122070312,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 124
+            "i": 123
           },
           {
             "t": "2026-02-25T00:00:00",
             "p": 103.44000244140625,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 176
+            "i": 175
           },
           {
             "t": "2025-11-21T00:00:00",
             "p": 65.22000122070312,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 113
+            "i": 112
           },
           {
             "t": "2025-12-31T00:00:00",
             "p": 70.43000030517578,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 139
+            "i": 138
           },
           {
             "t": "2026-02-20T00:00:00",
             "p": 84.5,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 173
+            "i": 172
           }
         ],
-        "pattern_end_i": 176,
+        "pattern_end_i": 175,
         "pattern_end_t": "2026-02-25T00:00:00",
-        "containment": 0.8985507246376812,
+        "containment": 0.8857142857142857,
         "alternations": 4,
         "trend_label": "BOTTOM"
       },
@@ -27521,25 +27501,25 @@
       "meta": {
         "annot_type": "band",
         "pattern": "DESC_TRIANGLE",
-        "start_i": 121,
+        "start_i": 120,
         "end_i": 179,
         "lines": [
           {
             "t1": "2025-12-04T00:00:00",
-            "y1": 138.17407146115227,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 118.67751195139597,
+            "y1": 138.17407146115238,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 118.34136437364168,
             "label": "Upper",
-            "i1": 121,
+            "i1": 120,
             "i2": 179
           },
           {
             "t1": "2025-12-04T00:00:00",
-            "y1": 110.2699543837404,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 114.472564321279,
+            "y1": 110.26995438374044,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 114.54502311330559,
             "label": "Lower",
-            "i1": 121,
+            "i1": 120,
             "i2": 179
           }
         ],
@@ -27549,37 +27529,37 @@
             "p": 131.19000244140625,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 141
+            "i": 140
           },
           {
             "t": "2026-02-04T00:00:00",
             "p": 123.04000091552734,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 162
+            "i": 161
           },
           {
             "t": "2026-01-30T00:00:00",
             "p": 112.26000213623047,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 159
+            "i": 158
           },
           {
             "t": "2026-02-05T00:00:00",
             "p": 113.05000305175781,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 163
+            "i": 162
           }
         ],
-        "pattern_end_i": 163,
+        "pattern_end_i": 162,
         "pattern_end_t": "2026-02-05T00:00:00",
-        "containment": 0.864406779661017,
+        "containment": 0.85,
         "alternations": 3,
         "trend_label": "BOTTOM",
-        "apex_x": 189.2909497773401,
-        "progress_to_apex": 0.8493072682267074
+        "apex_x": 188.29094977734022,
+        "progress_to_apex": 0.8639504969892354
       },
       "last_touch": "2026-02-05T00:00:00"
     },
@@ -27588,25 +27568,25 @@
       "meta": {
         "annot_type": "band",
         "pattern": "RECT_TOP",
-        "start_i": 105,
+        "start_i": 104,
         "end_i": 179,
         "lines": [
           {
             "t1": "2025-11-11T00:00:00",
-            "y1": 60.997639179229736,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 64.1932562271754,
+            "y1": 60.99763917922976,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 64.23644024133685,
             "label": "Upper",
-            "i1": 105,
+            "i1": 104,
             "i2": 179
           },
           {
             "t1": "2025-11-11T00:00:00",
-            "y1": 57.52108055472692,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 58.65177621574045,
+            "y1": 57.521080554726915,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 58.667055886835215,
             "label": "Lower",
-            "i1": 105,
+            "i1": 104,
             "i2": 179
           }
         ],
@@ -27616,47 +27596,47 @@
             "p": 61.84000015258789,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 117
+            "i": 116
           },
           {
             "t": "2025-12-05T00:00:00",
             "p": 61.599998474121094,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 122
+            "i": 121
           },
           {
             "t": "2025-11-13T00:00:00",
             "p": 57.20000076293945,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 107
+            "i": 106
           },
           {
             "t": "2025-12-09T00:00:00",
             "p": 57.540000915527344,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 124
+            "i": 123
           },
           {
             "t": "2026-01-06T00:00:00",
             "p": 57.959999084472656,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 142
+            "i": 141
           },
           {
             "t": "2026-02-25T00:00:00",
             "p": 58.720001220703125,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 176
+            "i": 175
           }
         ],
-        "pattern_end_i": 176,
+        "pattern_end_i": 175,
         "pattern_end_t": "2026-02-25T00:00:00",
-        "containment": 0.9333333333333333,
+        "containment": 0.9342105263157895,
         "alternations": 2,
         "trend_label": "TOP"
       },
@@ -27667,25 +27647,25 @@
       "meta": {
         "annot_type": "band",
         "pattern": "RECT_BOTTOM",
-        "start_i": 121,
+        "start_i": 120,
         "end_i": 179,
         "lines": [
           {
             "t1": "2025-12-04T00:00:00",
-            "y1": 33.768105718560356,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 33.36421591951367,
+            "y1": 33.76810571856034,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 33.357252302288714,
             "label": "Upper",
-            "i1": 121,
+            "i1": 120,
             "i2": 179
           },
           {
             "t1": "2025-12-04T00:00:00",
-            "y1": 28.276715318239482,
-            "t2": "2026-03-02T00:00:00",
-            "y2": 29.585273899916047,
+            "y1": 28.276715318239507,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 29.60783525477254,
             "label": "Lower",
-            "i1": 121,
+            "i1": 120,
             "i2": 179
           }
         ],
@@ -27695,44 +27675,362 @@
             "p": 33.63999938964844,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 154
+            "i": 153
           },
           {
             "t": "2026-02-25T00:00:00",
             "p": 33.86000061035156,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 176
+            "i": 175
           },
           {
             "t": "2025-12-31T00:00:00",
             "p": 29.020000457763672,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 139
+            "i": 138
           },
           {
             "t": "2026-02-03T00:00:00",
             "p": 28.639999389648438,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 161
+            "i": 160
           },
           {
             "t": "2026-02-18T00:00:00",
             "p": 29.350000381469727,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 171
+            "i": 170
           }
         ],
-        "pattern_end_i": 176,
+        "pattern_end_i": 175,
         "pattern_end_t": "2026-02-25T00:00:00",
-        "containment": 0.8983050847457628,
+        "containment": 0.9,
         "alternations": 3,
         "trend_label": "BOTTOM"
       },
       "last_touch": "2026-02-25T00:00:00"
+    },
+    "8951.T": {
+      "pattern": "RECT_TOP",
+      "meta": {
+        "annot_type": "band",
+        "pattern": "RECT_TOP",
+        "start_i": 115,
+        "end_i": 179,
+        "lines": [
+          {
+            "t1": "2025-11-25T00:00:00",
+            "y1": 148805.06048982003,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 148760.68161699624,
+            "label": "Upper",
+            "i1": 115,
+            "i2": 179
+          },
+          {
+            "t1": "2025-11-25T00:00:00",
+            "y1": 140488.8305847076,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 141899.32533733133,
+            "label": "Lower",
+            "i1": 115,
+            "i2": 179
+          }
+        ],
+        "touch_points": [
+          {
+            "t": "2026-02-05T00:00:00",
+            "p": 148000.0,
+            "label": "H touch",
+            "kind": "touch_high",
+            "i": 163
+          },
+          {
+            "t": "2026-02-26T00:00:00",
+            "p": 149600.0,
+            "label": "H touch",
+            "kind": "touch_high",
+            "i": 176
+          },
+          {
+            "t": "2025-12-09T00:00:00",
+            "p": 139900.0,
+            "label": "L touch",
+            "kind": "touch_low",
+            "i": 125
+          },
+          {
+            "t": "2025-12-23T00:00:00",
+            "p": 141400.0,
+            "label": "L touch",
+            "kind": "touch_low",
+            "i": 135
+          },
+          {
+            "t": "2025-12-29T00:00:00",
+            "p": 141400.0,
+            "label": "L touch",
+            "kind": "touch_low",
+            "i": 139
+          },
+          {
+            "t": "2026-01-07T00:00:00",
+            "p": 142000.0,
+            "label": "L touch",
+            "kind": "touch_low",
+            "i": 143
+          },
+          {
+            "t": "2026-02-17T00:00:00",
+            "p": 142100.0,
+            "label": "L touch",
+            "kind": "touch_low",
+            "i": 170
+          }
+        ],
+        "pattern_end_i": 176,
+        "pattern_end_t": "2026-02-26T00:00:00",
+        "containment": 0.9846153846153847,
+        "alternations": 3,
+        "trend_label": "TOP"
+      },
+      "last_touch": "2026-02-26T00:00:00"
+    },
+    "DAL": {
+      "pattern": "RECT_TOP",
+      "meta": {
+        "annot_type": "band",
+        "pattern": "RECT_TOP",
+        "start_i": 126,
+        "end_i": 179,
+        "lines": [
+          {
+            "t1": "2025-12-12T00:00:00",
+            "y1": 72.29724019864572,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 73.64428066636957,
+            "label": "Upper",
+            "i1": 126,
+            "i2": 179
+          },
+          {
+            "t1": "2025-12-12T00:00:00",
+            "y1": 69.0170116518226,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 65.43632442809277,
+            "label": "Lower",
+            "i1": 126,
+            "i2": 179
+          }
+        ],
+        "touch_points": [
+          {
+            "t": "2025-12-16T00:00:00",
+            "p": 72.33999633789062,
+            "label": "H touch",
+            "kind": "touch_high",
+            "i": 128
+          },
+          {
+            "t": "2025-12-22T00:00:00",
+            "p": 72.12000274658203,
+            "label": "H touch",
+            "kind": "touch_high",
+            "i": 132
+          },
+          {
+            "t": "2026-01-06T00:00:00",
+            "p": 73.16000366210938,
+            "label": "H touch",
+            "kind": "touch_high",
+            "i": 141
+          },
+          {
+            "t": "2025-12-17T00:00:00",
+            "p": 69.51000213623047,
+            "label": "L touch",
+            "kind": "touch_low",
+            "i": 129
+          },
+          {
+            "t": "2026-01-02T00:00:00",
+            "p": 68.5,
+            "label": "L touch",
+            "kind": "touch_low",
+            "i": 139
+          },
+          {
+            "t": "2026-01-20T00:00:00",
+            "p": 66.8499984741211,
+            "label": "L touch",
+            "kind": "touch_low",
+            "i": 150
+          },
+          {
+            "t": "2026-02-23T00:00:00",
+            "p": 66.30000305175781,
+            "label": "L touch",
+            "kind": "touch_low",
+            "i": 173
+          }
+        ],
+        "pattern_end_i": 173,
+        "pattern_end_t": "2026-02-23T00:00:00",
+        "containment": 0.8518518518518519,
+        "alternations": 5,
+        "trend_label": "TOP"
+      },
+      "last_touch": "2026-02-23T00:00:00"
+    },
+    "REGN": {
+      "pattern": "RECT_TOP",
+      "meta": {
+        "annot_type": "band",
+        "pattern": "RECT_TOP",
+        "start_i": 113,
+        "end_i": 179,
+        "lines": [
+          {
+            "t1": "2025-11-24T00:00:00",
+            "y1": 794.1239877975573,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 801.5717752972797,
+            "label": "Upper",
+            "i1": 113,
+            "i2": 179
+          },
+          {
+            "t1": "2025-11-24T00:00:00",
+            "y1": 696.6754362686821,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 756.4550425249068,
+            "label": "Lower",
+            "i1": 113,
+            "i2": 179
+          }
+        ],
+        "touch_points": [
+          {
+            "t": "2025-11-26T00:00:00",
+            "p": 790.97998046875,
+            "label": "H touch",
+            "kind": "touch_high",
+            "i": 115
+          },
+          {
+            "t": "2025-12-24T00:00:00",
+            "p": 792.77001953125,
+            "label": "H touch",
+            "kind": "touch_high",
+            "i": 134
+          },
+          {
+            "t": "2026-02-02T00:00:00",
+            "p": 731.510009765625,
+            "label": "L touch",
+            "kind": "touch_low",
+            "i": 159
+          },
+          {
+            "t": "2026-02-11T00:00:00",
+            "p": 745.0700073242188,
+            "label": "L touch",
+            "kind": "touch_low",
+            "i": 166
+          },
+          {
+            "t": "2026-02-26T00:00:00",
+            "p": 753.7899780273438,
+            "label": "L touch",
+            "kind": "touch_low",
+            "i": 176
+          }
+        ],
+        "pattern_end_i": 176,
+        "pattern_end_t": "2026-02-26T00:00:00",
+        "containment": 0.9701492537313433,
+        "alternations": 1,
+        "trend_label": "TOP"
+      },
+      "last_touch": "2026-02-26T00:00:00"
+    },
+    "UAL": {
+      "pattern": "ASC_TRIANGLE",
+      "meta": {
+        "annot_type": "band",
+        "pattern": "ASC_TRIANGLE",
+        "start_i": 97,
+        "end_i": 179,
+        "lines": [
+          {
+            "t1": "2025-10-31T00:00:00",
+            "y1": 110.69806117119612,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 119.81240862967567,
+            "label": "Upper",
+            "i1": 97,
+            "i2": 179
+          },
+          {
+            "t1": "2025-10-31T00:00:00",
+            "y1": 90.69899210596644,
+            "t2": "2026-03-03T00:00:00",
+            "y2": 109.47225980598185,
+            "label": "Lower",
+            "i1": 97,
+            "i2": 179
+          }
+        ],
+        "touch_points": [
+          {
+            "t": "2026-02-11T00:00:00",
+            "p": 118.94000244140625,
+            "label": "H touch",
+            "kind": "touch_high",
+            "i": 166
+          },
+          {
+            "t": "2026-02-18T00:00:00",
+            "p": 118.36000061035156,
+            "label": "H touch",
+            "kind": "touch_high",
+            "i": 170
+          },
+          {
+            "t": "2025-11-04T00:00:00",
+            "p": 90.56999969482422,
+            "label": "L touch",
+            "kind": "touch_low",
+            "i": 99
+          },
+          {
+            "t": "2026-02-12T00:00:00",
+            "p": 106.31999969482422,
+            "label": "L touch",
+            "kind": "touch_low",
+            "i": 167
+          },
+          {
+            "t": "2026-02-23T00:00:00",
+            "p": 106.69999694824219,
+            "label": "L touch",
+            "kind": "touch_low",
+            "i": 173
+          }
+        ],
+        "pattern_end_i": 173,
+        "pattern_end_t": "2026-02-23T00:00:00",
+        "containment": 0.8795180722891566,
+        "alternations": 4,
+        "trend_label": "BOTTOM",
+        "apex_x": 266.7833321261664,
+        "progress_to_apex": 0.48296849268493336
+      },
+      "last_touch": "2026-02-23T00:00:00"
     }
   }
 }
