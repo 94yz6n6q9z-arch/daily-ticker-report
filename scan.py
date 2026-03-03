@@ -15,8 +15,8 @@ NEW (this update):
   (Key tape, Movers, Technical trigger tables) by patching the markdown
   alignment row to use ---: on numeric columns.
 - Added VP runway metric for VALIDATED signals: distance to nearest opposing HVN (%).
-- v79: Fix HS/IHS neckline angle measurement by normalizing slope using median ATR on the reaction segment (not ATR(head)).
-- v79: Ensure watchlist tickers display company names (NAME_OVERRIDES / yfinance fallback) instead of bare tickers in Section 4.
+- v80: Fix HS/IHS neckline angle measurement by normalizing slope using median ATR on the reaction segment (not ATR(head)).
+- v80: Ensure watchlist tickers display company names (NAME_OVERRIDES / yfinance fallback) instead of bare tickers in Section 4.
 """
 from __future__ import annotations
 import argparse
@@ -39,7 +39,7 @@ import yfinance as yf
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-SCAN_VERSION: str = "v79"
+SCAN_VERSION: str = "v80"
 # ----------------------------
 # Public asset URLs (email-safe) + cache busting
 # ----------------------------
@@ -295,7 +295,7 @@ HS_VALLEY_ATR_MULT = 2.0       # valley depth threshold vs ATR at head
 HS_SHOULDER_VALLEY_ATR_MULT = 1.0  # min shoulder-to-trough depth in ATR(head) units
 
 # Neckline slope angle guardrail (degrees from horizontal).
-# We measure slope between reaction points (T1→T2 for HS_TOP, R1→R2 for IHS) in ATR-normalized units.
+# We measure the neckline angle as the raw slope between reaction points (T1→T2 for HS_TOP, R1→R2 for IHS), i.e., arctan(Δprice/Δbars).
 # Neckline slope angle is capped symmetrically: abs(angle) ≤ 17.5° for both HS_TOP and IHS.
 HS_NECKLINE_MAX_ANGLE_DEG = 17.5
 HS_LOCAL_WINDOW = 3           # local max/min window for shoulder check (±3 bars)
@@ -3584,26 +3584,14 @@ def _hs_geometry_diagnostics(
     else:
         out["react_local_ok"] = bool(_is_local_min(r1) and _is_local_min(r2))
 
-    # 9) Neckline slope angle (ATR-normalized) must be within ±HS_NECKLINE_MAX_ANGLE_DEG
-    dc = float(close[r2] - close[r1])
-    db = float(r2 - r1)
+    # 9) Neckline angle (raw slope) must be within ±HS_NECKLINE_MAX_ANGLE_DEG
+    #    IMPORTANT: This is NOT ATR-normalized. It is the geometric slope from the reaction points.
+    dc = float(close[r2] - close[r1])   # Δprice
+    db = float(r2 - r1)                 # Δbars
     angle_deg = float("nan")
-    atr_neck = float("nan")
-    # NOTE: v79 fix — use a representative ATR on the neckline segment (median ATR between the two reaction points),
-    # rather than ATR(head). ATR(head) can be inflated by the shock bar (earnings/gap), which understates the true slope.
-    if db > 0:
-        lo = int(min(r1, r2))
-        hi = int(max(r1, r2))
-        try:
-            seg = atr_s[lo:hi+1]
-            atr_neck = float(np.nanmedian(seg)) if getattr(seg, "size", 0) else float("nan")
-        except Exception:
-            atr_neck = float("nan")
-        atr_ref = atr_neck if (np.isfinite(atr_neck) and atr_neck > 0) else atr_h
-        if np.isfinite(atr_ref) and atr_ref > 0:
-            m_atr = (dc / db) / float(atr_ref)
-            angle_deg = float(math.degrees(math.atan(m_atr)))
-    out["neckline_atr_ref"] = float(atr_neck)
+    if db != 0:
+        angle_deg = float(math.degrees(math.atan2(dc, db)))
+    out["neckline_atr_ref"] = float("nan")  # kept for backward-compatibility of debug dict keys
     out["neckline_angle_deg"] = float(angle_deg)
     out["neckline_angle_ok"] = bool(np.isfinite(angle_deg) and (abs(angle_deg) <= float(HS_NECKLINE_MAX_ANGLE_DEG) + 1e-9))
     out["pass_all"] = bool(
@@ -6024,7 +6012,7 @@ def main():
     tech_scan_universe = sorted(set(base_universe + msci_tickers))
     sector_resolver = build_sector_resolver(msci_df)
     company_name_for_ticker, country_for_ticker = build_company_country_resolvers(msci_df)
-    # v79: ensure watchlist tickers show company names (not just ticker labels) in Section 4/6.
+    # v80: ensure watchlist tickers show company names (not just ticker labels) in Section 4/6.
     # If a watchlist ticker is not in the MSCI mapping and has no NAME_OVERRIDES entry,
     # we fetch a lightweight name from yfinance (watchlist only) and use it as an override.
     watchlist_company_extra: Dict[str, str] = {}
@@ -6557,7 +6545,7 @@ def main():
                                 md.append(f"    - 6) Span bars in [{HS_MIN_BARS}..{HS_MAX_BARS}]: {'YES' if geom2.get('span_ok') else 'NO'} (span={geom2.get('span_bars')})\n")
                                 md.append(f"    - 7) Sidebars ≥ {HS_MIN_SIDE_BARS} bars: {'YES' if geom2.get('sidebars_ok') else 'NO'} (dL={geom2.get('dL')}, dR={geom2.get('dR')})\n")
                                 md.append(f"    - 8) Reaction pivots local (±{HS_LOCAL_WINDOW}): {'YES' if geom2.get('react_local_ok') else 'NO'} (p1={geom2.get('react_i1')}, p2={geom2.get('react_i2')}, ok1={geom2.get('react1_local')}, ok2={geom2.get('react2_local')})\n")
-                                md.append(f"    - 9) Neckline angle within ±{HS_NECKLINE_MAX_ANGLE_DEG:.1f}° (abs): {'YES' if geom2.get('neckline_angle_ok') else 'NO'} (angle={geom2.get('neckline_angle_deg'):.2f}°, ATRref={geom2.get('neckline_atr_ref', float('nan')):.2f})\n")
+                                md.append(f"    - 9) Neckline angle within ±{HS_NECKLINE_MAX_ANGLE_DEG:.1f}° (abs): {'YES' if geom2.get('neckline_angle_ok') else 'NO'} (angle={geom2.get('neckline_angle_deg'):.2f}°)\n")
                 except Exception:
                     pass
             except Exception:
@@ -6687,7 +6675,7 @@ def main():
                                     md.append(f"    - 6) Span bars in [{HS_MIN_BARS}..{HS_MAX_BARS}]: {'YES' if geom_chk.get('span_ok') else 'NO'} (span={geom_chk.get('span_bars')})\n")
                                     md.append(f"    - 7) Sidebars ≥ {HS_MIN_SIDE_BARS} bars: {'YES' if geom_chk.get('sidebars_ok') else 'NO'} (dL={geom_chk.get('dL')}, dR={geom_chk.get('dR')})\n")
                                     md.append(f"    - 8) Reaction pivots local (±{HS_LOCAL_WINDOW}): {'YES' if geom_chk.get('react_local_ok') else 'NO'} (p1={geom_chk.get('react_i1')}, p2={geom_chk.get('react_i2')}, ok1={geom_chk.get('react1_local')}, ok2={geom_chk.get('react2_local')})\n")
-                                    md.append(f"    - 9) Neckline angle within ±{HS_NECKLINE_MAX_ANGLE_DEG:.1f}° (abs): {'YES' if geom_chk.get('neckline_angle_ok') else 'NO'} (angle={geom_chk.get('neckline_angle_deg'):.2f}°, ATRref={geom_chk.get('neckline_atr_ref', float('nan')):.2f})\n")
+                                    md.append(f"    - 9) Neckline angle within ±{HS_NECKLINE_MAX_ANGLE_DEG:.1f}° (abs): {'YES' if geom_chk.get('neckline_angle_ok') else 'NO'} (angle={geom_chk.get('neckline_angle_deg'):.2f}°)\n")
                                 except Exception:
                                     pass
                                 # Use the SAME detector window (tail LOOKBACK_DAYS), so meta indices (iloc) always align.
