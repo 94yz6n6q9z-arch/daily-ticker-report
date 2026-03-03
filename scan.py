@@ -37,7 +37,7 @@ import yfinance as yf
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-SCAN_VERSION: str = "v75"
+SCAN_VERSION: str = "v78"
 # ----------------------------
 # Public asset URLs (email-safe) + cache busting
 # ----------------------------
@@ -291,6 +291,11 @@ HS_MAX_BARS = 90
 HS_SYMMETRY_MIN_RATIO = 0.70   # min(min(dL,dR)/max(dL,dR))
 HS_VALLEY_ATR_MULT = 2.0       # valley depth threshold vs ATR at head
 HS_SHOULDER_VALLEY_ATR_MULT = 1.0  # min shoulder-to-trough depth in ATR(head) units
+
+# Neckline slope angle guardrail (degrees from horizontal).
+# We measure slope between reaction points (T1→T2 for HS_TOP, R1→R2 for IHS) in ATR-normalized units.
+# Neckline slope angle is capped symmetrically: abs(angle) ≤ 17.5° for both HS_TOP and IHS.
+HS_NECKLINE_MAX_ANGLE_DEG = 17.5
 HS_LOCAL_WINDOW = 3           # local max/min window for shoulder check (±3 bars)
 # Maximum allowed lag between pattern completion (RS) and breakout/breakdown confirmation run start
 HS_MAX_BREAKOUT_LAG_BARS = 30
@@ -315,8 +320,8 @@ DOWNLOAD_PERIOD = "3y"
 DOWNLOAD_INTERVAL = "1d"
 CHUNK_SIZE = 80
 MAX_CHARTS_EARLY = 30
-MAX_CHARTS_CONFIRMED = 30
-MAX_CHARTS_VALIDATED = 5
+MAX_CHARTS_CONFIRMED = 9999
+MAX_CHARTS_VALIDATED = 9999
 MAX_CHARTS_TRIGGERED = 18
 USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -3373,6 +3378,59 @@ def _pick_recent_hs_triplet(
     if best is None:
         bump("no_triplet")
     return best
+
+def _reaction_points_close(
+    d: pd.DataFrame,
+    p1: int,
+    p2: int,
+    p3: int,
+    inverse: bool,
+) -> Tuple[int, int]:
+    """Return reaction point indices on Close for HS/IHS.
+
+    HS_TOP (inverse=False): T1/T2 are the closing valleys between LS↔H and H↔RS.
+    IHS (inverse=True): R1/R2 are the closing reaction highs between LS↔H and H↔RS.
+
+    We prefer true Close pivots (±3 bars) via swing detection; if none exist, fall back to
+    segment argmin/argmax on Close (which will later fail strict local-extreme checks).
+    """
+    c = d["Close"].astype(float)
+    n = len(d)
+    p1 = int(max(0, min(p1, n - 1)))
+    p2 = int(max(0, min(p2, n - 1)))
+    p3 = int(max(0, min(p3, n - 1)))
+    if p1 >= p2 or p2 >= p3:
+        return (p1, p2)
+
+    if inverse:
+        # reaction highs on Close
+        piv = _swing_highs_on_close(d, window=HS_LOCAL_WINDOW, prominence_atr_mult=0.5, allow_tie_high_2dp=True)
+        left = [i for i in piv if p1 < i < p2]
+        right = [i for i in piv if p2 < i < p3]
+        if left:
+            r1 = max(left, key=lambda k: float(c.iloc[k]))
+        else:
+            r1 = int(p1 + 1 + int(np.nanargmax(c.iloc[p1 + 1:p2])))
+        if right:
+            r2 = max(right, key=lambda k: float(c.iloc[k]))
+        else:
+            r2 = int(p2 + 1 + int(np.nanargmax(c.iloc[p2 + 1:p3])))
+        return (int(r1), int(r2))
+    else:
+        # troughs on Close
+        piv = _swing_lows_on_close(d, window=HS_LOCAL_WINDOW, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
+        left = [i for i in piv if p1 < i < p2]
+        right = [i for i in piv if p2 < i < p3]
+        if left:
+            t1 = min(left, key=lambda k: float(c.iloc[k]))
+        else:
+            t1 = int(p1 + 1 + int(np.nanargmin(c.iloc[p1 + 1:p2])))
+        if right:
+            t2 = min(right, key=lambda k: float(c.iloc[k]))
+        else:
+            t2 = int(p2 + 1 + int(np.nanargmin(c.iloc[p2 + 1:p3])))
+        return (int(t1), int(t2))
+
 def _hs_geometry_diagnostics(
     d: pd.DataFrame,
     p1: int,
@@ -3497,6 +3555,39 @@ def _hs_geometry_diagnostics(
     out["shoulder_valley_right_depth"] = float(sdepthR)
     out["shoulder_valley_ok"] = bool((sdepthL >= shoulder_thr) and (sdepthR >= shoulder_thr))
 
+
+    # 8) Reaction points (T1/T2 for HS_TOP, R1/R2 for IHS) must be local extrema on Close (±local_window)
+    r1, r2 = _reaction_points_close(d, p1, p2, p3, inverse=inverse)
+    out["react1_i"] = int(r1)
+    out["react2_i"] = int(r2)
+
+    def _is_local_max(i: int) -> bool:
+        lo_i = max(0, i - w)
+        hi_i = min(n, i + w + 1)
+        win = close[lo_i:hi_i]
+        return float(close[i]) >= float(np.nanmax(win) - 1e-8)
+
+    def _is_local_min(i: int) -> bool:
+        lo_i = max(0, i - w)
+        hi_i = min(n, i + w + 1)
+        win = close[lo_i:hi_i]
+        return float(close[i]) <= float(np.nanmin(win) + 1e-8)
+
+    if inverse:
+        out["react_local_ok"] = bool(_is_local_max(r1) and _is_local_max(r2))
+    else:
+        out["react_local_ok"] = bool(_is_local_min(r1) and _is_local_min(r2))
+
+    # 9) Neckline slope angle (ATR-normalized) must be within ±HS_NECKLINE_MAX_ANGLE_DEG
+    dc = float(close[r2] - close[r1])
+    db = float(r2 - r1)
+    angle_deg = float("nan")
+    if db > 0 and np.isfinite(atr_h) and atr_h > 0:
+        m_atr = (dc / db) / float(atr_h)
+        angle_deg = float(math.degrees(math.atan(m_atr)))
+    out["neckline_angle_deg"] = float(angle_deg)
+    out["neckline_angle_ok"] = bool(np.isfinite(angle_deg) and (abs(angle_deg) <= float(HS_NECKLINE_MAX_ANGLE_DEG) + 1e-9))
+
     out["pass_all"] = bool(
         out["head_is_global_span"]
         and out["ls_local_extreme"]
@@ -3506,6 +3597,8 @@ def _hs_geometry_diagnostics(
         and out["shoulder_valley_ok"]
         and out["span_ok"]
         and out["sidebars_ok"]
+        and out.get("react_local_ok", False)
+        and out.get("neckline_angle_ok", False)
     )
     return out
 def detect_hs_top(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None) -> Optional[PatternCandidate]:
@@ -3528,7 +3621,8 @@ def detect_hs_top(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None) ->
         if isinstance(explain, dict):
             explain['no_triplet'] = int(explain.get('no_triplet', 0)) + 1
         return None
-    p1, p2, p3, t1, t2, px1, px2, px3 = hs
+    p1, p2, p3, _t1, _t2, px1, px2, px3 = hs
+    t1, t2 = _reaction_points_close(d, p1, p2, p3, inverse=False)
     # --- Geometry guardrails (must pass deterministic criteria) ---
     geom = _hs_geometry_diagnostics(d, p1, p2, p3, inverse=False, local_window=HS_LOCAL_WINDOW,
                                    symmetry_min_ratio=HS_SYMMETRY_MIN_RATIO, valley_atr_mult=HS_VALLEY_ATR_MULT)
@@ -3607,7 +3701,8 @@ def detect_inverse_hs(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None
         if isinstance(explain, dict):
             explain['no_triplet'] = int(explain.get('no_triplet', 0)) + 1
         return None
-    p1, p2, p3, r1, r2, px1, px2, px3 = ihs
+    p1, p2, p3, _r1, _r2, px1, px2, px3 = ihs
+    r1, r2 = _reaction_points_close(d, p1, p2, p3, inverse=True)
     # --- Geometry guardrails (must pass deterministic criteria) ---
     geom = _hs_geometry_diagnostics(d, p1, p2, p3, inverse=True, local_window=HS_LOCAL_WINDOW,
                                    symmetry_min_ratio=HS_SYMMETRY_MIN_RATIO, valley_atr_mult=HS_VALLEY_ATR_MULT)
@@ -4514,20 +4609,25 @@ def _historical_confirm_then_retest(
     start_i: int,
 ) -> bool:
     """
-    If the pattern has already CONFIRMED in the past (all 3 gates on some bar >= start_i),
-    and price has since returned to/below the trigger (excess<=0), treat current near-trigger
+    If the pattern already had a *break attempt* in the past (price gate hit on some bar >= start_i),
+    and price has since returned to/below the trigger (excess<=0), treat a current near-trigger setup
     as a failed retest (do NOT re-flag as EARLY).
+
+    Rationale: we don't want a geometry to keep resurfacing as EARLY after it already broke out/broke down
+    and then reverted back to the neckline. This scan is limited to the detector window (LOOKBACK_DAYS),
+    so it won't suppress unrelated formations years later.
     """
     try:
         n = len(d)
         if n < 10:
             return False
         si = int(max(0, min(int(start_i), n - 1)))
-        confirmed_i = None
+        attempt_i = None
         for j in range(si, n):
             g = _gates_for_signal(cand, d, a, j)
-            if g.get("price") and g.get("clv") and g.get("vol"):
-                confirmed_i = j
+            # Price gate implies a decisive move beyond the confirmation band (±0.5 ATR).
+            if g.get("price"):
+                attempt_i = j
                 break
         if confirmed_i is None:
             return False
@@ -6394,6 +6494,8 @@ def main():
                                 md.append(f"    - 5) Shoulder→Valley ≥ {HS_SHOULDER_VALLEY_ATR_MULT:.1f}×ATR(head): {'YES' if geom2.get('shoulder_valley_ok') else 'NO'} (left={geom2.get('shoulder_valley_left_depth'):.2f}, right={geom2.get('shoulder_valley_right_depth'):.2f}, thr={geom2.get('shoulder_valley_thr'):.2f})\n")
                                 md.append(f"    - 6) Span bars in [{HS_MIN_BARS}..{HS_MAX_BARS}]: {'YES' if geom2.get('span_ok') else 'NO'} (span={geom2.get('span_bars')})\n")
                                 md.append(f"    - 7) Sidebars ≥ {HS_MIN_SIDE_BARS} bars: {'YES' if geom2.get('sidebars_ok') else 'NO'} (dL={geom2.get('dL')}, dR={geom2.get('dR')})\n")
+                                md.append(f"    - 8) Reaction pivots local (±{HS_LOCAL_WINDOW}): {'YES' if geom2.get('react_local_ok') else 'NO'} (p1={geom2.get('react_i1')}, p2={geom2.get('react_i2')}, ok1={geom2.get('react1_local')}, ok2={geom2.get('react2_local')})\n")
+                                md.append(f"    - 9) Neckline angle within ±{HS_NECKLINE_MAX_ANGLE_DEG:.1f}° (abs): {'YES' if geom2.get('neckline_angle_ok') else 'NO'} (angle={geom2.get('neckline_angle_deg'):.2f}°)\n")
                 except Exception:
                     pass
             except Exception:
@@ -6522,6 +6624,8 @@ def main():
                                     md.append(f"    - 5) Shoulder→Valley ≥ {HS_SHOULDER_VALLEY_ATR_MULT:.1f}×ATR(head): {'YES' if geom_chk.get('shoulder_valley_ok') else 'NO'} (left={geom_chk.get('shoulder_valley_left_depth'):.2f}, right={geom_chk.get('shoulder_valley_right_depth'):.2f}, thr={geom_chk.get('shoulder_valley_thr'):.2f})\n")
                                     md.append(f"    - 6) Span bars in [{HS_MIN_BARS}..{HS_MAX_BARS}]: {'YES' if geom_chk.get('span_ok') else 'NO'} (span={geom_chk.get('span_bars')})\n")
                                     md.append(f"    - 7) Sidebars ≥ {HS_MIN_SIDE_BARS} bars: {'YES' if geom_chk.get('sidebars_ok') else 'NO'} (dL={geom_chk.get('dL')}, dR={geom_chk.get('dR')})\n")
+                                    md.append(f"    - 8) Reaction pivots local (±{HS_LOCAL_WINDOW}): {'YES' if geom_chk.get('react_local_ok') else 'NO'} (p1={geom_chk.get('react_i1')}, p2={geom_chk.get('react_i2')}, ok1={geom_chk.get('react1_local')}, ok2={geom_chk.get('react2_local')})\n")
+                                    md.append(f"    - 9) Neckline angle within ±{HS_NECKLINE_MAX_ANGLE_DEG:.1f}° (abs): {'YES' if geom_chk.get('neckline_angle_ok') else 'NO'} (angle={geom_chk.get('neckline_angle_deg'):.2f}°)\n")
                                 except Exception:
                                     pass
                                 # Use the SAME detector window (tail LOOKBACK_DAYS), so meta indices (iloc) always align.
