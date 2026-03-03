@@ -15,8 +15,8 @@ NEW (this update):
   (Key tape, Movers, Technical trigger tables) by patching the markdown
   alignment row to use ---: on numeric columns.
 - Added VP runway metric for VALIDATED signals: distance to nearest opposing HVN (%).
-- v81: Fix HS/IHS neckline angle measurement by normalizing slope using median ATR on the reaction segment (not ATR(head)).
-- v81: Ensure watchlist tickers display company names (NAME_OVERRIDES / yfinance fallback) instead of bare tickers in Section 4.
+- v82: Fix HS/IHS neckline angle measurement by normalizing slope using median ATR on the reaction segment (not ATR(head)).
+- v82: Ensure watchlist tickers display company names (NAME_OVERRIDES / yfinance fallback) instead of bare tickers in Section 4.
 """
 from __future__ import annotations
 import argparse
@@ -39,7 +39,7 @@ import yfinance as yf
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-SCAN_VERSION: str = "v81"
+SCAN_VERSION: str = "v82"
 # ----------------------------
 # Public asset URLs (email-safe) + cache busting
 # ----------------------------
@@ -3653,11 +3653,17 @@ def detect_hs_top(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None) ->
             }
         return None
     
-    # Neckline rule (deterministic): trough points are closing valleys; trigger = closing height at T2 (second trough).
+    # Neckline rule (deterministic): use the sloped line through (T1,T2) on Close, extended past T2.
     n1 = float(d["Close"].iloc[t1])
     n2 = float(d["Close"].iloc[t2])
-    use_horiz = True
-    neckline_now = float(n2)
+    use_horiz = False
+    # Fit line y = a*i + b through indices (t1,t2) and extend to last bar.
+    if int(t2) != int(t1):
+        a_line = (float(n2) - float(n1)) / float(int(t2) - int(t1))
+    else:
+        a_line = 0.0
+    b_line = float(n1) - float(a_line) * float(int(t1))
+    neckline_now = float(a_line * float(len(d) - 1) + float(b_line))
     meta = {
         "annot_type": "hs",
         "variant": "top",
@@ -3669,7 +3675,7 @@ def detect_hs_top(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None) ->
             _point_meta(d, t2, n2, "T2"),
         ],
         "lines": [
-            _line_meta(d, t2, neckline_now, len(d) - 1, neckline_now, "Neckline"),
+            _line_meta(d, t1, n1, len(d) - 1, neckline_now, "Neckline"),
         ],
         "pattern_start_i": int(p1),
         "pattern_end_i": int(p3),
@@ -3733,10 +3739,15 @@ def detect_inverse_hs(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None
             }
         return None
     h1 = float(d["Close"].iloc[r1]); h2 = float(d["Close"].iloc[r2])  # reaction highs on Close
-        # Neckline rule (deterministic): use the closing height at R2 (second reaction high).
-    use_horiz = True
-    neckline_now = float(h2)
-    line_for_meta = _line_meta(d, r2, neckline_now, len(d) - 1, neckline_now, "Neckline")
+        # Neckline rule (deterministic): use the sloped line through (R1,R2) on Close, extended past R2.
+    use_horiz = False
+    if int(r2) != int(r1):
+        a_line = (float(h2) - float(h1)) / float(int(r2) - int(r1))
+    else:
+        a_line = 0.0
+    b_line = float(h1) - float(a_line) * float(int(r1))
+    neckline_now = float(a_line * float(len(d) - 1) + float(b_line))
+    line_for_meta = _line_meta(d, r1, h1, len(d) - 1, neckline_now, "Neckline")
     meta = {
         "annot_type": "hs",
         "variant": "inverse",
@@ -5566,10 +5577,33 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal, name_reso
         ax.plot(d.index, sma50.astype(float).values)
         ax.plot(d.index, sma200.astype(float).values)
         # Trigger + confirm
-        ax.axhline(sig.level, linestyle="-.", linewidth=1)
-        ax.axhline(confirm, linestyle=":", linewidth=1)
-        ax.text(d.index[-1], sig.level, " Trigger", va="bottom")
-        ax.text(d.index[-1], confirm, " Confirm (±0.5 ATR)", va="bottom")
+        # For HS/IHS, the trigger is the (possibly sloped) Neckline line from meta.
+        # We compute 'trigger_now' from that line at the last bar and use it for confirmation threshold.
+        trigger_now = sig.level
+        try:
+            if isinstance(getattr(sig, 'meta', None), dict):
+                for _ln in (sig.meta.get('lines') or []):
+                    if isinstance(_ln, dict) and str(_ln.get('label','')).lower() == 'neckline':
+                        i1 = int(_ln.get('i1')); i2 = int(_ln.get('i2'))
+                        y1 = float(_ln.get('y1')); y2 = float(_ln.get('y2'))
+                        a_fit, b_fit = _line_fit(np.array([float(i1), float(i2)]), np.array([float(y1), float(y2)]))
+                        trigger_now = float(_line_eval(a_fit, b_fit, float(len(d) - 1)))
+                        break
+        except Exception:
+            pass
+        # Confirm line per rule
+        direction = 1 if 'BREAKOUT' in sig.signal else -1 if 'BREAKDOWN' in sig.signal else 0
+        confirm = float(trigger_now + direction * 0.5 * atr_last)
+
+        # Draw trigger line: HS/IHS uses neckline (drawn by meta); other patterns use a horizontal trigger line.
+        if not (sig.pattern in ('HS_TOP', 'IHS') and isinstance(getattr(sig, 'meta', None), dict) and any(isinstance(_ln, dict) and str(_ln.get('label','')).lower()=='neckline' for _ln in (sig.meta.get('lines') or []))):
+            ax.axhline(sig.level, linestyle='-.', linewidth=1)
+            ax.text(d.index[-1], sig.level, ' Trigger', va='bottom')
+        else:
+            ax.text(d.index[-1], trigger_now, ' Trigger', va='bottom')
+
+        ax.axhline(confirm, linestyle=':', linewidth=1)
+        ax.text(d.index[-1], confirm, ' Confirm (±0.5 ATR)', va='bottom')
         # Pattern markings
         close = d["Close"].astype(float).values
         high = d["High"].astype(float).values
@@ -6089,7 +6123,7 @@ def main():
     tech_scan_universe = sorted(set(base_universe + msci_tickers))
     sector_resolver = build_sector_resolver(msci_df)
     company_name_for_ticker, country_for_ticker = build_company_country_resolvers(msci_df)
-    # v81: ensure watchlist tickers show company names (not just ticker labels) in Section 4/6.
+    # v82: ensure watchlist tickers show company names (not just ticker labels) in Section 4/6.
     # If a watchlist ticker is not in the MSCI mapping and has no NAME_OVERRIDES entry,
     # we fetch a lightweight name from yfinance (watchlist only) and use it as an override.
     watchlist_company_extra: Dict[str, str] = {}
@@ -6736,7 +6770,8 @@ def main():
                             if pLS and pH and pRS:
                                 ls_i = int(pLS.get("i")); h_i = int(pH.get("i")); rs_i = int(pRS.get("i"))
                                 md.append(f"  - LS/H/RS geometry (idx): LS={ls_i}, H={h_i}, RS={rs_i}\n")
-                                md.append(f"  - LS/H/RS geometry (ts): LS={pLS.get('t')}, H={pH.get('t')}, RS={pRS.get('t')}\n")
+                                md.append(f"  - LS/H/RS geometry (ts):  # Point alignment (p vs Close): values should be ~0 if points are on the Close line.
+ LS={pLS.get('t')}, H={pH.get('t')}, RS={pRS.get('t')}\n")
                                 # Deterministic geometry checks (requested)
                                 try:
                                     geom_chk = _hs_geometry_diagnostics(d_local, ls_i, h_i, rs_i, inverse=(patt == "IHS"),
