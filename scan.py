@@ -15,8 +15,15 @@ NEW (this update):
   (Key tape, Movers, Technical trigger tables) by patching the markdown
   alignment row to use ---: on numeric columns.
 - Added VP runway metric for VALIDATED signals: distance to nearest opposing HVN (%).
-- v85: Fix HS/IHS neckline angle measurement by normalizing slope using median ATR on the reaction segment (not ATR(head)).
-- v84: Ensure watchlist tickers display company names (NAME_OVERRIDES / yfinance fallback) instead of bare tickers in Section 4.
+- v83: Fix HS/IHS neckline angle measurement by normalizing slope using median ATR on the reaction segment (not ATR(head)).
+- v83: Ensure watchlist tickers display company names (NAME_OVERRIDES / yfinance fallback) instead of bare tickers in Section 4.
+- v84: Fix floating neckline bug — store neckline through actual reaction points (T1→T2 / R1→R2) instead of (T1→last_bar).
+- v84: Refresh neckline y-values from Close during state carry-forward to prevent stale values after price adjustments.
+- v84: Extend neckline visually to chart right edge (solid T1→T2 + dotted projection).
+- v84: Add RKT to FOCUS_TICKERS for full HS geometry deep-dive with chart in Section 4.
+- v84: Remove broken "HS/IHS diagnosis (selected)" (referenced undefined `data` variable — never worked).
+- v84: Remove "Watchlist big movers diagnostics" and "IHS early deep-dive" sections from Section 4.
+- v84: Replace with "Focus tickers deep-dive" driven by FOCUS_TICKERS (NU, CEG, RKT) — always shown with full diagnostics + charts.
 """
 from __future__ import annotations
 import argparse
@@ -108,7 +115,7 @@ COMMODITY_NAME_OVERRIDES: Dict[str, str] = {
     "CC=F": "Cocoa",
 }
 # Force these tickers to always appear with charts + gate diagnosis in Section 4 (even if no live signal)
-FOCUS_TICKERS = ["NU", "CEG"]
+FOCUS_TICKERS = ["NU", "CEG", "RKT"]
 # Display name overrides (Section 6 + readability). Values should be FULL CAPS.
 NAME_OVERRIDES = {
     "PLTR": "PALANTIR TECHNOLOGIES",
@@ -1739,53 +1746,6 @@ def build_watchlist_pulse_section_md(
         top = [{"ticker": x[3], "signal": x[4]} for x in leaders[:3]]
         cat_stats[cat] = {"score": score, "counts": counts, "top": top}
     md = []
-    md.append("### HS/IHS diagnosis (selected)")
-    md.append("")
-    md.append("Full deterministic HS/IHS diagnostics for selected tickers (pre-4A).")
-    md.append("")
-    diag_tickers = [t.strip().upper() for t in str(os.getenv("HS_DIAG_TICKERS","RKT")).split(",") if t.strip()]
-    for _t in diag_tickers:
-        md.append(f"#### {_display_name(_t)} ({_t})")
-        try:
-            _d = data.get(_t)
-            if _d is None or len(_d) < 60:
-                md.append("Not enough data.")
-                md.append("")
-                continue
-            _sig_list = compute_signals_for_ticker(_t, _d, msci_company, msci_country, msci_sector, state_old, now_dt, allow_early=True)
-            _hs = [s for s in _sig_list if getattr(s, "pattern", None) in ("HS_TOP","IHS")]
-            if not _hs:
-                md.append("No HS/IHS candidate today.")
-                md.append("")
-                continue
-            _s = _hs[0]
-            md.append(f"- Signal: {_s.signal}")
-            if isinstance(getattr(_s, "meta", None), dict):
-                _pts = _s.meta.get("points") or []
-                def _pt(lbl):
-                    for p in _pts:
-                        if isinstance(p, dict) and str(p.get("label","")) == lbl:
-                            return p
-                    return None
-                if _s.pattern == "HS_TOP":
-                    _p1 = _pt("T1"); _p2 = _pt("T2")
-                    if _p1 and _p2:
-                        i1 = int(_p1.get("i")); i2 = int(_p2.get("i"))
-                        c1 = float(_d["Close"].iloc[i1]); c2 = float(_d["Close"].iloc[i2])
-                        md.append(f"- T1: t={_d.index[i1]} | p={float(_p1.get('p')):.4f} | Close={c1:.4f} | Δ={float(_p1.get('p'))-c1:+.4f}")
-                        md.append(f"- T2: t={_d.index[i2]} | p={float(_p2.get('p')):.4f} | Close={c2:.4f} | Δ={float(_p2.get('p'))-c2:+.4f}")
-                else:
-                    _p1 = _pt("R1"); _p2 = _pt("R2")
-                    if _p1 and _p2:
-                        i1 = int(_p1.get("i")); i2 = int(_p2.get("i"))
-                        c1 = float(_d["Close"].iloc[i1]); c2 = float(_d["Close"].iloc[i2])
-                        md.append(f"- R1: t={_d.index[i1]} | p={float(_p1.get('p')):.4f} | Close={c1:.4f} | Δ={float(_p1.get('p'))-c1:+.4f}")
-                        md.append(f"- R2: t={_d.index[i2]} | p={float(_p2.get('p')):.4f} | Close={c2:.4f} | Δ={float(_p2.get('p'))-c2:+.4f}")
-            md.append("")
-        except Exception as _e:
-            md.append(f"Diagnosis error: {_e}")
-            md.append("")
-    md.append("")
     md.append("### 4A) Watchlist emerging chart trends")
     md.append("")
     md.append("_Logic: score each ticker by stage (EARLY=1, CONFIRMED=3, VALIDATED=4) × direction (BREAKOUT=+1, BREAKDOWN=-1), then aggregate by sector._")
@@ -3069,9 +3029,8 @@ def _alternation_count(events: List[Tuple[int, str]]) -> int:
             prev = side
     return cnt
 def _iso_ts(idx_val) -> str:
-    """Date-only ISO (YYYY-MM-DD). Keeps meta stable and prevents tz/axis mismatches in charts."""
     try:
-        return pd.Timestamp(idx_val).date().isoformat()
+        return pd.Timestamp(idx_val).isoformat()
     except Exception:
         return str(idx_val)
 def _after_close_cutoff_berlin(now: Optional[dt.datetime] = None) -> bool:
@@ -3151,7 +3110,7 @@ def _reindex_meta_to_df(meta: Dict[str, Any], d: pd.DataFrame) -> Optional[Dict[
             try:
                 ii = int(p.get("i"))
                 if 0 <= ii < len(d):
-                    p["t"] = pd.Timestamp(d.index[ii]).date().isoformat()
+                    p["t"] = pd.Timestamp(d.index[ii]).isoformat()
                     if "Close" in d.columns:
                         p["p"] = float(d["Close"].iloc[ii])
             except Exception:
@@ -3167,17 +3126,19 @@ def _reindex_meta_to_df(meta: Dict[str, Any], d: pd.DataFrame) -> Optional[Dict[
                 return None
             ln["i1"] = int(p1)
             ln["i2"] = int(p2)
-            # Rebind line values to Close at these indices (prevents floating neckline after reindex)
-            try:
-                i1 = int(ln.get("i1")); i2 = int(ln.get("i2"))
-                if 0 <= i1 < len(d) and "Close" in d.columns:
-                    ln["y1"] = float(d["Close"].iloc[i1])
-                    ln["t1"] = pd.Timestamp(d.index[i1]).date().isoformat()
-                if 0 <= i2 < len(d) and "Close" in d.columns:
-                    ln["y2"] = float(d["Close"].iloc[i2])
-                    ln["t2"] = pd.Timestamp(d.index[i2]).date().isoformat()
-            except Exception:
-                pass
+            # Refresh y-values from Close for HS/IHS necklines so they
+            # track adjusted prices and stay consistent with point markers.
+            if (str(ln.get("label", "")).lower() == "neckline"
+                    and str(m.get("annot_type", "")).lower() == "hs"
+                    and "Close" in d.columns):
+                try:
+                    ii1 = int(p1)
+                    ii2 = int(p2)
+                    if 0 <= ii1 < len(d) and 0 <= ii2 < len(d):
+                        ln["y1"] = float(d["Close"].iloc[ii1])
+                        ln["y2"] = float(d["Close"].iloc[ii2])
+                except Exception:
+                    pass
     # pattern start/end from LS/RS points if present
     if isinstance(pts, list):
         ls_i = None
@@ -3765,7 +3726,7 @@ def detect_hs_top(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None) ->
             _point_meta(d, t2, n2, "T2"),
         ],
         "lines": [
-            _line_meta(d, t1, n1, len(d) - 1, neckline_now, "Neckline"),
+            _line_meta(d, t1, n1, t2, n2, "Neckline"),
         ],
         "pattern_start_i": int(p1),
         "pattern_end_i": int(p3),
@@ -3837,7 +3798,7 @@ def detect_inverse_hs(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None
         a_line = 0.0
     b_line = float(h1) - float(a_line) * float(int(r1))
     neckline_now = float(a_line * float(len(d) - 1) + float(b_line))
-    line_for_meta = _line_meta(d, r1, h1, len(d) - 1, neckline_now, "Neckline")
+    line_for_meta = _line_meta(d, r1, h1, r2, h2, "Neckline")
     meta = {
         "annot_type": "hs",
         "variant": "inverse",
@@ -5510,56 +5471,54 @@ def _annotate_from_signal_meta(ax, sig: LevelSignal) -> bool:
     if not isinstance(meta, dict) or not meta:
         return False
     used = False
-    def _to_ts(x, i=None):
-        """Resolve annotation x-coordinate. Prefer deterministic index i over parsing timestamp strings."""
+    def _to_ts(x):
         try:
-            if i is not None:
-                ii = int(i)
-                if 0 <= ii < len(d):
-                    t = d.index[ii]
-                    t = pd.Timestamp(t)
-                    # Ensure tz-naive for matplotlib
-                    if getattr(t, 'tzinfo', None) is not None:
-                        try:
-                            t = t.tz_convert(None)
-                        except Exception:
-                            t = t.tz_localize(None)
-                    return t
-        except Exception:
-            pass
-        try:
-            t = pd.to_datetime(x, errors='coerce')
-            if pd.isna(t):
-                return None
-            if getattr(t, 'tzinfo', None) is not None:
-                try:
-                    t = t.tz_convert(None)
-                except Exception:
-                    try:
-                        t = t.tz_localize(None)
-                    except Exception:
-                        pass
-            return t
+            return pd.to_datetime(x)
         except Exception:
             return None
     # Draw lines first
     for ln in meta.get("lines", []) or []:
         try:
-            t1 = _to_ts(ln.get("t1"), ln.get("i1")); t2 = _to_ts(ln.get("t2"), ln.get("i2"))
+            t1 = _to_ts(ln.get("t1")); t2 = _to_ts(ln.get("t2"))
             y1 = float(ln.get("y1")); y2 = float(ln.get("y2"))
             if t1 is None or t2 is None or not np.isfinite(y1) or not np.isfinite(y2):
                 continue
-            ax.plot([t1, t2], [y1, y2], linestyle="--", linewidth=1)
             label = str(ln.get("label") or "")
-            if label:
-                ax.text(t2, y2, f" {label}", va="bottom")
+            # For necklines, extend the line from T1/R1 to the chart right edge
+            # so the projection remains visible beyond T2/R2.
+            if label.lower() == "neckline":
+                try:
+                    xlim_right = matplotlib.dates.num2date(ax.get_xlim()[1])
+                    x_right = pd.Timestamp(xlim_right).tz_localize(None)
+                    dt_total = (t2 - t1).total_seconds()
+                    if abs(dt_total) > 0:
+                        slope_per_sec = (y2 - y1) / dt_total
+                        dt_ext = (x_right - t1).total_seconds()
+                        y_right = y1 + slope_per_sec * dt_ext
+                        # Draw solid segment T1→T2 and dashed extension T2→right
+                        ax.plot([t1, t2], [y1, y2], linestyle="--", linewidth=1.2,
+                                color="red", alpha=0.85)
+                        ax.plot([t2, x_right], [y2, y_right], linestyle=":",
+                                linewidth=1.0, color="red", alpha=0.5)
+                        ax.text(x_right, y_right, f" {label}", va="bottom",
+                                fontsize=8, color="red", alpha=0.7)
+                    else:
+                        ax.plot([t1, t2], [y1, y2], linestyle="--", linewidth=1)
+                        ax.text(t2, y2, f" {label}", va="bottom")
+                except Exception:
+                    ax.plot([t1, t2], [y1, y2], linestyle="--", linewidth=1)
+                    ax.text(t2, y2, f" {label}", va="bottom")
+            else:
+                ax.plot([t1, t2], [y1, y2], linestyle="--", linewidth=1)
+                if label:
+                    ax.text(t2, y2, f" {label}", va="bottom")
             used = True
         except Exception:
             continue
     # Draw touch points / pivots
     for pt in meta.get("touch_points", []) or []:
         try:
-            t = _to_ts(pt.get("t"), pt.get("i")); y = float(pt.get("p"))
+            t = _to_ts(pt.get("t")); y = float(pt.get("p"))
             if t is None or not np.isfinite(y):
                 continue
             ax.scatter([t], [y], s=20)
@@ -5568,7 +5527,7 @@ def _annotate_from_signal_meta(ax, sig: LevelSignal) -> bool:
             continue
     for pt in meta.get("points", []) or []:
         try:
-            t = _to_ts(pt.get("t"), pt.get("i")); y = float(pt.get("p"))
+            t = _to_ts(pt.get("t")); y = float(pt.get("p"))
             if t is None or not np.isfinite(y):
                 continue
             ax.scatter([t], [y], s=36)
@@ -5662,16 +5621,6 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal, name_reso
         if d0.empty:
             return placeholder("could not parse dates")
         d0 = d0.sort_index()
-        # Normalize timezone to avoid annotation drift
-        try:
-            if isinstance(d0.index, pd.DatetimeIndex) and d0.index.tz is not None:
-                d0.index = d0.index.tz_convert(None)
-        except Exception:
-            try:
-                if isinstance(d0.index, pd.DatetimeIndex):
-                    d0.index = d0.index.tz_localize(None)
-            except Exception:
-                pass
         # Guard against epoch/outlier dates (e.g., 1970) by using last 400 rows then date-filter
         d_full = d0.tail(420).copy()
         # Plot window = last ~1 year
@@ -6252,7 +6201,7 @@ def main():
     tech_scan_universe = sorted(set(base_universe + msci_tickers))
     sector_resolver = build_sector_resolver(msci_df)
     company_name_for_ticker, country_for_ticker = build_company_country_resolvers(msci_df)
-    # v84: ensure watchlist tickers show company names (not just ticker labels) in Section 4/6.
+    # v83: ensure watchlist tickers show company names (not just ticker labels) in Section 4/6.
     # If a watchlist ticker is not in the MSCI mapping and has no NAME_OVERRIDES entry,
     # we fetch a lightweight name from yfinance (watchlist only) and use it as an override.
     watchlist_company_extra: Dict[str, str] = {}
@@ -6621,61 +6570,12 @@ def main():
         md.append(f"- Live signals: EARLY **{int(debug.get('signals_early', 0))}**, CONFIRMED **{int(debug.get('signals_conf', 0))}**, VALIDATED **{int(debug.get('signals_val', 0))}** (total {sig_total})\n")
         md.append(f"- Geometry restored today: HS/IHS **{int(debug.get('hs_restored', 0))}**, Band **{int(debug.get('band_restored', 0))}**\n")
         md.append("\n")
-        big_rows: List[Dict[str, Any]] = []
-        for t in WATCHLIST_44:
-            df = ohlcv.get(t)
-            if df is None or df.empty:
-                continue
-            dtmp = df.dropna(subset=["Close"]).copy()
-            if len(dtmp) < 2:
-                continue
-            daypct = (float(dtmp["Close"].iloc[-1]) / float(dtmp["Close"].iloc[-2]) - 1.0) * 100.0
-            if abs(daypct) < 7.0 and t not in FOCUS_TICKERS:
-                continue
-            info = _debug_gates_for_ticker(t, df, state=state, max_candidates=6)
-            best = info.get("Best") or {}
-            big_rows.append({
-                "Name of Company": company_name_for_ticker(t),
-                "Ticker": display_ticker(t),
-                "Close": float(dtmp["Close"].iloc[-1]),
-                "Day%": daypct,
-                "BestPattern": str(best.get("pattern","")),
-                "Dir": str(best.get("dir","")),
-                "Dist(ATR)": float(best.get("distATR", float("nan"))) if best else float("nan"),
-                "PriceGate": "Y" if best and best.get("price_ok") else "N",
-                "CLVGate": "Y" if best and best.get("clv_ok") else "N",
-                "VolGate": "Y" if best and best.get("vol_ok") else "N",
-                "HS lag": str(best.get("hs_lag","")),
-                "Cand#": int(info.get("Cand#", 0)),
-            })
-        if big_rows:
-            md.append("### Watchlist big movers diagnostics (|Day%| ≥ 7%)\n")
-            df_dbg = pd.DataFrame(big_rows)
-            md.append(html_table_from_df(df_dbg, cols=[
-                "Name of Company","Ticker","Close","Day%","BestPattern","Dir","Dist(ATR)","PriceGate","CLVGate","VolGate","HS lag","Cand#"
-            ], max_rows=30))
-            md.append("\n")
     except Exception:
         pass
-    # Emerging chart trends (watchlist pulse) — before early callouts
-    # Focus tickers deep-dive (always shown) — NU + CEG with explicit “why not detected” + charts
-    md.append("### IHS early deep-dive (top 4)\n")
-    diag_tickers: List[str] = []
-    _seen_diag: set = set()
-    for _s in early_sorted:
-        try:
-            if str(getattr(_s, "pattern", "")) == "IHS" and str(getattr(_s, "direction", "")) == "BREAKOUT":
-                _tkr = str(getattr(_s, "ticker", "")).strip()
-                if _tkr and _tkr not in _seen_diag:
-                    diag_tickers.append(_tkr)
-                    _seen_diag.add(_tkr)
-            if len(diag_tickers) >= 4:
-                break
-        except Exception:
-            continue
-    if not diag_tickers:
-        md.append("_No IHS EARLY setups today._\n\n")
-    for ft in diag_tickers:
+    # Focus tickers deep-dive (always shown) with full HS/IHS diagnostics + charts
+    md.append("### Focus tickers deep-dive\n")
+    md.append(f"_Full deterministic HS/IHS diagnostics for: {', '.join(FOCUS_TICKERS)}_\n\n")
+    for ft in FOCUS_TICKERS:
         try:
             df_ft = ohlcv.get(ft)
             if df_ft is None or df_ft.empty:
