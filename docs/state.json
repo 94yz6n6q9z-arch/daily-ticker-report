@@ -138,15 +138,14 @@
     "DKS|EARLY_RECT_BOTTOM_BREAKDOWN",
     "DLR|EARLY_IHS_BREAKOUT",
     "DLTR|EARLY_HS_TOP_BREAKDOWN",
+    "DTE|CONFIRMED_IHS_BREAKOUT",
     "EQR|EARLY_RECT_BREAKDOWN",
     "H|EARLY_RECT_BREAKOUT",
     "H|EARLY_RECT_BREAKDOWN",
     "LYB|VALIDATED_MOMO_TREND_BREAKOUT",
     "NLY|EARLY_HS_TOP_BREAKDOWN",
     "ROL|EARLY_RECT_TOP_BREAKDOWN",
-    "RXL|EARLY_ASC_TRIANGLE_BREAKDOWN",
     "SMCI|EARLY_RECT_BOTTOM_BREAKOUT",
-    "SOF|EARLY_RECT_BREAKDOWN",
     "U96.SI|CONFIRMED_DESC_TRIANGLE_BREAKDOWN",
     "WRB|EARLY_RECT_BREAKDOWN"
   ],
@@ -154,9 +153,7 @@
     "8951.T|EARLY_RECT_TOP_BREAKDOWN",
     "6501.T|EARLY_RECT_BREAKDOWN",
     "EQR|EARLY_RECT_BREAKDOWN",
-    "SOF|EARLY_RECT_BREAKDOWN",
     "DAL|EARLY_RECT_TOP_BREAKDOWN",
-    "RXL|EARLY_ASC_TRIANGLE_BREAKDOWN",
     "H|EARLY_RECT_BREAKOUT",
     "H|EARLY_RECT_BREAKDOWN",
     "DLR|EARLY_IHS_BREAKOUT",
@@ -28465,6 +28462,80 @@
         "trend_label": "BOTTOM"
       },
       "last_touch": "2026-02-27T00:00:00"
+    },
+    "PNFP": {
+      "pattern": "ASC_TRIANGLE",
+      "meta": {
+        "annot_type": "band",
+        "pattern": "ASC_TRIANGLE",
+        "start_i": 94,
+        "end_i": 179,
+        "lines": [
+          {
+            "t1": "2025-10-29T00:00:00",
+            "y1": 100.6006715214067,
+            "t2": "2026-03-04T00:00:00",
+            "y2": 103.37868914787896,
+            "label": "Upper",
+            "i1": 94,
+            "i2": 179
+          },
+          {
+            "t1": "2025-10-29T00:00:00",
+            "y1": 83.1237211116306,
+            "t2": "2026-03-04T00:00:00",
+            "y2": 97.14094720550881,
+            "label": "Lower",
+            "i1": 94,
+            "i2": 179
+          }
+        ],
+        "touch_points": [
+          {
+            "t": "2025-12-11T00:00:00",
+            "p": 102.23999786376953,
+            "label": "H touch",
+            "kind": "touch_high",
+            "i": 124
+          },
+          {
+            "t": "2025-12-22T00:00:00",
+            "p": 102.11000061035156,
+            "label": "H touch",
+            "kind": "touch_high",
+            "i": 131
+          },
+          {
+            "t": "2026-02-06T00:00:00",
+            "p": 103.29000091552734,
+            "label": "H touch",
+            "kind": "touch_high",
+            "i": 162
+          },
+          {
+            "t": "2025-10-31T00:00:00",
+            "p": 83.4800033569336,
+            "label": "L touch",
+            "kind": "touch_low",
+            "i": 96
+          },
+          {
+            "t": "2026-01-28T00:00:00",
+            "p": 93.37000274658203,
+            "label": "L touch",
+            "kind": "touch_low",
+            "i": 155
+          }
+        ],
+        "pattern_end_i": 162,
+        "pattern_end_t": "2026-02-06T00:00:00",
+        "containment": 0.9186046511627907,
+        "alternations": 3,
+        "trend_label": "BOTTOM",
+        "apex_x": 226.17485814406612,
+        "progress_to_apex": 0.6430875069096188
+      },
+      "last_touch": "2026-02-06T00:00:00"
     }
   }
 }
