@@ -15,15 +15,8 @@ NEW (this update):
   (Key tape, Movers, Technical trigger tables) by patching the markdown
   alignment row to use ---: on numeric columns.
 - Added VP runway metric for VALIDATED signals: distance to nearest opposing HVN (%).
-- v83: Fix HS/IHS neckline angle measurement by normalizing slope using median ATR on the reaction segment (not ATR(head)).
-- v83: Ensure watchlist tickers display company names (NAME_OVERRIDES / yfinance fallback) instead of bare tickers in Section 4.
-- v84: Fix floating neckline bug — store neckline through actual reaction points (T1→T2 / R1→R2) instead of (T1→last_bar).
-- v84: Refresh neckline y-values from Close during state carry-forward to prevent stale values after price adjustments.
-- v84: Extend neckline visually to chart right edge (solid T1→T2 + dotted projection).
-- v84: Add RKT to FOCUS_TICKERS for full HS geometry deep-dive with chart in Section 4.
-- v84: Remove broken "HS/IHS diagnosis (selected)" (referenced undefined `data` variable — never worked).
-- v84: Remove "Watchlist big movers diagnostics" and "IHS early deep-dive" sections from Section 4.
-- v84: Replace with "Focus tickers deep-dive" driven by FOCUS_TICKERS (NU, CEG, RKT) — always shown with full diagnostics + charts.
+- v86: Fix HS/IHS neckline angle measurement by normalizing slope using median ATR on the reaction segment (not ATR(head)).
+- v84: Ensure watchlist tickers display company names (NAME_OVERRIDES / yfinance fallback) instead of bare tickers in Section 4.
 """
 from __future__ import annotations
 import argparse
@@ -115,7 +108,7 @@ COMMODITY_NAME_OVERRIDES: Dict[str, str] = {
     "CC=F": "Cocoa",
 }
 # Force these tickers to always appear with charts + gate diagnosis in Section 4 (even if no live signal)
-FOCUS_TICKERS = ["NU", "CEG", "RKT"]
+FOCUS_TICKERS = ["NU", "CEG"]
 # Display name overrides (Section 6 + readability). Values should be FULL CAPS.
 NAME_OVERRIDES = {
     "PLTR": "PALANTIR TECHNOLOGIES",
@@ -3029,8 +3022,9 @@ def _alternation_count(events: List[Tuple[int, str]]) -> int:
             prev = side
     return cnt
 def _iso_ts(idx_val) -> str:
+    """Date-only ISO (YYYY-MM-DD). Keeps meta stable and prevents tz/axis mismatches in charts."""
     try:
-        return pd.Timestamp(idx_val).isoformat()
+        return pd.Timestamp(idx_val).date().isoformat()
     except Exception:
         return str(idx_val)
 def _after_close_cutoff_berlin(now: Optional[dt.datetime] = None) -> bool:
@@ -3110,7 +3104,7 @@ def _reindex_meta_to_df(meta: Dict[str, Any], d: pd.DataFrame) -> Optional[Dict[
             try:
                 ii = int(p.get("i"))
                 if 0 <= ii < len(d):
-                    p["t"] = pd.Timestamp(d.index[ii]).isoformat()
+                    p["t"] = pd.Timestamp(d.index[ii]).date().isoformat()
                     if "Close" in d.columns:
                         p["p"] = float(d["Close"].iloc[ii])
             except Exception:
@@ -3126,19 +3120,17 @@ def _reindex_meta_to_df(meta: Dict[str, Any], d: pd.DataFrame) -> Optional[Dict[
                 return None
             ln["i1"] = int(p1)
             ln["i2"] = int(p2)
-            # Refresh y-values from Close for HS/IHS necklines so they
-            # track adjusted prices and stay consistent with point markers.
-            if (str(ln.get("label", "")).lower() == "neckline"
-                    and str(m.get("annot_type", "")).lower() == "hs"
-                    and "Close" in d.columns):
-                try:
-                    ii1 = int(p1)
-                    ii2 = int(p2)
-                    if 0 <= ii1 < len(d) and 0 <= ii2 < len(d):
-                        ln["y1"] = float(d["Close"].iloc[ii1])
-                        ln["y2"] = float(d["Close"].iloc[ii2])
-                except Exception:
-                    pass
+            # Rebind line values to Close at these indices (prevents floating neckline after reindex)
+            try:
+                i1 = int(ln.get("i1")); i2 = int(ln.get("i2"))
+                if 0 <= i1 < len(d) and "Close" in d.columns:
+                    ln["y1"] = float(d["Close"].iloc[i1])
+                    ln["t1"] = pd.Timestamp(d.index[i1]).date().isoformat()
+                if 0 <= i2 < len(d) and "Close" in d.columns:
+                    ln["y2"] = float(d["Close"].iloc[i2])
+                    ln["t2"] = pd.Timestamp(d.index[i2]).date().isoformat()
+            except Exception:
+                pass
     # pattern start/end from LS/RS points if present
     if isinstance(pts, list):
         ls_i = None
@@ -3726,7 +3718,7 @@ def detect_hs_top(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None) ->
             _point_meta(d, t2, n2, "T2"),
         ],
         "lines": [
-            _line_meta(d, t1, n1, t2, n2, "Neckline"),
+            _line_meta(d, t1, n1, len(d) - 1, neckline_now, "Neckline"),
         ],
         "pattern_start_i": int(p1),
         "pattern_end_i": int(p3),
@@ -3798,7 +3790,7 @@ def detect_inverse_hs(df: pd.DataFrame, explain: Optional[Dict[str, Any]] = None
         a_line = 0.0
     b_line = float(h1) - float(a_line) * float(int(r1))
     neckline_now = float(a_line * float(len(d) - 1) + float(b_line))
-    line_for_meta = _line_meta(d, r1, h1, r2, h2, "Neckline")
+    line_for_meta = _line_meta(d, r1, h1, len(d) - 1, neckline_now, "Neckline")
     meta = {
         "annot_type": "hs",
         "variant": "inverse",
@@ -5471,54 +5463,56 @@ def _annotate_from_signal_meta(ax, sig: LevelSignal) -> bool:
     if not isinstance(meta, dict) or not meta:
         return False
     used = False
-    def _to_ts(x):
+    def _to_ts(x, i=None):
+        """Resolve annotation x-coordinate. Prefer deterministic index i over parsing timestamp strings."""
         try:
-            return pd.to_datetime(x)
+            if i is not None:
+                ii = int(i)
+                if 0 <= ii < len(d):
+                    t = d.index[ii]
+                    t = pd.Timestamp(t)
+                    # Ensure tz-naive for matplotlib
+                    if getattr(t, 'tzinfo', None) is not None:
+                        try:
+                            t = t.tz_convert(None)
+                        except Exception:
+                            t = t.tz_localize(None)
+                    return t
+        except Exception:
+            pass
+        try:
+            t = pd.to_datetime(x, errors='coerce')
+            if pd.isna(t):
+                return None
+            if getattr(t, 'tzinfo', None) is not None:
+                try:
+                    t = t.tz_convert(None)
+                except Exception:
+                    try:
+                        t = t.tz_localize(None)
+                    except Exception:
+                        pass
+            return t
         except Exception:
             return None
     # Draw lines first
     for ln in meta.get("lines", []) or []:
         try:
-            t1 = _to_ts(ln.get("t1")); t2 = _to_ts(ln.get("t2"))
+            t1 = _to_ts(ln.get("t1"), ln.get("i1")); t2 = _to_ts(ln.get("t2"), ln.get("i2"))
             y1 = float(ln.get("y1")); y2 = float(ln.get("y2"))
             if t1 is None or t2 is None or not np.isfinite(y1) or not np.isfinite(y2):
                 continue
+            ax.plot([t1, t2], [y1, y2], linestyle="--", linewidth=1)
             label = str(ln.get("label") or "")
-            # For necklines, extend the line from T1/R1 to the chart right edge
-            # so the projection remains visible beyond T2/R2.
-            if label.lower() == "neckline":
-                try:
-                    xlim_right = matplotlib.dates.num2date(ax.get_xlim()[1])
-                    x_right = pd.Timestamp(xlim_right).tz_localize(None)
-                    dt_total = (t2 - t1).total_seconds()
-                    if abs(dt_total) > 0:
-                        slope_per_sec = (y2 - y1) / dt_total
-                        dt_ext = (x_right - t1).total_seconds()
-                        y_right = y1 + slope_per_sec * dt_ext
-                        # Draw solid segment T1→T2 and dashed extension T2→right
-                        ax.plot([t1, t2], [y1, y2], linestyle="--", linewidth=1.2,
-                                color="red", alpha=0.85)
-                        ax.plot([t2, x_right], [y2, y_right], linestyle=":",
-                                linewidth=1.0, color="red", alpha=0.5)
-                        ax.text(x_right, y_right, f" {label}", va="bottom",
-                                fontsize=8, color="red", alpha=0.7)
-                    else:
-                        ax.plot([t1, t2], [y1, y2], linestyle="--", linewidth=1)
-                        ax.text(t2, y2, f" {label}", va="bottom")
-                except Exception:
-                    ax.plot([t1, t2], [y1, y2], linestyle="--", linewidth=1)
-                    ax.text(t2, y2, f" {label}", va="bottom")
-            else:
-                ax.plot([t1, t2], [y1, y2], linestyle="--", linewidth=1)
-                if label:
-                    ax.text(t2, y2, f" {label}", va="bottom")
+            if label:
+                ax.text(t2, y2, f" {label}", va="bottom")
             used = True
         except Exception:
             continue
     # Draw touch points / pivots
     for pt in meta.get("touch_points", []) or []:
         try:
-            t = _to_ts(pt.get("t")); y = float(pt.get("p"))
+            t = _to_ts(pt.get("t"), pt.get("i")); y = float(pt.get("p"))
             if t is None or not np.isfinite(y):
                 continue
             ax.scatter([t], [y], s=20)
@@ -5527,7 +5521,7 @@ def _annotate_from_signal_meta(ax, sig: LevelSignal) -> bool:
             continue
     for pt in meta.get("points", []) or []:
         try:
-            t = _to_ts(pt.get("t")); y = float(pt.get("p"))
+            t = _to_ts(pt.get("t"), pt.get("i")); y = float(pt.get("p"))
             if t is None or not np.isfinite(y):
                 continue
             ax.scatter([t], [y], s=36)
@@ -5621,6 +5615,16 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal, name_reso
         if d0.empty:
             return placeholder("could not parse dates")
         d0 = d0.sort_index()
+        # Normalize timezone to avoid annotation drift
+        try:
+            if isinstance(d0.index, pd.DatetimeIndex) and d0.index.tz is not None:
+                d0.index = d0.index.tz_convert(None)
+        except Exception:
+            try:
+                if isinstance(d0.index, pd.DatetimeIndex):
+                    d0.index = d0.index.tz_localize(None)
+            except Exception:
+                pass
         # Guard against epoch/outlier dates (e.g., 1970) by using last 400 rows then date-filter
         d_full = d0.tail(420).copy()
         # Plot window = last ~1 year
@@ -6201,7 +6205,7 @@ def main():
     tech_scan_universe = sorted(set(base_universe + msci_tickers))
     sector_resolver = build_sector_resolver(msci_df)
     company_name_for_ticker, country_for_ticker = build_company_country_resolvers(msci_df)
-    # v83: ensure watchlist tickers show company names (not just ticker labels) in Section 4/6.
+    # v84: ensure watchlist tickers show company names (not just ticker labels) in Section 4/6.
     # If a watchlist ticker is not in the MSCI mapping and has no NAME_OVERRIDES entry,
     # we fetch a lightweight name from yfinance (watchlist only) and use it as an override.
     watchlist_company_extra: Dict[str, str] = {}
@@ -6570,371 +6574,133 @@ def main():
         md.append(f"- Live signals: EARLY **{int(debug.get('signals_early', 0))}**, CONFIRMED **{int(debug.get('signals_conf', 0))}**, VALIDATED **{int(debug.get('signals_val', 0))}** (total {sig_total})\n")
         md.append(f"- Geometry restored today: HS/IHS **{int(debug.get('hs_restored', 0))}**, Band **{int(debug.get('band_restored', 0))}**\n")
         md.append("\n")
+        big_rows: List[Dict[str, Any]] = []
+        for t in WATCHLIST_44:
+            df = ohlcv.get(t)
+            if df is None or df.empty:
+                continue
+            dtmp = df.dropna(subset=["Close"]).copy()
+            if len(dtmp) < 2:
+                continue
+            daypct = (float(dtmp["Close"].iloc[-1]) / float(dtmp["Close"].iloc[-2]) - 1.0) * 100.0
+            if abs(daypct) < 7.0 and t not in FOCUS_TICKERS:
+                continue
+            info = _debug_gates_for_ticker(t, df, state=state, max_candidates=6)
+            best = info.get("Best") or {}
+            big_rows.append({
+                "Name of Company": company_name_for_ticker(t),
+                "Ticker": display_ticker(t),
+                "Close": float(dtmp["Close"].iloc[-1]),
+                "Day%": daypct,
+                "BestPattern": str(best.get("pattern","")),
+                "Dir": str(best.get("dir","")),
+                "Dist(ATR)": float(best.get("distATR", float("nan"))) if best else float("nan"),
+                "PriceGate": "Y" if best and best.get("price_ok") else "N",
+                "CLVGate": "Y" if best and best.get("clv_ok") else "N",
+                "VolGate": "Y" if best and best.get("vol_ok") else "N",
+                "HS lag": str(best.get("hs_lag","")),
+                "Cand#": int(info.get("Cand#", 0)),
+            })
+        # (Removed) Watchlist big movers diagnostics (|Day%| ≥ 7%)
     except Exception:
         pass
-    # Focus tickers deep-dive (always shown) with full HS/IHS diagnostics + charts
-    md.append("### Focus tickers deep-dive\n")
-    md.append(f"_Full deterministic HS/IHS diagnostics for: {', '.join(FOCUS_TICKERS)}_\n\n")
-    for ft in FOCUS_TICKERS:
-        try:
-            df_ft = ohlcv.get(ft)
-            if df_ft is None or df_ft.empty:
-                md.append(f"**{ft}** — no data\n\n")
-                continue
-            # Align all focus diagnostics and charts to the same detector window (trading-bar lookback).
-            d_local = df_ft.dropna(subset=["Open","High","Low","Close"]).copy()
-            d_local = d_local.tail(LOOKBACK_DAYS).copy()
-            d_local = _latest_completed_close_df(d_local)
-            if d_local.empty or len(d_local) < 5:
-                md.append(f"**{ft}** — insufficient bars\n\n")
-                continue
-            info = _debug_gates_for_ticker(ft, df_ft, state=state, max_candidates=12)
-            best = info.get("Best") or {}
-            nm = company_name_for_ticker(ft)
-            nm_disp = (NAME_OVERRIDES.get(ft) or nm or ft).upper()
-            md.append(f"**{nm_disp} ({ft})**\n")
-            top_list = info.get("Top") or []
-            hs_seen = any((isinstance(r, dict) and r.get("pattern") in ("HS_TOP", "IHS")) for r in top_list)
-            md.append(f"- HS/IHS detected today: **{'YES' if hs_seen else 'NO'}**\n")
-            # Always compute HS/IHS gate diagnostics for focus tickers (even if a HS/IHS was detected).
-            exp_top: Dict[str, Any] = {}
-            exp_inv: Dict[str, Any] = {}
-            try:
-                _ = detect_hs_top(df_ft, explain=exp_top)
-            except Exception:
-                pass
-            try:
-                _ = detect_inverse_hs(df_ft, explain=exp_inv)
-            except Exception:
-                pass
-            def _fmt(exp: Dict[str, Any]) -> str:
-                items = []
-                for k, v in exp.items():
-                    if k in ("highs", "lows") or str(k).startswith("_"):
-                        continue
-                    if isinstance(v, (int, float)) and v:
-                        items.append((k, int(v)))
-                items.sort(key=lambda x: x[1], reverse=True)
-                top = items[:10]
-                return ", ".join([f"{k}:{v}" for k, v in top]) if top else "None"
-            md.append(f"- HS_TOP reject summary: {_fmt(exp_top)}\n")
-            md.append(f"- IHS reject summary: {_fmt(exp_inv)}\n")
-            # If HS/IHS was rejected by guardrails, show the last rejected geometry for transparency (focus tickers).
-            try:
-                lr = exp_top.get("_last_reject_geom") if isinstance(exp_top, dict) else None
-                if isinstance(lr, dict) and isinstance(lr.get("geom"), dict):
-                    g = lr["geom"]
-                    md.append("- Last rejected HS geometry (guardrail):\n")
-                    md.append(f"  - LS/H/RS (ts): LS={lr.get('LS_t')}, H={lr.get('H_t')}, RS={lr.get('RS_t')}\n")
-                    md.append(f"  - 1) H global in [LS..RS]: {'YES' if g.get('head_is_global_span') else 'NO'} (H_Close={g.get('head_close')}, span_extreme={g.get('head_span_extreme_close')}, extreme_i={g.get('head_span_arg_i')})\n")
-                    md.append(f"  - 2) LS local (±{HS_LOCAL_WINDOW}): {'YES' if g.get('ls_local_extreme') else 'NO'} | RS local: {'YES' if g.get('rs_local_extreme') else 'NO'}\n")
-                    md.append(f"  - 3) Symmetry ≥ {HS_SYMMETRY_MIN_RATIO:.2f}: {'YES' if g.get('symmetry_ok') else 'NO'} (dL={g.get('dL')}, dR={g.get('dR')}, ratio={g.get('symmetry_ratio')})\n")
-                    md.append(f"  - 4) Valley ≥ {HS_VALLEY_ATR_MULT:.1f}×ATR: {'YES' if g.get('valley_ok') else 'NO'} (left={g.get('valley_left_depth')}, right={g.get('valley_right_depth')}, thr={g.get('valley_thr')}, ATR={g.get('atr_head')})\n")
-                    md.append(f"  - 5) Shoulder→Valley ≥ {HS_SHOULDER_VALLEY_ATR_MULT:.1f}×ATR: {'YES' if g.get('shoulder_valley_ok') else 'NO'} (left={g.get('shoulder_valley_left_depth')}, right={g.get('shoulder_valley_right_depth')}, thr={g.get('shoulder_valley_thr')})\n")
-                    md.append(f"  - 6) Span in [{HS_MIN_BARS}..{HS_MAX_BARS}] bars: {'YES' if g.get('span_ok') else 'NO'} (span={g.get('span_bars')})\n")
-                    md.append(f"  - 7) Sidebars ≥ {HS_MIN_SIDE_BARS} bars: {'YES' if g.get('sidebars_ok') else 'NO'} (dL={g.get('dL')}, dR={g.get('dR')})\n")
-                # If no last rejected geometry was captured (e.g., rejection happened before guardrails),
-                # produce a best-effort diagnostic geometry so focus tickers still show the deterministic checks.
+    # Emerging chart trends (watchlist pulse) — before early callouts
+    # Focus tickers deep-dive (always shown) — NU + CEG with explicit “why not detected” + charts
+    # (Removed) IHS early deep-dive + focus diagnostics
+
+
+    # ----------------------------
+    # RKT HS diagnosis (requested) — placed right before section 4A
+    # ----------------------------
+    try:
+        md.append("### RKT HS diagnosis\n")
+        tkr = "RKT"
+        df_rkt = ohlcv.get(tkr)
+        if df_rkt is None or df_rkt.empty:
+            md.append("_RKT: no data available._\n\n")
+        else:
+            sigs_rkt = compute_signals_for_ticker(
+                tkr, df_rkt, msci_company, msci_country, msci_sector,
+                state_old, now_dt, allow_early=True
+            )
+            hs_only = [s for s in sigs_rkt if getattr(s, "pattern", None) == "HS_TOP"]
+            if not hs_only:
+                md.append("_RKT: no HS_TOP candidate today._\n\n")
+            else:
+                def _tier_rank(sig: str) -> int:
+                    if sig.startswith("VALIDATED_"):
+                        return 0
+                    if sig.startswith("CONFIRMED_"):
+                        return 1
+                    if sig.startswith("EARLY_"):
+                        return 2
+                    return 9
+                hs_only.sort(key=lambda s: (_tier_rank(str(getattr(s, "signal",""))), str(getattr(s, "signal",""))))
+                s0 = hs_only[0]
+                md.append(f"- Signal: **{s0.signal}**\n")
+
+                # Align audit to the same chart window
                 try:
-                    lr2 = exp_top.get("_last_reject_geom") if isinstance(exp_top, dict) else None
-                    if not (isinstance(lr2, dict) and isinstance(lr2.get("geom"), dict)):
-                        d_det2 = df_ft.tail(LOOKBACK_DAYS).dropna(subset=["Open","High","Low","Close"]).copy()
-                        d_det2 = _latest_completed_close_df(d_det2)
-                        if len(d_det2) >= 60:
-                            c2 = d_det2["Close"].astype(float).values
-                            head_val2 = float(np.nanmax(c2))
-                            head_idxs2 = np.where(np.isclose(c2, head_val2, rtol=0.0, atol=1e-8))[0]
-                            p2_dbg = int(head_idxs2[-1]) if len(head_idxs2) else int(np.nanargmax(c2))
-                            head_zone2 = int(HS_MIN_SIDE_BARS)
-                            # Close-peak candidates for shoulders (same as HS_TOP)
-                            hi2 = _swing_highs_on_close(d_det2, window=5, prominence_atr_mult=0.5, allow_tie_high_2dp=True)
-                            L_lo2 = max(0, p2_dbg - int(HS_MAX_BARS))
-                            L_hi2 = max(L_lo2, p2_dbg - head_zone2)
-                            R_lo2 = min(len(d_det2), p2_dbg + 1 + head_zone2)
-                            R_hi2 = min(len(d_det2), p2_dbg + 1 + int(HS_MAX_BARS))
-                            left2 = [int(i) for i in hi2 if L_lo2 <= int(i) < L_hi2]
-                            right2 = [int(i) for i in hi2 if R_lo2 <= int(i) < R_hi2]
-                            left2_sorted = sorted(left2, key=lambda i: (float(d_det2["Close"].iloc[i]), int(i)), reverse=True)
-                            right2_sorted = sorted(right2, key=lambda i: (float(d_det2["Close"].iloc[i]), -int(i)), reverse=True)
-                            md.append(f"- HS diagnostic head anchor: H={_iso_ts(d_det2.index[p2_dbg])} (i={p2_dbg}) | Close={float(d_det2['Close'].iloc[p2_dbg]):.2f}\n")
-                            if left2_sorted:
-                                md.append("  - Left shoulder candidates (top 5): " + ", ".join([f"{_iso_ts(d_det2.index[i])}({float(d_det2['Close'].iloc[i]):.2f})" for i in left2_sorted[:5]]) + "\n")
-                            else:
-                                md.append("  - Left shoulder candidates: NONE (after head-zone exclusion)\n")
-                            if right2_sorted:
-                                md.append("  - Right shoulder candidates (top 5): " + ", ".join([f"{_iso_ts(d_det2.index[i])}({float(d_det2['Close'].iloc[i]):.2f})" for i in right2_sorted[:5]]) + "\n")
-                            else:
-                                md.append("  - Right shoulder candidates: NONE (after head-zone exclusion)\n")
-                            if left2_sorted and right2_sorted:
-                                p1_dbg = int(left2_sorted[0])
-                                p3_dbg = int(right2_sorted[0])
-                                geom2 = _hs_geometry_diagnostics(
-                                    d_det2, p1_dbg, p2_dbg, p3_dbg,
-                                    inverse=False, local_window=HS_LOCAL_WINDOW,
-                                    symmetry_min_ratio=HS_SYMMETRY_MIN_RATIO,
-                                    valley_atr_mult=HS_VALLEY_ATR_MULT
-                                )
-                                md.append("- Best attempted HS geometry (diagnostic):\n")
-                                md.append(f"  - LS/H/RS (ts): LS={_iso_ts(d_det2.index[p1_dbg])}, H={_iso_ts(d_det2.index[p2_dbg])}, RS={_iso_ts(d_det2.index[p3_dbg])}\n")
-                                md.append("  - Geometry checks (deterministic):\n")
-                                md.append(f"    - 1) H is absolute extreme Close in [LS..RS]: {'YES' if geom2.get('head_is_global_span') else 'NO'} (H_Close={geom2.get('head_close'):.2f}, span_extreme={geom2.get('head_span_extreme_close'):.2f}, extreme_i={geom2.get('head_span_arg_i')})\n")
-                                md.append(f"    - 2) LS local extreme (±{HS_LOCAL_WINDOW}): {'YES' if geom2.get('ls_local_extreme') else 'NO'} | RS local extreme: {'YES' if geom2.get('rs_local_extreme') else 'NO'}\n")
-                                md.append(f"    - 3) Symmetry ratio ≥ {HS_SYMMETRY_MIN_RATIO:.2f}: {'YES' if geom2.get('symmetry_ok') else 'NO'} (dL={geom2.get('dL')}, dR={geom2.get('dR')}, ratio={geom2.get('symmetry_ratio'):.2f})\n")
-                                md.append(f"    - 4) Valley depth ≥ {HS_VALLEY_ATR_MULT:.1f}×ATR(head): {'YES' if geom2.get('valley_ok') else 'NO'} (left={geom2.get('valley_left_depth'):.2f}, right={geom2.get('valley_right_depth'):.2f}, thr={geom2.get('valley_thr'):.2f}, ATR={geom2.get('atr_head'):.2f})\n")
-                                md.append(f"    - 5) Shoulder→Valley ≥ {HS_SHOULDER_VALLEY_ATR_MULT:.1f}×ATR(head): {'YES' if geom2.get('shoulder_valley_ok') else 'NO'} (left={geom2.get('shoulder_valley_left_depth'):.2f}, right={geom2.get('shoulder_valley_right_depth'):.2f}, thr={geom2.get('shoulder_valley_thr'):.2f})\n")
-                                md.append(f"    - 6) Span bars in [{HS_MIN_BARS}..{HS_MAX_BARS}]: {'YES' if geom2.get('span_ok') else 'NO'} (span={geom2.get('span_bars')})\n")
-                                md.append(f"    - 7) Sidebars ≥ {HS_MIN_SIDE_BARS} bars: {'YES' if geom2.get('sidebars_ok') else 'NO'} (dL={geom2.get('dL')}, dR={geom2.get('dR')})\n")
-                                md.append(f"    - 8) Reaction pivots local (±{HS_LOCAL_WINDOW}): {'YES' if geom2.get('react_local_ok') else 'NO'} (p1={geom2.get('react_i1')}, p2={geom2.get('react_i2')}, ok1={geom2.get('react1_local')}, ok2={geom2.get('react2_local')})\n")
-                                md.append(f"    - 9) Neckline angle within ±{HS_NECKLINE_MAX_ANGLE_DEG:.1f}° (abs): {'YES' if geom2.get('neckline_angle_ok') else 'NO'} (angle={geom2.get('neckline_angle_deg'):.2f}°)\n")
+                    d_local = df_rkt.dropna(subset=["Open","High","Low","Close"]).copy()
+                    d_local = d_local.tail(LOOKBACK_DAYS).copy()
+                    d_local = _latest_completed_close_df(d_local)
                 except Exception:
-                    pass
-            except Exception:
-                pass
-            if "highs" in exp_top or "lows" in exp_top:
-                md.append(f"- Swings (HS_TOP): highs={exp_top.get('highs','?')} lows={exp_top.get('lows','?')}\n")
-            if "highs" in exp_inv or "lows" in exp_inv:
-                md.append(f"- Swings (IHS): highs={exp_inv.get('highs','?')} lows={exp_inv.get('lows','?')}\n")
-            # NU-specific diagnostics: why Jan 5 is / is not a swing high + whether HS_MIN_BARS is forcing LS backward
-            if str(ft).upper() == "NU":
-                try:
-                    diagc = _diagnose_swing_high_close(df_ft, "2026-01-05", window=5, prominence_atr_mult=0.5)
-                    md.append(f"- NU swing-high check (Close-based) @ 2026-01-05: ok={diagc.get('ok')} | reason={diagc.get('reason')}\n")
-                    if diagc.get("ts_hit"):
-                        md.append(
-                            f"  - hit={diagc.get('ts_hit')} (i={diagc.get('i')}) | Close={diagc.get('close_i'):.2f} | "
-                            f"cwin_max={diagc.get('cwin_max'):.2f} (count={diagc.get('cwin_max_count')}) | "
-                            f"prom={diagc.get('prominence'):.2f} vs thr={diagc.get('prom_thresh'):.2f} (ATR={diagc.get('atr_i'):.2f})\n"
-                        )
-                    diagh = _diagnose_swing_high(df_ft, "2026-01-05", window=3, prominence_atr_mult=0.5)
-                    md.append(f"- NU swing-high check (High-based) @ 2026-01-05: ok={diagh.get('ok')} | reason={diagh.get('reason')}\n")
-                    if diagh.get("ts_hit"):
-                        md.append(
-                            f"  - hit={diagh.get('ts_hit')} (i={diagh.get('i')}) | High={diagh.get('hi_i'):.2f} | "
-                            f"hwin_max={diagh.get('hwin_max'):.2f} (count={diagh.get('hwin_max_count')}) | "
-                            f"prom={diagh.get('prominence'):.2f} vs thr={diagh.get('prom_thresh'):.2f} (ATR={diagh.get('atr_i'):.2f})\n"
-                        )
-                except Exception:
-                    pass
-                # NU: show the actual left/right shoulder candidate peaks around the head (CLOSE-based) and why Jan 5 might lose.
-                try:
-                    d_det = df_ft.tail(LOOKBACK_DAYS).dropna(subset=["Open","High","Low","Close"]).copy()
-                    d_det = _latest_completed_close_df(d_det)
-                    if len(d_det) > 20 and isinstance(d_det.index, pd.DatetimeIndex):
-                        c_det = d_det["Close"].astype(float)
-                        # Same pivot definition as HS_TOP: Close swing highs with window=5
-                        hi_det = _swing_highs_on_close(d_det, window=5, prominence_atr_mult=0.5, allow_tie_high_2dp=True)
-                        # Head = most recent global max close
-                        head_val = float(np.nanmax(c_det.values))
-                        head_idxs = np.where(np.isclose(c_det.values.astype(float), head_val, rtol=0.0, atol=1e-8))[0]
-                        p2_det = int(head_idxs[-1]) if len(head_idxs) else int(np.nanargmax(c_det.values))
-                        head_zone = int(HS_MIN_SIDE_BARS)
-                        L_lo = max(0, p2_det - int(HS_MAX_BARS))
-                        L_hi = max(L_lo, p2_det - head_zone)
-                        R_lo = min(len(c_det), p2_det + 1 + head_zone)
-                        R_hi = min(len(c_det), p2_det + 1 + int(HS_MAX_BARS))
-                        left = [int(i) for i in hi_det if L_lo <= int(i) < L_hi]
-                        right = [int(i) for i in hi_det if R_lo <= int(i) < R_hi]
-                        left_sorted = sorted(left, key=lambda i: (float(c_det.iloc[i]), int(i)), reverse=True)
-                        right_sorted = sorted(right, key=lambda i: (-float(c_det.iloc[i]), int(i)))
-                        md.append(f"- NU HS_TOP head anchor (detector window): H={d_det.index[p2_det].date()} (i={p2_det}) | Close={float(c_det.iloc[p2_det]):.2f} | head_zone=±{head_zone} bars\n")
-                        # Show top left candidates
-                        if left_sorted:
-                            md.append("- NU left-shoulder CLOSE-peak candidates (top 6):\n")
-                            for k,i in enumerate(left_sorted[:6]):
-                                md.append(f"  - L{k+1}: {d_det.index[i].date()} (i={i}) Close={float(c_det.iloc[i]):.2f}\n")
-                        else:
-                            md.append("- NU left-shoulder candidates: NONE (after head-zone exclusion)\n")
-                        # Explicitly check Jan 5 membership
-                        ts_j5 = pd.to_datetime('2026-01-05')
-                        if ts_j5 in d_det.index:
-                            i_j5 = int(d_det.index.get_loc(ts_j5))
-                            in_left = (i_j5 in left)
-                            md.append(f"- NU Jan 5 index in detector window: i={i_j5} Close={float(c_det.iloc[i_j5]):.2f} | in_left_candidates={in_left}\n")
-                            if in_left and left_sorted:
-                                top_i = left_sorted[0]
-                                md.append(f"  - Left-candidate winner by CLOSE: {d_det.index[top_i].date()} (i={top_i}) Close={float(c_det.iloc[top_i]):.2f}\n")
-                                md.append(f"  - Jan 5 loses only if another LEFT candidate has higher CLOSE outside the head-zone.\n")
-                        else:
-                            md.append("- NU Jan 5 not found in detector window index (data mismatch / missing bar)\n")
-                except Exception:
-                    pass
-                try:
-                    dr = exp_top.get("_dur_reject_best")
-                    if isinstance(dr, dict):
-                        md.append(
-                            f"- NU duration gate (HS_MIN_BARS={dr.get('HS_MIN_BARS')}): most-recent rejected snapped candidate "
-                            f"LS={dr.get('p1_t')} → RS={dr.get('p3_t')} span={dr.get('span')} bars (dL={dr.get('dL')}, dR={dr.get('dR')}, ratio={dr.get('ratio'):.2f})\n"
-                        )
-                except Exception:
-                    pass
-            if best and best.get("pattern"):
-                patt = str(best.get("pattern", ""))
-                direc = str(best.get("dir", ""))
-                dist = float(best.get("distATR", float("nan")))
-                price_ok = bool(best.get("price_ok"))
-                clv_ok = bool(best.get("clv_ok"))
-                vol_ok = bool(best.get("vol_ok"))
-                hs_lag = str(best.get("hs_lag", ""))
-                lvl = float(best.get("level", 0.0)) if best.get("level") is not None else float("nan")
-                meta = best.get("meta")
-                md.append(f"- Best candidate: **{patt} / {direc}** | Dist(ATR) **{dist:+.2f}** | Gates: Price **{'Y' if price_ok else 'N'}**, CLV **{'Y' if clv_ok else 'N'}**, Vol **{'Y' if vol_ok else 'N'}** | HS lag **{hs_lag}**\n")
-                try:
-                    clv_val = info.get('CLV', None)
-                    volr_val = info.get('VolRatio', None)
-                    if clv_val is not None or volr_val is not None:
-                        md.append(f"  - Gate inputs: CLV={clv_val} | VolRatio={volr_val}\n")
+                    d_local = df_rkt.copy()
+
+                meta = getattr(s0, "meta", None)
+                if isinstance(meta, dict):
                     try:
-                        meta2 = best.get("meta") if isinstance(best, dict) else None
-                        # Reindex geometry points onto the current detector window (prevents stale iloc indices)
-                        if isinstance(meta2, dict):
-                            meta2 = _reindex_meta_to_df(meta2, d_local) or meta2
-                        pts = meta2.get("points") if isinstance(meta2, dict) else None
-                        if isinstance(pts, list):
-                            def _pt(lbl):
-                                for p in pts:
-                                    if isinstance(p, dict) and str(p.get("label","")) == lbl:
-                                        return p
-                                return None
-                            pLS = _pt("LS"); pH = _pt("H"); pRS = _pt("RS")
-                            if pLS and pH and pRS:
-                                ls_i = int(pLS.get("i")); h_i = int(pH.get("i")); rs_i = int(pRS.get("i"))
-                                md.append(f"  - LS/H/RS geometry (idx): LS={ls_i}, H={h_i}, RS={rs_i}\n")
-                                md.append(f"  - LS/H/RS geometry (ts): LS={pLS.get('t')}, H={pH.get('t')}, RS={pRS.get('t')}\\n")
-                                try:
-                                    ls_p = _safe_float(pLS.get("p")); h_p = _safe_float(pH.get("p")); rs_p = _safe_float(pRS.get("p"))
-                                    ls_c = _safe_float(d_local["Close"].iloc[ls_i]); h_c = _safe_float(d_local["Close"].iloc[h_i]); rs_c = _safe_float(d_local["Close"].iloc[rs_i])
-                                    if np.isfinite(ls_p) and np.isfinite(ls_c) and np.isfinite(h_p) and np.isfinite(h_c) and np.isfinite(rs_p) and np.isfinite(rs_c):
-                                        md.append(f"  - Point alignment (p vs Close): LSΔ={ls_p-ls_c:+.4f}, HΔ={h_p-h_c:+.4f}, RSΔ={rs_p-rs_c:+.4f}\\n")
-                                except Exception:
-                                    pass
-                                # Deterministic geometry checks (requested)
-                                try:
-                                    geom_chk = _hs_geometry_diagnostics(d_local, ls_i, h_i, rs_i, inverse=(patt == "IHS"),
-                                                                        local_window=HS_LOCAL_WINDOW,
-                                                                        symmetry_min_ratio=HS_SYMMETRY_MIN_RATIO,
-                                                                        valley_atr_mult=HS_VALLEY_ATR_MULT)
-                                    md.append("  - Geometry checks (deterministic):\n")
-                                    md.append(f"    - 1) H is absolute extreme Close in [LS..RS]: {'YES' if geom_chk.get('head_is_global_span') else 'NO'} (H_Close={geom_chk.get('head_close'):.2f}, span_extreme={geom_chk.get('head_span_extreme_close'):.2f}, extreme_i={geom_chk.get('head_span_arg_i')})\n")
-                                    md.append(f"    - 2) LS local extreme (±{HS_LOCAL_WINDOW} bars): {'YES' if geom_chk.get('ls_local_extreme') else 'NO'} | RS local extreme: {'YES' if geom_chk.get('rs_local_extreme') else 'NO'}\n")
-                                    md.append(f"    - 3) Symmetry ratio min(dL,dR)/max(dL,dR) ≥ {HS_SYMMETRY_MIN_RATIO:.2f}: {'YES' if geom_chk.get('symmetry_ok') else 'NO'} (dL={geom_chk.get('dL')}, dR={geom_chk.get('dR')}, ratio={geom_chk.get('symmetry_ratio'):.2f})\n")
-                                    md.append(f"    - 4) Valley depth ≥ {HS_VALLEY_ATR_MULT:.1f}×ATR(head): {'YES' if geom_chk.get('valley_ok') else 'NO'} (left={geom_chk.get('valley_left_depth'):.2f}, right={geom_chk.get('valley_right_depth'):.2f}, thr={geom_chk.get('valley_thr'):.2f}, ATR={geom_chk.get('atr_head'):.2f})\n")
-                                    md.append(f"    - 5) Shoulder→Valley ≥ {HS_SHOULDER_VALLEY_ATR_MULT:.1f}×ATR(head): {'YES' if geom_chk.get('shoulder_valley_ok') else 'NO'} (left={geom_chk.get('shoulder_valley_left_depth'):.2f}, right={geom_chk.get('shoulder_valley_right_depth'):.2f}, thr={geom_chk.get('shoulder_valley_thr'):.2f})\n")
-                                    md.append(f"    - 6) Span bars in [{HS_MIN_BARS}..{HS_MAX_BARS}]: {'YES' if geom_chk.get('span_ok') else 'NO'} (span={geom_chk.get('span_bars')})\n")
-                                    md.append(f"    - 7) Sidebars ≥ {HS_MIN_SIDE_BARS} bars: {'YES' if geom_chk.get('sidebars_ok') else 'NO'} (dL={geom_chk.get('dL')}, dR={geom_chk.get('dR')})\n")
-                                    md.append(f"    - 8) Reaction pivots local (±{HS_LOCAL_WINDOW}): {'YES' if geom_chk.get('react_local_ok') else 'NO'} (p1={geom_chk.get('react_i1')}, p2={geom_chk.get('react_i2')}, ok1={geom_chk.get('react1_local')}, ok2={geom_chk.get('react2_local')})\n")
-                                    md.append(f"    - 9) Neckline angle within ±{HS_NECKLINE_MAX_ANGLE_DEG:.1f}° (abs): {'YES' if geom_chk.get('neckline_angle_ok') else 'NO'} (angle={geom_chk.get('neckline_angle_deg'):.2f}°)\n")
-                                except Exception:
-                                    pass
-                                # Use the SAME detector window (tail LOOKBACK_DAYS), so meta indices (iloc) always align.
-                                d_local = df_ft.tail(LOOKBACK_DAYS).dropna(subset=["Open","High","Low","Close"]).copy()
-                                d_local = _latest_completed_close_df(d_local)
-                                # Sanity: head should be the MAX close in the detector window (HS_TOP) / MIN close (IHS).
-                                try:
-                                    close_det = d_local["Close"].astype(float)
-                                    if patt == "HS_TOP":
-                                        mxv = float(np.nanmax(close_det.values))
-                                        mxi = int(np.nanargmax(close_det.values))
-                                        hv = float(close_det.iloc[int(h_i)]) if 0 <= int(h_i) < len(close_det) else float("nan")
-                                        md.append(f"  - Detector window maxClose: {mxv:.2f} at {d_local.index[mxi]} | H_Close={hv:.2f}\n")
-                                    elif patt == "IHS":
-                                        mnv = float(np.nanmin(close_det.values))
-                                        mni = int(np.nanargmin(close_det.values))
-                                        hv = float(close_det.iloc[int(h_i)]) if 0 <= int(h_i) < len(close_det) else float("nan")
-                                        md.append(f"  - Detector window minClose: {mnv:.2f} at {d_local.index[mni]} | H_Close={hv:.2f}\n")
-                                except Exception:
-                                    pass
-                                # max close between LS..H (exclusive)
-                                if h_i > ls_i + 1:
-                                    seg = d_local["Close"].iloc[ls_i+1:h_i]
-                                    if len(seg):
-                                        piv = []
-                                        try:
-                                            if patt == "HS_TOP":
-                                                piv_all = _swing_highs_on_close(d_local, window=5, prominence_atr_mult=0.5, allow_tie_high_2dp=True)
-                                                piv = [int(x) for x in piv_all if int(ls_i) < int(x) < (int(h_i) - HS_MIN_SIDE_BARS)]
-                                            elif patt == "IHS":
-                                                piv_all = _swing_lows_on_close(d_local, window=5, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
-                                                piv = [int(x) for x in piv_all if int(ls_i) < int(x) < (int(h_i) - HS_MIN_SIDE_BARS)]
-                                        except Exception:
-                                            piv = []
-                                        if piv:
-                                            vals = [(float(d_local["Close"].iloc[i]), int(i)) for i in piv]
-                                            if patt == "HS_TOP":
-                                                mx = max(v for v, _ in vals)
-                                                cand = [i for v, i in vals if v == mx]
-                                                j = int(max(cand)) if cand else int(piv[-1])
-                                                md.append(f"  - Pre-head maxClose (swing pivot) between (LS,H): {float(mx):.2f} at {d_local.index[j]} | LS_Close={float(d_local['Close'].iloc[ls_i]):.2f}\n")
-                                            else:
-                                                mn = min(v for v, _ in vals)
-                                                cand = [i for v, i in vals if v == mn]
-                                                j = int(max(cand)) if cand else int(piv[-1])
-                                                md.append(f"  - Pre-head minClose (swing pivot) between (LS,H): {float(mn):.2f} at {d_local.index[j]} | LS_Close={float(d_local['Close'].iloc[ls_i]):.2f}\n")
-                                        else:
-                                            j = int(seg.values.argmax()) + (ls_i + 1)
-                                            md.append(f"  - Pre-head maxClose between (LS,H): {float(seg.max()):.2f} at {d_local.index[j]} | LS_Close={float(d_local['Close'].iloc[ls_i]):.2f}\n")
-                                if rs_i > h_i + 1:
-                                    seg2 = d_local["Close"].iloc[h_i+1:rs_i]
-                                    if len(seg2):
-                                        piv = []
-                                        try:
-                                            if patt == "HS_TOP":
-                                                piv_all = _swing_highs_on_close(d_local, window=5, prominence_atr_mult=0.5, allow_tie_high_2dp=True)
-                                                piv = [int(x) for x in piv_all if (int(h_i) + HS_MIN_SIDE_BARS) < int(x) < int(rs_i)]
-                                            elif patt == "IHS":
-                                                piv_all = _swing_lows_on_close(d_local, window=5, prominence_atr_mult=0.5, allow_tie_low_2dp=True)
-                                                piv = [int(x) for x in piv_all if (int(h_i) + HS_MIN_SIDE_BARS) < int(x) < int(rs_i)]
-                                        except Exception:
-                                            piv = []
-                                        if piv:
-                                            vals = [(float(d_local["Close"].iloc[i]), int(i)) for i in piv]
-                                            if patt == "HS_TOP":
-                                                mx = max(v for v, _ in vals)
-                                                cand = [i for v, i in vals if v == mx]
-                                                j2 = int(min(cand)) if cand else int(piv[0])
-                                                md.append(f"  - Post-head maxClose (swing pivot) between (H,RS): {float(mx):.2f} at {d_local.index[j2]} | RS_Close={float(d_local['Close'].iloc[rs_i]):.2f}\n")
-                                            else:
-                                                mn = min(v for v, _ in vals)
-                                                cand = [i for v, i in vals if v == mn]
-                                                j2 = int(min(cand)) if cand else int(piv[0])
-                                                md.append(f"  - Post-head minClose (swing pivot) between (H,RS): {float(mn):.2f} at {d_local.index[j2]} | RS_Close={float(d_local['Close'].iloc[rs_i]):.2f}\n")
-                                        else:
-                                            j2 = int(seg2.values.argmax()) + (h_i + 1)
-                                            md.append(f"  - Post-head maxClose between (H,RS): {float(seg2.max()):.2f} at {d_local.index[j2]} | RS_Close={float(d_local['Close'].iloc[rs_i]):.2f}\n")
+                        meta = _reindex_meta_to_df(meta, d_local) or meta
                     except Exception:
                         pass
-                except Exception:
-                    pass
-                sig = LevelSignal(
-                    ticker=ft,
-                    signal=f"FOCUS_{patt}_{direc}",
-                    pattern=patt,
-                    direction=direc,
-                    level=lvl,
-                    close=float(info.get("Close", float("nan"))),
-                    atr=float(info.get("ATR", float("nan"))),
-                    dist_atr=dist,
-                    pct_today=float(info.get("Day%", float("nan"))),
-                    meta=meta if isinstance(meta, dict) else None,
-                )
-            else:
-                sig = LevelSignal(
-                    ticker=ft,
-                    signal="FOCUS_NO_CANDIDATE",
-                    pattern="",
-                    direction="",
-                    level=float("nan"),
-                    close=float(info.get("Close", float("nan"))),
-                    atr=float(info.get("ATR", float("nan"))),
-                    dist_atr=float("nan"),
-                    pct_today=float(info.get("Day%", float("nan"))),
-                    meta=None,
-                )
-            sig.chart_path = plot_signal_chart(ft, df_ft, sig, name_resolver=company_name_for_ticker)
-            if getattr(sig, "chart_path", ""):
-                md.append(f"<a href='{_cb_img(sig.chart_path)}' target='_blank'><img src='{_cb_img(sig.chart_path)}' width='980' style='max-width:980px;height:auto;'></a>\n")
-            md.append("\n")
-        except Exception as e:
-            md.append(f"**{ft}** — focus analysis failed: `{e}`\n\n")
+
+                    pts = meta.get("points") or []
+                    def _pt(lbl):
+                        for p in pts:
+                            if isinstance(p, dict) and str(p.get("label","")) == lbl:
+                                return p
+                        return None
+                    p1 = _pt("T1"); p2 = _pt("T2")
+                    if p1 and p2:
+                        i1 = int(p1.get("i")); i2 = int(p2.get("i"))
+                        c1 = float(d_local["Close"].iloc[i1]); c2 = float(d_local["Close"].iloc[i2])
+                        y1 = float(p1.get("p")); y2 = float(p2.get("p"))
+                        md.append(f"- T1: t={d_local.index[i1]} | p={y1:.4f} | Close={c1:.4f} | Δ={y1-c1:+.4f}\n")
+                        md.append(f"- T2: t={d_local.index[i2]} | p={y2:.4f} | Close={c2:.4f} | Δ={y2-c2:+.4f}\n")
+                    else:
+                        md.append("- T1/T2 audit: _missing points in meta_\n")
+
+                    neck = None
+                    for ln in (meta.get("lines") or []):
+                        if isinstance(ln, dict) and str(ln.get("label","")).lower() == "neckline":
+                            neck = ln
+                            break
+                    if isinstance(neck, dict):
+                        i1 = int(neck.get("i1")); i2 = int(neck.get("i2"))
+                        y1 = float(neck.get("y1")); y2 = float(neck.get("y2"))
+                        c1 = float(d_local["Close"].iloc[i1]); c2 = float(d_local["Close"].iloc[i2])
+                        md.append(
+                            f"- Neckline endpoints: (i1={i1}, t1={d_local.index[i1]}, y1={y1:.4f}, Close={c1:.4f}, Δ={y1-c1:+.4f}) → "
+                            f"(i2={i2}, t2={d_local.index[i2]}, y2={y2:.4f}, Close={c2:.4f}, Δ={y2-c2:+.4f})\n"
+                        )
+
+                md.append("\n")
+
+                # Chart
+                try:
+                    chart_rel = plot_signal_chart(tkr, df_rkt, s0, name_resolver=company_name_for_ticker)
+                    if chart_rel:
+                        cache_bust = int(time.time())
+                        if PUBLIC_BASE_URL:
+                            chart_url = f"{PUBLIC_BASE_URL.rstrip('/')}/{chart_rel}?v={cache_bust}"
+                        else:
+                            chart_url = f"{chart_rel}?v={cache_bust}"
+                        md.append(f"<a href='{chart_url}'><img src='{chart_url}' style='max-width:980px;height:auto;'></a>\n\n")
+                except Exception as e:
+                    md.append(f"_Chart generation failed: {e}_\n\n")
+    except Exception:
+        pass
+
     md.append(build_watchlist_pulse_section_md(
         df_early_new=df_early_new,
         df_early_old=df_early_old,
