@@ -26,6 +26,11 @@ NEW (this update):
 - v84: Replace with "Focus tickers deep-dive" driven by FOCUS_TICKERS (NU, CEG, RKT) — always shown with full diagnostics + charts.
 - v84: Add NAME_OVERRIDES for ASML, HOOD, OKLO.
 - v84: Fix macro charts (VIX/EUR) appearing at bottom of email — stop stripping inline images (stripping caused email clients to render them as bottom-attached files).
+- v84: Focus tickers: 0669.HK, TOST, TSN — add validation gate history table showing per-bar price/CLV/volume gate status, lifecycle labels, and exit reason.
+- v84: Add download failure diagnostic to Signal engine health: breakdown by exchange suffix and country to identify OHLCV coverage gaps.
+- v85: Focus tickers: 0669.HK, TOST, TSN with validation gate history (per-bar 3-gate table + lifecycle labels + exit reason).
+- v85: Download diagnostic in Signal engine health: failure breakdown by exchange and country.
+- v85: NAME_OVERRIDES: ASML, HOOD, OKLO. Remove Watchlist big movers / IHS early deep-dive sections. Fix macro charts in email.
 """
 from __future__ import annotations
 import argparse
@@ -48,7 +53,7 @@ import yfinance as yf
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-SCAN_VERSION: str = "v84"
+SCAN_VERSION: str = "v85"
 # ----------------------------
 # Public asset URLs (email-safe) + cache busting
 # ----------------------------
@@ -117,7 +122,7 @@ COMMODITY_NAME_OVERRIDES: Dict[str, str] = {
     "CC=F": "Cocoa",
 }
 # Force these tickers to always appear with charts + gate diagnosis in Section 4 (even if no live signal)
-FOCUS_TICKERS = ["NU", "RKT"]
+FOCUS_TICKERS = ["0669.HK", "TOST", "TSN"]
 # Display name overrides (Section 6 + readability). Values should be FULL CAPS.
 NAME_OVERRIDES = {
     "PLTR": "PALANTIR TECHNOLOGIES",
@@ -5212,6 +5217,267 @@ def _hs_meta_passes_guardrails(d: pd.DataFrame, pattern: str, meta: Optional[Dic
         shoulder_valley_mult=HS_SHOULDER_VALLEY_ATR_MULT,
     )
     return bool(g.get("pass_all", False))
+
+def _focus_validation_gate_history(
+    ticker: str,
+    df0: pd.DataFrame,
+    state: Optional[Dict[str, Any]] = None,
+    lookback_bars: int = 30,
+) -> List[Dict[str, Any]]:
+    """Walk recent bars for a ticker's best candidate, checking all 3 confirmation gates individually.
+
+    Returns a list of per-bar dicts:
+      date, close, level, dist_atr, price_ok, clv, clv_ok, vol_ratio, vol_ok,
+      all3 (confirmed), pricevol (day1-eligible), lifecycle_label, exit_reason
+    """
+    if df0 is None or df0.empty or len(df0) < 80:
+        return []
+    d0 = df0.dropna(subset=["Open", "High", "Low", "Close"]).copy()
+    if len(d0) < 80:
+        return []
+    d = d0.tail(LOOKBACK_DAYS).copy()
+    d = _latest_completed_close_df(d)
+    if len(d) < 80:
+        return []
+    a = atr(d, ATR_N).astype(float)
+    # Detect candidates (with state carry-forward)
+    candidates = detect_pattern_candidates(d)
+    if isinstance(state, dict):
+        mem = state.get("hs_geom", {}).get(ticker)
+        have_hs = any(getattr(c, "pattern", "") in ("HS_TOP", "IHS") for c in candidates)
+        if (not have_hs) and isinstance(mem, dict):
+            meta2 = _reindex_meta_to_df(mem.get("meta", {}), d)
+            if meta2 is not None:
+                candidates.append(PatternCandidate(
+                    pattern=str(mem.get("pattern", "")),
+                    direction=str(mem.get("direction", "")),
+                    level=float(mem.get("level", 0.0)),
+                    meta=meta2,
+                ))
+        # Band geometry carry-forward
+        mem_b = state.get("band_geom", {}).get(ticker)
+        have_band = any(isinstance(getattr(c, "meta", None), dict) and str(c.meta.get("annot_type", "")) == "band" for c in candidates)
+        if (not have_band) and isinstance(mem_b, dict):
+            try:
+                meta2b = _reindex_meta_to_df(mem_b.get("meta", {}), d)
+                if meta2b is not None:
+                    pat_b = str(mem_b.get("pattern", ""))
+                    candidates.append(PatternCandidate(pattern=pat_b, direction="BREAKOUT", level=0.0, meta=meta2b))
+                    candidates.append(PatternCandidate(pattern=pat_b, direction="BREAKDOWN", level=0.0, meta=meta2b))
+            except Exception:
+                pass
+    # Filter by guardrails
+    try:
+        candidates = [
+            c for c in candidates
+            if not (getattr(c, "pattern", "") in ("HS_TOP", "IHS") and
+                    (not _hs_meta_passes_guardrails(d, getattr(c, "pattern", ""), getattr(c, "meta", None))))
+        ]
+    except Exception:
+        pass
+    if not candidates:
+        return []
+    # Pick best candidate (highest gate score on last bar, prefer HS/IHS)
+    end = len(d) - 1
+    close_end = float(d["Close"].iloc[end])
+    atr_end = float(a.iloc[end]) if len(a) > end and np.isfinite(a.iloc[end]) else 1.0
+    best_cand = None
+    best_score = -1
+    for cnd in candidates:
+        try:
+            lvl = float(_level_at_bar(cnd, d, end))
+            dist = (close_end - lvl) / max(atr_end, 1e-9)
+            p_ok = (dist >= ATR_CONFIRM_MULT) if cnd.direction == "BREAKOUT" else (dist <= -ATR_CONFIRM_MULT)
+            clv_v = _clv_at_bar(d, end)
+            c_ok = (clv_v >= CLV_BREAKOUT_MIN) if cnd.direction == "BREAKOUT" else (clv_v <= CLV_BREAKDOWN_MAX)
+            v_v = float(d["Volume"].iloc[end]) if "Volume" in d.columns else 0.0
+            avg20 = float(pd.to_numeric(d["Volume"].iloc[max(0, end-21):end], errors="coerce").tail(20).mean()) if "Volume" in d.columns else 1.0
+            vr = v_v / max(avg20, 1e-9) if np.isfinite(avg20) and np.isfinite(v_v) else 0.0
+            v_ok = vr >= VOL_CONFIRM_MULT
+            sc = int(p_ok) + int(c_ok) + int(v_ok)
+            # Boost HS/IHS to prefer them
+            if cnd.pattern in ("HS_TOP", "IHS"):
+                sc += 10
+            if sc > best_score:
+                best_score = sc
+                best_cand = cnd
+        except Exception:
+            continue
+    if best_cand is None:
+        return []
+    cand = best_cand
+    # Walk the last `lookback_bars` bars
+    start = max(0, end - lookback_bars + 1)
+    rows: List[Dict[str, Any]] = []
+    # Pre-compute: find the most recent confirmed run start for lifecycle labeling
+    run_start = None
+    try:
+        run_start_v = _confirm_run_start(cand, d, a)
+        if run_start_v is not None:
+            run_start = int(run_start_v)
+    except Exception:
+        pass
+    # Also check validated stage
+    vinfo = None
+    try:
+        vinfo = _validated_stage(cand, d, a, end)
+    except Exception:
+        pass
+    # Walk bars
+    for i in range(start, end + 1):
+        try:
+            close_i = float(d["Close"].iloc[i])
+            lvl_i = float(_level_at_bar(cand, d, i))
+            atr_i = float(a.iloc[i]) if i < len(a) and np.isfinite(a.iloc[i]) else float("nan")
+            if not np.isfinite(atr_i) or atr_i <= 0:
+                atr_i = max(abs(lvl_i) * 0.01, 1e-6)
+            dist_i = (close_i - lvl_i) / atr_i
+            # Price gate
+            if cand.direction == "BREAKOUT":
+                price_ok = dist_i >= ATR_CONFIRM_MULT
+            else:
+                price_ok = dist_i <= -ATR_CONFIRM_MULT
+            # CLV gate
+            clv_i = _clv_at_bar(d, i)
+            if cand.direction == "BREAKOUT":
+                clv_ok = clv_i >= CLV_BREAKOUT_MIN
+            else:
+                clv_ok = clv_i <= CLV_BREAKDOWN_MAX
+            # Volume gate
+            vol_ratio_i = float("nan")
+            vol_ok = False
+            if "Volume" in d.columns:
+                v_i = float(d["Volume"].iloc[i])
+                if i >= 21:
+                    avg20_i = float(pd.to_numeric(d["Volume"].iloc[i-21:i-1], errors="coerce").tail(20).mean())
+                elif i > 1:
+                    avg20_i = float(pd.to_numeric(d["Volume"].iloc[:i], errors="coerce").tail(20).mean())
+                else:
+                    avg20_i = float("nan")
+                if np.isfinite(avg20_i) and avg20_i > 0 and np.isfinite(v_i):
+                    vol_ratio_i = v_i / avg20_i
+                    vol_ok = vol_ratio_i >= VOL_CONFIRM_MULT
+            all3 = price_ok and clv_ok and vol_ok
+            pricevol = price_ok and vol_ok
+            # Date
+            dt_str = str(pd.Timestamp(d.index[i]).date()) if isinstance(d.index, pd.DatetimeIndex) else str(i)
+            row: Dict[str, Any] = {
+                "bar": i,
+                "date": dt_str,
+                "close": close_i,
+                "level": lvl_i,
+                "dist_atr": dist_i,
+                "price_ok": price_ok,
+                "clv": clv_i,
+                "clv_ok": clv_ok,
+                "vol_ratio": vol_ratio_i,
+                "vol_ok": vol_ok,
+                "all3": all3,
+                "pricevol": pricevol,
+            }
+            rows.append(row)
+        except Exception:
+            continue
+    if not rows:
+        return []
+    # Label lifecycle phases and find exit reason
+    # Find the most recent confirmation run start by scanning the rows
+    # A "confirmed run" starts at the first bar where all 3 gates hold,
+    # preceded by a bar where they don't.
+    run_start_idx = None
+    for j, r in enumerate(rows):
+        if r["all3"]:
+            if j == 0 or not rows[j-1]["all3"]:
+                run_start_idx = j  # new run starts here
+    # Label each row
+    for j, r in enumerate(rows):
+        label = "—"
+        if run_start_idx is not None:
+            day = j - run_start_idx
+            if day < 0:
+                label = "PRE"
+            elif day == 0:
+                label = "DAY 0 (CONFIRMED)" if r["all3"] else "—"
+            elif day == 1:
+                if r["pricevol"]:
+                    label = "DAY 1 (ONGOING)"
+                else:
+                    if not r["price_ok"]:
+                        label = "DAY 1 — PRICE LOST"
+                    elif not r["vol_ok"]:
+                        label = "DAY 1 — VOLUME LOST"
+                    else:
+                        label = "DAY 1 — FAILED"
+            elif day == 2:
+                if r["all3"]:
+                    label = "DAY 2 (VALIDATED)"
+                else:
+                    if not r["price_ok"]:
+                        label = "DAY 2 — PRICE LOST"
+                    elif not r["clv_ok"]:
+                        label = "DAY 2 — CLV LOST"
+                    elif not r["vol_ok"]:
+                        label = "DAY 2 — VOLUME LOST"
+                    else:
+                        label = "DAY 2 — FAILED"
+            else:
+                # Day 3+
+                if r["price_ok"]:
+                    label = f"DAY {day} (VALIDATED ONGOING)"
+                else:
+                    label = f"DAY {day} — PRICE RECROSS"
+        r["lifecycle"] = label
+    # Determine current status / exit reason
+    exit_summary = ""
+    if run_start_idx is not None:
+        last = rows[-1]
+        last_day = len(rows) - 1 - run_start_idx
+        if last_day >= 2 and rows[run_start_idx + 2]["all3"] if (run_start_idx + 2) < len(rows) else False:
+            # Was validated
+            if last["price_ok"]:
+                exit_summary = "VALIDATED — still active"
+            else:
+                # Find the first bar after validation where price recrossed
+                for k in range(run_start_idx + 2, len(rows)):
+                    if not rows[k]["price_ok"]:
+                        exit_summary = f"EXIT — Price recross on {rows[k]['date']} (day {k - run_start_idx})"
+                        break
+                if not exit_summary:
+                    exit_summary = "VALIDATED — still active"
+            # Also check giveback
+            try:
+                exi = _exit_check_giveback(cand, d, a, rows[run_start_idx]["bar"], end, giveback_atr=EXIT_GIVEBACK_ATR)
+                if isinstance(exi, dict) and exi.get("exit"):
+                    reason = str(exi.get("reason", ""))
+                    pk = exi.get("peak_excess", float("nan"))
+                    cur = exi.get("cur_excess", float("nan"))
+                    exit_summary = f"EXIT — {reason} (peak={pk:.2f} ATR, now={cur:.2f} ATR)"
+            except Exception:
+                pass
+        elif last_day == 1:
+            r1 = rows[run_start_idx + 1] if (run_start_idx + 1) < len(rows) else None
+            if r1 and r1["pricevol"]:
+                exit_summary = "CONFIRMED ONGOING — awaiting day 2"
+            elif r1:
+                if not r1["price_ok"]:
+                    exit_summary = "EXIT — Price not sustained on day 1"
+                else:
+                    exit_summary = "EXIT — Volume faded on day 1"
+            else:
+                exit_summary = "CONFIRMED — day 0 only"
+        elif last_day == 0:
+            exit_summary = "CONFIRMED — day 0 (today)"
+        else:
+            exit_summary = "PRE-CONFIRMATION"
+    else:
+        exit_summary = "No confirmed run found in window"
+    # Attach summary
+    for r in rows:
+        r["_exit_summary"] = exit_summary
+        r["_pattern"] = cand.pattern
+        r["_direction"] = cand.direction
+    return rows
+
 def _debug_gates_for_ticker(ticker: str, df0: pd.DataFrame, state: Optional[Dict[str, Any]] = None, max_candidates: int = 6) -> Dict[str, Any]:
     """Diagnostics for a ticker: last-bar metrics and why it did/didn't confirm."""
     out: Dict[str, Any] = {"Ticker": ticker}
@@ -6281,6 +6547,58 @@ def main():
     )
     # Download OHLCV once (for technicals)
     ohlcv = yf_download_chunk(tech_scan_universe)
+    # --- Download diagnostic: which tickers failed and is there a market/exchange pattern? ---
+    _dl_ok = [t for t in tech_scan_universe if ohlcv.get(t) is not None and not ohlcv[t].empty]
+    _dl_short = [t for t in tech_scan_universe if ohlcv.get(t) is not None and not ohlcv[t].empty and len(ohlcv[t]) < 80]
+    _dl_fail = [t for t in tech_scan_universe if t not in ohlcv or ohlcv.get(t) is None or ohlcv[t].empty]
+    _dl_usable = [t for t in _dl_ok if len(ohlcv[t]) >= 80]
+    print(f"[download] universe={len(tech_scan_universe)} | downloaded={len(_dl_ok)} | usable(≥80 bars)={len(_dl_usable)} | short(<80 bars)={len(_dl_short)} | no_data={len(_dl_fail)}")
+    # Break down failures by exchange suffix (proxy for market)
+    def _exchange_suffix(t: str) -> str:
+        if "." in t:
+            parts = t.rsplit(".", 1)
+            return f".{parts[-1]}" if len(parts) == 2 else "US"
+        return "US"
+    _fail_by_exch: Dict[str, int] = {}
+    for t in _dl_fail:
+        ex = _exchange_suffix(t)
+        _fail_by_exch[ex] = _fail_by_exch.get(ex, 0) + 1
+    _short_by_exch: Dict[str, int] = {}
+    for t in _dl_short:
+        ex = _exchange_suffix(t)
+        _short_by_exch[ex] = _short_by_exch.get(ex, 0) + 1
+    _total_by_exch: Dict[str, int] = {}
+    for t in tech_scan_universe:
+        ex = _exchange_suffix(t)
+        _total_by_exch[ex] = _total_by_exch.get(ex, 0) + 1
+    if _dl_fail:
+        _fail_sorted = sorted(_fail_by_exch.items(), key=lambda x: x[1], reverse=True)
+        print(f"[download] no_data by exchange: {', '.join(f'{k}:{v}/{_total_by_exch.get(k,0)}' for k, v in _fail_sorted[:15])}")
+    if _dl_short:
+        _short_sorted = sorted(_short_by_exch.items(), key=lambda x: x[1], reverse=True)
+        print(f"[download] short(<80) by exchange: {', '.join(f'{k}:{v}/{_total_by_exch.get(k,0)}' for k, v in _short_sorted[:15])}")
+    # Also resolve countries for failed tickers (via MSCI classification)
+    _ctry_sorted: List[Tuple[str, int]] = []
+    if _dl_fail and msci_df is not None and not msci_df.empty:
+        _msci_country = dict(zip(msci_df["Ticker"].astype(str), msci_df["Country"].astype(str)))
+        _fail_by_country: Dict[str, int] = {}
+        for t in _dl_fail:
+            ctry = _msci_country.get(t, "Unknown")
+            _fail_by_country[ctry] = _fail_by_country.get(ctry, 0) + 1
+        _ctry_sorted = sorted(_fail_by_country.items(), key=lambda x: x[1], reverse=True)
+        print(f"[download] no_data by country: {', '.join(f'{k}:{v}' for k, v in _ctry_sorted[:15])}")
+    # Sample failed tickers for inspection
+    if _dl_fail:
+        print(f"[download] sample failed tickers (first 20): {_dl_fail[:20]}")
+    _dl_diag = {
+        'universe': len(tech_scan_universe),
+        'downloaded': len(_dl_ok),
+        'usable': len(_dl_usable),
+        'short': len(_dl_short),
+        'no_data': len(_dl_fail),
+        'fail_by_exch': sorted(_fail_by_exch.items(), key=lambda x: x[1], reverse=True)[:10] if _dl_fail else [],
+        'fail_by_country': _ctry_sorted[:10],
+    }
     # Load state early (used for HS/Band geometry carry-forward) + initialize debug counters
     state = load_state()
     debug: Dict[str, Any] = {
@@ -6574,12 +6892,19 @@ def main():
         md.append(f"- Candidates found: **{cand_total}** (top patterns: {top_pats_str})\n")
         md.append(f"- Live signals: EARLY **{int(debug.get('signals_early', 0))}**, CONFIRMED **{int(debug.get('signals_conf', 0))}**, VALIDATED **{int(debug.get('signals_val', 0))}** (total {sig_total})\n")
         md.append(f"- Geometry restored today: HS/IHS **{int(debug.get('hs_restored', 0))}**, Band **{int(debug.get('band_restored', 0))}**\n")
+        # Download diagnostic
+        if _dl_diag.get('no_data', 0) > 0 or _dl_diag.get('short', 0) > 0:
+            md.append(f"- Download: universe **{_dl_diag['universe']}** → downloaded **{_dl_diag['downloaded']}** → usable(≥80 bars) **{_dl_diag['usable']}** | short(<80) **{_dl_diag['short']}** | no data **{_dl_diag['no_data']}**\n")
+            if _dl_diag.get('fail_by_exch'):
+                md.append(f"  - No data by exchange: {', '.join(f'{k}: {v}/{_total_by_exch.get(k,0)}' for k, v in _dl_diag['fail_by_exch'])}\n")
+            if _dl_diag.get('fail_by_country'):
+                md.append(f"  - No data by country: {', '.join(f'{k}: {v}' for k, v in _dl_diag['fail_by_country'])}\n")
         md.append("\n")
     except Exception:
         pass
     # Focus tickers deep-dive (always shown) with full HS/IHS diagnostics + charts
     md.append("### Focus tickers deep-dive\n")
-    md.append(f"_Full deterministic HS/IHS diagnostics for: {', '.join(FOCUS_TICKERS)}_\n\n")
+    md.append(f"_Full diagnostics + validation gate history for: {', '.join(FOCUS_TICKERS)}_\n\n")
     for ft in FOCUS_TICKERS:
         try:
             df_ft = ohlcv.get(ft)
@@ -6909,6 +7234,72 @@ def main():
                         pass
                 except Exception:
                     pass
+                # --- Validation gate history (3-gate daily log) ---
+                try:
+                    gate_hist = _focus_validation_gate_history(ft, df_ft, state=state, lookback_bars=25)
+                    if gate_hist:
+                        _gh_patt = gate_hist[0].get("_pattern", "")
+                        _gh_dir = gate_hist[0].get("_direction", "")
+                        _gh_exit = gate_hist[0].get("_exit_summary", "")
+                        md.append(f"\n**Validation gate history** ({_gh_patt} / {_gh_dir})\n")
+                        md.append(f"- Status: **{_gh_exit}**\n")
+                        # Build HTML table — only show bars near the action (from first all3=True − 3 bars)
+                        first_conf = None
+                        for _gi, _gr in enumerate(gate_hist):
+                            if _gr["all3"]:
+                                first_conf = _gi
+                                break
+                        tbl_start = max(0, (first_conf or 0) - 3)
+                        tbl_rows = gate_hist[tbl_start:]
+                        md.append("<table style='border-collapse:collapse;font-size:13px;'>")
+                        md.append("<tr style='background:#f0f0f0;'>"
+                                  "<th style='padding:3px 8px;'>Date</th>"
+                                  "<th style='padding:3px 8px;'>Close</th>"
+                                  "<th style='padding:3px 8px;'>Trigger</th>"
+                                  "<th style='padding:3px 8px;'>Dist(ATR)</th>"
+                                  "<th style='padding:3px 8px;'>Price</th>"
+                                  "<th style='padding:3px 8px;'>CLV</th>"
+                                  "<th style='padding:3px 8px;'>CLV Gate</th>"
+                                  "<th style='padding:3px 8px;'>Vol/Avg</th>"
+                                  "<th style='padding:3px 8px;'>Vol Gate</th>"
+                                  "<th style='padding:3px 8px;'>All 3</th>"
+                                  "<th style='padding:3px 8px;'>Lifecycle</th>"
+                                  "</tr>")
+                        for _gr in tbl_rows:
+                            _bg = ""
+                            _lbl = _gr.get("lifecycle", "")
+                            if "VALIDATED" in _lbl and "LOST" not in _lbl and "RECROSS" not in _lbl:
+                                _bg = " style='background:#e6f4ea;'"
+                            elif "CONFIRMED" in _lbl and "LOST" not in _lbl:
+                                _bg = " style='background:#e8f0fe;'"
+                            elif "LOST" in _lbl or "RECROSS" in _lbl or "FAILED" in _lbl:
+                                _bg = " style='background:#fce8e6;'"
+                            _p = "✓" if _gr["price_ok"] else "✗"
+                            _c = "✓" if _gr["clv_ok"] else "✗"
+                            _v = "✓" if _gr["vol_ok"] else "✗"
+                            _a = "**✓**" if _gr["all3"] else "✗"
+                            _pc = f"<span style='color:green;'>{_p}</span>" if _gr["price_ok"] else f"<span style='color:red;'>{_p}</span>"
+                            _cc = f"<span style='color:green;'>{_c}</span>" if _gr["clv_ok"] else f"<span style='color:red;'>{_c}</span>"
+                            _vc = f"<span style='color:green;'>{_v}</span>" if _gr["vol_ok"] else f"<span style='color:red;'>{_v}</span>"
+                            _ac = f"<span style='color:green;font-weight:bold;'>✓</span>" if _gr["all3"] else f"<span style='color:red;'>✗</span>"
+                            md.append(
+                                f"<tr{_bg}>"
+                                f"<td style='padding:2px 8px;'>{_gr['date']}</td>"
+                                f"<td style='padding:2px 8px;text-align:right;'>{_gr['close']:.2f}</td>"
+                                f"<td style='padding:2px 8px;text-align:right;'>{_gr['level']:.2f}</td>"
+                                f"<td style='padding:2px 8px;text-align:right;'>{_gr['dist_atr']:+.2f}</td>"
+                                f"<td style='padding:2px 8px;text-align:center;'>{_pc}</td>"
+                                f"<td style='padding:2px 8px;text-align:right;'>{_gr['clv']:+.2f}</td>"
+                                f"<td style='padding:2px 8px;text-align:center;'>{_cc}</td>"
+                                f"<td style='padding:2px 8px;text-align:right;'>{_gr['vol_ratio']:.2f}×</td>"
+                                f"<td style='padding:2px 8px;text-align:center;'>{_vc}</td>"
+                                f"<td style='padding:2px 8px;text-align:center;'>{_ac}</td>"
+                                f"<td style='padding:2px 8px;font-size:12px;'>{_lbl}</td>"
+                                f"</tr>"
+                            )
+                        md.append("</table>\n")
+                except Exception as _vge:
+                    md.append(f"- Validation gate history error: {_vge}\n")
                 sig = LevelSignal(
                     ticker=ft,
                     signal=f"FOCUS_{patt}_{direc}",
