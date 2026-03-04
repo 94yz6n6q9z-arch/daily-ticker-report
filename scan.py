@@ -15,8 +15,8 @@ NEW (this update):
   (Key tape, Movers, Technical trigger tables) by patching the markdown
   alignment row to use ---: on numeric columns.
 - Added VP runway metric for VALIDATED signals: distance to nearest opposing HVN (%).
-- v82: Fix HS/IHS neckline angle measurement by normalizing slope using median ATR on the reaction segment (not ATR(head)).
-- v82: Ensure watchlist tickers display company names (NAME_OVERRIDES / yfinance fallback) instead of bare tickers in Section 4.
+- v83: Fix HS/IHS neckline angle measurement by normalizing slope using median ATR on the reaction segment (not ATR(head)).
+- v83: Ensure watchlist tickers display company names (NAME_OVERRIDES / yfinance fallback) instead of bare tickers in Section 4.
 """
 from __future__ import annotations
 import argparse
@@ -39,7 +39,7 @@ import yfinance as yf
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-SCAN_VERSION: str = "v82"
+SCAN_VERSION: str = "v83"
 # ----------------------------
 # Public asset URLs (email-safe) + cache busting
 # ----------------------------
@@ -1717,6 +1717,53 @@ def build_watchlist_pulse_section_md(
         top = [{"ticker": x[3], "signal": x[4]} for x in leaders[:3]]
         cat_stats[cat] = {"score": score, "counts": counts, "top": top}
     md = []
+    md.append("### HS/IHS diagnosis (selected)")
+    md.append("")
+    md.append("Full deterministic HS/IHS diagnostics for selected tickers (pre-4A).")
+    md.append("")
+    diag_tickers = [t.strip().upper() for t in str(os.getenv("HS_DIAG_TICKERS","RKT")).split(",") if t.strip()]
+    for _t in diag_tickers:
+        md.append(f"#### {_display_name(_t)} ({_t})")
+        try:
+            _d = data.get(_t)
+            if _d is None or len(_d) < 60:
+                md.append("Not enough data.")
+                md.append("")
+                continue
+            _sig_list = compute_signals_for_ticker(_t, _d, msci_company, msci_country, msci_sector, state_old, now_dt, allow_early=True)
+            _hs = [s for s in _sig_list if getattr(s, "pattern", None) in ("HS_TOP","IHS")]
+            if not _hs:
+                md.append("No HS/IHS candidate today.")
+                md.append("")
+                continue
+            _s = _hs[0]
+            md.append(f"- Signal: {_s.signal}")
+            if isinstance(getattr(_s, "meta", None), dict):
+                _pts = _s.meta.get("points") or []
+                def _pt(lbl):
+                    for p in _pts:
+                        if isinstance(p, dict) and str(p.get("label","")) == lbl:
+                            return p
+                    return None
+                if _s.pattern == "HS_TOP":
+                    _p1 = _pt("T1"); _p2 = _pt("T2")
+                    if _p1 and _p2:
+                        i1 = int(_p1.get("i")); i2 = int(_p2.get("i"))
+                        c1 = float(_d["Close"].iloc[i1]); c2 = float(_d["Close"].iloc[i2])
+                        md.append(f"- T1: t={_d.index[i1]} | p={float(_p1.get('p')):.4f} | Close={c1:.4f} | Δ={float(_p1.get('p'))-c1:+.4f}")
+                        md.append(f"- T2: t={_d.index[i2]} | p={float(_p2.get('p')):.4f} | Close={c2:.4f} | Δ={float(_p2.get('p'))-c2:+.4f}")
+                else:
+                    _p1 = _pt("R1"); _p2 = _pt("R2")
+                    if _p1 and _p2:
+                        i1 = int(_p1.get("i")); i2 = int(_p2.get("i"))
+                        c1 = float(_d["Close"].iloc[i1]); c2 = float(_d["Close"].iloc[i2])
+                        md.append(f"- R1: t={_d.index[i1]} | p={float(_p1.get('p')):.4f} | Close={c1:.4f} | Δ={float(_p1.get('p'))-c1:+.4f}")
+                        md.append(f"- R2: t={_d.index[i2]} | p={float(_p2.get('p')):.4f} | Close={c2:.4f} | Δ={float(_p2.get('p'))-c2:+.4f}")
+            md.append("")
+        except Exception as _e:
+            md.append(f"Diagnosis error: {_e}")
+            md.append("")
+    md.append("")
     md.append("### 4A) Watchlist emerging chart trends")
     md.append("")
     md.append("_Logic: score each ticker by stage (EARLY=1, CONFIRMED=3, VALIDATED=4) × direction (BREAKOUT=+1, BREAKDOWN=-1), then aggregate by sector._")
@@ -3077,6 +3124,15 @@ def _reindex_meta_to_df(meta: Dict[str, Any], d: pd.DataFrame) -> Optional[Dict[
             if pos is None:
                 return None
             p["i"] = int(pos)
+            # Bind timestamp/value to THIS df slice (prevents 'floating' markers on charts)
+            try:
+                ii = int(p.get("i"))
+                if 0 <= ii < len(d):
+                    p["t"] = d.index[ii]
+                    if "Close" in d.columns:
+                        p["p"] = float(d["Close"].iloc[ii])
+            except Exception:
+                pass
     lns = m.get("lines")
     if isinstance(lns, list):
         for ln in lns:
@@ -5600,8 +5656,10 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal, name_reso
             ax.axhline(sig.level, linestyle='-.', linewidth=1)
             ax.text(d.index[-1], sig.level, ' Trigger', va='bottom')
         else:
+            # HS/IHS: keep the sloped Neckline line on the chart AND draw today's trigger level as a horizontal line.
+            ax.axhline(trigger_now, linestyle='-.', linewidth=1)
+            ax.scatter([d.index[-1]], [trigger_now], s=30)
             ax.text(d.index[-1], trigger_now, ' Trigger', va='bottom')
-
         ax.axhline(confirm, linestyle=':', linewidth=1)
         ax.text(d.index[-1], confirm, ' Confirm (±0.5 ATR)', va='bottom')
         # Pattern markings
@@ -6123,7 +6181,7 @@ def main():
     tech_scan_universe = sorted(set(base_universe + msci_tickers))
     sector_resolver = build_sector_resolver(msci_df)
     company_name_for_ticker, country_for_ticker = build_company_country_resolvers(msci_df)
-    # v82: ensure watchlist tickers show company names (not just ticker labels) in Section 4/6.
+    # v83: ensure watchlist tickers show company names (not just ticker labels) in Section 4/6.
     # If a watchlist ticker is not in the MSCI mapping and has no NAME_OVERRIDES entry,
     # we fetch a lightweight name from yfinance (watchlist only) and use it as an override.
     watchlist_company_extra: Dict[str, str] = {}
