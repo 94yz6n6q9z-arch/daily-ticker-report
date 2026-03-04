@@ -33,6 +33,7 @@ NEW (this update):
 - v85: NAME_OVERRIDES: ASML, HOOD, OKLO. Remove Watchlist big movers / IHS early deep-dive sections. Fix macro charts in email.
 - v86: Fix MSCI mapping script: reorder exchange suffix rules so Euronext/Nordic match before US catch-all. Adds NORDIC to Stockholm regex. Fixes 114 tickers across France, Sweden, Belgium, Finland, Portugal.
 - v87: Fix yfinance rate-limiting: add 1.5s sleep between chunk downloads, 0.3s between individual retries, and a full second retry pass for still-missing tickers. Closes ~330 ticker coverage gap (Canada, UK, Australia, Germany, etc.).
+- v88: Rewrite yf_download_chunk — group tickers by exchange suffix before chunking. Mixed-exchange bulk downloads cause Yahoo to silently drop non-US tickers. Each exchange group (.L, .TO, .DE, etc.) now downloads in its own homogeneous chunks. Removes all sleep/throttling (was counterproductive). Per-exchange progress logging.
 """
 from __future__ import annotations
 import argparse
@@ -56,7 +57,7 @@ import yfinance as yf
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-SCAN_VERSION: str = "v87"
+SCAN_VERSION: str = "v88"
 # ----------------------------
 # Public asset URLs (email-safe) + cache busting
 # ----------------------------
@@ -902,18 +903,27 @@ def extract_ohlcv_from_download(data: pd.DataFrame, ticker: str) -> Optional[pd.
         return df if not df.empty else None
     return None
 def yf_download_chunk(tickers: List[str]) -> Dict[str, pd.DataFrame]:
-    """Deterministic OHLCV downloader with rate-limit mitigation.
-    - Sort tickers for stable ordering.
-    - Disable threads for stability.
-    - Sleep between chunks to avoid Yahoo Finance rate-limiting.
-    - Retry missing tickers individually with backoff.
-    - Second retry pass for persistent failures.
+    """Deterministic OHLCV downloader — grouped by exchange.
+    yfinance bulk downloads work best when all tickers share the same exchange.
+    Mixed-exchange batches cause Yahoo's API to silently drop non-US tickers.
+    Strategy:
+      1) Group tickers by exchange suffix (.L, .TO, .DE, etc. — suffix-less = US)
+      2) Download each exchange group in its own chunks
+      3) Retry any still-missing tickers individually
     """
     out: Dict[str, pd.DataFrame] = {}
     if not tickers:
         return out
     tickers = [str(t).strip() for t in tickers if str(t).strip()]
     tickers = sorted(dict.fromkeys(tickers))  # stable unique
+    # Group by exchange suffix
+    groups: Dict[str, List[str]] = {}
+    for t in tickers:
+        if "." in t:
+            sfx = "." + t.rsplit(".", 1)[-1]
+        else:
+            sfx = "US"
+        groups.setdefault(sfx, []).append(t)
     def _download_one(t: str) -> Optional[pd.DataFrame]:
         try:
             data = yf.download(
@@ -929,59 +939,51 @@ def yf_download_chunk(tickers: List[str]) -> Dict[str, pd.DataFrame]:
             return df if df is not None and not df.empty else None
         except Exception:
             return None
-    # Pass 1: chunk downloads with inter-chunk throttle
-    n_chunks = (len(tickers) + CHUNK_SIZE - 1) // CHUNK_SIZE
-    for ci, i in enumerate(range(0, len(tickers), CHUNK_SIZE)):
-        chunk = tickers[i:i + CHUNK_SIZE]
-        if not chunk:
-            continue
-        if ci > 0:
-            time.sleep(1.5)  # throttle between chunks to avoid Yahoo rate-limit
-        data = None
-        try:
-            data = yf.download(
-                tickers=chunk,
-                period=DOWNLOAD_PERIOD,
-                interval=DOWNLOAD_INTERVAL,
-                group_by="ticker",
-                auto_adjust=False,
-                threads=False,
-                progress=False,
-            )
-        except Exception:
+    # Download each exchange group in chunks
+    n_groups = len(groups)
+    for gi, (sfx, group_tickers) in enumerate(sorted(groups.items(), key=lambda x: -len(x[1]))):
+        for i in range(0, len(group_tickers), CHUNK_SIZE):
+            chunk = group_tickers[i:i + CHUNK_SIZE]
+            if not chunk:
+                continue
             data = None
-        if data is not None and not getattr(data, "empty", True):
-            for t in chunk:
-                df = extract_ohlcv_from_download(data, t)
+            try:
+                data = yf.download(
+                    tickers=chunk,
+                    period=DOWNLOAD_PERIOD,
+                    interval=DOWNLOAD_INTERVAL,
+                    group_by="ticker",
+                    auto_adjust=False,
+                    threads=False,
+                    progress=False,
+                )
+            except Exception:
+                data = None
+            if data is not None and not getattr(data, "empty", True):
+                for t in chunk:
+                    df = extract_ohlcv_from_download(data, t)
+                    if df is not None and not df.empty:
+                        out[t] = df
+            # Retry missing from this chunk individually
+            missing = [t for t in chunk if t not in out]
+            for t in missing:
+                df = _download_one(t)
                 if df is not None and not df.empty:
                     out[t] = df
-        # Pass 2: retry missing from this chunk individually (with per-ticker throttle)
-        missing = [t for t in chunk if t not in out]
-        if missing:
-            time.sleep(1.0)
-        for t in missing:
-            df = _download_one(t)
-            if df is not None and not df.empty:
-                out[t] = df
-            time.sleep(0.3)  # per-ticker throttle for individual retries
-        if ci % 4 == 3:
-            print(f"[download] chunk {ci+1}/{n_chunks} done, {len(out)}/{len(tickers)} downloaded so far")
-    # Pass 3: second retry for all still-missing tickers (longer backoff)
+        got = sum(1 for t in group_tickers if t in out)
+        print(f"[download] {sfx}: {got}/{len(group_tickers)} downloaded")
+    # Final retry pass for all still-missing
     still_missing = [t for t in tickers if t not in out]
     if still_missing:
-        print(f"[download] pass-2 retry for {len(still_missing)} still-missing tickers (2s initial pause)")
-        time.sleep(2.0)
-        for j, t in enumerate(still_missing):
+        print(f"[download] final retry for {len(still_missing)} still-missing tickers")
+        for t in still_missing:
             df = _download_one(t)
             if df is not None and not df.empty:
                 out[t] = df
-            if j % 10 == 9:
-                time.sleep(1.0)  # pause every 10 retries
-            else:
-                time.sleep(0.3)
         recovered = len(still_missing) - len([t for t in still_missing if t not in out])
-        print(f"[download] pass-2 recovered {recovered}/{len(still_missing)}")
-    print(f"[download] final: {len(out)}/{len(tickers)} tickers downloaded")
+        if recovered:
+            print(f"[download] final retry recovered {recovered}/{len(still_missing)}")
+    print(f"[download] total: {len(out)}/{len(tickers)} tickers downloaded")
     return out
 def pct_change_last(df: pd.DataFrame) -> Optional[float]:
     c = df["Close"].dropna()
