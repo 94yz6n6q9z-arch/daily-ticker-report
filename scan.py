@@ -15,7 +15,7 @@ NEW (this update):
   (Key tape, Movers, Technical trigger tables) by patching the markdown
   alignment row to use ---: on numeric columns.
 - Added VP runway metric for VALIDATED signals: distance to nearest opposing HVN (%).
-- v84: Fix HS/IHS neckline angle measurement by normalizing slope using median ATR on the reaction segment (not ATR(head)).
+- v85: Fix HS/IHS neckline angle measurement by normalizing slope using median ATR on the reaction segment (not ATR(head)).
 - v84: Ensure watchlist tickers display company names (NAME_OVERRIDES / yfinance fallback) instead of bare tickers in Section 4.
 """
 from __future__ import annotations
@@ -3167,6 +3167,17 @@ def _reindex_meta_to_df(meta: Dict[str, Any], d: pd.DataFrame) -> Optional[Dict[
                 return None
             ln["i1"] = int(p1)
             ln["i2"] = int(p2)
+            # Rebind line values to Close at these indices (prevents floating neckline after reindex)
+            try:
+                i1 = int(ln.get("i1")); i2 = int(ln.get("i2"))
+                if 0 <= i1 < len(d) and "Close" in d.columns:
+                    ln["y1"] = float(d["Close"].iloc[i1])
+                    ln["t1"] = pd.Timestamp(d.index[i1]).date().isoformat()
+                if 0 <= i2 < len(d) and "Close" in d.columns:
+                    ln["y2"] = float(d["Close"].iloc[i2])
+                    ln["t2"] = pd.Timestamp(d.index[i2]).date().isoformat()
+            except Exception:
+                pass
     # pattern start/end from LS/RS points if present
     if isinstance(pts, list):
         ls_i = None
@@ -5499,12 +5510,27 @@ def _annotate_from_signal_meta(ax, sig: LevelSignal) -> bool:
     if not isinstance(meta, dict) or not meta:
         return False
     used = False
-    def _to_ts(x):
+    def _to_ts(x, i=None):
+        """Resolve annotation x-coordinate. Prefer deterministic index i over parsing timestamp strings."""
+        try:
+            if i is not None:
+                ii = int(i)
+                if 0 <= ii < len(d):
+                    t = d.index[ii]
+                    t = pd.Timestamp(t)
+                    # Ensure tz-naive for matplotlib
+                    if getattr(t, 'tzinfo', None) is not None:
+                        try:
+                            t = t.tz_convert(None)
+                        except Exception:
+                            t = t.tz_localize(None)
+                    return t
+        except Exception:
+            pass
         try:
             t = pd.to_datetime(x, errors='coerce')
             if pd.isna(t):
                 return None
-            # Ensure tz-naive for matplotlib
             if getattr(t, 'tzinfo', None) is not None:
                 try:
                     t = t.tz_convert(None)
@@ -5519,7 +5545,7 @@ def _annotate_from_signal_meta(ax, sig: LevelSignal) -> bool:
     # Draw lines first
     for ln in meta.get("lines", []) or []:
         try:
-            t1 = _to_ts(ln.get("t1")); t2 = _to_ts(ln.get("t2"))
+            t1 = _to_ts(ln.get("t1"), ln.get("i1")); t2 = _to_ts(ln.get("t2"), ln.get("i2"))
             y1 = float(ln.get("y1")); y2 = float(ln.get("y2"))
             if t1 is None or t2 is None or not np.isfinite(y1) or not np.isfinite(y2):
                 continue
@@ -5533,7 +5559,7 @@ def _annotate_from_signal_meta(ax, sig: LevelSignal) -> bool:
     # Draw touch points / pivots
     for pt in meta.get("touch_points", []) or []:
         try:
-            t = _to_ts(pt.get("t")); y = float(pt.get("p"))
+            t = _to_ts(pt.get("t"), pt.get("i")); y = float(pt.get("p"))
             if t is None or not np.isfinite(y):
                 continue
             ax.scatter([t], [y], s=20)
@@ -5542,7 +5568,7 @@ def _annotate_from_signal_meta(ax, sig: LevelSignal) -> bool:
             continue
     for pt in meta.get("points", []) or []:
         try:
-            t = _to_ts(pt.get("t")); y = float(pt.get("p"))
+            t = _to_ts(pt.get("t"), pt.get("i")); y = float(pt.get("p"))
             if t is None or not np.isfinite(y):
                 continue
             ax.scatter([t], [y], s=36)
