@@ -15,8 +15,8 @@ NEW (this update):
   (Key tape, Movers, Technical trigger tables) by patching the markdown
   alignment row to use ---: on numeric columns.
 - Added VP runway metric for VALIDATED signals: distance to nearest opposing HVN (%).
-- v83: Fix HS/IHS neckline angle measurement by normalizing slope using median ATR on the reaction segment (not ATR(head)).
-- v83: Ensure watchlist tickers display company names (NAME_OVERRIDES / yfinance fallback) instead of bare tickers in Section 4.
+- v84: Fix HS/IHS neckline angle measurement by normalizing slope using median ATR on the reaction segment (not ATR(head)).
+- v84: Ensure watchlist tickers display company names (NAME_OVERRIDES / yfinance fallback) instead of bare tickers in Section 4.
 """
 from __future__ import annotations
 import argparse
@@ -39,7 +39,7 @@ import yfinance as yf
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-SCAN_VERSION: str = "v83"
+SCAN_VERSION: str = "v84"
 # ----------------------------
 # Public asset URLs (email-safe) + cache busting
 # ----------------------------
@@ -3069,8 +3069,9 @@ def _alternation_count(events: List[Tuple[int, str]]) -> int:
             prev = side
     return cnt
 def _iso_ts(idx_val) -> str:
+    """Date-only ISO (YYYY-MM-DD). Keeps meta stable and prevents tz/axis mismatches in charts."""
     try:
-        return pd.Timestamp(idx_val).isoformat()
+        return pd.Timestamp(idx_val).date().isoformat()
     except Exception:
         return str(idx_val)
 def _after_close_cutoff_berlin(now: Optional[dt.datetime] = None) -> bool:
@@ -3150,7 +3151,7 @@ def _reindex_meta_to_df(meta: Dict[str, Any], d: pd.DataFrame) -> Optional[Dict[
             try:
                 ii = int(p.get("i"))
                 if 0 <= ii < len(d):
-                    p["t"] = pd.Timestamp(d.index[ii]).isoformat()
+                    p["t"] = pd.Timestamp(d.index[ii]).date().isoformat()
                     if "Close" in d.columns:
                         p["p"] = float(d["Close"].iloc[ii])
             except Exception:
@@ -5500,7 +5501,19 @@ def _annotate_from_signal_meta(ax, sig: LevelSignal) -> bool:
     used = False
     def _to_ts(x):
         try:
-            return pd.to_datetime(x)
+            t = pd.to_datetime(x, errors='coerce')
+            if pd.isna(t):
+                return None
+            # Ensure tz-naive for matplotlib
+            if getattr(t, 'tzinfo', None) is not None:
+                try:
+                    t = t.tz_convert(None)
+                except Exception:
+                    try:
+                        t = t.tz_localize(None)
+                    except Exception:
+                        pass
+            return t
         except Exception:
             return None
     # Draw lines first
@@ -5623,6 +5636,16 @@ def plot_signal_chart(ticker: str, df: pd.DataFrame, sig: LevelSignal, name_reso
         if d0.empty:
             return placeholder("could not parse dates")
         d0 = d0.sort_index()
+        # Normalize timezone to avoid annotation drift
+        try:
+            if isinstance(d0.index, pd.DatetimeIndex) and d0.index.tz is not None:
+                d0.index = d0.index.tz_convert(None)
+        except Exception:
+            try:
+                if isinstance(d0.index, pd.DatetimeIndex):
+                    d0.index = d0.index.tz_localize(None)
+            except Exception:
+                pass
         # Guard against epoch/outlier dates (e.g., 1970) by using last 400 rows then date-filter
         d_full = d0.tail(420).copy()
         # Plot window = last ~1 year
@@ -6203,7 +6226,7 @@ def main():
     tech_scan_universe = sorted(set(base_universe + msci_tickers))
     sector_resolver = build_sector_resolver(msci_df)
     company_name_for_ticker, country_for_ticker = build_company_country_resolvers(msci_df)
-    # v83: ensure watchlist tickers show company names (not just ticker labels) in Section 4/6.
+    # v84: ensure watchlist tickers show company names (not just ticker labels) in Section 4/6.
     # If a watchlist ticker is not in the MSCI mapping and has no NAME_OVERRIDES entry,
     # we fetch a lightweight name from yfinance (watchlist only) and use it as an override.
     watchlist_company_extra: Dict[str, str] = {}
