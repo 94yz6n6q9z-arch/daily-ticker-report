@@ -368,8 +368,30 @@ def load_state() -> Dict:
         except Exception:
             return {}
     return {}
+def _json_default(o):
+    """JSON serializer for objects not serializable by default json code."""
+    try:
+        import numpy as _np
+        import pandas as _pd
+        import datetime as _dt
+        if isinstance(o, _pd.Timestamp):
+            return o.isoformat()
+        if isinstance(o, (_dt.datetime, _dt.date)):
+            return o.isoformat()
+        if isinstance(o, (_np.integer,)):
+            return int(o)
+        if isinstance(o, (_np.floating,)):
+            return float(o)
+        if isinstance(o, (_np.bool_,)):
+            return bool(o)
+        if isinstance(o, (_np.ndarray,)):
+            return o.tolist()
+    except Exception:
+        pass
+    return str(o)
+
 def save_state(state: Dict) -> None:
-    write_text(STATE_PATH, json.dumps(state, indent=2, ensure_ascii=False))
+    write_text(STATE_PATH, json.dumps(state, indent=2, ensure_ascii=False, default=_json_default))
 # ----------------------------
 # Helpers: Markdown table alignment
 # ----------------------------
@@ -3128,7 +3150,7 @@ def _reindex_meta_to_df(meta: Dict[str, Any], d: pd.DataFrame) -> Optional[Dict[
             try:
                 ii = int(p.get("i"))
                 if 0 <= ii < len(d):
-                    p["t"] = d.index[ii]
+                    p["t"] = pd.Timestamp(d.index[ii]).isoformat()
                     if "Close" in d.columns:
                         p["p"] = float(d["Close"].iloc[ii])
             except Exception:
