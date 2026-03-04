@@ -1,42 +1,142 @@
 # Daily Report
 
-## ERROR
+_Generated: **2026-03-04 14:05 CET** | Version: **v83**_
 
-The run crashed. Traceback:
+## 1) Market recap & positioning
 
-```text
-Traceback (most recent call last):
-  File "/home/runner/work/daily-ticker-report/daily-ticker-report/scan.py", line 7098, in <module>
-    main()
-  File "/home/runner/work/daily-ticker-report/daily-ticker-report/scan.py", line 6437, in main
-    save_state(state)
-  File "/home/runner/work/daily-ticker-report/daily-ticker-report/scan.py", line 372, in save_state
-    write_text(STATE_PATH, json.dumps(state, indent=2, ensure_ascii=False))
-                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/json/__init__.py", line 238, in dumps
-    **kw).encode(obj)
-          ^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/json/encoder.py", line 202, in encode
-    chunks = list(chunks)
-             ^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/json/encoder.py", line 432, in _iterencode
-    yield from _iterencode_dict(o, _current_indent_level)
-  File "/opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/json/encoder.py", line 406, in _iterencode_dict
-    yield from chunks
-  File "/opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/json/encoder.py", line 406, in _iterencode_dict
-    yield from chunks
-  File "/opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/json/encoder.py", line 406, in _iterencode_dict
-    yield from chunks
-  [Previous line repeated 1 more time]
-  File "/opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/json/encoder.py", line 326, in _iterencode_list
-    yield from chunks
-  File "/opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/json/encoder.py", line 406, in _iterencode_dict
-    yield from chunks
-  File "/opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/json/encoder.py", line 439, in _iterencode
-    o = _default(o)
-        ^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/json/encoder.py", line 180, in default
-    raise TypeError(f'Object of type {o.__class__.__name__} '
-TypeError: Object of type Timestamp is not JSON serializable
+**Executive summary:**
 
-```
+Headline: Tariff headlines and AI-linked tech news kept investors defensive as geopolitics stayed in focus via tanker-protection talk in the Strait of Hormuz. The Nasdaq 100 fell 1.1% and the S&P 500 slid 0.9% while the VIX eased 0.8%, extending a choppy, softer three-to-four-week tape (NDX -3.3% over 1M) even as oil remained firm. Biggest movers were Cocoa up 5.6%, with SK Hynix down 9.6%, CCJ down 6.3% and FRO down 6.3%.
+
+**Key tape (multi-horizon):**
+
+| Instrument       | Last      | 1D                                         | 7D                                          | 1M                                          | 3M                                          | 6M                                           |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Nasdaq 100       | 24,720.08 | <span style="color:#b91c1c;">-1.09%</span> | <span style="color:#b91c1c;">-1.03%</span>  | <span style="color:#b91c1c;">-3.26%</span>  | <span style="color:#b91c1c;">-3.46%</span>  | <span style="color:#11823b;">+4.60%</span>   |
+| S&P 500          | 6,816.63  | <span style="color:#b91c1c;">-0.94%</span> | <span style="color:#b91c1c;">-1.07%</span>  | <span style="color:#b91c1c;">-1.76%</span>  | <span style="color:#b91c1c;">-0.48%</span>  | <span style="color:#11823b;">+4.84%</span>   |
+| STOXX Europe 600 | 611.68    | <span style="color:#11823b;">+1.20%</span> | <span style="color:#b91c1c;">-3.44%</span>  | <span style="color:#b91c1c;">-0.91%</span>  | <span style="color:#11823b;">+5.67%</span>  | <span style="color:#11823b;">+11.37%</span>  |
+| DAX              | 24,095.85 | <span style="color:#11823b;">+1.28%</span> | <span style="color:#b91c1c;">-4.29%</span>  | <span style="color:#b91c1c;">-2.83%</span>  | <span style="color:#11823b;">+0.90%</span>  | <span style="color:#11823b;">+2.11%</span>   |
+| CAC 40           | 8,173.02  | <span style="color:#11823b;">+0.85%</span> | <span style="color:#b91c1c;">-4.51%</span>  | <span style="color:#b91c1c;">-0.10%</span>  | <span style="color:#11823b;">+0.63%</span>  | <span style="color:#11823b;">+6.49%</span>   |
+| FTSE 100         | 10,542.57 | <span style="color:#11823b;">+0.56%</span> | <span style="color:#b91c1c;">-2.44%</span>  | <span style="color:#11823b;">+1.94%</span>  | <span style="color:#11823b;">+8.56%</span>  | <span style="color:#11823b;">+14.49%</span>  |
+| VIX              | 23.38     | <span style="color:#b91c1c;">-0.81%</span> | <span style="color:#11823b;">+30.40%</span> | <span style="color:#11823b;">+43.08%</span> | <span style="color:#11823b;">+48.16%</span> | <span style="color:#11823b;">+54.02%</span>  |
+| EUR/USD          | 1.16      | <span style="color:#b91c1c;">-0.45%</span> | <span style="color:#b91c1c;">-1.11%</span>  | <span style="color:#b91c1c;">-1.73%</span>  | <span style="color:#b91c1c;">-0.19%</span>  | <span style="color:#b91c1c;">-0.11%</span>   |
+| WTI Crude        | 74.94     | <span style="color:#11823b;">+0.51%</span> | <span style="color:#11823b;">+14.55%</span> | <span style="color:#11823b;">+20.60%</span> | <span style="color:#11823b;">+25.59%</span> | <span style="color:#11823b;">+21.12%</span>  |
+| Gold             | 5,176.40  | <span style="color:#11823b;">+1.35%</span> | <span style="color:#b91c1c;">-0.58%</span>  | <span style="color:#11823b;">+11.98%</span> | <span style="color:#11823b;">+22.90%</span> | <span style="color:#11823b;">+43.26%</span>  |
+| Silver           | 85.49     | <span style="color:#11823b;">+3.09%</span> | <span style="color:#b91c1c;">-6.00%</span>  | <span style="color:#11823b;">+11.34%</span> | <span style="color:#11823b;">+50.38%</span> | <span style="color:#11823b;">+108.12%</span> |
+| Coffee           | 287.00    | <span style="color:#11823b;">+0.02%</span> | <span style="color:#b91c1c;">-0.45%</span>  | <span style="color:#b91c1c;">-13.88%</span> | <span style="color:#b91c1c;">-30.33%</span> | <span style="color:#b91c1c;">-25.57%</span>  |
+| Cocoa            | 3,083.00  | <span style="color:#11823b;">+5.40%</span> | <span style="color:#11823b;">+4.26%</span>  | <span style="color:#b91c1c;">-26.77%</span> | <span style="color:#b91c1c;">-43.26%</span> | <span style="color:#b91c1c;">-58.24%</span>  |
+| Bitcoin          | 71,314.53 | <span style="color:#11823b;">+4.42%</span> | <span style="color:#11823b;">+4.94%</span>  | <span style="color:#b91c1c;">-9.37%</span>  | <span style="color:#b91c1c;">-22.60%</span> | <span style="color:#b91c1c;">-35.55%</span>  |
+
+**Macro charts (5Y):**
+
+
+
+## 2) Biggest movers (≥ 4%)
+
+**Session gainers:**
+
+| Ticker   | pct    |
+| :--- | ---: |
+| Cocoa    | +5.61% |
+
+**Session losers:**
+
+| Ticker   | pct    |
+| :--- | ---: |
+| SK Hynix | -9.58% |
+| CCJ      | -6.32% |
+| FRO      | -6.26% |
+| LRCX     | -5.94% |
+| AMAT     | -5.60% |
+| LEU      | -5.12% |
+| BYDDY    | -4.50% |
+| ASML     | -4.40% |
+| TSM      | -4.33% |
+| DECK     | -4.06% |
+
+**After-hours gainers:** _None ≥ 4%_
+
+**After-hours losers:** _None ≥ 4%_
+
+## 3) Earnings next 14 days (your watchlist)
+
+_Upcoming earnings dates for your  watchlist._
+
+| Ticker   | Earnings Date   |   Days |
+| :--- | ---: | ---: |
+| ANF      | 2026-03-04      |      0 |
+| AVGO     | 2026-03-04      |      0 |
+| MAU      | 2026-03-12      |      8 |
+| RRTL     | 2026-03-12      |      8 |
+| OKLO     | 2026-03-17      |     13 |
+
+## 4) Technical triggers
+
+### Signal engine health (diagnostics)
+
+- Tickers scanned: **1277**; usable OHLCV: **799**
+
+- Candidates found: **164** (top patterns: IHS:34, DEAD_CAT_BOUNCE:30, HS_TOP:23, RECT:20, RECT_BOTTOM:18, MOMO_TREND:17, RECT_TOP:16, DESC_TRIANGLE:4)
+
+- Live signals: EARLY **10**, CONFIRMED **8**, VALIDATED **2** (total 20)
+
+- Geometry restored today: HS/IHS **34**, Band **12**
+
+
+
+### Watchlist big movers diagnostics (|Day%| ≥ 7%)
+
+<style>table.tblauto{table-layout:auto;width:100%;border-collapse:collapse;margin:8px 0;}table.tblauto th,table.tblauto td{border:1px solid #e5e7eb;padding:6px 8px;vertical-align:top;}table.tblauto th{background:#f6f8fa;font-weight:600;white-space:nowrap;}table.tblauto td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}table.tblauto td.txt{white-space:nowrap;}table.tblauto td.wrap{white-space:normal;}</style><div style="overflow-x:auto"><table class="tblauto"><thead><tr><th>Name of Company</th><th>Ticker</th><th>Close</th><th>Day%</th><th>BestPattern</th><th>Dir</th><th>Dist(ATR)</th><th>PriceGate</th><th>CLVGate</th><th>VolGate</th><th>HS lag</th><th>Cand#</th></tr></thead><tbody><tr><td class="wrap">NU HOLDINGS LTD.</td><td class="txt">NU</td><td class="num">14.76</td><td class="num">-2.8%</td><td class="txt">HS_TOP</td><td class="txt">BREAKDOWN</td><td class="num">-2.99</td><td class="txt">Y</td><td class="txt">N</td><td class="txt">N</td><td class="txt">7</td><td class="txt">1</td></tr><tr><td class="wrap">CONSTELLATION ENERGY CORP</td><td class="txt">CEG</td><td class="num">324.87</td><td class="num">-0.7%</td><td class="txt"></td><td class="txt"></td><td class="num"></td><td class="txt">N</td><td class="txt">N</td><td class="txt">N</td><td class="txt"></td><td class="txt">0</td></tr><tr><td class="wrap">SK HYNIX</td><td class="txt">SK Hynix</td><td class="num">849,000.00</td><td class="num">-9.6%</td><td class="txt"></td><td class="txt"></td><td class="num"></td><td class="txt">N</td><td class="txt">N</td><td class="txt">N</td><td class="txt"></td><td class="txt">0</td></tr></tbody></table></div>
+
+
+### IHS early deep-dive (top 4)
+
+_No IHS EARLY setups today._
+
+
+### HS/IHS diagnosis (selected)
+
+Full deterministic HS/IHS diagnostics for selected tickers (pre-4A).
+
+#### RKT (RKT)
+Diagnosis error: name 'data' is not defined
+
+
+### 4A) Watchlist emerging chart trends
+
+_Logic: score each ticker by stage (EARLY=1, CONFIRMED=3, VALIDATED=4) × direction (BREAKOUT=+1, BREAKDOWN=-1), then aggregate by sector._
+
+| Sector | Bias | EARLY↑ | EARLY↓ | CONF↑ | CONF↓ | VALID↑ | VALID↓ |
+| :--- | :--- | ---: | ---: | ---: | ---: | ---: | ---: |
+| AI compute & semis (incl. EDA) | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
+| AI software/data | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
+| Big Tech platforms | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
+| Consumer & retail (incl. luxury) | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
+| Fintech & financials | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
+| Healthcare | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
+| Energy & Nuclear | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
+| Quantum | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
+| Venezuela Oil | Bullish | 0 | 0 | 1 | 0 | 0 | 0 |
+| Commodities | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
+
+
+### 4B) Early callouts (~90% complete)
+
+_Close enough to pre-plan. “Close enough” = within 0.5 ATR of the trigger (neckline/boundary). No SOFT tier — anything not CONFIRMED stays in EARLY._
+
+**NEW (today):**
+
+<style>table.tblauto{table-layout:auto;width:100%;border-collapse:collapse;margin:8px 0;}table.tblauto th,table.tblauto td{border:1px solid #e5e7eb;padding:6px 8px;vertical-align:top;}table.tblauto th{background:#f6f8fa;font-weight:600;white-space:nowrap;}table.tblauto td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}table.tblauto td.txt{white-space:nowrap;}table.tblauto td.wrap{white-space:normal;}</style><div style="overflow-x:auto"><table class="tblauto"><thead><tr><th>Name of Company</th><th>Ticker</th><th>Country</th><th>Sector</th><th>Signal</th><th>Close</th><th>Day%</th><th>Threshold</th><th>CLV</th><th>ATR(14)</th><th>Dist(ATR)</th><th>Vol/AvgVol(20)</th><th>Chart</th></tr></thead><tbody><tr><td class="wrap">SOFINA SA</td><td class="txt">SOF</td><td class="txt">Belgium</td><td class="txt">Financials</td><td class="txt">EARLY_RECT_BREAKDOWN</td><td class="num">100.15</td><td class="num">+0.0%</td><td class="num">100.17</td><td class="num">+0.08</td><td class="num">0.11</td><td class="num">-0.20</td><td class="num">0.04×</td><td class="txt"><a href="https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/SOF_EARLY_RECT_BREAKDOWN.png?v=20260304130535" target="_blank">chart</a></td></tr></tbody></table></div>
+
+**What’s going on (NEW early callouts):**
+
+#### SOF — `EARLY_RECT_BREAKDOWN`
+- **Trigger (level):** 100.17  |  **Close:** 100.15  |  **Distance:** -0.20 ATR
+- Chart includes **SMA(50)** + **SMA(200)**, **volume**, plus trigger + confirmation (±0.5 ATR). HS/IHS is labeled (LS/H/RS) with neckline; Wedges include upper/lower trendlines with touch points.
+- **Setup:** watch for confirmation close beyond trigger by ≥ 0.5 ATR, or a clean retest/failure in the direction of the signal.
+<img src="https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/SOF_EARLY_RECT_BREAKDOWN.png?v=20260304130535" width="720" style="max-width:100%;height:auto;">
+
+
+**ONGOING:**
+
+<style>table.tblauto{table-layout:auto;width:100%;border-collapse:collapse;margin:8px 0;}table.tblauto th,table.tblauto td{border:1px solid #e5e7eb;padding:6px 8px;vertical-align:top;}table.tblauto th{background:#f6f8fa;font-weight:600;white-space:nowrap;}table.tblauto td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}table.tblauto td.txt{white-space:nowrap;}table.tblauto td.wrap{white-space:normal;}</style><div style="overflow-x:auto"><table class="tblauto"><thead><tr><th>Name of Company</th><th>Ticker</th><th>Country</th><th>Sector</th><th>Signal</th><th>Close</th><th>Day%</th><th>Threshold</th><th>CLV</th><th>ATR(14)</th><th>Dist(ATR)</th><th>Vol/AvgVol(20)</th><th>Chart</th></tr></thead><tbody><tr><td class="wrap">DELTA AIR LINES INC</td><td class="txt">DAL</td><td class="txt">United States</td><td class="txt">Industrials</td><td class="txt">EARLY_RECT_TOP_BREAKDOWN</td><td class="num">64.60</td><td class="num">+0.5%</td><td class="num">64.76</td><td class="num">+0.53</td><td class="num">3.55</td><td class="num">-0.05</td><td class="num">1.32×</td><td class="txt"><a href="https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/DAL_EARLY_RECT_TOP_BREAKDOWN.png?v=20260304130
