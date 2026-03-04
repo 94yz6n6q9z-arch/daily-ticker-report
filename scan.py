@@ -17,6 +17,10 @@ NEW (this update):
 - Added VP runway metric for VALIDATED signals: distance to nearest opposing HVN (%).
 - v83: Fix HS/IHS neckline angle measurement by normalizing slope using median ATR on the reaction segment (not ATR(head)).
 - v83: Ensure watchlist tickers display company names (NAME_OVERRIDES / yfinance fallback) instead of bare tickers in Section 4.
+- v84: Fix floating neckline bug — store neckline through actual reaction points (T1→T2 / R1→R2) instead of (T1→last_bar).
+- v84: Refresh neckline y-values from Close during state carry-forward to prevent stale values after price adjustments.
+- v84: Extend neckline visually to chart right edge (solid T1→T2 + dotted projection).
+- v84: Add RKT to FOCUS_TICKERS for full HS geometry deep-dive with chart in Section 4.
 """
 from __future__ import annotations
 import argparse
@@ -39,7 +43,7 @@ import yfinance as yf
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-SCAN_VERSION: str = "v83"
+SCAN_VERSION: str = "v84"
 # ----------------------------
 # Public asset URLs (email-safe) + cache busting
 # ----------------------------
@@ -108,7 +112,7 @@ COMMODITY_NAME_OVERRIDES: Dict[str, str] = {
     "CC=F": "Cocoa",
 }
 # Force these tickers to always appear with charts + gate diagnosis in Section 4 (even if no live signal)
-FOCUS_TICKERS = ["NU", "CEG"]
+FOCUS_TICKERS = ["NU", "CEG", "RKT"]
 # Display name overrides (Section 6 + readability). Values should be FULL CAPS.
 NAME_OVERRIDES = {
     "PLTR": "PALANTIR TECHNOLOGIES",
