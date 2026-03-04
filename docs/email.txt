@@ -1,34 +1,35 @@
 # Daily Report
 
-_Generated: **2026-03-04 19:58 CET** | Version: **v84**_
+_Generated: **2026-03-04 20:31 CET** | Version: **v84**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Headline: Big Tech and AI optimism resurfaced as investors weighed fresh debate over the durability of the AI investment boom and a political push backing crypto firms in their fight with banks over stablecoin yield. The Nasdaq 100 rose 1.75% and the S&P 500 gained 0.92% as the VIX slid 12.86%, extending a choppy three-to-four-week tape in which equities have struggled to hold rallies even as volatility has stayed elevated (VIX +25.7% over 1M). On the watchlist, PLTR (+4.71%), NVO (+4.63%) and MPC (+4.05%) led gainers, while SK Hynix (-9.58%) and ANF (-4.34%) were the biggest laggards.
+Headline: Tech and crypto-linked themes drove a rebound as investors leaned back into AI narratives and digital-finance policy headlines, with Amazon also in focus on payments tools in Europe. The Nasdaq 100 rose 1.78% and the S&P 500 gained 0.96% while the VIX slid 13.07%, a volatility reset that follows a choppy few weeks for equities and a still-elevated fear gauge (VIX +25.40% over 1M). On the watchlist, HOOD jumped 7.93% and NVO rose 4.61%, while SK Hynix sank 9.58% and ANF fell 4.61%.
 
 **Key tape (multi-horizon):**
 
 | Instrument       |     Last | 1D                                          | 7D                                          | 1M                                          | 3M                                          | 6M                                           |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Nasdaq 100       | 25153.5  | <span style="color:#11823b;">+1.75%</span>  | <span style="color:#b91c1c;">-0.69%</span>  | <span style="color:#b91c1c;">-2.27%</span>  | <span style="color:#b91c1c;">-1.67%</span>  | <span style="color:#11823b;">+6.35%</span>   |
-| S&P 500          |  6879.05 | <span style="color:#11823b;">+0.92%</span>  | <span style="color:#b91c1c;">-0.97%</span>  | <span style="color:#b91c1c;">-1.40%</span>  | <span style="color:#11823b;">+0.32%</span>  | <span style="color:#11823b;">+6.13%</span>   |
+| Nasdaq 100       | 25160.4  | <span style="color:#11823b;">+1.78%</span>  | <span style="color:#b91c1c;">-0.67%</span>  | <span style="color:#b91c1c;">-2.25%</span>  | <span style="color:#b91c1c;">-1.65%</span>  | <span style="color:#11823b;">+6.38%</span>   |
+| S&P 500          |  6881.98 | <span style="color:#11823b;">+0.96%</span>  | <span style="color:#b91c1c;">-0.92%</span>  | <span style="color:#b91c1c;">-1.35%</span>  | <span style="color:#11823b;">+0.36%</span>  | <span style="color:#11823b;">+6.18%</span>   |
 | STOXX Europe 600 |   612.71 | <span style="color:#11823b;">+1.37%</span>  | <span style="color:#b91c1c;">-3.28%</span>  | <span style="color:#b91c1c;">-0.75%</span>  | <span style="color:#11823b;">+5.85%</span>  | <span style="color:#11823b;">+11.56%</span>  |
 | DAX              | 24205.4  | <span style="color:#11823b;">+1.74%</span>  | <span style="color:#b91c1c;">-3.86%</span>  | <span style="color:#b91c1c;">-2.39%</span>  | <span style="color:#11823b;">+1.35%</span>  | <span style="color:#11823b;">+2.58%</span>   |
 | CAC 40           |  8167.73 | <span style="color:#11823b;">+0.79%</span>  | <span style="color:#b91c1c;">-4.57%</span>  | <span style="color:#b91c1c;">-0.16%</span>  | <span style="color:#11823b;">+0.56%</span>  | <span style="color:#11823b;">+6.42%</span>   |
 | FTSE 100         | 10567.6  | <span style="color:#11823b;">+0.80%</span>  | <span style="color:#b91c1c;">-2.21%</span>  | <span style="color:#11823b;">+2.19%</span>  | <span style="color:#11823b;">+8.82%</span>  | <span style="color:#11823b;">+14.76%</span>  |
-| VIX              |    20.54 | <span style="color:#b91c1c;">-12.86%</span> | <span style="color:#11823b;">+14.56%</span> | <span style="color:#11823b;">+25.70%</span> | <span style="color:#11823b;">+30.16%</span> | <span style="color:#11823b;">+35.31%</span>  |
-| EUR/USD          |     1.16 | <span style="color:#b91c1c;">-0.59%</span>  | <span style="color:#b91c1c;">-1.25%</span>  | <span style="color:#b91c1c;">-1.87%</span>  | <span style="color:#b91c1c;">-0.33%</span>  | <span style="color:#b91c1c;">-0.25%</span>   |
-| WTI Crude        |    75.2  | <span style="color:#11823b;">+0.86%</span>  | <span style="color:#11823b;">+14.95%</span> | <span style="color:#11823b;">+21.02%</span> | <span style="color:#11823b;">+26.03%</span> | <span style="color:#11823b;">+21.55%</span>  |
-| Gold             |  5139.7  | <span style="color:#11823b;">+0.63%</span>  | <span style="color:#b91c1c;">-1.28%</span>  | <span style="color:#11823b;">+11.19%</span> | <span style="color:#11823b;">+22.03%</span> | <span style="color:#11823b;">+42.25%</span>  |
-| Silver           |    83.55 | <span style="color:#11823b;">+0.76%</span>  | <span style="color:#b91c1c;">-8.13%</span>  | <span style="color:#11823b;">+8.82%</span>  | <span style="color:#11823b;">+46.97%</span> | <span style="color:#11823b;">+103.41%</span> |
+| VIX              |    20.49 | <span style="color:#b91c1c;">-13.07%</span> | <span style="color:#11823b;">+14.28%</span> | <span style="color:#11823b;">+25.40%</span> | <span style="color:#11823b;">+29.85%</span> | <span style="color:#11823b;">+34.98%</span>  |
+| EUR/USD          |     1.16 | <span style="color:#b91c1c;">-0.52%</span>  | <span style="color:#b91c1c;">-1.18%</span>  | <span style="color:#b91c1c;">-1.80%</span>  | <span style="color:#b91c1c;">-0.26%</span>  | <span style="color:#b91c1c;">-0.18%</span>   |
+| WTI Crude        |    74.69 | <span style="color:#11823b;">+0.17%</span>  | <span style="color:#11823b;">+14.17%</span> | <span style="color:#11823b;">+20.20%</span> | <span style="color:#11823b;">+25.17%</span> | <span style="color:#11823b;">+20.72%</span>  |
+| Gold             |  5137.3  | <span style="color:#11823b;">+0.59%</span>  | <span style="color:#b91c1c;">-1.33%</span>  | <span style="color:#11823b;">+11.14%</span> | <span style="color:#11823b;">+21.97%</span> | <span style="color:#11823b;">+42.18%</span>  |
+| Silver           |    83.42 | <span style="color:#11823b;">+0.60%</span>  | <span style="color:#b91c1c;">-8.27%</span>  | <span style="color:#11823b;">+8.65%</span>  | <span style="color:#11823b;">+46.74%</span> | <span style="color:#11823b;">+103.10%</span> |
 | Coffee           |   285.85 | <span style="color:#b91c1c;">-0.38%</span>  | <span style="color:#b91c1c;">-0.85%</span>  | <span style="color:#b91c1c;">-14.22%</span> | <span style="color:#b91c1c;">-30.61%</span> | <span style="color:#b91c1c;">-25.87%</span>  |
 | Cocoa            |  3025    | <span style="color:#11823b;">+3.42%</span>  | <span style="color:#11823b;">+2.30%</span>  | <span style="color:#b91c1c;">-28.15%</span> | <span style="color:#b91c1c;">-44.33%</span> | <span style="color:#b91c1c;">-59.02%</span>  |
-| Bitcoin          | 73618    | <span style="color:#11823b;">+7.80%</span>  | <span style="color:#11823b;">+8.33%</span>  | <span style="color:#b91c1c;">-6.44%</span>  | <span style="color:#b91c1c;">-20.10%</span> | <span style="color:#b91c1c;">-33.47%</span>  |
+| Bitcoin          | 73625.8  | <span style="color:#11823b;">+7.81%</span>  | <span style="color:#11823b;">+8.34%</span>  | <span style="color:#b91c1c;">-6.43%</span>  | <span style="color:#b91c1c;">-20.09%</span> | <span style="color:#b91c1c;">-33.46%</span>  |
 
 **Macro charts (5Y):**
 
+<table><tr><td style='padding-right:12px;'><img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/macro_vix_5y.png?v=20260304193150' width='414' style='width:414px;max-width:414px;height:auto;'></td><td><img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/macro_eurusd_5y.png?v=20260304193150' width='414' style='width:414px;max-width:414px;height:auto;'></td></tr></table>
 
 
 ## 2) Biggest movers (≥ 4%)
@@ -37,17 +38,17 @@ Headline: Big Tech and AI optimism resurfaced as investors weighed fresh debate 
 
 | Ticker   | pct    |
 | :--- | ---: |
-| PLTR     | +4.71% |
-| NVO      | +4.63% |
-| MPC      | +4.05% |
-| MELI     | +4.03% |
+| HOOD     | +7.93% |
+| NVO      | +4.61% |
+| PLTR     | +4.47% |
+| MPC      | +4.17% |
 
 **Session losers:**
 
 | Ticker   | pct    |
 | :--- | ---: |
 | SK Hynix | -9.58% |
-| ANF      | -4.34% |
+| ANF      | -4.61% |
 
 **After-hours gainers:** _None ≥ 4%_
 
@@ -79,34 +80,159 @@ _Upcoming earnings dates for your  watchlist._
 
 
 
-### RKT HS diagnosis
+### Focus tickers deep-dive
 
-### 4A) Watchlist emerging chart trends
-
-_Logic: score each ticker by stage (EARLY=1, CONFIRMED=3, VALIDATED=4) × direction (BREAKOUT=+1, BREAKDOWN=-1), then aggregate by sector._
-
-| Sector | Bias | EARLY↑ | EARLY↓ | CONF↑ | CONF↓ | VALID↑ | VALID↓ |
-| :--- | :--- | ---: | ---: | ---: | ---: | ---: | ---: |
-| AI compute & semis (incl. EDA) | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
-| AI software/data | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
-| Big Tech platforms | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
-| Consumer & retail (incl. luxury) | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
-| Fintech & financials | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
-| Healthcare | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
-| Energy & Nuclear | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
-| Quantum | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
-| Venezuela Oil | Bullish | 0 | 0 | 1 | 0 | 0 | 0 |
-| Commodities | Mixed | 0 | 0 | 0 | 0 | 0 | 0 |
+_Full deterministic HS/IHS diagnostics for: NU, RKT_
 
 
-### 4B) Early callouts (~90% complete)
+**NU HOLDINGS LTD. (NU)**
 
-_Close enough to pre-plan. “Close enough” = within 0.5 ATR of the trigger (neckline/boundary). No SOFT tier — anything not CONFIRMED stays in EARLY._
+- HS/IHS detected today: **YES**
 
-**NEW (today):**
+- HS_TOP reject summary: ls_not_dominant_left:5
 
-<em>None</em>
+- IHS reject summary: no_shoulder_candidates:1, no_triplet:1
 
-**ONGOING:**
+- HS diagnostic head anchor: H=2026-01-29T00:00:00 (i=166) | Close=18.76
 
-<style>table.tblauto{table-layout:auto;width:100%;border-collapse:collapse;margin:8px 0;}table.tblauto th,table.tblauto td{border:1px solid #e5e7eb;padding:6px 8px;vertical-align:top;}table.tblauto th{background:#f6f8fa;font-weight:600;white-space:nowrap;}table.tblauto td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}table.tblauto td.txt{white-space:nowrap;}table.tblauto td.wrap{white-space:normal;}</style><div style="overflow-x:auto"><table class="tblauto"><thead><tr><th>Name of Company</th><th>Ticker</th><th>Country</th><th>Sector</th><th>Signal</th><th>Close</th><th>Day%</th><th>Threshold</th><th>CLV</th><th>ATR(14)</th><th>Dist(ATR)</th><th>Vol/AvgVol(20)</th><th>Chart</th></tr></thead><tbody><tr><td class="wrap">DELTA AIR LINES INC</td><td class="txt">DAL</td><td class="txt">United States</td><td class="txt">Industrials</td><td class="txt">EARLY_RECT_TOP_BREAKDOWN</td><td class="num">64.60</td><td class="num">+0.5%</td><td class="num">64.83</td><td class="num">+0.53</td><td class="num">3.55</td><td class="num">-0.06</td><td class="num">1.32×</td><td class="txt"><a href="https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/DAL_EARLY_RECT_TOP_BREAKDOWN.png?v=20260304185827" target="_blank">chart</a></td></tr><tr><td class="wrap">EQUITY RESIDENTIAL REIT</td><td class="txt">EQR</td><td class="txt">United States</td><td class="txt">Real Estate</td><td class="txt">EARLY_RECT_BREAKDOWN</td><td class="num">62.72</td><td class="num">-0.6%</td><td class="num">62.84</td><td class="num">+0.42</td><td class="num">1.49</td><td class="num">-0.08</td><td class="num">0.55×</td><td class="txt"><a href="https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/EQR_EARLY_RECT_BREAKDOWN.png?v=20260304185827" target="_blank">chart</a></td></tr><tr><td class="wrap">REGENERON PHARMACEUTICALS INC</td><td class="txt">REGN</td><td class="txt">United States</td><td class="txt">Health Care</td><td class="txt">EARLY_RECT_TOP_BREAKDOWN</td><td class="num">766.66</td><td class="num">-3.1%</td><td class="num">764.61</td><td class="num">-0.86</td><td class="num">23.01</td><td class="num">+0.09</td><td class="num">0.85×</td><td class="txt"><a href="https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/REGN_EARLY_RECT_TOP_BREAKDOWN.png?v=20260304185827" target="_blank">chart</a></td></tr><tr><td class="wrap">SOFINA SA</td><td class="txt">SOF</td><td class="txt">Belgium</td><td class="txt">Financials</td><td class="txt">EARLY_RECT_BREAKDOWN</td><td class="num">100.15</td><td class="num">+0.0%</td><td class="num">100.17</td><td class="num">+0.08</td><td class="num">0.11</td><td class="num">-0.20</td><td class="num">0.04×</td><td class="txt"><a href="https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/SOF_EARLY_RECT_BREAKDOWN.png?v=20260304185827" target="_blank">chart</a></td></tr><tr><td class="wrap">UNITED THERAPEUTICS CORP</td><td class="txt">UTHR</td><td class="txt">United States</td><td class="txt">Health Care</td><td class="txt">EARLY_RECT_TOP_BREAKOUT</td><td class="num">498.65</td><td class="num">-3.0%</td><td class="num">504.70</td><td class="num">-0.29</td><td class="num">19.24</td><td class="num">-0.31</td><td class="num">1.14×</td><td class="txt"><a href="https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/UTHR_EARLY_RECT_TOP_BREAKOUT.png?v=20260304185827" target="_blank">chart</a></td></tr><tr><td class="wrap">ESSENTIAL UTILITIES INC</td><td class="txt">WTRG</td><td class="txt">United States</td><td class="txt">Utilities</td><td class="txt">EARLY_RECT_BOTTOM_BREAKOUT</td><td class="num">40.11</td><td class="num">-0.1%</td><td class="num">40.44</td><td class="num">+0.71</td><td class="num">1.04</td><td class="num">-0.32</td><td class="num">0.82×</td><td class="txt"><a href="https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/WTRG_EARLY_RECT_BOTTOM_BREAKOUT.png?v=20260304185827" target="_blank">chart</a></td></tr><tr><td class="wrap">ALLSTATE CORP</td><td class="txt">ALL</td><td class="txt">United States</td><td class="txt">Financials</td><td class="txt">EARLY_RECT_BREAKOUT</td><td class="num">213.61</td><td class="num">+0.4%</td><td class="num">215.30</td><td class="num">+0.51</td><td class="num">5.18</td><td class="num">-0.33</td><td class="num">0.83×</td><td class="txt"><a href="https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/ALL_EARLY_RECT_BREAKOUT.png?v=20260304185827" target="_blank">chart</a></td></tr><tr><td class="wrap">DICKS SPORTING INC</td><td class="txt">DKS</td><td class="txt">United States</td><td class="txt">Consumer Discretionary</td><td class="txt">EARLY_RECT_BOTTOM_BREAKOUT</td><td class="num">201.46</td><td class="num">-1.3%</td><td class="num">203.97</td><td class="num">+0.59</td><td class="num">7.71</td><td class="num">-0.33</td><td class="num">0.93×</td><td class="txt"><a href="https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/DKS_EARLY_RECT_BOTTOM_BREAKOUT.png?v=20260304185827" target="_blank">chart</a></td></tr><tr><
+  - Left shoulder candidates (top 5): 2026-01-05T00:00:00(17.94), 2025-12-04T00:00:00(17.65), 2025-12-12T00:00:00(16.90), 2025-11-11T00:00:00(16.39), 2025-09-22T00:00:00(16.30)
+
+  - Right shoulder candidates (top 5): 2026-02-20T00:00:00(17.53)
+
+- Best attempted HS geometry (diagnostic):
+
+  - LS/H/RS (ts): LS=2026-01-05T00:00:00, H=2026-01-29T00:00:00, RS=2026-02-20T00:00:00
+
+  - Geometry checks (deterministic):
+
+    - 1) H is absolute extreme Close in [LS..RS]: YES (H_Close=18.76, span_extreme=18.76, extreme_i=166)
+
+    - 2) LS local extreme (±3): YES | RS local extreme: YES
+
+    - 3) Symmetry ratio ≥ 0.70: YES (dL=17, dR=15, ratio=0.88)
+
+    - 4) Valley depth ≥ 2.0×ATR(head): YES (left=2.45, right=2.39, thr=1.07, ATR=0.54)
+
+    - 5) Shoulder→Valley ≥ 1.0×ATR(head): YES (left=1.64, right=1.16, thr=0.54)
+
+    - 6) Span bars in [30..90]: YES (span=32)
+
+    - 7) Sidebars ≥ 10 bars: YES (dL=17, dR=15)
+
+    - 8) Reaction pivots local (±3): YES (p1=None, p2=None, ok1=None, ok2=None)
+
+    - 9) Neckline angle within ±17.5° (abs): YES (angle=0.90°)
+
+- NU swing-high check (Close-based) @ 2026-01-05: ok=True | reason=None
+
+  - hit=2026-01-05 00:00:00 (i=90) | Close=17.94 | cwin_max=17.94 (count=1) | prom=1.40 vs thr=0.20 (ATR=0.39)
+
+- NU swing-high check (High-based) @ 2026-01-05: ok=False | reason=not_local_max_in_window
+
+  - hit=2026-01-05 00:00:00 (i=149) | High=18.14 | hwin_max=18.37 (count=1) | prom=1.49 vs thr=0.20 (ATR=0.39)
+
+- NU HS_TOP head anchor (detector window): H=2026-01-29 (i=166) | Close=18.76 | head_zone=±10 bars
+
+- NU left-shoulder CLOSE-peak candidates (top 6):
+
+  - L1: 2026-01-05 (i=149) Close=17.94
+
+  - L2: 2025-12-04 (i=129) Close=17.65
+
+  - L3: 2025-12-12 (i=135) Close=16.90
+
+  - L4: 2025-11-11 (i=113) Close=16.39
+
+  - L5: 2025-09-22 (i=77) Close=16.30
+
+  - L6: 2025-10-08 (i=89) Close=15.46
+
+- NU Jan 5 index in detector window: i=149 Close=17.94 | in_left_candidates=True
+
+  - Left-candidate winner by CLOSE: 2026-01-05 (i=149) Close=17.94
+
+  - Jan 5 loses only if another LEFT candidate has higher CLOSE outside the head-zone.
+
+- Best candidate: **HS_TOP / BREAKDOWN** | Dist(ATR) **-2.99** | Gates: Price **Y**, CLV **N**, Vol **N** | HS lag **7**
+
+  - Gate inputs: CLV=0.3258425280717677 | VolRatio=1.1655812456657173
+
+  - LS/H/RS geometry (idx): LS=149, H=166, RS=181
+
+  - LS/H/RS geometry (ts): LS=2026-01-05T00:00:00, H=2026-01-29T00:00:00, RS=2026-02-20T00:00:00\n
+  - Point alignment (p vs Close): LSΔ=+0.0000, HΔ=+0.0000, RSΔ=+0.0000\n
+  - Geometry checks (deterministic):
+
+    - 1) H is absolute extreme Close in [LS..RS]: YES (H_Close=18.76, span_extreme=18.76, extreme_i=166)
+
+    - 2) LS local extreme (±3 bars): YES | RS local extreme: YES
+
+    - 3) Symmetry ratio min(dL,dR)/max(dL,dR) ≥ 0.70: YES (dL=17, dR=15, ratio=0.88)
+
+    - 4) Valley depth ≥ 2.0×ATR(head): YES (left=2.45, right=2.39, thr=1.07, ATR=0.54)
+
+    - 5) Shoulder→Valley ≥ 1.0×ATR(head): YES (left=1.64, right=1.16, thr=0.54)
+
+    - 6) Span bars in [30..90]: YES (span=32)
+
+    - 7) Sidebars ≥ 10 bars: YES (dL=17, dR=15)
+
+    - 8) Reaction pivots local (±3): YES (p1=None, p2=None, ok1=None, ok2=None)
+
+    - 9) Neckline angle within ±17.5° (abs): YES (angle=0.90°)
+
+  - Detector window maxClose: 18.76 at 2026-01-28 00:00:00 | H_Close=18.76
+
+  - Pre-head maxClose between (LS,H): 18.76 at 2026-01-28 00:00:00 | LS_Close=17.94
+
+  - Post-head maxClose between (H,RS): 18.12 at 2026-02-03 00:00:00 | RS_Close=17.53
+
+<a href='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/NU_FOCUS_HS_TOP_BREAKDOWN.png?v=20260304193150' target='_blank'><img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/NU_FOCUS_HS_TOP_BREAKDOWN.png?v=20260304193150' width='980' style='max-width:980px;height:auto;'></a>
+
+
+
+**ROCKET COMPANIES INC CLASS A (RKT)**
+
+- HS/IHS detected today: **YES**
+
+- HS_TOP reject summary: no_shoulder_candidates:1, no_triplet:1
+
+- IHS reject summary: no_shoulder_candidates:1, no_triplet:1
+
+- HS diagnostic head anchor: H=2026-01-15T00:00:00 (i=157) | Close=23.44
+
+  - Left shoulder candidates (top 5): 2025-09-17T00:00:00(21.16), 2025-12-01T00:00:00(20.31), 2025-09-29T00:00:00(20.14), 2025-10-27T00:00:00(18.16), 2025-11-12T00:00:00(17.93)
+
+  - Right shoulder candidates: NONE (after head-zone exclusion)
+
+- Best candidate: **HS_TOP / BREAKDOWN** | Dist(ATR) **-1.21** | Gates: Price **Y**, CLV **N**, Vol **Y** | HS lag **14**
+
+  - Gate inputs: CLV=0.45438981652844407 | VolRatio=1.2822258419095804
+
+  - LS/H/RS geometry (idx): LS=134, H=157, RS=174
+
+  - LS/H/RS geometry (ts): LS=2025-12-11T00:00:00, H=2026-01-15T00:00:00, RS=2026-02-10T00:00:00\n
+  - Point alignment (p vs Close): LSΔ=+0.0000, HΔ=+0.0000, RSΔ=+0.0000\n
+  - Geometry checks (deterministic):
+
+    - 1) H is absolute extreme Close in [LS..RS]: YES (H_Close=23.44, span_extreme=23.44, extreme_i=157)
+
+    - 2) LS local extreme (±3 bars): YES | RS local extreme: YES
+
+    - 3) Symmetry ratio min(dL,dR)/max(dL,dR) ≥ 0.70: YES (dL=23, dR=17, ratio=0.74)
+
+    - 4) Valley depth ≥ 2.0×ATR(head): YES (left=5.68, right=6.39, thr=1.90, ATR=0.95)
+
+    - 5) Shoulder→Valley ≥ 1.0×ATR(head): YES (left=1.60, right=3.20, thr=0.95)
+
+    - 6) Span bars in [30..90]: YES (span=40)
+
+    - 7) Sidebars ≥ 10 bars: YES (dL=23, dR=17)
+
+    - 8) Reaction pivots local (±3): YES (p1=None, p2=None, ok1=None, ok2=None)
+
+    - 9) Neckline angle within ±17.5° (abs): YES (angle=-0.45°)
+
+  - Detector window maxClose: 23.44 at 2026-01-15 00:00:00 | H_Close=23.44
+
+ 
