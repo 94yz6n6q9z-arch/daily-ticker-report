@@ -176,29 +176,34 @@ FOOTER_MARKERS = [
 
 EXCHANGE_SUFFIX_RULES: List[Tuple[re.Pattern, str, str]] = [
     # regex, yahoo suffix, confidence label for appended suffix
-    (re.compile(r"NASDAQ|NEW\s+YORK\s+STOCK\s+EXCHANGE|NYSE|CBOE|BATS|ARCA", re.I), "", "high"),
-    (re.compile(r"TORONTO\s+STOCK\s+EXCHANGE|TSX", re.I), ".TO", "high"),
-    (re.compile(r"LONDON\s+STOCK\s+EXCHANGE|LSE", re.I), ".L", "high"),
-    (re.compile(r"XETRA|DEUTSCHE\s+BOERSE|FRANKFURT", re.I), ".DE", "high"),
+    # ── Specific Euronext / Nasdaq OMX exchanges MUST come before the US catch-all ──
+    # (The US rule matches "NYSE" inside "Nyse Euronext" and "NASDAQ" inside "Nasdaq Omx"
+    #  if evaluated first — so specific European rules are listed first.)
     (re.compile(r"EURONEXT\s+PARIS", re.I), ".PA", "high"),
     (re.compile(r"EURONEXT\s+AMSTERDAM", re.I), ".AS", "high"),
     (re.compile(r"EURONEXT\s+BRUSSELS", re.I), ".BR", "high"),
     (re.compile(r"EURONEXT\s+MILAN|BORSA\s+ITALIANA|MILAN", re.I), ".MI", "high"),
+    (re.compile(r"EURONEXT\s+DUBLIN|IRISH\s+STOCK\s+EXCHANGE|DUBLIN", re.I), ".IR", "low"),
+    (re.compile(r"EURONEXT\s+LISBON|LISBON", re.I), ".LS", "med"),
+    (re.compile(r"NASDAQ\s+OMX\s+COPENHAGEN|COPENHAGEN", re.I), ".CO", "med"),
+    (re.compile(r"NASDAQ\s+OMX\s+STOCKHOLM|NASDAQ\s+OMX\s+NORDIC|STOCKHOLM", re.I), ".ST", "med"),
+    (re.compile(r"NASDAQ\s+OMX\s+HELSINKI|HELSINKI", re.I), ".HE", "med"),
+    # ── US exchanges (only match pure US, after Euronext/OMX rules) ──
+    (re.compile(r"NASDAQ|NEW\s+YORK\s+STOCK\s+EXCHANGE|NYSE|CBOE|BATS|ARCA", re.I), "", "high"),
+    # ── Other exchanges ──
+    (re.compile(r"TORONTO\s+STOCK\s+EXCHANGE|TSX", re.I), ".TO", "high"),
+    (re.compile(r"LONDON\s+STOCK\s+EXCHANGE|LSE", re.I), ".L", "high"),
+    (re.compile(r"XETRA|DEUTSCHE\s+BOERSE|FRANKFURT", re.I), ".DE", "high"),
     (re.compile(r"SIX\s+SWISS|SWISS\s+EXCHANGE|SIX", re.I), ".SW", "med"),
     (re.compile(r"MADRID|BME", re.I), ".MC", "high"),
     (re.compile(r"TOKYO\s+STOCK\s+EXCHANGE|TSE\b|JPX", re.I), ".T", "high"),
     (re.compile(r"HONG\s*KONG|HKEX", re.I), ".HK", "high"),
     (re.compile(r"AUSTRALIAN\s+SECURITIES\s+EXCHANGE|\bASX\b", re.I), ".AX", "high"),
-    (re.compile(r"NASDAQ\s+OMX\s+COPENHAGEN|COPENHAGEN", re.I), ".CO", "med"),
-    (re.compile(r"NASDAQ\s+OMX\s+STOCKHOLM|STOCKHOLM", re.I), ".ST", "med"),
-    (re.compile(r"NASDAQ\s+OMX\s+HELSINKI|HELSINKI", re.I), ".HE", "med"),
     (re.compile(r"OSLO\s+BORS|OSLO", re.I), ".OL", "med"),
     (re.compile(r"TEL\s+AVIV|TASE", re.I), ".TA", "med"),
     (re.compile(r"WIENER\s+BOERSE|VIENNA", re.I), ".VI", "med"),
     (re.compile(r"SINGAPORE\s+EXCHANGE|\bSGX\b", re.I), ".SI", "med"),
     (re.compile(r"NEW\s+ZEALAND\s+EXCHANGE|\bNZX\b", re.I), ".NZ", "med"),
-    (re.compile(r"EURONEXT\s+DUBLIN|IRISH\s+STOCK\s+EXCHANGE|DUBLIN", re.I), ".IR", "low"),
-    (re.compile(r"EURONEXT\s+LISBON|LISBON", re.I), ".LS", "med"),
 ]
 
 
@@ -395,6 +400,8 @@ def _clean_symbol_base(raw: str) -> str:
     # Common US share class notation to Yahoo style (BRK.B -> BRK-B) when no exchange suffix yet.
     if re.fullmatch(r"[A-Z]{1,5}\.[A-Z]", s):
         s = s.replace(".", "-")
+    # Strip trailing dots (LSE raw symbols like "JD.", "BP." produce double-dots when suffix appended).
+    s = s.rstrip(".")
     return s
 
 
