@@ -1,12 +1,12 @@
 # Daily Report
 
-_Generated: **2026-03-05 00:34 CET** | Version: **v88**_
+_Generated: **2026-03-05 07:03 CET** | Version: **v89**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Headline: AI-linked earnings strength and shifting Fed-rate expectations steadied equities even as oil and the dollar stayed firm. The Nasdaq 100 rose 1.5% and the S&P 500 gained 0.8% while the VIX fell 10.3%, a partial unwind of the past month’s volatility and drawdowns (NDX -2.5% 1M) as investors weighed Broadcom’s upbeat results against reduced Fed rate-cut chances and a jump in gas prices tied to surging oil. Biggest movers were HOOD +8.1%, NVO +5.0% and MPC +4.1% higher, while SK Hynix fell 9.6%.
+Headline: AI-linked tech caught a bid after Broadcom’s earnings and guidance beat, keeping the spotlight on custom chips and the next wave of computing. The Nasdaq 100 rose 1.51% and the S&P 500 gained 0.78% as the VIX fell 10.27%, a calmer session that interrupts the choppy, slightly lower tape of recent weeks (NDX -2.51% 1M). Biggest movers on the watchlist were SK Hynix up 13.90%, HOOD up 8.07% and NVO up 5.02%, with no decliners over 4% flagged.
 
 **Key tape (multi-horizon):**
 
@@ -17,37 +17,34 @@ Headline: AI-linked earnings strength and shifting Fed-rate expectations steadie
 | STOXX Europe 600 |   612.71 | <span style="color:#11823b;">+1.37%</span>  | <span style="color:#b91c1c;">-3.28%</span>  | <span style="color:#b91c1c;">-0.75%</span>  | <span style="color:#11823b;">+5.85%</span>  | <span style="color:#11823b;">+11.56%</span>  |
 | DAX              | 24205.4  | <span style="color:#11823b;">+1.74%</span>  | <span style="color:#b91c1c;">-3.86%</span>  | <span style="color:#b91c1c;">-2.39%</span>  | <span style="color:#11823b;">+1.35%</span>  | <span style="color:#11823b;">+2.58%</span>   |
 | CAC 40           |  8167.73 | <span style="color:#11823b;">+0.79%</span>  | <span style="color:#b91c1c;">-4.57%</span>  | <span style="color:#b91c1c;">-0.16%</span>  | <span style="color:#11823b;">+0.56%</span>  | <span style="color:#11823b;">+6.42%</span>   |
-| FTSE 100         | 10567.6  | <span style="color:#11823b;">+0.80%</span>  | <span style="color:#b91c1c;">-2.21%</span>  | <span style="color:#11823b;">+2.19%</span>  | <span style="color:#11823b;">+8.82%</span>  | <span style="color:#11823b;">+14.76%</span>  |
+| FTSE 100         | 10567.7  | <span style="color:#11823b;">+0.80%</span>  | <span style="color:#b91c1c;">-2.21%</span>  | <span style="color:#11823b;">+2.19%</span>  | <span style="color:#11823b;">+8.82%</span>  | <span style="color:#11823b;">+14.76%</span>  |
 | VIX              |    21.15 | <span style="color:#b91c1c;">-10.27%</span> | <span style="color:#11823b;">+17.96%</span> | <span style="color:#11823b;">+29.44%</span> | <span style="color:#11823b;">+34.03%</span> | <span style="color:#11823b;">+39.33%</span>  |
-| EUR/USD          |     1.16 | <span style="color:#b91c1c;">-0.50%</span>  | <span style="color:#b91c1c;">-1.16%</span>  | <span style="color:#b91c1c;">-1.78%</span>  | <span style="color:#b91c1c;">-0.24%</span>  | <span style="color:#b91c1c;">-0.16%</span>   |
-| WTI Crude        |    76.01 | <span style="color:#11823b;">+1.94%</span>  | <span style="color:#11823b;">+16.19%</span> | <span style="color:#11823b;">+22.32%</span> | <span style="color:#11823b;">+27.38%</span> | <span style="color:#11823b;">+22.85%</span>  |
-| Gold             |  5164.8  | <span style="color:#11823b;">+1.12%</span>  | <span style="color:#b91c1c;">-0.80%</span>  | <span style="color:#11823b;">+11.73%</span> | <span style="color:#11823b;">+22.63%</span> | <span style="color:#11823b;">+42.94%</span>  |
-| Silver           |    83.82 | <span style="color:#11823b;">+1.09%</span>  | <span style="color:#b91c1c;">-7.82%</span>  | <span style="color:#11823b;">+9.18%</span>  | <span style="color:#11823b;">+47.46%</span> | <span style="color:#11823b;">+104.08%</span> |
+| EUR/USD          |     1.16 | <span style="color:#b91c1c;">-0.12%</span>  | <span style="color:#b91c1c;">-1.84%</span>  | <span style="color:#b91c1c;">-1.70%</span>  | <span style="color:#b91c1c;">-0.38%</span>  | <span style="color:#b91c1c;">-0.50%</span>   |
+| WTI Crude        |    77.84 | <span style="color:#11823b;">+4.26%</span>  | <span style="color:#11823b;">+19.37%</span> | <span style="color:#11823b;">+23.15%</span> | <span style="color:#11823b;">+29.56%</span> | <span style="color:#11823b;">+25.81%</span>  |
+| Gold             |  5167.3  | <span style="color:#11823b;">+0.92%</span>  | <span style="color:#b91c1c;">-0.18%</span>  | <span style="color:#11823b;">+5.38%</span>  | <span style="color:#11823b;">+22.65%</span> | <span style="color:#11823b;">+43.01%</span>  |
+| Silver           |    83.6  | <span style="color:#11823b;">+1.17%</span>  | <span style="color:#b91c1c;">-3.91%</span>  | <span style="color:#11823b;">+0.67%</span>  | <span style="color:#11823b;">+43.10%</span> | <span style="color:#11823b;">+103.54%</span> |
 | Coffee           |   285.85 | <span style="color:#b91c1c;">-0.38%</span>  | <span style="color:#b91c1c;">-0.85%</span>  | <span style="color:#b91c1c;">-14.22%</span> | <span style="color:#b91c1c;">-30.61%</span> | <span style="color:#b91c1c;">-25.87%</span>  |
 | Cocoa            |  3025    | <span style="color:#11823b;">+3.42%</span>  | <span style="color:#11823b;">+2.30%</span>  | <span style="color:#b91c1c;">-28.15%</span> | <span style="color:#b91c1c;">-44.33%</span> | <span style="color:#b91c1c;">-59.02%</span>  |
-| Bitcoin          | 72471.5  | <span style="color:#11823b;">+6.12%</span>  | <span style="color:#11823b;">+6.64%</span>  | <span style="color:#b91c1c;">-7.90%</span>  | <span style="color:#b91c1c;">-21.35%</span> | <span style="color:#b91c1c;">-34.50%</span>  |
+| Bitcoin          | 72259.8  | <span style="color:#11823b;">+5.81%</span>  | <span style="color:#11823b;">+7.12%</span>  | <span style="color:#b91c1c;">-4.46%</span>  | <span style="color:#b91c1c;">-19.16%</span> | <span style="color:#b91c1c;">-34.44%</span>  |
 
 **Macro charts (5Y):**
 
-<table><tr><td style='padding-right:12px;'><img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/macro_vix_5y.png?v=20260304233416' width='414' style='width:414px;max-width:414px;height:auto;'></td><td><img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/macro_eurusd_5y.png?v=20260304233416' width='414' style='width:414px;max-width:414px;height:auto;'></td></tr></table>
+<table><tr><td style='padding-right:12px;'><img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/macro_vix_5y.png?v=20260305060349' width='414' style='width:414px;max-width:414px;height:auto;'></td><td><img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/macro_eurusd_5y.png?v=20260305060349' width='414' style='width:414px;max-width:414px;height:auto;'></td></tr></table>
 
 
 ## 2) Biggest movers (≥ 4%)
 
 **Session gainers:**
 
-| Ticker   | pct    |
+| Ticker   | pct     |
 | :--- | ---: |
-| HOOD     | +8.07% |
-| NVO      | +5.02% |
-| MPC      | +4.15% |
-| PLTR     | +4.06% |
+| SK Hynix | +13.90% |
+| HOOD     | +8.07%  |
+| NVO      | +5.02%  |
+| MPC      | +4.15%  |
+| PLTR     | +4.06%  |
 
-**Session losers:**
-
-| Ticker   | pct    |
-| :--- | ---: |
-| SK Hynix | -9.58% |
+**Session losers:** _None ≥ 4%_
 
 **After-hours gainers:** _None ≥ 4%_
 
@@ -67,19 +64,19 @@ _Upcoming earnings dates for your  watchlist._
 
 ### Signal engine health (diagnostics)
 
-- Tickers scanned: **1273**; usable OHLCV: **771**
+- Tickers scanned: **1267**; usable OHLCV: **1221**
 
-- Candidates found: **165** (top patterns: IHS:35, DEAD_CAT_BOUNCE:28, HS_TOP:22, RECT_BOTTOM:22, RECT:18, MOMO_TREND:16, RECT_TOP:16, DESC_TRIANGLE:4)
+- Candidates found: **258** (top patterns: IHS:63, DEAD_CAT_BOUNCE:38, RECT_BOTTOM:38, RECT:32, HS_TOP:31, RECT_TOP:24, MOMO_TREND:22, DESC_TRIANGLE:6)
 
-- Live signals: EARLY **14**, CONFIRMED **2**, VALIDATED **2** (total 18)
+- Live signals: EARLY **18**, CONFIRMED **8**, VALIDATED **3** (total 29)
 
 - Geometry restored today: HS/IHS **32**, Band **10**
 
-- Download: universe **1273** → downloaded **771** → usable(≥80 bars) **771** | short(<80) **0** | no data **502**
+- Download: universe **1267** → downloaded **1224** → usable(≥80 bars) **1221** | short(<80) **3** | no data **43**
 
-  - No data by exchange: US: 501/1041, .TO: 1/7
+  - No data by exchange: .ST: 31/38, .CO: 7/15, US: 2/542, .TO: 1/81, .SI: 1/15, .HE: 1/12
 
-  - No data by country: Canada: 75, United Kingdom: 66, France: 51, Australia: 42, Germany: 40, Switzerland: 39, Sweden: 38, Netherlands: 24, Italy: 24, Spain: 20
+  - No data by country: Sweden: 31, Denmark: 7, United States: 2, Canada: 1, Singapore: 1, Finland: 1
 
 
 
@@ -96,7 +93,7 @@ _Full diagnostics + validation gate history for: 0669.HK, TOST, TSN_
 
 - IHS reject summary: no_shoulder_candidates:1, no_triplet:1
 
-- HS diagnostic head anchor: H=2026-02-27T00:00:00 (i=186) | Close=127.60
+- HS diagnostic head anchor: H=2026-02-27T00:00:00 (i=185) | Close=127.60
 
   - Left shoulder candidates (top 5): 2026-01-16T00:00:00(103.30), 2025-10-27T00:00:00(99.85), 2025-12-05T00:00:00(96.00), 2025-11-13T00:00:00(92.20)
 
@@ -106,13 +103,13 @@ _Full diagnostics + validation gate history for: 0669.HK, TOST, TSN_
 
   - Gate inputs: CLV=0.8 | VolRatio=1.3364933770314025
 
-  - LS/H/RS geometry (idx): LS=95, H=120, RS=148
+  - LS/H/RS geometry (idx): LS=94, H=119, RS=147
 
   - LS/H/RS geometry (ts): LS=2025-10-14T00:00:00, H=2025-11-19T00:00:00, RS=2025-12-31T00:00:00\n
   - Point alignment (p vs Close): LSΔ=+0.0000, HΔ=+0.0000, RSΔ=+0.0000\n
   - Geometry checks (deterministic):
 
-    - 1) H is absolute extreme Close in [LS..RS]: YES (H_Close=84.00, span_extreme=84.00, extreme_i=120)
+    - 1) H is absolute extreme Close in [LS..RS]: YES (H_Close=84.00, span_extreme=84.00, extreme_i=119)
 
     - 2) LS local extreme (±3 bars): YES | RS local extreme: YES
 
@@ -147,4 +144,4 @@ _Full diagnostics + validation gate history for: 0669.HK, TOST, TSN_
 <tr><td style='padding:2px 8px;'>2026-01-27</td><td style='padding:2px 8px;text-align:right;'>104.60</td><td style='padding:2px 8px;text-align:right;'>91.33</td><td style='padding:2px 8px;text-align:right;'>+5.10</td><td style='padding:2px 8px;text-align:center;'><span style='color:green;'>✓</span></td><td style='padding:2px 8px;text-align:right;'>+0.81</td><td style='padding:2px 8px;text-align:center;'><span style='color:green;'>✓</span></td><td style='padding:2px 8px;text-align:right;'>1.78×</td><td style='padding:2px 8px;text-align:center;'><span style='color:green;'>✓</span></td><td style='padding:2px 8px;text-align:center;'><span style='color:green;font-weight:bold;'>✓</span></td><td style='padding:2px 8px;font-size:12px;'>PRE</td></tr>
 <tr><td style='padding:2px 8px;'>2026-01-28</td><td style='padding:2px 8px;text-align:right;'>107.00</td><td style='padding:2px 8px;text-align:right;'>91.19</td><td style='padding:2px 8px;text-align:right;'>+6.12</td><td style='padding:2px 8px;text-align:center;'><span style='color:green;'>✓</span></td><td style='padding:2px 8px;text-align:right;'>+0.56</td><td style='padding:2px 8px;text-align:center;'><span style='color:red;'>✗</span></td><td style='padding:2px 8px;text-align:right;'>2.13×</td><td style='padding:2px 8px;text-align:center;'><span style='color:green;'>✓</span></td><td style='padding:2px 8px;text-align:center;'><span style='color:red;'>✗</span></td><td style='padding:2px 8px;font-size:12px;'>PRE</td></tr>
 <tr><td style='padding:2px 8px;'>2026-01-29</td><td style='padding:2px 8px;text-align:right;'>106.20</td><td style='padding:2px 8px;text-align:right;'>91.05</td><td style='padding:2px 8px;text-align:right;'>+5.79</td><td style='padding:2px 8px;text-align:center;'><span style='color:green;'>✓</span></td><td style='padding:2px 8px;text-align:right;'>+0.63</td><td style='padding:2px 8px;text-align:center;'><span style='color:red;'>✗</span></td><td style='padding:2px 8px;text-align:right;'>1.97×</td><td style='padding:2px 8px;text-align:center;'><span style='color:green;'>✓</span></td><td style='padding:2px 8px;text-align:center;'><span style='color:red;'>✗</span></td><td style='padding:2px 8px;font-size:12px;'>PRE</td></tr>
-<tr><td style=
+<tr><td style='padding:2px 8px;'>2026-01-30</td><td style='padding:2px 8px;text-align:right;'>106.50</td
