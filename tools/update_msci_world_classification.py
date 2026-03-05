@@ -182,7 +182,7 @@ EXCHANGE_SUFFIX_RULES: List[Tuple[re.Pattern, str, str]] = [
 # regex, yahoo suffix, confidence label for appended suffix
 # ── Specific Euronext / Nasdaq OMX exchanges MUST come before the US catch-all ──
 # (The US rule matches “NYSE” inside “Nyse Euronext” and “NASDAQ” inside “Nasdaq Omx”
-#  if evaluated first — so specific European rules are listed first.)
+#  if evaluated first – so specific European rules are listed first.)
 (re.compile(r”EURONEXT\s+PARIS”, re.I), “.PA”, “high”),
 (re.compile(r”EURONEXT\s+AMSTERDAM”, re.I), “.AS”, “high”),
 (re.compile(r”EURONEXT\s+BRUSSELS”, re.I), “.BR”, “high”),
