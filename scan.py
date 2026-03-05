@@ -34,6 +34,7 @@ NEW (this update):
 - v86: Fix MSCI mapping script: reorder exchange suffix rules so Euronext/Nordic match before US catch-all. Adds NORDIC to Stockholm regex. Fixes 114 tickers across France, Sweden, Belgium, Finland, Portugal.
 - v87: Fix yfinance rate-limiting: add 1.5s sleep between chunk downloads, 0.3s between individual retries, and a full second retry pass for still-missing tickers. Closes ~330 ticker coverage gap (Canada, UK, Australia, Germany, etc.).
 - v88: Rewrite yf_download_chunk — group tickers by exchange suffix before chunking. Mixed-exchange bulk downloads cause Yahoo to silently drop non-US tickers. Each exchange group (.L, .TO, .DE, etc.) now downloads in its own homogeneous chunks. Removes all sleep/throttling (was counterproductive). Per-exchange progress logging.
+- v89: ROOT CAUSE FIX — _clean_ticker regex [A-Z]+\.[A-Z]+ was converting exchange suffixes (.L, .DE, .TO, .AX, etc.) to hyphens (BP.L→BP-L). This destroyed ~400 international tickers. Now checks against known exchange suffixes before converting. Also: yfinance Ticker fallback for after-hours movers, diagnostic logging for yahoo_quote endpoint.
 """
 from __future__ import annotations
 import argparse
@@ -57,7 +58,7 @@ import yfinance as yf
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-SCAN_VERSION: str = "v88"
+SCAN_VERSION: str = "v89"
 # ----------------------------
 # Public asset URLs (email-safe) + cache busting
 # ----------------------------
@@ -553,7 +554,21 @@ def fetch_rss_headlines(limit_total: int = 14) -> List[Dict[str, str]]:
     return uniq[:limit_total]
 def _clean_ticker(t: str) -> str:
     t = str(t).strip()
-    # Wikipedia uses BRK.B -> Yahoo uses BRK-B
+    # Wikipedia uses BRK.B -> Yahoo uses BRK-B (share class dot → hyphen).
+    # MUST NOT convert exchange suffixes like .L, .DE, .TO, .AX, .SW, etc.
+    # Strategy: if the part after the dot is a known exchange suffix, leave it alone.
+    _EXCHANGE_SUFFIXES = {
+        "L", "DE", "TO", "AX", "SW", "MI", "HK", "MC", "CO", "SI", "AS",
+        "OL", "TA", "VI", "NZ", "IR", "PA", "ST", "BR", "HE", "LS", "T",
+        "V", "F",  # Toronto Venture (.V), Frankfurt (.F)
+        "KS", "KQ",  # Korea
+        "SA", "JK", "BK", "IS", "NS", "BO",  # Other emerging
+    }
+    if "." in t:
+        parts = t.rsplit(".", 1)
+        if len(parts) == 2 and parts[1].upper() in _EXCHANGE_SUFFIXES:
+            return t  # exchange suffix — do NOT convert
+    # Safe to convert: share class like BRK.B, BF.A, MOG.B
     if re.fullmatch(r"[A-Z]+\.[A-Z]+", t):
         return t.replace(".", "-")
     return t
@@ -2054,11 +2069,14 @@ def yahoo_quote(symbols: List[str]) -> List[Dict]:
                 break
             except HTTPError as e:
                 # transient throttling / gateway errors
-                if getattr(e, "code", None) in (429, 502, 503, 504):
+                code = getattr(e, "code", None)
+                if code in (429, 502, 503, 504):
                     time.sleep(0.6 + 0.7 * attempt)
                     continue
+                print(f"[yahoo_quote] HTTP {code} for chunk starting {chunk[0]} (attempt {attempt+1})")
                 break
-            except Exception:
+            except Exception as exc:
+                print(f"[yahoo_quote] error for chunk starting {chunk[0]}: {type(exc).__name__}: {exc}")
                 time.sleep(0.3 + 0.4 * attempt)
                 continue
         if not ok and len(chunk) > 1:
@@ -2068,6 +2086,7 @@ def yahoo_quote(symbols: List[str]) -> List[Dict]:
                     out.extend(_fetch([s]))
                 except Exception:
                     continue
+    print(f"[yahoo_quote] requested {len(symbols)} symbols, got {len(out)} quote records")
     return out
 def fetch_watchlist_afterhours_movers_yahoo(symbols: List[str]) -> pd.DataFrame:
     """Compute AFTER-HOURS % moves for a given symbol list using Yahoo quote data.
@@ -6692,6 +6711,10 @@ def main():
     session_lf = session_all[session_all["pct"] <= -MOVER_THRESHOLD_PCT].sort_values("pct", ascending=True)
     # After-hours movers (watchlist) via Yahoo quote endpoint (postMarketChangePercent)
     ah_all = fetch_watchlist_afterhours_movers_yahoo(mover_universe)
+    print(f"[after-hours] yahoo_quote returned {len(ah_all)} after-hours movers")
+    if not ah_all.empty:
+        top = ah_all.sort_values("pct", ascending=False, key=lambda s: s.abs()).head(5)
+        print(f"[after-hours] top movers: {list(zip(top['symbol'], top['pct'].round(2)))}")
     # Fallback: if Yahoo returns no extended-hours data for some tickers, supplement from StockAnalysis after-hours tables.
     try:
         fb_gain, fb_lose = fetch_afterhours_movers()
@@ -6711,6 +6734,34 @@ def main():
                 fb2 = fb2[~fb2["symbol"].isin(have)]
                 if not fb2.empty:
                     ah_all = pd.concat([ah_all, fb2], ignore_index=True)
+    except Exception:
+        pass
+    # Fallback 3: for watchlist tickers still missing after-hours data, try yfinance Ticker API
+    # (uses authenticated API, more reliable than v7 quote endpoint)
+    try:
+        ah_have = set(ah_all["symbol"].astype(str)) if ah_all is not None and not ah_all.empty else set()
+        ah_missing = [t for t in mover_universe if t not in ah_have]
+        if ah_missing:
+            yf_ah_rows = []
+            for t in ah_missing:
+                try:
+                    tk = yf.Ticker(t)
+                    fi = tk.fast_info if hasattr(tk, "fast_info") else {}
+                    reg = fi.get("regularMarketPrice") or fi.get("previousClose")
+                    post = fi.get("postMarketPrice")
+                    if reg and post and float(reg) > 0:
+                        pct = (float(post) / float(reg) - 1.0) * 100.0
+                        if abs(pct) >= 0.01:  # skip zero moves
+                            yf_ah_rows.append({"symbol": t, "pct": float(pct)})
+                except Exception:
+                    continue
+            if yf_ah_rows:
+                yf_ah = pd.DataFrame(yf_ah_rows)
+                print(f"[after-hours] yfinance Ticker fallback recovered {len(yf_ah)} tickers")
+                if ah_all is None or ah_all.empty:
+                    ah_all = yf_ah
+                else:
+                    ah_all = pd.concat([ah_all, yf_ah], ignore_index=True)
     except Exception:
         pass
     ah_all = filter_movers(ah_all)
