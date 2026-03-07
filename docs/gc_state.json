@@ -1,0 +1,176 @@
+{
+ "earnings_cache": {
+  "0001.HK": {
+   "ticker": "0001.HK",
+   "quarterly_revenue": [],
+   "earnings_dates": [],
+   "_ed_error": "`Import lxml` failed.  Use pip or conda to install the lxml package.",
+   "info": {
+    "revenue_growth": 0.02,
+    "earnings_growth": -0.917,
+    "sector": "Industrials",
+    "industry": "Conglomerates",
+    "market_cap": 235739234304.0,
+    "trailing_pe": 30.470297,
+    "forward_pe": 9.9918995,
+    "short_name": "CKH HOLDINGS"
+   },
+   "fetched_at": "2026-03-07T20:09:16.348607+00:00"
+  },
+  "0002.HK": {
+   "ticker": "0002.HK",
+   "quarterly_revenue": [],
+   "earnings_dates": [],
+   "_ed_error": "`Import lxml` failed.  Use pip or conda to install the lxml package.",
+   "info": {
+    "revenue_growth": -0.037,
+    "earnings_growth": -0.164,
+    "sector": "Utilities",
+    "industry": "Utilities - Regulated Electric",
+    "market_cap": 189736435712.0,
+    "trailing_pe": 18.140097,
+    "forward_pe": 16.010471,
+    "short_name": "CLP HOLDINGS"
+   },
+   "fetched_at": "2026-03-07T20:09:17.919702+00:00"
+  },
+  "0003.HK": {
+   "ticker": "0003.HK",
+   "quarterly_revenue": [],
+   "earnings_dates": [],
+   "_ed_error": "`Import lxml` failed.  Use pip or conda to install the lxml package.",
+   "info": {
+    "revenue_growth": 0.001,
+    "earnings_growth": -0.012,
+    "sector": "Utilities",
+    "industry": "Utilities - Regulated Gas",
+    "market_cap": 140135628800.0,
+    "trailing_pe": 25.033333,
+    "forward_pe": 22.541721,
+    "short_name": "HK & CHINA GAS"
+   },
+   "fetched_at": "2026-03-07T20:09:19.050280+00:00"
+  },
+  "0004.HK": {
+   "ticker": "0004.HK",
+   "quarterly_revenue": [],
+   "earnings_dates": [],
+   "_ed_error": "`Import lxml` failed.  Use pip or conda to install the lxml package.",
+   "info": {
+    "revenue_growth": -0.194,
+    "earnings_growth": NaN,
+    "sector": "Real Estate",
+    "industry": "Real Estate - Development",
+    "market_cap": 76522930176.0,
+    "trailing_pe": NaN,
+    "forward_pe": 18.03346,
+    "short_name": "WHARF HOLDINGS"
+   },
+   "fetched_at": "2026-03-07T20:09:20.405464+00:00"
+  },
+  "0006.HK": {
+   "ticker": "0006.HK",
+   "quarterly_revenue": [],
+   "earnings_dates": [],
+   "_ed_error": "`Import lxml` failed.  Use pip or conda to install the lxml package.",
+   "info": {
+    "revenue_growth": -0.225,
+    "earnings_growth": 0.012,
+    "sector": "Utilities",
+    "industry": "Utilities - Independent Power Producers",
+    "market_cap": 133300625408.0,
+    "trailing_pe": 21.643597,
+    "forward_pe": 19.505365,
+    "short_name": "POWER ASSETS"
+   },
+   "fetched_at": "2026-03-07T20:09:22.393310+00:00"
+  },
+  "0012.HK": {
+   "ticker": "0012.HK",
+   "quarterly_revenue": [],
+   "earnings_dates": [],
+   "_ed_error": "`Import lxml` failed.  Use pip or conda to install the lxml package.",
+   "info": {
+    "revenue_growth": -0.188,
+    "earnings_growth": -0.084,
+    "sector": "Real Estate",
+    "industry": "Real Estate - Diversified",
+    "market_cap": 160734052352.0,
+    "trailing_pe": 26.774195,
+    "forward_pe": 18.542307,
+    "short_name": "HENDERSON LAND"
+   },
+   "fetched_at": "2026-03-07T20:09:24.312401+00:00"
+  },
+  "0016.HK": {
+   "ticker": "0016.HK",
+   "quarterly_revenue": [],
+   "earnings_dates": [],
+   "_ed_error": "`Import lxml` failed.  Use pip or conda to install the lxml package.",
+   "info": {
+    "revenue_growth": 0.32,
+    "earnings_growth": 0.362,
+    "sector": "Real Estate",
+    "industry": "Real Estate - Development",
+    "market_cap": 411484782592.0,
+    "trailing_pe": 18.68421,
+    "forward_pe": 16.275108,
+    "short_name": "SHK PPT"
+   },
+   "fetched_at": "2026-03-07T20:09:25.508282+00:00"
+  },
+  "0019.HK": {
+   "ticker": "0019.HK",
+   "quarterly_revenue": [],
+   "earnings_dates": [],
+   "_ed_error": "`Import lxml` failed.  Use pip or conda to install the lxml package.",
+   "info": {
+    "revenue_growth": 0.157,
+    "earnings_growth": -0.787,
+    "sector": "Industrials",
+    "industry": "Conglomerates",
+    "market_cap": 295131316224.0,
+    "trailing_pe": 88.42391,
+    "forward_pe": 9.940734,
+    "short_name": "SWIRE PACIFIC A"
+   },
+   "fetched_at": "2026-03-07T20:09:26.678399+00:00"
+  },
+  "0027.HK": {
+   "ticker": "0027.HK",
+   "quarterly_revenue": [],
+   "earnings_dates": [],
+   "_ed_error": "`Import lxml` failed.  Use pip or conda to install the lxml package.",
+   "info": {
+    "revenue_growth": 0.181,
+    "earnings_growth": 0.242,
+    "sector": "Consumer Cyclical",
+    "industry": "Resorts & Casinos",
+    "market_cap": 166586335232.0,
+    "trailing_pe": 15.654321,
+    "forward_pe": 13.54614,
+    "short_name": "GALAXY ENT"
+   },
+   "fetched_at": "2026-03-07T20:09:28.041261+00:00"
+  },
+  "0066.HK": {
+   "ticker": "0066.HK",
+   "quarterly_revenue": [],
+   "earnings_dates": [],
+   "_ed_error": "`Import lxml` failed.  Use pip or conda to install the lxml package.",
+   "info": {
+    "revenue_growth": -0.065,
+    "earnings_growth": 0.278,
+    "sector": "Industrials",
+    "industry": "Railroads",
+    "market_cap": 219891810304.0,
+    "trailing_pe": 12.590748,
+    "forward_pe": 13.679246,
+    "short_name": "MTR CORPORATION"
+   },
+   "fetched_at": "2026-03-07T20:09:29.229976+00:00"
+  }
+ },
+ "last_data_update": "2026-03-07T20:09:29.430246+00:00",
+ "gc_version": "0.1.0"
+}
