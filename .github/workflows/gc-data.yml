@@ -1,5 +1,6 @@
 # .github/workflows/gc-data.yml
 # Run Growth Compounder data layer to fetch/cache earnings data
+# Covers MSCI World + MSCI EM combined universe (~2,600 tickers)
 # Can be triggered manually or scheduled
 
 name: gc-data-refresh
@@ -37,7 +38,21 @@ jobs:
           python-version: '3.12'
 
       - name: Install dependencies
-        run: pip install yfinance pandas numpy lxml
+        run: pip install yfinance pandas numpy lxml requests
+
+      - name: Refresh MSCI World classification
+        run: |
+          cd ${{ github.workspace }}
+          python tools/update_msci_world_classification.py --universe world \
+            --out config/msci_world_classification.csv \
+            --meta docs/msci_world_classification_meta.json
+
+      - name: Refresh MSCI EM classification
+        run: |
+          cd ${{ github.workspace }}
+          python tools/update_msci_world_classification.py --universe em \
+            --out-em config/msci_em_classification.csv \
+            --meta-em docs/msci_em_classification_meta.json
 
       - name: Run GC data layer
         run: |
@@ -56,6 +71,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/gc_state.json
-          git diff --cached --quiet || git commit -m "GC data refresh $(date -u +%Y-%m-%d)"
+          git add docs/gc_state.json \
+                  config/msci_world_classification.csv \
+                  config/msci_em_classification.csv \
+                  docs/msci_world_classification_meta.json \
+                  docs/msci_em_classification_meta.json
+          git diff --cached --quiet || git commit -m "GC data + MSCI refresh $(date -u +%Y-%m-%d)"
           git push
