@@ -1,0 +1,61 @@
+# .github/workflows/gc-data.yml
+# Run Growth Compounder data layer to fetch/cache earnings data
+# Can be triggered manually or scheduled
+
+name: gc-data-refresh
+
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Force re-download all earnings data'
+        required: false
+        default: 'false'
+        type: boolean
+      limit:
+        description: 'Limit universe size (0 = full)'
+        required: false
+        default: '0'
+        type: string
+  schedule:
+    # Run daily at 06:00 UTC (after US market close + after-hours)
+    - cron: '0 6 * * 1-6'
+
+jobs:
+  gc-data:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install yfinance pandas numpy
+
+      - name: Run GC data layer
+        run: |
+          cd ${{ github.workspace }}
+          FORCE_FLAG=""
+          if [ "${{ inputs.force }}" = "true" ]; then
+            FORCE_FLAG="--force"
+          fi
+          LIMIT_FLAG=""
+          if [ "${{ inputs.limit }}" != "0" ] && [ -n "${{ inputs.limit }}" ]; then
+            LIMIT_FLAG="--limit ${{ inputs.limit }}"
+          fi
+          python gc_engine.py --mode data $FORCE_FLAG $LIMIT_FLAG
+
+      - name: Commit and push changes (if any)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/gc_state.json
+          git diff --cached --quiet || git commit -m "GC data refresh $(date -u +%Y-%m-%d)"
+          git push
