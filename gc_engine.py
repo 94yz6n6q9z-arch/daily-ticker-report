@@ -42,6 +42,7 @@ CONFIG_DIR = BASE_DIR / "config"
 DOCS_DIR = BASE_DIR / "docs"
 GC_STATE_PATH = DOCS_DIR / "gc_state.json"
 MSCI_CSV = CONFIG_DIR / "msci_world_classification.csv"
+MSCI_EM_CSV = CONFIG_DIR / "msci_em_classification.csv"
 
 # OHLCV download
 DOWNLOAD_PERIOD = "3y"        # For daily scanning
@@ -54,6 +55,21 @@ ATR_N = 14
 
 # Earnings data cache TTL (don't re-download if fresher than this)
 EARNINGS_CACHE_TTL_HOURS = 20  # Re-download once per day
+
+# ────────────────────────────────────────────────────────────────
+# Ticker overrides: bad/unmapped symbol → correct Yahoo Finance symbol
+# Add here rather than editing the CSV manually — gc_engine auto-heals
+# even if update_msci_world_classification.py regenerates the CSV.
+# ────────────────────────────────────────────────────────────────
+TICKER_OVERRIDES: Dict[str, str] = {
+    "2299955D.TO": "CSU.TO",    # Constellation Software — Bloomberg placeholder ticker
+    "NDAFI.HE":    "NDA-FI.HE", # Nordea Bank Helsinki — raw symbol has space, needs hyphen
+    "HEIA":        "HEI-A",     # HEICO Corp Class A — Yahoo uses HEI-A not HEIA
+    "BMW3.DE":     "BMWG.DE",   # BMW preference shares — Yahoo uses BMWG not BMW3
+    "BRKB":        "BRK-B",     # Berkshire Hathaway B — Yahoo uses BRK-B not BRKB
+    "CICT.SI":     "C38U.SI",   # CapitaLand Integrated Commercial Trust — REIT ticker
+    "CSG.AS":      "CS.AS",     # Credit Suisse (now UBS) — check if still valid
+}
 
 
 # ────────────────────────────────────────────────────────────────
@@ -125,20 +141,55 @@ def _json_default(o):
 # Universe construction
 # ────────────────────────────────────────────────────────────────
 def load_universe() -> pd.DataFrame:
-    """Load MSCI World classification CSV.
-    Returns DataFrame with columns: Ticker, Company, Country, Sector
+    """Load MSCI World + MSCI EM classification CSVs.
+    Returns combined DataFrame with columns: Ticker, Company, Country, Sector
+    Deduplicates by Ticker — World takes priority over EM for any overlap.
     """
+    frames = []
+
+    # MSCI World (primary)
     if not MSCI_CSV.exists():
-        print(f"[gc] MSCI CSV not found at {MSCI_CSV}")
+        print(f"[gc] MSCI World CSV not found at {MSCI_CSV}")
+    else:
+        try:
+            df = pd.read_csv(MSCI_CSV, dtype=str)
+            df["Ticker"] = df["Ticker"].astype(str).str.strip()
+            df = df[df["Ticker"].str.len() > 0]
+            df["_source"] = "world"
+            frames.append(df)
+            print(f"[gc] Loaded {len(df)} tickers from MSCI World CSV")
+        except Exception as e:
+            print(f"[gc] Error loading MSCI World CSV: {e}")
+
+    # MSCI EM (supplementary)
+    if not MSCI_EM_CSV.exists():
+        print(f"[gc] MSCI EM CSV not found at {MSCI_EM_CSV} — universe is World-only. "
+              f"Run update_msci_world_classification.py --universe em to generate.")
+    else:
+        try:
+            df_em = pd.read_csv(MSCI_EM_CSV, dtype=str)
+            df_em["Ticker"] = df_em["Ticker"].astype(str).str.strip()
+            df_em = df_em[df_em["Ticker"].str.len() > 0]
+            df_em["_source"] = "em"
+            frames.append(df_em)
+            print(f"[gc] Loaded {len(df_em)} tickers from MSCI EM CSV")
+        except Exception as e:
+            print(f"[gc] Error loading MSCI EM CSV: {e}")
+
+    if not frames:
         return pd.DataFrame(columns=["Ticker", "Company", "Country", "Sector"])
-    try:
-        df = pd.read_csv(MSCI_CSV, dtype=str)
-        df["Ticker"] = df["Ticker"].astype(str).str.strip()
-        df = df[df["Ticker"].str.len() > 0]
-        return df
-    except Exception as e:
-        print(f"[gc] Error loading MSCI CSV: {e}")
-        return pd.DataFrame(columns=["Ticker", "Company", "Country", "Sector"])
+
+    combined = pd.concat(frames, ignore_index=True)
+    # World takes priority for duplicates
+    combined = combined.sort_values("_source", ascending=True)  # 'em' > 'world' alphabetically — world sorts first
+    combined = combined.drop_duplicates(subset=["Ticker"], keep="first")
+    combined = combined.drop(columns=["_source"], errors="ignore")
+
+    # Apply known ticker overrides (corrects bad Yahoo mappings without touching CSV)
+    combined["Ticker"] = combined["Ticker"].replace(TICKER_OVERRIDES)
+    combined = combined.drop_duplicates(subset=["Ticker"], keep="first")
+
+    return combined.reset_index(drop=True)
 
 
 # ────────────────────────────────────────────────────────────────
@@ -328,10 +379,34 @@ def compute_revenue_analytics(earnings_data: Dict[str, Any]) -> Dict[str, Any]:
         growth_streak: consecutive quarters of positive YoY growth
         accel_streak: consecutive quarters of acceleration
         meets_golden_momentum: revenue >= 20% YoY
+        revenue_source: 'quarterly' (full data) or 'info_fallback' (TTM from yfinance info)
     """
     out: Dict[str, Any] = {}
     rev = earnings_data.get("quarterly_revenue", [])
+
+    # ── Fallback: use info.revenue_growth when quarterly data is unavailable ──
+    # Covers Japan (.T), UK (.L), Australia (.AX), France (.PA), Switzerland (.SW),
+    # and most EM markets where yfinance doesn't return structured quarterly income
+    # statements. info.revenue_growth is trailing-12-month YoY — good enough for
+    # Layer 3 (>=20% gate) and sector comparisons. Flagged as 'info_fallback' so
+    # star rating can apply a lower confidence weight if desired.
     if not rev or len(rev) < 5:
+        info = earnings_data.get("info", {})
+        info_rev_growth = info.get("revenue_growth")
+        if info_rev_growth is not None:
+            try:
+                g = float(info_rev_growth)
+                if np.isfinite(g):
+                    pct = round(g * 100.0, 2)
+                    out["latest_yoy_growth"] = pct
+                    out["prev_yoy_growth"] = None
+                    out["is_accelerating"] = None
+                    out["growth_streak"] = 1 if g > 0 else 0
+                    out["accel_streak"] = 0
+                    out["meets_golden_momentum_revenue"] = pct >= 20.0
+                    out["revenue_source"] = "info_fallback"
+            except Exception:
+                pass
         return out
 
     # Get quarters with YoY growth computed (need at least 2)
@@ -385,6 +460,7 @@ def compute_revenue_analytics(earnings_data: Dict[str, Any]) -> Dict[str, Any]:
         latest["revenue_yoy_growth"] is not None
         and latest["revenue_yoy_growth"] >= 20.0
     )
+    out["revenue_source"] = "quarterly"
 
     return out
 
