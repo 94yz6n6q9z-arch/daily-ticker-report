@@ -3,8 +3,16 @@
   "0001.HK": {
    "ticker": "0001.HK",
    "quarterly_revenue": [],
-   "earnings_dates": [],
-   "_ed_error": "`Import lxml` failed.  Use pip or conda to install the lxml package.",
+   "earnings_dates": [
+    {
+     "date": "2026-03-19",
+     "eps_estimate": null,
+     "eps_reported": null,
+     "eps_surprise_pct": null,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    }
+   ],
    "info": {
     "revenue_growth": 0.02,
     "earnings_growth": -0.917,
@@ -15,13 +23,21 @@
     "forward_pe": 9.9918995,
     "short_name": "CKH HOLDINGS"
    },
-   "fetched_at": "2026-03-07T20:09:16.348607+00:00"
+   "fetched_at": "2026-03-07T20:20:53.087730+00:00"
   },
   "0002.HK": {
    "ticker": "0002.HK",
    "quarterly_revenue": [],
-   "earnings_dates": [],
-   "_ed_error": "`Import lxml` failed.  Use pip or conda to install the lxml package.",
+   "earnings_dates": [
+    {
+     "date": "2026-08-03",
+     "eps_estimate": null,
+     "eps_reported": null,
+     "eps_surprise_pct": null,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    }
+   ],
    "info": {
     "revenue_growth": -0.037,
     "earnings_growth": -0.164,
@@ -32,13 +48,21 @@
     "forward_pe": 16.010471,
     "short_name": "CLP HOLDINGS"
    },
-   "fetched_at": "2026-03-07T20:09:17.919702+00:00"
+   "fetched_at": "2026-03-07T20:20:54.395786+00:00"
   },
   "0003.HK": {
    "ticker": "0003.HK",
    "quarterly_revenue": [],
-   "earnings_dates": [],
-   "_ed_error": "`Import lxml` failed.  Use pip or conda to install the lxml package.",
+   "earnings_dates": [
+    {
+     "date": "2026-03-18",
+     "eps_estimate": null,
+     "eps_reported": null,
+     "eps_surprise_pct": null,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    }
+   ],
    "info": {
     "revenue_growth": 0.001,
     "earnings_growth": -0.012,
@@ -49,13 +73,21 @@
     "forward_pe": 22.541721,
     "short_name": "HK & CHINA GAS"
    },
-   "fetched_at": "2026-03-07T20:09:19.050280+00:00"
+   "fetched_at": "2026-03-07T20:20:55.679420+00:00"
   },
   "0004.HK": {
    "ticker": "0004.HK",
    "quarterly_revenue": [],
-   "earnings_dates": [],
-   "_ed_error": "`Import lxml` failed.  Use pip or conda to install the lxml package.",
+   "earnings_dates": [
+    {
+     "date": "2026-03-12",
+     "eps_estimate": null,
+     "eps_reported": null,
+     "eps_surprise_pct": null,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    }
+   ],
    "info": {
     "revenue_growth": -0.194,
     "earnings_growth": NaN,
@@ -66,13 +98,21 @@
     "forward_pe": 18.03346,
     "short_name": "WHARF HOLDINGS"
    },
-   "fetched_at": "2026-03-07T20:09:20.405464+00:00"
+   "fetched_at": "2026-03-07T20:20:57.019258+00:00"
   },
   "0006.HK": {
    "ticker": "0006.HK",
    "quarterly_revenue": [],
-   "earnings_dates": [],
-   "_ed_error": "`Import lxml` failed.  Use pip or conda to install the lxml package.",
+   "earnings_dates": [
+    {
+     "date": "2026-03-18",
+     "eps_estimate": null,
+     "eps_reported": null,
+     "eps_surprise_pct": null,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    }
+   ],
    "info": {
     "revenue_growth": -0.225,
     "earnings_growth": 0.012,
@@ -83,13 +123,21 @@
     "forward_pe": 19.505365,
     "short_name": "POWER ASSETS"
    },
-   "fetched_at": "2026-03-07T20:09:22.393310+00:00"
+   "fetched_at": "2026-03-07T20:20:58.243725+00:00"
   },
   "0012.HK": {
    "ticker": "0012.HK",
    "quarterly_revenue": [],
-   "earnings_dates": [],
-   "_ed_error": "`Import lxml` failed.  Use pip or conda to install the lxml package.",
+   "earnings_dates": [
+    {
+     "date": "2026-03-19",
+     "eps_estimate": null,
+     "eps_reported": null,
+     "eps_surprise_pct": null,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    }
+   ],
    "info": {
     "revenue_growth": -0.188,
     "earnings_growth": -0.084,
@@ -100,13 +148,21 @@
     "forward_pe": 18.542307,
     "short_name": "HENDERSON LAND"
    },
-   "fetched_at": "2026-03-07T20:09:24.312401+00:00"
+   "fetched_at": "2026-03-07T20:20:59.623672+00:00"
   },
   "0016.HK": {
    "ticker": "0016.HK",
    "quarterly_revenue": [],
-   "earnings_dates": [],
-   "_ed_error": "`Import lxml` failed.  Use pip or conda to install the lxml package.",
+   "earnings_dates": [
+    {
+     "date": "2026-09-03",
+     "eps_estimate": null,
+     "eps_reported": null,
+     "eps_surprise_pct": null,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    }
+   ],
    "info": {
     "revenue_growth": 0.32,
     "earnings_growth": 0.362,
@@ -117,13 +173,21 @@
     "forward_pe": 16.275108,
     "short_name": "SHK PPT"
    },
-   "fetched_at": "2026-03-07T20:09:25.508282+00:00"
+   "fetched_at": "2026-03-07T20:21:00.709046+00:00"
   },
   "0019.HK": {
    "ticker": "0019.HK",
    "quarterly_revenue": [],
-   "earnings_dates": [],
-   "_ed_error": "`Import lxml` failed.  Use pip or conda to install the lxml package.",
+   "earnings_dates": [
+    {
+     "date": "2026-03-12",
+     "eps_estimate": null,
+     "eps_reported": null,
+     "eps_surprise_pct": null,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    }
+   ],
    "info": {
     "revenue_growth": 0.157,
     "earnings_growth": -0.787,
@@ -134,13 +198,213 @@
     "forward_pe": 9.940734,
     "short_name": "SWIRE PACIFIC A"
    },
-   "fetched_at": "2026-03-07T20:09:26.678399+00:00"
+   "fetched_at": "2026-03-07T20:21:01.848555+00:00"
   },
   "0027.HK": {
    "ticker": "0027.HK",
    "quarterly_revenue": [],
-   "earnings_dates": [],
-   "_ed_error": "`Import lxml` failed.  Use pip or conda to install the lxml package.",
+   "earnings_dates": [
+    {
+     "date": "2026-05-07",
+     "eps_estimate": 0.65,
+     "eps_reported": null,
+     "eps_surprise_pct": null,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    },
+    {
+     "date": "2023-04-19",
+     "eps_estimate": -0.15,
+     "eps_reported": -0.29,
+     "eps_surprise_pct": -91.33,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    },
+    {
+     "date": "2022-11-09",
+     "eps_estimate": -0.46,
+     "eps_reported": -0.3,
+     "eps_surprise_pct": 34.78,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    },
+    {
+     "date": "2022-08-18",
+     "eps_estimate": -0.61,
+     "eps_reported": -0.1,
+     "eps_surprise_pct": 83.61,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    },
+    {
+     "date": "2022-05-11",
+     "eps_estimate": -0.19,
+     "eps_reported": -0.1,
+     "eps_surprise_pct": 47.37,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    },
+    {
+     "date": "2022-02-22",
+     "eps_estimate": -0.04,
+     "eps_reported": 0.09,
+     "eps_surprise_pct": 317.5,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    },
+    {
+     "date": "2021-11-10",
+     "eps_estimate": -0.04,
+     "eps_reported": 0.04,
+     "eps_surprise_pct": 200.0,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    },
+    {
+     "date": "2021-08-12",
+     "eps_estimate": 0.09,
+     "eps_reported": 0.22,
+     "eps_surprise_pct": 141.11,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    },
+    {
+     "date": "2021-05-13",
+     "eps_estimate": 0.15,
+     "eps_reported": 0.11,
+     "eps_surprise_pct": -26.67,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    },
+    {
+     "date": "2021-02-24",
+     "eps_estimate": -0.42,
+     "eps_reported": -0.13,
+     "eps_surprise_pct": 69.05,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    },
+    {
+     "date": "2020-11-10",
+     "eps_estimate": -0.09,
+     "eps_reported": -0.13,
+     "eps_surprise_pct": -44.44,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    },
+    {
+     "date": "2020-08-13",
+     "eps_estimate": null,
+     "eps_reported": -0.33,
+     "eps_surprise_pct": null,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    },
+    {
+     "date": "2020-05-13",
+     "eps_estimate": 0.06,
+     "eps_reported": -0.33,
+     "eps_surprise_pct": -650.0,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    },
+    {
+     "date": "2020-02-27",
+     "eps_estimate": 0.77,
+     "eps_reported": 0.73,
+     "eps_surprise_pct": -5.19,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    },
+    {
+     "date": "2019-11-07",
+     "eps_estimate": 0.77,
+     "eps_reported": 0.73,
+     "eps_surprise_pct": -5.19,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    },
+    {
+     "date": "2019-08-13",
+     "eps_estimate": 0.7,
+     "eps_reported": 0.77,
+     "eps_surprise_pct": 10.0,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    },
+    {
+     "date": "2019-05-16",
+     "eps_estimate": 0.79,
+     "eps_reported": 0.77,
+     "eps_surprise_pct": -2.53,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    },
+    {
+     "date": "2019-02-27",
+     "eps_estimate": 0.83,
+     "eps_reported": 0.73,
+     "eps_surprise_pct": -12.05,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    },
+    {
+     "date": "2018-10-25",
+     "eps_estimate": 0.74,
+     "eps_reported": 0.73,
+     "eps_surprise_pct": -1.35,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    },
+    {
+     "date": "2018-08-08",
+     "eps_estimate": 0.79,
+     "eps_reported": 0.83,
+     "eps_surprise_pct": 5.06,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    },
+    {
+     "date": "2018-02-28",
+     "eps_estimate": 0.68,
+     "eps_reported": 0.68,
+     "eps_surprise_pct": null,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    },
+    {
+     "date": "2017-11-08",
+     "eps_estimate": 0.63,
+     "eps_reported": 0.68,
+     "eps_surprise_pct": 7.94,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    },
+    {
+     "date": "2017-08-30",
+     "eps_estimate": 0.52,
+     "eps_reported": 0.54,
+     "eps_surprise_pct": 3.85,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    },
+    {
+     "date": "2017-02-28",
+     "eps_estimate": 0.4,
+     "eps_reported": 0.43,
+     "eps_surprise_pct": 7.5,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    },
+    {
+     "date": "2016-10-26",
+     "eps_estimate": 0.35,
+     "eps_reported": 0.43,
+     "eps_surprise_pct": 22.86,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    }
+   ],
    "info": {
     "revenue_growth": 0.181,
     "earnings_growth": 0.242,
@@ -151,13 +415,21 @@
     "forward_pe": 13.54614,
     "short_name": "GALAXY ENT"
    },
-   "fetched_at": "2026-03-07T20:09:28.041261+00:00"
+   "fetched_at": "2026-03-07T20:21:03.245149+00:00"
   },
   "0066.HK": {
    "ticker": "0066.HK",
    "quarterly_revenue": [],
-   "earnings_dates": [],
-   "_ed_error": "`Import lxml` failed.  Use pip or conda to install the lxml package.",
+   "earnings_dates": [
+    {
+     "date": "2026-03-12",
+     "eps_estimate": null,
+     "eps_reported": null,
+     "eps_surprise_pct": null,
+     "revenue_estimate": null,
+     "revenue_reported": null
+    }
+   ],
    "info": {
     "revenue_growth": -0.065,
     "earnings_growth": 0.278,
@@ -168,9 +440,9 @@
     "forward_pe": 13.679246,
     "short_name": "MTR CORPORATION"
    },
-   "fetched_at": "2026-03-07T20:09:29.229976+00:00"
+   "fetched_at": "2026-03-07T20:21:04.431950+00:00"
   }
  },
- "last_data_update": "2026-03-07T20:17:24.612344+00:00",
+ "last_data_update": "2026-03-07T20:21:04.632228+00:00",
  "gc_version": "0.1.0"
 }
