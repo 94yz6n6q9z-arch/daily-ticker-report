@@ -54,7 +54,7 @@ USER_AGENT = (
 
 # Try UCITS + US listings; first success wins.
 # These endpoints are the same style as the ones exposed by iShares pages' "download holdings" links.
-SOURCE_CANDIDATES = [
+SOURCE_CANDIDATES_WORLD = [
     {
         "fund": "EUNL",
         "url": "https://www.ishares.com/de/privatanleger/de/produkte/251882/ishares-msci-world-ucits-etf-acc-fund/1506575576011.ajax?dataType=fund&fileName=EUNL_holdings&fileType=csv",
@@ -71,6 +71,23 @@ SOURCE_CANDIDATES = [
         "referer": "https://www.ishares.com/us/products/239696/ishares-msci-world-etf",
     },
 ]
+
+# MSCI Emerging Markets ETF sources (EIMI = UCITS, EEM = US-listed)
+SOURCE_CANDIDATES_EM = [
+    {
+        "fund": "EIMI",
+        "url": "https://www.ishares.com/uk/individual/en/products/264659/ishares-core-msci-emerging-markets-imi-ucits-etf-acc-fund/1506575576011.ajax?dataType=fund&fileName=EIMI_holdings&fileType=csv",
+        "referer": "https://www.ishares.com/uk/individual/en/products/264659/ishares-core-msci-emerging-markets-imi-ucits-etf-acc-fund",
+    },
+    {
+        "fund": "EEM",
+        "url": "https://www.ishares.com/us/products/239626/ishares-msci-emerging-markets-etf/1467271812596.ajax?dataType=fund&fileName=EEM_holdings&fileType=csv",
+        "referer": "https://www.ishares.com/us/products/239626/ishares-msci-emerging-markets-etf",
+    },
+]
+
+# Backward-compat alias
+SOURCE_CANDIDATES = SOURCE_CANDIDATES_WORLD
 
 SP500_11 = [
     "Communication Services",
@@ -190,7 +207,7 @@ EXCHANGE_SUFFIX_RULES: List[Tuple[re.Pattern, str, str]] = [
     (re.compile(r"NASDAQ\s+OMX\s+HELSINKI|HELSINKI", re.I), ".HE", "med"),
     # ── US exchanges (only match pure US, after Euronext/OMX rules) ──
     (re.compile(r"NASDAQ|NEW\s+YORK\s+STOCK\s+EXCHANGE|NYSE|CBOE|BATS|ARCA", re.I), "", "high"),
-    # ── Other exchanges ──
+    # ── Developed market exchanges ──
     (re.compile(r"TORONTO\s+STOCK\s+EXCHANGE|TSX", re.I), ".TO", "high"),
     (re.compile(r"LONDON\s+STOCK\s+EXCHANGE|LSE", re.I), ".L", "high"),
     (re.compile(r"XETRA|DEUTSCHE\s+BOERSE|FRANKFURT", re.I), ".DE", "high"),
@@ -198,13 +215,80 @@ EXCHANGE_SUFFIX_RULES: List[Tuple[re.Pattern, str, str]] = [
     (re.compile(r"MADRID|BME", re.I), ".MC", "high"),
     (re.compile(r"TOKYO\s+STOCK\s+EXCHANGE|TSE\b|JPX", re.I), ".T", "high"),
     (re.compile(r"HONG\s*KONG|HKEX", re.I), ".HK", "high"),
-    (re.compile(r"AUSTRALIAN\s+SECURITIES\s+EXCHANGE|\bASX\b", re.I), ".AX", "high"),
-    (re.compile(r"OSLO\s+BORS|OSLO", re.I), ".OL", "med"),
-    (re.compile(r"TEL\s+AVIV|TASE", re.I), ".TA", "med"),
-    (re.compile(r"WIENER\s+BOERSE|VIENNA", re.I), ".VI", "med"),
-    (re.compile(r"SINGAPORE\s+EXCHANGE|\bSGX\b", re.I), ".SI", "med"),
-    (re.compile(r"NEW\s+ZEALAND\s+EXCHANGE|\bNZX\b", re.I), ".NZ", "med"),
+    (re.compile(r"ASX\s+-\s+ALL\s+MARKETS|AUSTRALIAN\s+SECURITIES\s+EXCHANGE|ASX", re.I), ".AX", "high"),
+    (re.compile(r"SGX|SINGAPORE\s+EXCHANGE", re.I), ".SI", "high"),
+    (re.compile(r"OSLO\s+STOCK\s+EXCHANGE|OSLO\s+BORS|EURONEXT\s+OSLO", re.I), ".OL", "high"),
+    (re.compile(r"VIENNA\s+STOCK\s+EXCHANGE|WIENER\s+BOERSE", re.I), ".VI", "med"),
+    (re.compile(r"TEL\s+AVIV\s+STOCK\s+EXCHANGE|TASE", re.I), ".TA", "high"),
+    (re.compile(r"NEW\s+ZEALAND\s+STOCK\s+EXCHANGE|NZX", re.I), ".NZ", "med"),
+    # ── Emerging market exchanges ──
+    # Korea
+    (re.compile(r"KOREA\s+EXCHANGE|KRX|KOREA\s+STOCK\s+EXCHANGE|KSE", re.I), ".KS", "high"),
+    # Taiwan
+    (re.compile(r"TAIWAN\s+STOCK\s+EXCHANGE|TWSE|TAIPEI\s+EXCHANGE|TPEx", re.I), ".TW", "high"),
+    # India
+    (re.compile(r"NATIONAL\s+STOCK\s+EXCHANGE.*INDIA|NSE\s+INDIA|NSE$", re.I), ".NS", "high"),
+    (re.compile(r"BOMBAY\s+STOCK\s+EXCHANGE|BSE\s+INDIA|BSE$", re.I), ".BO", "med"),
+    # Brazil
+    (re.compile(r"B3|BOLSA\s+BRASIL|BM&F|BOVESPA", re.I), ".SA", "high"),
+    # South Africa
+    (re.compile(r"JOHANNESBURG\s+STOCK\s+EXCHANGE|JSE", re.I), ".JO", "high"),
+    # Mexico
+    (re.compile(r"BOLSA\s+MEXICANA|BMV|MEXICO\s+STOCK\s+EXCHANGE", re.I), ".MX", "high"),
+    # China (Shanghai/Shenzhen — Yahoo uses .SS and .SZ)
+    (re.compile(r"SHANGHAI\s+STOCK\s+EXCHANGE|SSE\b", re.I), ".SS", "high"),
+    (re.compile(r"SHENZHEN\s+STOCK\s+EXCHANGE|SZSE", re.I), ".SZ", "high"),
+    # Indonesia
+    (re.compile(r"INDONESIA\s+STOCK\s+EXCHANGE|IDX|BURSA\s+EFEK\s+INDONESIA", re.I), ".JK", "high"),
+    # Thailand
+    (re.compile(r"STOCK\s+EXCHANGE\s+OF\s+THAILAND|SET\b|THAILAND", re.I), ".BK", "high"),
+    # Malaysia
+    (re.compile(r"BURSA\s+MALAYSIA|KUALA\s+LUMPUR\s+STOCK\s+EXCHANGE|KLSE", re.I), ".KL", "high"),
+    # Saudi Arabia
+    (re.compile(r"TADAWUL|SAUDI\s+EXCHANGE|SAUDI\s+STOCK", re.I), ".SR", "high"),
+    # UAE
+    (re.compile(r"ABU\s+DHABI\s+SECURITIES|ADX\b", re.I), ".AD", "med"),
+    (re.compile(r"DUBAI\s+FINANCIAL\s+MARKET|DFM\b", re.I), ".DU", "med"),
+    # Turkey
+    (re.compile(r"BORSA\s+ISTANBUL|ISTANBUL\s+STOCK\s+EXCHANGE|BIST", re.I), ".IS", "high"),
+    # Poland
+    (re.compile(r"WARSAW\s+STOCK\s+EXCHANGE|GPW\b|WSE\b", re.I), ".WA", "high"),
+    # Greece
+    (re.compile(r"ATHENS\s+STOCK\s+EXCHANGE|ATHEX", re.I), ".AT", "med"),
+    # Egypt
+    (re.compile(r"EGYPTIAN\s+EXCHANGE|EGX\b|CAIRO\s+STOCK", re.I), ".CA", "med"),
+    # Philippines
+    (re.compile(r"PHILIPPINE\s+STOCK\s+EXCHANGE|PSE\b", re.I), ".PS", "med"),
+    # Qatar
+    (re.compile(r"QATAR\s+STOCK\s+EXCHANGE|QSE\b", re.I), ".QA", "med"),
+    # Czech Republic
+    (re.compile(r"PRAGUE\s+STOCK\s+EXCHANGE|PSE.*PRAGUE|BURZA.*PRAHA", re.I), ".PR", "med"),
+    # Hungary
+    (re.compile(r"BUDAPEST\s+STOCK\s+EXCHANGE|BSE.*BUDAPEST", re.I), ".BD", "med"),
+    # Chile
+    (re.compile(r"BOLSA\s+DE\s+COMERCIO\s+DE\s+SANTIAGO|BCS\b|SANTIAGO\s+EXCHANGE", re.I), ".SN", "med"),
+    # Colombia
+    (re.compile(r"BOLSA\s+DE\s+VALORES\s+DE\s+COLOMBIA|BVC\b", re.I), ".CL", "med"),
+    # Peru
+    (re.compile(r"BOLSA\s+DE\s+VALORES\s+DE\s+LIMA|BVL\b", re.I), ".LM", "low"),
+    # Pakistan
+    (re.compile(r"PAKISTAN\s+STOCK\s+EXCHANGE|PSX\b|KARACHI\s+STOCK", re.I), ".KA", "low"),
 ]
+
+# ────────────────────────────────────────────────────────────────
+# Hard-coded ticker corrections applied AFTER exchange-suffix guessing.
+# Covers cases where raw_ticker + exchange logic produces the wrong Yahoo symbol.
+# Key = generated (wrong) ticker, Value = correct Yahoo Finance symbol.
+# ────────────────────────────────────────────────────────────────
+KNOWN_TICKER_OVERRIDES: Dict[str, str] = {
+    "2299955D.TO": "CSU.TO",    # Constellation Software — Bloomberg placeholder
+    "NDAFI.HE":    "NDA-FI.HE", # Nordea Bank Helsinki — space in raw symbol
+    "HEIA":        "HEI-A",     # HEICO Corp Class A (US) — not Heineken
+    "BMW3.DE":     "BMWG.DE",   # BMW preference shares
+    "BRKB":        "BRK-B",     # Berkshire Hathaway B
+    "CICT.SI":     "C38U.SI",   # CapitaLand Integrated Commercial Trust
+    "STLAM.MI":    "STLAM.MI",  # Stellantis — keep but note low confidence
+}
 
 
 @dataclass
@@ -238,9 +322,10 @@ def canonical_sector(label: str) -> str:
     return SECTOR_MAP.get(k, _norm(label))
 
 
-def fetch_holdings_csv(timeout: int = 45) -> FetchResult:
+def fetch_holdings_csv(timeout: int = 45, sources: Optional[List[Dict]] = None) -> FetchResult:
+    source_list = sources if sources is not None else SOURCE_CANDIDATES_WORLD
     last_err: Optional[Exception] = None
-    for src in SOURCE_CANDIDATES:
+    for src in source_list:
         headers = {
             "User-Agent": USER_AGENT,
             "Accept": "text/csv,text/plain,application/octet-stream,*/*",
@@ -512,6 +597,10 @@ def build_output_dataframe(raw_df: pd.DataFrame, source_fund: str, source_url: s
         .str.replace(r"[^A-Z0-9\-\.=]", "", regex=True)
     )
 
+    # Apply known hard overrides after suffix-based guessing.
+    # Corrects cases where raw_ticker + exchange logic produces the wrong Yahoo symbol.
+    out["Ticker"] = out["Ticker"].replace(KNOWN_TICKER_OVERRIDES)
+
     # Source metadata per row (handy for debugging when file is opened standalone)
     out["SourceFund"] = source_fund
     out["SourceURL"] = source_url
@@ -578,27 +667,24 @@ def write_metadata(meta_path: Path, payload: dict) -> None:
     meta_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser(description="Refresh MSCI World proxy constituent classification CSV")
-    ap.add_argument("--out", default="config/msci_world_classification.csv", help="Output CSV path")
-    ap.add_argument("--meta", default="docs/msci_world_classification_meta.json", help="Metadata JSON path (optional)")
-    ap.add_argument("--min-rows", type=int, default=900, help="Fail-safe minimum row count to avoid overwriting with partial data")
-    ap.add_argument("--allow-partial", action="store_true", help="Allow writing even if row count < --min-rows")
-    args = ap.parse_args()
-
-    out_path = Path(args.out)
-    meta_path = Path(args.meta) if args.meta else None
-
+def _run_one_universe(
+    label: str,
+    sources: List[Dict],
+    out_path: Path,
+    meta_path: Optional[Path],
+    min_rows: int,
+    allow_partial: bool,
+) -> int:
+    """Fetch, parse, build and write one universe (World or EM). Returns row count."""
     prev_tickers = load_existing_ticker_set(out_path)
-
-    fetched = fetch_holdings_csv()
+    fetched = fetch_holdings_csv(sources=sources)
     raw_df, source_as_of = parse_ishares_holdings(fetched.text)
     out_df = build_output_dataframe(raw_df, fetched.fund, fetched.url, source_as_of)
 
     row_count = len(out_df)
-    if row_count < args.min_rows and not args.allow_partial:
+    if row_count < min_rows and not allow_partial:
         raise RuntimeError(
-            f"Refusing to write {out_path}: only {row_count} rows (< {args.min_rows}). "
+            f"[{label}] Refusing to write {out_path}: only {row_count} rows (< {min_rows}). "
             "This looks like a partial parse or source issue."
         )
 
@@ -611,6 +697,7 @@ def main() -> int:
 
     stats = {
         "generated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "universe": label,
         "source_fund": fetched.fund,
         "source_url": fetched.url,
         "source_as_of": source_as_of,
@@ -623,7 +710,7 @@ def main() -> int:
         "added_sample": added[:25],
         "removed_sample": removed[:25],
         "notes": [
-            "Public-source proxy (iShares MSCI World ETF holdings), not a licensed direct MSCI constituent feed.",
+            f"Public-source proxy (iShares {label} ETF holdings), not a licensed direct MSCI constituent feed.",
             "scan.py requires Ticker + Sector and uses Company/Country when present; extra columns are for audit/debug.",
         ],
     }
@@ -631,15 +718,60 @@ def main() -> int:
     if meta_path is not None:
         write_metadata(meta_path, stats)
 
-    print(f"[msci-refresh] source fund: {fetched.fund}")
-    print(f"[msci-refresh] source as-of: {source_as_of or 'n/a'}")
-    print(f"[msci-refresh] rows written: {row_count}")
-    print(f"[msci-refresh] unique tickers: {len(new_tickers)}")
-    print(f"[msci-refresh] added: {len(added)} | removed: {len(removed)}")
+    print(f"[msci-refresh:{label}] source fund: {fetched.fund}")
+    print(f"[msci-refresh:{label}] source as-of: {source_as_of or 'n/a'}")
+    print(f"[msci-refresh:{label}] rows written: {row_count}")
+    print(f"[msci-refresh:{label}] unique tickers: {len(new_tickers)}")
+    print(f"[msci-refresh:{label}] added: {len(added)} | removed: {len(removed)}")
     if added:
-        print(f"[msci-refresh] added sample: {', '.join(added[:10])}")
+        print(f"[msci-refresh:{label}] added sample: {', '.join(added[:10])}")
     if removed:
-        print(f"[msci-refresh] removed sample: {', '.join(removed[:10])}")
+        print(f"[msci-refresh:{label}] removed sample: {', '.join(removed[:10])}")
+
+    return row_count
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description="Refresh MSCI World + EM proxy constituent classification CSVs")
+    ap.add_argument(
+        "--universe", choices=["world", "em", "both"], default="both",
+        help="Which universe to refresh: world=MSCI World only, em=MSCI EM only, both=both (default)"
+    )
+    ap.add_argument("--out", default="config/msci_world_classification.csv",
+                    help="Output CSV path for MSCI World (default: config/msci_world_classification.csv)")
+    ap.add_argument("--out-em", default="config/msci_em_classification.csv",
+                    help="Output CSV path for MSCI EM (default: config/msci_em_classification.csv)")
+    ap.add_argument("--meta", default="docs/msci_world_classification_meta.json",
+                    help="Metadata JSON path for MSCI World")
+    ap.add_argument("--meta-em", default="docs/msci_em_classification_meta.json",
+                    help="Metadata JSON path for MSCI EM")
+    ap.add_argument("--min-rows", type=int, default=900,
+                    help="Fail-safe minimum row count for World (default: 900)")
+    ap.add_argument("--min-rows-em", type=int, default=700,
+                    help="Fail-safe minimum row count for EM (default: 700)")
+    ap.add_argument("--allow-partial", action="store_true",
+                    help="Allow writing even if row count < --min-rows")
+    args = ap.parse_args()
+
+    if args.universe in ("world", "both"):
+        _run_one_universe(
+            label="World",
+            sources=SOURCE_CANDIDATES_WORLD,
+            out_path=Path(args.out),
+            meta_path=Path(args.meta) if args.meta else None,
+            min_rows=args.min_rows,
+            allow_partial=args.allow_partial,
+        )
+
+    if args.universe in ("em", "both"):
+        _run_one_universe(
+            label="EM",
+            sources=SOURCE_CANDIDATES_EM,
+            out_path=Path(args.out_em),
+            meta_path=Path(args.meta_em) if args.meta_em else None,
+            min_rows=args.min_rows_em,
+            allow_partial=args.allow_partial,
+        )
 
     return 0
 
