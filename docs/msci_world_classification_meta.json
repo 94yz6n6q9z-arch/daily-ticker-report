@@ -1,5 +1,5 @@
 {
-  "generated_utc": "2026-03-07T21:32:22Z",
+  "generated_utc": "2026-03-07T21:34:50Z",
   "universe": "World",
   "source_fund": "IWDA",
   "source_url": "https://www.ishares.com/uk/individual/en/products/251882/ishares-core-msci-world-ucits-etf-acc-fund/1506575576011.ajax?dataType=fund&fileName=IWDA_holdings&fileType=csv",
@@ -23,33 +23,10 @@
     "low": 10,
     "med": 114
   },
-  "added_count": 10,
-  "removed_count": 11,
-  "added_sample": [
-    "AIA",
-    "BMWG.DE",
-    "BRK-B",
-    "C38U.SI",
-    "CEN",
-    "FPH",
-    "HEI-A",
-    "IFT",
-    "MEL",
-    "NDA-FI.HE"
-  ],
-  "removed_sample": [
-    "2299955D.TO",
-    "AIA.NZ",
-    "BMW3.DE",
-    "BRKB",
-    "CEN.NZ",
-    "CICT.SI",
-    "FPH.NZ",
-    "HEIA",
-    "IFT.NZ",
-    "MEL.NZ",
-    "NDAFI.HE"
-  ],
+  "added_count": 0,
+  "removed_count": 0,
+  "added_sample": [],
+  "removed_sample": [],
   "notes": [
     "Public-source proxy (iShares World ETF holdings), not a licensed direct MSCI constituent feed.",
     "scan.py requires Ticker + Sector and uses Company/Country when present; extra columns are for audit/debug."
