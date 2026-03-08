@@ -1,31 +1,15 @@
 #!/usr/bin/env python3
 """
-FMP API diagnostic — run locally with:
-    FMP_API_KEY=your_key python3 test_fmp.py
-
-Tests:
-  1. Key validity
-  2. Symbol conversion (Yahoo → FMP format) for each problem exchange
-  3. Actual data return for 1 ticker per exchange
+FMP Coverage Pre-Check
+Answers "is the paid plan worth it?" using only FREE tier endpoints.
 """
 
-import json
-import os
-import sys
-import urllib.parse
-import urllib.request
+import json, os, sys, time, urllib.parse, urllib.request
 
 FMP_BASE = "https://financialmodelingprep.com/stable"
-
-API_KEY = os.environ.get("FMP_API_KEY", "").strip()
+API_KEY  = os.environ.get("FMP_API_KEY", "").strip()
 if not API_KEY:
-    print("✗ FMP_API_KEY not set. Run: FMP_API_KEY=your_key python3 test_fmp.py")
-    sys.exit(1)
-
-# ── Colour helpers ────────────────────────────────────────────────
-OK   = "✓"
-FAIL = "✗"
-WARN = "⚠"
+    print("FMP_API_KEY not set."); sys.exit(1)
 
 def fmp_get(path, params=None):
     params = {**(params or {}), "apikey": API_KEY}
@@ -39,125 +23,69 @@ def fmp_get(path, params=None):
     except Exception as e:
         return None, str(e)
 
-
-# ── Test 1: Key validity ──────────────────────────────────────────
-print("\n── Test 1: Key validity ─────────────────────────────────────")
-# Use income-statement — available on all tiers including free
+# Test 1: Key validity
+print("\n-- Test 1: Key validity --")
 data, err = fmp_get("/income-statement", {"symbol": "AAPL", "period": "quarter", "limit": 1})
-if err and "403" in str(err):
-    print(f"{FAIL} Key rejected (403 Forbidden) — key may be invalid or expired")
-    print(f"       Check your FMP key at https://financialmodelingprep.com/developer/docs")
-    sys.exit(1)
-elif err:
-    print(f"{FAIL} Network error: {err}")
-    sys.exit(1)
-elif data and isinstance(data, list) and len(data) > 0:
-    print(f"{OK} Key valid — FMP free tier confirmed working")
-elif isinstance(data, dict) and data.get("Error Message"):
-    print(f"{FAIL} FMP error: {data['Error Message']}")
-    sys.exit(1)
+if err:
+    print(f"[FAIL] Key error: {err}"); sys.exit(1)
+if data and isinstance(data, list) and len(data) > 0:
+    print(f"[OK] Key valid - free tier working")
 else:
-    print(f"{WARN} Unexpected response shape: {str(data)[:120]}")
+    print(f"[WARN] Unexpected: {str(data)[:100]}")
 
+# Test 2: Symbol coverage using free /search-symbol
+print("\n-- Test 2: Coverage check for empty tickers (free endpoint) --")
 
-# ── Test 2: Symbol mapping ────────────────────────────────────────
-# Yahoo Finance suffix  →  what we send to FMP  →  correct?
-# Current _FMP_SUFFIX_MAP strips unknown suffixes (returns base only)
-# Problem: .KL .IS .PS .AD .DU are NOT in the map → suffix gets stripped
-print("\n── Test 2: Symbol mapping for problem exchanges ─────────────")
-
-CURRENT_SUFFIX_MAP = {
-    "L": None, "KS": "KS", "T": "T", "HK": "HK", "TW": "TW",
-    "PA": "PA", "DE": "DE", "SW": "SW", "AS": "AS", "MI": "MI",
-    "MC": "MC", "ST": "ST", "OL": "OL", "HE": "HE", "CO": "CO",
-    "TO": "TO", "AX": "AX", "NS": "NS", "SA": "SA",
+EMPTY_TICKERS = {
+    "KL":  ["ABMB.KL","AEONCR.KL","AFFIN.KL","AMBANK.KL","AXREIT.KL","BIMB.KL","BURSA.KL",
+            "CARLSBG.KL","CIMB.KL","DIALOG.KL","DIGI.KL","GENTING.KL","GENM.KL","HLFG.KL",
+            "HLBANK.KL","IHH.KL","IOICORP.KL","KLCC.KL","KLK.KL","MAYBANK.KL"],
+    "IS":  ["AKBNK.IS","ARCLK.IS","BIMAS.IS","DOHOL.IS","EKGYO.IS","ENKAI.IS","EREGL.IS",
+            "FROTO.IS","GARAN.IS","HALKB.IS","ISCTR.IS","KCHOL.IS","KOZAL.IS","PGSUS.IS",
+            "SAHOL.IS","SISE.IS","TCELL.IS","THYAO.IS","TOASO.IS","TTKOM.IS"],
+    "PS":  ["BDO.PS","BPI.PS","JGS.PS","MBT.PS","MER.PS","SM.PS","SMPH.PS","TEL.PS","URC.PS"],
+    "AD":  ["FAB.AD","ADNOCDIST.AD","ALDAR.AD","ALPHADHABI.AD","ETISALAT.AD","TAQA.AD"],
+    "DU":  ["DIB.DU","DEWA.DU","EMAAR.DU","DFM.DU","ENBD.DU"],
+    "US_ghost": ["ABCB10","ABCB4","ABEV3","ALPHA","AFLT","AGUAS-A","ALOS3","ALPA4","ARZAN"],
 }
+FULL_COUNTS = {"KL":81,"IS":74,"PS":31,"AD":20,"DU":21,"US_ghost":226}
 
-test_cases = [
-    ("CIMB.KL",    "KL",  "CIMB.KL",   "Malaysia — FMP uses .KL"),
-    ("EREGL.IS",   "IS",  "EREGL.IS",  "Turkey — FMP uses .IS"),
-    ("BDO.PS",     "PS",  "BDO.PS",    "Philippines — FMP uses .PS"),
-    ("FAB.AD",     "AD",  "FAB.AD",    "Abu Dhabi — FMP uses .AD"),
-    ("DIB.DU",     "DU",  "DIB.DU",    "Dubai — FMP uses .DU"),
-    ("7203.T",     "T",   "7203.T",    "Japan — already in map"),
-    ("AZN.L",      "L",   "AZN",       "UK LSE — strip suffix (correct)"),
-    ("CBA.AX",     "AX",  "CBA.AX",   "Australia — already in map"),
-]
+results = {}
+for exch, tickers in EMPTY_TICKERS.items():
+    found, not_found = 0, []
+    print(f"\n  .{exch} (sampling {len(tickers)} of {FULL_COUNTS.get(exch,len(tickers))}):")
+    for t in tickers:
+        base = t.rsplit(".",1)[0] if "." in t else t
+        data, _ = fmp_get("/search-symbol", {"query": base, "limit": 5})
+        time.sleep(0.2)
+        matched = False
+        if data and isinstance(data, list):
+            for item in data:
+                sym = item.get("symbol","")
+                if sym == t or sym == base or sym.startswith(base+"."):
+                    matched = True; break
+        if matched: found += 1
+        else: not_found.append(t)
+    pct = found/len(tickers)*100
+    status = "OK  " if pct>=70 else ("WARN" if pct>=30 else "FAIL")
+    print(f"    [{status}] {found}/{len(tickers)} found ({pct:.0f}%)")
+    if not_found:
+        print(f"       Not in FMP: {', '.join(not_found[:5])}" + (f" +{len(not_found)-5} more" if len(not_found)>5 else ""))
+    results[exch] = {"found":found,"total":len(tickers),"pct":pct}
 
-mapping_issues = []
-for yahoo, suffix, expected_fmp, note in test_cases:
-    base = yahoo.rsplit(".", 1)[0]
-    fmp_suffix = CURRENT_SUFFIX_MAP.get(suffix)  # None if not in map
-    if fmp_suffix is None and suffix in CURRENT_SUFFIX_MAP:
-        actual = base          # explicitly mapped to None = strip
-    elif fmp_suffix is None:
-        actual = base          # NOT in map → silently strips suffix ← BUG
-    else:
-        actual = f"{base}.{fmp_suffix}"
+# Summary
+print("\n-- Summary --")
+print(f"{'Exchange':12s} {'Full count':>10} {'Est. recover':>13}  {'Hit%':>6}  Verdict")
+print("-"*55)
+total = 0
+for exch, res in results.items():
+    full = FULL_COUNTS.get(exch, res["total"])
+    est  = int(full * res["pct"] / 100)
+    total += est
+    v = "WORTH IT" if res["pct"]>=70 else ("PARTIAL" if res["pct"]>=30 else "SKIP")
+    print(f".{exch:11s} {full:>10}  ~{est:>11}  {res['pct']:>5.0f}%  {v}")
 
-    ok = actual == expected_fmp
-    status = OK if ok else FAIL
-    if not ok:
-        mapping_issues.append((yahoo, actual, expected_fmp))
-    print(f"  {status} {yahoo:12s} → sent as '{actual:12s}'  (expected '{expected_fmp}')  {note}")
-
-if mapping_issues:
-    print(f"\n{FAIL} {len(mapping_issues)} mapping issues — FMP receives wrong symbols for these exchanges")
-else:
-    print(f"\n{OK} All mappings correct")
-
-
-# ── Test 3: Live data fetch for 1 ticker per exchange ─────────────
-print("\n── Test 3: Live data return per exchange ────────────────────")
-
-# Use correct FMP symbols (what they SHOULD be after fix)
-test_tickers = [
-    ("CIMB.KL",  "CIMB.KL",  "Malaysia .KL"),
-    ("EREGL.IS", "EREGL.IS", "Turkey .IS"),
-    ("BDO.PS",   "BDO.PS",   "Philippines .PS"),
-    ("FAB.AD",   "FAB.AD",   "Abu Dhabi .AD"),
-    ("DIB.DU",   "DIB.DU",   "Dubai .DU"),
-    ("7203.T",   "7203.T",   "Japan .T"),
-    ("AZN.L",    "AZN",      "UK .L (stripped)"),
-    ("CBA.AX",   "CBA.AX",   "Australia .AX"),
-    ("AAPL",     "AAPL",     "US control"),
-]
-
-for yahoo, fmp_sym, label in test_tickers:
-    rev_data, err1 = fmp_get("/income-statement", {"symbol": fmp_sym, "period": "quarter", "limit": 4})
-    eps_data, err2 = fmp_get("/earnings-surprises", {"symbol": fmp_sym})
-
-    has_rev = isinstance(rev_data, list) and len(rev_data) > 0
-    has_eps = isinstance(eps_data, list) and len(eps_data) > 0
-
-    if has_rev and has_eps:
-        latest_rev = rev_data[0].get("revenue", "?")
-        status = OK
-        detail = f"rev={latest_rev:,.0f}  eps_quarters={len(eps_data)}"
-    elif has_rev:
-        status = WARN
-        detail = f"revenue OK, no EPS surprises"
-    elif has_eps:
-        status = WARN
-        detail = f"EPS OK, no revenue"
-    else:
-        status = FAIL
-        detail = f"no data  (rev_err={err1}  eps_err={err2})"
-
-    print(f"  {status} {yahoo:12s} (FMP: {fmp_sym:12s})  {label:20s}  {detail}")
-
-# ── Summary ───────────────────────────────────────────────────────
-print("\n── Summary ──────────────────────────────────────────────────")
-if mapping_issues:
-    print(f"{FAIL} MAPPING BUG: These suffixes are stripped before reaching FMP:")
-    for yahoo, actual, expected in mapping_issues:
-        print(f"     {yahoo} → sent as '{actual}' but should be '{expected}'")
-    print(f"\n  Fix: add these to _FMP_SUFFIX_MAP in gc_engine.py:")
-    for _, _, expected in mapping_issues:
-        sfx = expected.rsplit(".", 1)[-1] if "." in expected else None
-        if sfx:
-            print(f"     \"{sfx}\": \"{sfx}\",")
-else:
-    print(f"{OK} No mapping issues found")
-    print(f"{OK} FMP key is active and returning data")
-    print(f"   Next nightly run should recover .KL, .IS, .PS, .AD, .DU tickers")
+print(f"\n  Estimated recoverable with paid plan: ~{total} tickers")
+print(f"  Current empty: 527  |  Total universe: 4,167")
+print(f"\n  NOTE: symbol hit rate != earnings data available.")
+print(f"  Real recovery likely 10-20% lower. Paid plan starts ~$15/mo.")
