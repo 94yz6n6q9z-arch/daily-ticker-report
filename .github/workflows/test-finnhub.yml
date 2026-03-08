@@ -1,4 +1,4 @@
-name: Test FMP
+name: Test Finnhub
 
 on:
   workflow_dispatch:
@@ -13,10 +13,7 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
-        run: pip install requests pandas numpy
-
-      - name: Run FMP diagnostic
-        run: python test_fmp.py
+      - name: Run Finnhub diagnostic
+        run: python test_finnhub.py
         env:
-          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
