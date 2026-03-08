@@ -872,18 +872,27 @@ def fetch_earnings_universe(
             continue
         if not force and t in cache:
             cached = cache[t]
-            fetched_at = cached.get("fetched_at")
-            if fetched_at:
-                try:
-                    ts = pd.Timestamp(fetched_at)
-                    if ts.tzinfo is None:
-                        ts = ts.tz_localize("UTC")
-                    age_hours = (now - ts).total_seconds() / 3600.0
-                    if age_hours < EARNINGS_CACHE_TTL_HOURS:
-                        results[t] = cached
-                        continue
-                except Exception:
-                    pass
+            # Bug fix: if the previous fetch was rate-limited (empty info with _info_error),
+            # treat as stale regardless of timestamp — force a re-fetch.
+            was_rate_limited = (
+                "_info_error" in cached
+                and not cached.get("info")
+                and not cached.get("quarterly_revenue")
+                and not cached.get("earnings_dates")
+            )
+            if not was_rate_limited:
+                fetched_at = cached.get("fetched_at")
+                if fetched_at:
+                    try:
+                        ts = pd.Timestamp(fetched_at)
+                        if ts.tzinfo is None:
+                            ts = ts.tz_localize("UTC")
+                        age_hours = (now - ts).total_seconds() / 3600.0
+                        if age_hours < EARNINGS_CACHE_TTL_HOURS:
+                            results[t] = cached
+                            continue
+                    except Exception:
+                        pass
         to_fetch.append(t)
 
     cached_count = len(results)
@@ -959,12 +968,15 @@ def fetch_earnings_universe(
             ordered_fetch.extend(by_exchange[ex])
 
     # ── First pass: yfinance ──────────────────────────────────────
+    # Pacing: 1s per US ticker, 1.5s per international — slow enough to avoid
+    # Yahoo rate limits across a ~4,000 ticker universe (~2hr total runtime).
+    # Hard pause of 15s every 50 tickers to reset Yahoo's sliding window.
     yf_failed: List[str] = []   # completely empty after all 4 methods
 
     for i, t in enumerate(ordered_fetch):
-        if i > 0 and i % 100 == 0:
-            print(f"[gc-data] progress: {i}/{len(ordered_fetch)} fetched")
-            time.sleep(1.0)   # Hard pause every 100 — resets Yahoo rate-limit window
+        if i > 0 and i % 50 == 0:
+            print(f"[gc-data] progress: {i}/{len(ordered_fetch)} fetched — pausing 15s")
+            time.sleep(15.0)   # Hard pause every 50 — resets Yahoo rate-limit window
         try:
             data = fetch_earnings_data(t)
             results[t] = data
@@ -977,19 +989,19 @@ def fetch_earnings_universe(
             results[t] = {"ticker": t, "error": str(e), "fetched_at": now.isoformat()}
             yf_failed.append(t)
         ex = _exch(t)
-        pause = 0.3 if ex == "US" else 0.15
-        if i % 5 == 4:
-            time.sleep(pause)
+        pause = 1.0 if ex == "US" else 1.5   # deliberate pacing — do not reduce
+        time.sleep(pause)
 
     # ── yfinance retry pass (5-second cooldown) ───────────────────
     # Second attempt before involving FMP — covers transient throttle hits
     if yf_failed:
-        print(f"[gc-data] yfinance retry: {len(yf_failed)} tickers empty on first pass")
-        time.sleep(5.0)
+        print(f"[gc-data] yfinance retry: {len(yf_failed)} tickers empty on first pass — cooling down 60s")
+        time.sleep(60.0)   # 60s cooldown — lets Yahoo's rate-limit window fully reset
         still_failed: List[str] = []
         for i, t in enumerate(yf_failed):
-            if i > 0 and i % 30 == 0:
-                time.sleep(2.0)
+            if i > 0 and i % 50 == 0:
+                print(f"[gc-data] retry progress: {i}/{len(yf_failed)} — pausing 15s")
+                time.sleep(15.0)
             try:
                 data = fetch_earnings_data(t)
                 results[t] = data
@@ -1001,7 +1013,9 @@ def fetch_earnings_universe(
             except Exception as e:
                 results[t] = {"ticker": t, "error": str(e), "fetched_at": now.isoformat()}
                 still_failed.append(t)
-            time.sleep(0.4)
+            ex = _exch(t)
+            pause = 1.0 if ex == "US" else 1.5
+            time.sleep(pause)
         yf_failed = still_failed
 
     # ── FMP fallback (if API key present) ────────────────────────
