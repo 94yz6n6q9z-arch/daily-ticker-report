@@ -281,13 +281,62 @@ EXCHANGE_SUFFIX_RULES: List[Tuple[re.Pattern, str, str]] = [
 # Key = generated (wrong) ticker, Value = correct Yahoo Finance symbol.
 # ────────────────────────────────────────────────────────────────
 KNOWN_TICKER_OVERRIDES: Dict[str, str] = {
-    "2299955D.TO": "CSU.TO",    # Constellation Software — Bloomberg placeholder
+    # ── Bloomberg placeholders → correct Yahoo symbol ──────────────
+    "2299955D.TO": "CSU.TO",    # Constellation Software
+    # ── Formatting quirks in iShares CSV exports ──────────────────
     "NDAFI.HE":    "NDA-FI.HE", # Nordea Bank Helsinki — space in raw symbol
-    "HEIA":        "HEI-A",     # HEICO Corp Class A (US) — not Heineken
+    "HEIA":        "HEI-A",     # HEICO Corp Class A (US)
     "BMW3.DE":     "BMWG.DE",   # BMW preference shares
     "BRKB":        "BRK-B",     # Berkshire Hathaway B
     "CICT.SI":     "C38U.SI",   # CapitaLand Integrated Commercial Trust
-    "STLAM.MI":    "STLAM.MI",  # Stellantis — keep but note low confidence
+    "STLAM.MI":    "STLAM.MI",  # Stellantis
+    "CSG.AS":      "CS.AS",     # Credit Suisse / UBS post-merger
+    # ── HK dual-listings: MSCI uses HK primary, raw ticker may be US symbol ──
+    "AIA":         "1299.HK",   # AIA Group — numeric HK code
+    "BABA":        "9988.HK",   # Alibaba — HK primary for MSCI
+    "JD":          "9618.HK",   # JD.com — HK primary
+    "NTES":        "9999.HK",   # NetEase — HK primary
+    # ── BSE India: Bloomberg uses .R suffix, Yahoo uses .BO ───────
+    "WIPRO.R":     "WIPRO.BO",
+    "INFY.R":      "INFY.BO",
+    "TCS.R":       "TCS.BO",
+    # ── Individual country-code mismatches ────────────────────────
+    # These appear when Exchange column is empty so suffix-guessing fires
+    # country-fallback but the raw symbol already has a wrong suffix.
+    "ADMIE":       "ADMIE.AT",  # Greece — MSCI exports without .AT
+    "ALPHA":       "ALPHA.AT",  # Greece — MSCI exports without .AT
+    "AGUAS-A":     "AGUAS-A.SN", # Chile — MSCI exports without .SN
+}
+
+# ────────────────────────────────────────────────────────────────
+# Countries whose stocks are not supported on Yahoo Finance.
+# Tickers from these countries are dropped from the CSV so no
+# downstream consumer (gc_engine.py, scan.py etc.) wastes a
+# fetch slot on a symbol that will never resolve.
+# ────────────────────────────────────────────────────────────────
+GHOST_COUNTRIES: set = {
+    "Kuwait",     # Boursa Kuwait — not available on Yahoo Finance
+    "Russia",     # Removed from MSCI universe March 2022 (sanctions)
+}
+
+# ────────────────────────────────────────────────────────────────
+# Country → Yahoo Finance exchange suffix fallback.
+# Used when the Exchange column is empty or unrecognised so
+# EXCHANGE_SUFFIX_RULES can't fire. Covers the "226 US ghost"
+# problem where Brazilian, Greek, GCC etc. stocks appear without
+# any exchange suffix in iShares EM exports.
+# Only countries we're 100% confident about are listed here.
+# ────────────────────────────────────────────────────────────────
+COUNTRY_SUFFIX_FALLBACK: Dict[str, str] = {
+    "Brazil":          ".SA",
+    "Greece":          ".AT",
+    "Chile":           ".SN",
+    "Czech Republic":  ".PR",
+    "Hungary":         ".BD",
+    "Egypt":           ".CA",
+    "Pakistan":        ".KA",
+    "Colombia":        ".CL",
+    "Peru":            ".LM",
 }
 
 
@@ -543,6 +592,24 @@ def normalize_weight(x: str) -> Optional[float]:
         return None
 
 
+_GHOST_RAW_PATTERN = re.compile(
+    r"^-$"               # bare dash
+    r"|^\d+D?$"          # pure numeric optionally ending in D (Bloomberg placeholders)
+    r"|^[A-Z]{1,5}\d{6,}D$"  # alpha prefix + long numeric + D  e.g. 2299955D
+    r"|^\.$"             # bare dot
+)
+
+
+def _is_ghost_raw_ticker(raw: str) -> bool:
+    """Return True for Bloomberg placeholder symbols that will never resolve on Yahoo Finance."""
+    t = str(raw).strip()
+    if not t:
+        return True
+    if "." not in t and t.replace("-", "").isdigit():
+        return True
+    return bool(_GHOST_RAW_PATTERN.match(t))
+
+
 def filter_to_equities(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
         return df.copy()
@@ -569,6 +636,22 @@ def filter_to_equities(df: pd.DataFrame) -> pd.DataFrame:
 
     d = d[d["RawTicker"].astype(str).str.strip().ne("")]
     d = d[d["Company"].astype(str).str.strip().ne("")]
+
+    # Drop ghost countries (Yahoo Finance doesn't carry these exchanges)
+    if "Country" in d.columns:
+        ghost_mask = d["Country"].isin(GHOST_COUNTRIES)
+        n = ghost_mask.sum()
+        if n:
+            print(f"[msci-refresh] dropping {n} rows from unsupported countries: {sorted(GHOST_COUNTRIES)}")
+        d = d[~ghost_mask]
+
+    # Drop Bloomberg placeholder raw tickers (D-codes, pure numerics etc.)
+    ghost_ticker_mask = d["RawTicker"].map(_is_ghost_raw_ticker)
+    n_ghost = ghost_ticker_mask.sum()
+    if n_ghost:
+        print(f"[msci-refresh] dropping {n_ghost} Bloomberg placeholder / ghost raw tickers")
+    d = d[~ghost_ticker_mask]
+
     return d.reset_index(drop=True)
 
 
@@ -590,12 +673,36 @@ def build_output_dataframe(raw_df: pd.DataFrame, source_fund: str, source_url: s
     out["Ticker"] = [g[0] for g in guessed]
     out["MappingConfidence"] = [g[1] for g in guessed]
 
+    # ── Country-suffix fallback ───────────────────────────────────
+    # When Exchange-based guessing returns a bare symbol with "low"
+    # confidence (exchange column was empty or unrecognised), try the
+    # Country column to assign the correct Yahoo suffix.
+    # This fixes the "226 US ghost" problem: Brazilian, Greek, GCC etc.
+    # stocks that appear as bare symbols in iShares EM exports.
+    if "Country" in out.columns:
+        for idx, row in out[out["MappingConfidence"] == "low"].iterrows():
+            ticker = row["Ticker"]
+            country = row["Country"]
+            suffix = COUNTRY_SUFFIX_FALLBACK.get(country)
+            if suffix and "." not in ticker:
+                out.at[idx, "Ticker"] = ticker + suffix
+                out.at[idx, "MappingConfidence"] = "med"
+
     # Clean pathological symbols that yfinance will reject often.
     out["Ticker"] = (
         out["Ticker"].astype(str)
         .str.replace(" ", "", regex=False)
         .str.replace(r"[^A-Z0-9\-\.=]", "", regex=True)
     )
+
+    # Drop tickers with multiple dots — malformed symbols like BAJAJ.AUTO.NS
+    # that come from MSCI EM CSV exports where the company name has a dot.
+    multi_dot_mask = out["Ticker"].str.count(r"\.") > 1
+    n_multi = multi_dot_mask.sum()
+    if n_multi:
+        print(f"[msci-refresh] dropping {n_multi} multi-dot malformed tickers "
+              f"(e.g. {out.loc[multi_dot_mask, 'Ticker'].head(3).tolist()})")
+    out = out[~multi_dot_mask].copy()
 
     # Apply known hard overrides after suffix-based guessing.
     # Corrects cases where raw_ticker + exchange logic produces the wrong Yahoo symbol.
