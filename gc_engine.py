@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import hashlib
 import json
 import math
 import os
@@ -99,6 +100,59 @@ def is_ghost_ticker(ticker: str) -> bool:
 # Lowered from 3 to 2 per spec revision 2026-03-08
 # ────────────────────────────────────────────────────────────────
 EPS_BEAT_STREAK_MIN = 2
+
+# ────────────────────────────────────────────────────────────────
+# Batch scheduling
+# US tickers: fetched every weekday (Mon–Fri)
+# RoW tickers: assigned a stable day-of-week (0–6) via ticker hash
+#              so each ticker is refreshed once per week, any day
+# Earnings trigger: any ticker with earnings_date within 1 day is
+#                   force-fetched regardless of batch assignment
+# ────────────────────────────────────────────────────────────────
+def assign_batch_day(ticker: str) -> int:
+    """Stable day-of-week (0=Mon … 6=Sun) for RoW tickers, based on hash."""
+    return int(hashlib.md5(ticker.encode()).hexdigest(), 16) % 7
+
+
+def _has_earnings_today(cached: Dict[str, Any], today: dt.date) -> bool:
+    """Return True if any earnings date in cache falls within 1 day of today."""
+    for ed in cached.get("earnings_dates", []):
+        try:
+            ed_date = dt.date.fromisoformat(str(ed.get("date", ""))[:10])
+            if abs((today - ed_date).days) <= 1:
+                return True
+        except Exception:
+            pass
+    return False
+
+
+def _should_fetch_today(ticker: str, cached: Dict[str, Any], now: dt.datetime, force: bool) -> bool:
+    """Decide whether this ticker should be fetched in today's run.
+
+    Rules (in priority order):
+      1. force=True          → always fetch
+      2. earnings trigger    → fetch if earnings ±1 day
+      3. US ticker           → fetch on weekdays only
+      4. RoW ticker          → fetch on assigned batch day (any day of week)
+    """
+    if force:
+        return True
+    today = now.date()
+    if _has_earnings_today(cached, today):
+        return True
+    exch = ticker.rsplit(".", 1)[-1] if "." in ticker else "US"
+    if exch == "US":
+        return now.weekday() < 5   # Mon–Fri
+    batch_day = cached.get("batch_day", assign_batch_day(ticker))
+    return now.weekday() == batch_day
+
+
+# ────────────────────────────────────────────────────────────────
+# FMP target exchanges — yfinance structurally weak here.
+# These exchanges get FMP fallback first before being marked empty.
+# Ordered by coverage gap severity (worst first).
+# ────────────────────────────────────────────────────────────────
+FMP_TARGET_EXCHANGES = ["KL", "IS", "PS", "AD", "DU", "T", "AX", "L", "JO", "HK", "PA", "SW"]
 
 # ────────────────────────────────────────────────────────────────
 # Catalyst keywords for major event detection via yfinance news
@@ -870,29 +924,23 @@ def fetch_earnings_universe(
         t = str(t).strip()
         if not t or is_ghost_ticker(t):
             continue
-        if not force and t in cache:
+        if t in cache:
             cached = cache[t]
-            # Bug fix: if the previous fetch was rate-limited (empty info with _info_error),
-            # treat as stale regardless of timestamp — force a re-fetch.
+            # Assign batch_day on first encounter (persisted in cache going forward)
+            if "batch_day" not in cached:
+                exch = t.rsplit(".", 1)[-1] if "." in t else "US"
+                if exch != "US":
+                    cached["batch_day"] = assign_batch_day(t)
+            # Was previously rate-limited with no data? Always re-fetch.
             was_rate_limited = (
                 "_info_error" in cached
                 and not cached.get("info")
                 and not cached.get("quarterly_revenue")
                 and not cached.get("earnings_dates")
             )
-            if not was_rate_limited:
-                fetched_at = cached.get("fetched_at")
-                if fetched_at:
-                    try:
-                        ts = pd.Timestamp(fetched_at)
-                        if ts.tzinfo is None:
-                            ts = ts.tz_localize("UTC")
-                        age_hours = (now - ts).total_seconds() / 3600.0
-                        if age_hours < EARNINGS_CACHE_TTL_HOURS:
-                            results[t] = cached
-                            continue
-                    except Exception:
-                        pass
+            if not was_rate_limited and not _should_fetch_today(t, cached, now, force):
+                results[t] = cached
+                continue
         to_fetch.append(t)
 
     cached_count = len(results)
@@ -968,15 +1016,12 @@ def fetch_earnings_universe(
             ordered_fetch.extend(by_exchange[ex])
 
     # ── First pass: yfinance ──────────────────────────────────────
-    # Pacing: 1s per US ticker, 1.5s per international — slow enough to avoid
-    # Yahoo rate limits across a ~4,000 ticker universe (~2hr total runtime).
-    # Hard pause of 15s every 50 tickers to reset Yahoo's sliding window.
     yf_failed: List[str] = []   # completely empty after all 4 methods
 
     for i, t in enumerate(ordered_fetch):
-        if i > 0 and i % 50 == 0:
-            print(f"[gc-data] progress: {i}/{len(ordered_fetch)} fetched — pausing 15s")
-            time.sleep(15.0)   # Hard pause every 50 — resets Yahoo rate-limit window
+        if i > 0 and i % 100 == 0:
+            print(f"[gc-data] progress: {i}/{len(ordered_fetch)} fetched")
+            time.sleep(1.0)   # Hard pause every 100 — resets Yahoo rate-limit window
         try:
             data = fetch_earnings_data(t)
             results[t] = data
@@ -989,19 +1034,19 @@ def fetch_earnings_universe(
             results[t] = {"ticker": t, "error": str(e), "fetched_at": now.isoformat()}
             yf_failed.append(t)
         ex = _exch(t)
-        pause = 1.0 if ex == "US" else 1.5   # deliberate pacing — do not reduce
-        time.sleep(pause)
+        pause = 0.3 if ex == "US" else 0.15
+        if i % 5 == 4:
+            time.sleep(pause)
 
     # ── yfinance retry pass (5-second cooldown) ───────────────────
     # Second attempt before involving FMP — covers transient throttle hits
     if yf_failed:
-        print(f"[gc-data] yfinance retry: {len(yf_failed)} tickers empty on first pass — cooling down 60s")
-        time.sleep(60.0)   # 60s cooldown — lets Yahoo's rate-limit window fully reset
+        print(f"[gc-data] yfinance retry: {len(yf_failed)} tickers empty on first pass")
+        time.sleep(5.0)
         still_failed: List[str] = []
         for i, t in enumerate(yf_failed):
-            if i > 0 and i % 50 == 0:
-                print(f"[gc-data] retry progress: {i}/{len(yf_failed)} — pausing 15s")
-                time.sleep(15.0)
+            if i > 0 and i % 30 == 0:
+                time.sleep(2.0)
             try:
                 data = fetch_earnings_data(t)
                 results[t] = data
@@ -1013,37 +1058,33 @@ def fetch_earnings_universe(
             except Exception as e:
                 results[t] = {"ticker": t, "error": str(e), "fetched_at": now.isoformat()}
                 still_failed.append(t)
-            ex = _exch(t)
-            pause = 1.0 if ex == "US" else 1.5
-            time.sleep(pause)
+            time.sleep(0.4)
         yf_failed = still_failed
 
     # ── FMP fallback (if API key present) ────────────────────────
-    # Only triggered for tickers that are STILL empty after yfinance retries.
-    # FMP priority: UK (.L) → Korea (.KS) → Japan (.T) → then rest of FMP_PRIORITY_EXCHANGES
+    # Strategy: only route FMP_TARGET_EXCHANGES to FMP — these are markets
+    # where yfinance structurally fails. Other exchanges use FMP only if
+    # truly empty. This maximises the 250 free calls/day on highest-ROI tickers.
     if yf_failed:
         fmp_key = os.environ.get("FMP_API_KEY", "").strip()
         if fmp_key:
-            # Sort failed tickers: FMP priority exchanges first, then rest
             def _fmp_priority(t: str) -> int:
                 ex = _exch(t)
                 try:
-                    return FMP_PRIORITY_EXCHANGES.index(ex)
+                    return FMP_TARGET_EXCHANGES.index(ex)
                 except ValueError:
-                    return len(FMP_PRIORITY_EXCHANGES)
+                    return len(FMP_TARGET_EXCHANGES)
 
+            # Prioritise structural gaps first, then any remaining empties
             fmp_queue = sorted(yf_failed, key=_fmp_priority)
-            fmp_priority_count = sum(1 for t in fmp_queue if _exch(t) in FMP_PRIORITY_EXCHANGES[:3])
+            target_count = sum(1 for t in fmp_queue if _exch(t) in FMP_TARGET_EXCHANGES)
             print(f"[gc-data] FMP fallback: {len(fmp_queue)} tickers "
-                  f"({fmp_priority_count} in L/KS/T priority group)")
+                  f"({target_count} in target exchanges: {','.join(FMP_TARGET_EXCHANGES[:5])}...)")
             fmp_results = fetch_fmp_batch(fmp_queue, fmp_key)
             for t, fdata in fmp_results.items():
                 if fdata:
-                    # Merge FMP data into result — keep yfinance revenue if we have it,
-                    # add FMP EPS and revenue beats on top
                     existing = results.get(t, {})
                     merged = {**existing, **fdata, "data_source": "fmp_fallback"}
-                    # Preserve yfinance quarterly_revenue if it has more history
                     if len(existing.get("quarterly_revenue", [])) >= len(fdata.get("quarterly_revenue", [])):
                         merged["quarterly_revenue"] = existing["quarterly_revenue"]
                     results[t] = merged
@@ -1053,16 +1094,28 @@ def fetch_earnings_universe(
             print(f"[gc-data] {len(yf_failed)} tickers still empty after yfinance retries. "
                   f"Set FMP_API_KEY env var to activate FMP fallback.")
 
+    # ── Tag data gaps ─────────────────────────────────────────────
+    # data_gap_alert = True means this ticker has NO usable earnings data.
+    # Used by scan mode to flag when a technical signal cannot be confirmed
+    # with Star 2/3 due to missing data (different from a genuine miss).
+    for t, v in results.items():
+        has_rev = len(v.get("quarterly_revenue", [])) >= 4
+        has_eps = any(e.get("eps_reported") is not None for e in v.get("earnings_dates", []))
+        has_info = bool(v.get("info", {}).get("revenue_growth"))
+        v["data_gap_alert"] = not (has_rev or has_eps or has_info)
+
     # ── Summary ───────────────────────────────────────────────────
     ok = sum(1 for v in results.values() if "error" not in v)
     rev_ok = sum(1 for v in results.values() if len(v.get("quarterly_revenue", [])) >= 4)
     eps_ok = sum(1 for v in results.values() if any(e.get("eps_reported") for e in v.get("earnings_dates", [])))
     catalyst_ok = sum(1 for v in results.values() if v.get("catalyst_events"))
     fmp_count = sum(1 for v in results.values() if v.get("data_source") == "fmp_fallback")
+    gap_count = sum(1 for v in results.values() if v.get("data_gap_alert"))
     print(
         f"[gc-data] done: {ok}/{len(results)} success | "
         f"revenue_data: {rev_ok} | eps_history: {eps_ok} | "
-        f"catalyst_events: {catalyst_ok} | fmp_fallback: {fmp_count}"
+        f"catalyst_events: {catalyst_ok} | fmp_fallback: {fmp_count} | "
+        f"data_gaps: {gap_count}"
     )
 
     return results
@@ -1361,6 +1414,150 @@ def print_data_summary(
 
 
 # ────────────────────────────────────────────────────────────────
+# Step 2: Ignition detection (Phase 0)
+# All 4 criteria must hold for MIN_IGNITION_SESSIONS consecutive bars.
+#   I1: daily price move >= 0.5 × ATR(14)
+#   I2: CLV >= +0.70  (buyers dominating top 15% of range)
+#   I3: volume >= 2.0 × AvgVol(20)  (institutional footprint)
+#   I4: cumulative move over ignition window >= 1.5 × ATR(14)
+# ────────────────────────────────────────────────────────────────
+MIN_IGNITION_SESSIONS = 3
+I1_ATR_MULT   = 0.5
+I2_CLV_MIN    = 0.70
+I3_VOL_MULT   = 2.0
+I4_CUM_MULT   = 1.5
+
+
+def detect_ignition(
+    ticker: str,
+    df: pd.DataFrame,
+    earnings_cache: Dict[str, Any],
+    n_sessions: int = MIN_IGNITION_SESSIONS,
+    lookback_bars: int = 30,
+) -> Dict[str, Any]:
+    """Detect Phase 0 ignition signal for a single ticker.
+
+    Returns dict with:
+        star1          bool   — I1-I4 met for n_sessions consecutive bars
+        stars          int    — total star rating (1=ignition, 2=+perf, 3=+golden)
+        ticker         str
+        ignition_start_date  str
+        consecutive_sessions int
+        cumulative_move_atr_ratio float
+        yoy_growth     float  — latest quarterly YoY revenue %
+        eps_beat_streak int
+        data_gap_alert bool   — True = technically triggered but no earnings data
+    """
+    out: Dict[str, Any] = {"ticker": ticker, "star1": False, "stars": 0}
+
+    if df is None or len(df) < 25:
+        return out
+
+    atr_s   = atr(df)
+    avg_vol = df["Volume"].rolling(20).mean()
+
+    # Evaluate I1–I3 bar by bar
+    bar_flags: List[bool] = []
+    for i in range(len(df)):
+        if i < 20:
+            bar_flags.append(False)
+            continue
+        atr_val = _safe_float(atr_s.iloc[i])
+        vol_avg = _safe_float(avg_vol.iloc[i])
+        if not (np.isfinite(atr_val) and atr_val > 0 and np.isfinite(vol_avg) and vol_avg > 0):
+            bar_flags.append(False)
+            continue
+
+        prev_close = _safe_float(df["Close"].iloc[i - 1])
+        curr_close = _safe_float(df["Close"].iloc[i])
+        price_move = abs(curr_close - prev_close)
+        clv_val    = clv_at_bar(df, i)
+        vol        = _safe_float(df["Volume"].iloc[i])
+
+        i1 = price_move >= I1_ATR_MULT * atr_val
+        i2 = np.isfinite(clv_val) and clv_val >= I2_CLV_MIN
+        i3 = np.isfinite(vol) and vol >= I3_VOL_MULT * vol_avg
+        bar_flags.append(i1 and i2 and i3)
+
+    # Scan last `lookback_bars` for n_sessions consecutive hits
+    search_start = max(0, len(bar_flags) - lookback_bars)
+    best_run_start: Optional[int] = None
+    best_run_len   = 0
+    run_start: Optional[int] = None
+    run_len = 0
+
+    for i in range(search_start, len(bar_flags)):
+        if bar_flags[i]:
+            if run_len == 0:
+                run_start = i
+            run_len += 1
+            if run_len >= n_sessions and run_len >= best_run_len:
+                best_run_len   = run_len
+                best_run_start = run_start
+        else:
+            run_len = 0
+            run_start = None
+
+    if best_run_start is None or best_run_len < n_sessions:
+        return out
+
+    # I4: cumulative price move over the ignition window
+    i4_start  = best_run_start
+    i4_end    = best_run_start + best_run_len - 1
+    atr_val   = _safe_float(atr_s.iloc[i4_start])
+    start_px  = _safe_float(df["Close"].iloc[i4_start - 1])
+    end_px    = _safe_float(df["Close"].iloc[i4_end])
+    cum_move  = abs(end_px - start_px)
+    cum_ratio = round(cum_move / atr_val, 2) if atr_val > 0 else 0.0
+    i4_met    = cum_ratio >= I4_CUM_MULT
+
+    if not i4_met:
+        return out
+
+    # ── Star 1 confirmed ─────────────────────────────────────────
+    out["star1"] = True
+    out["stars"] = 1
+    out["ignition_start_date"]        = str(df.index[i4_start].date())
+    out["consecutive_sessions"]       = best_run_len
+    out["cumulative_move_atr_ratio"]  = cum_ratio
+
+    # ── Earnings data from cache ──────────────────────────────────
+    edata = earnings_cache.get(ticker, {})
+    out["data_gap_alert"] = edata.get("data_gap_alert", True)
+
+    rev_analytics = compute_revenue_analytics(edata)
+    eps_analytics = compute_eps_analytics(edata)
+
+    out["yoy_growth"]       = rev_analytics.get("latest_yoy_growth")
+    out["is_accelerating"]  = rev_analytics.get("is_accelerating")
+    out["eps_beat_streak"]  = eps_analytics.get("eps_beat_streak", 0)
+    out["revenue_source"]   = rev_analytics.get("revenue_source", "none")
+
+    # ── Star 2: Performance Validation ───────────────────────────
+    # Earnings: latest EPS beat OR catalyst event tier 1
+    has_eps_beat    = eps_analytics.get("latest_eps_beat", False)
+    has_catalyst    = any(
+        e.get("catalyst_tier") == 1
+        for e in edata.get("catalyst_events", [])
+    )
+    star2 = has_eps_beat or has_catalyst
+    if out["data_gap_alert"]:
+        out["star2_blocked"] = "no_data"   # signal to report: cannot confirm
+    elif star2:
+        out["stars"] = 2
+
+    # ── Star 3: Golden Momentum ───────────────────────────────────
+    # Revenue >= 20% YoY AND moat (AI assessment deferred — flag for now)
+    yoy = out.get("yoy_growth")
+    meets_rev = yoy is not None and np.isfinite(yoy) and yoy >= 20.0
+    if out["stars"] == 2 and meets_rev:
+        out["stars"] = 3   # moat check deferred until AI layer implemented
+        out["moat_check_pending"] = True
+
+    return out
+
+
+# ────────────────────────────────────────────────────────────────
 # Main entry point
 # ────────────────────────────────────────────────────────────────
 def main():
@@ -1405,7 +1602,83 @@ def main():
         print_data_summary(earnings_cache, universe_df)
 
     elif args.mode == "scan":
-        print("[gc] Scan mode not yet implemented (Step 2)")
+        # ── Step 2: Ignition detection ────────────────────────────
+        state = load_gc_state()
+        earnings_cache = state.get("earnings_cache", {})
+        if not earnings_cache:
+            print("[gc] No earnings cache found — run --mode data first")
+            raise SystemExit(1)
+
+        print(f"[gc] Running ignition scan on {len(tickers)} tickers...")
+
+        # Download OHLCV for full universe in chunks
+        import yfinance as yf
+        signals: List[Dict[str, Any]] = []
+        chunk_size = 50
+        all_data: Dict[str, pd.DataFrame] = {}
+
+        for i in range(0, len(tickers), chunk_size):
+            chunk = tickers[i:i + chunk_size]
+            if i > 0 and i % 200 == 0:
+                print(f"[gc-scan] OHLCV progress: {i}/{len(tickers)}")
+                time.sleep(2.0)
+            try:
+                raw = yf.download(
+                    chunk, period=DOWNLOAD_PERIOD, interval=DOWNLOAD_INTERVAL,
+                    group_by="ticker", auto_adjust=True, progress=False, threads=True
+                )
+                for t in chunk:
+                    try:
+                        if len(chunk) == 1:
+                            df = raw.copy()
+                        else:
+                            df = raw[t].copy() if t in raw.columns.get_level_values(0) else pd.DataFrame()
+                        df = df.dropna(how="all")
+                        if not df.empty:
+                            all_data[t] = df
+                    except Exception:
+                        pass
+            except Exception as e:
+                print(f"[gc-scan] chunk download error: {e}")
+            time.sleep(0.5)
+
+        print(f"[gc-scan] OHLCV downloaded for {len(all_data)}/{len(tickers)} tickers")
+
+        # Run ignition detection on each ticker
+        for t in tickers:
+            df = all_data.get(t)
+            if df is None or len(df) < 25:
+                continue
+            sig = detect_ignition(t, df, earnings_cache)
+            if sig.get("star1"):
+                signals.append(sig)
+
+        # Sort by stars desc, then yoy growth desc
+        signals.sort(key=lambda x: (-(x.get("stars", 0)), -(x.get("yoy_growth") or 0)))
+
+        # Save signals to state
+        state["ignition_signals"] = signals
+        state["last_scan_ts"] = dt.datetime.now(dt.timezone.utc).isoformat()
+        save_gc_state(state)
+
+        # Print summary
+        print(f"\n[gc-scan] Found {len(signals)} ignition signals")
+        three_star = [s for s in signals if s.get("stars", 0) >= 3]
+        two_star   = [s for s in signals if s.get("stars", 0) == 2]
+        one_star   = [s for s in signals if s.get("stars", 0) == 1]
+        print(f"  ★★★ {len(three_star)}  ★★ {len(two_star)}  ★ {len(one_star)}")
+        print()
+        for s in signals[:30]:
+            stars = "★" * s.get("stars", 1)
+            gap   = " ⚠ NO-DATA" if s.get("data_gap_alert") else ""
+            print(
+                f"  {stars:3s} {s['ticker']:12s} "
+                f"sessions={s.get('consecutive_sessions','?')}  "
+                f"cum_atr={s.get('cumulative_move_atr_ratio','?')}x  "
+                f"rev_yoy={s.get('yoy_growth','?')}%  "
+                f"eps_beats={s.get('eps_beat_streak','?')}Q"
+                f"{gap}"
+            )
 
     elif args.mode == "backtest":
         print("[gc] Backtest mode not yet implemented (Step 6)")
