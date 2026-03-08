@@ -63,13 +63,11 @@ EARNINGS_CACHE_TTL_HOURS = 20  # Re-download once per day
 # even if update_msci_world_classification.py regenerates the CSV.
 # ────────────────────────────────────────────────────────────────
 TICKER_OVERRIDES: Dict[str, str] = {
-    "2299955D.TO": "CSU.TO",    # Constellation Software — Bloomberg placeholder ticker
-    "NDAFI.HE":    "NDA-FI.HE", # Nordea Bank Helsinki — raw symbol has space, needs hyphen
-    "HEIA":        "HEI-A",     # HEICO Corp Class A — Yahoo uses HEI-A not HEIA
-    "BMW3.DE":     "BMWG.DE",   # BMW preference shares — Yahoo uses BMWG not BMW3
-    "BRKB":        "BRK-B",     # Berkshire Hathaway B — Yahoo uses BRK-B not BRKB
-    "CICT.SI":     "C38U.SI",   # CapitaLand Integrated Commercial Trust — REIT ticker
-    "CSG.AS":      "CS.AS",     # Credit Suisse (now UBS) — check if still valid
+    # Runtime-only corrections — applied when gc_engine reads the CSV at fetch time.
+    # If a correction can be determined from the raw iShares export (company name,
+    # exchange, country), it belongs in update_msci_world_classification.py instead.
+    # Only keep here what genuinely cannot be known until Yahoo Finance is queried.
+    # (currently empty — all known overrides moved to update_msci_world_classification.py)
 }
 
 # ────────────────────────────────────────────────────────────────
@@ -79,19 +77,27 @@ TICKER_OVERRIDES: Dict[str, str] = {
 # ────────────────────────────────────────────────────────────────
 import re as _re
 _GHOST_PATTERN = _re.compile(
-    r"^-$"                    # bare dash
-    r"|^\d{1,6}D?$"           # pure numeric optionally ending in D (Bloomberg placeholders)
+    r"^-$"                # bare dash
+    r"|^\d+D?$"           # pure numeric, optionally ending in D
     r"|^[A-Z]{1,5}\d{6,}D$"  # alpha prefix + long numeric + D
-    r"|^\.$"                  # bare dot
+    r"|^\.$"              # bare dot
 )
 
+
 def is_ghost_ticker(ticker: str) -> bool:
-    """Return True for Bloomberg placeholders and other non-Yahoo symbols."""
+    """Return True for any symbol that will never resolve on Yahoo Finance.
+
+    The MSCI CSV is already cleaned by update_msci_world_classification.py —
+    this is a lightweight safety net for stale cache entries and edge cases
+    that slip through (e.g. a ticker that was valid when cached but has since
+    become a Bloomberg placeholder after a corporate action).
+    """
     t = str(ticker).strip()
     if not t:
         return True
-    # Pure numeric with no exchange suffix = not a real Yahoo symbol
     if "." not in t and t.replace("-", "").isdigit():
+        return True
+    if t.count(".") > 1:   # multi-dot = malformed (e.g. BAJAJ.AUTO.NS)
         return True
     return bool(_GHOST_PATTERN.match(t))
 
@@ -299,11 +305,14 @@ def load_universe() -> pd.DataFrame:
     combined = combined.drop_duplicates(subset=["Ticker"], keep="first")
     combined = combined.drop(columns=["_source"], errors="ignore")
 
-    # Apply known ticker overrides (corrects bad Yahoo mappings without touching CSV)
+    # Apply known ticker overrides (runtime corrections only — symbol renames,
+    # corporate actions etc. that can't be detected at CSV build time)
     combined["Ticker"] = combined["Ticker"].replace(TICKER_OVERRIDES)
     combined = combined.drop_duplicates(subset=["Ticker"], keep="first")
 
-    # Drop ghost/placeholder tickers (Bloomberg numeric codes etc.)
+    # Drop ghost/placeholder tickers — lightweight safety net for anything
+    # that slipped through the MSCI CSV build step (e.g. stale cache entries
+    # from before update_msci_world_classification.py was hardened).
     before = len(combined)
     combined = combined[~combined["Ticker"].apply(is_ghost_ticker)]
     dropped = before - len(combined)
@@ -546,6 +555,47 @@ def fetch_earnings_data(ticker: str) -> Dict[str, Any]:
             out["quarterly_revenue"] = []
             out["_rev_error"] = str(e)
 
+        # 1b) Annual revenue fallback — for markets that report semi-annually
+        # or where quarterly_income_stmt returns empty (Japan .T, South Africa .JO,
+        # parts of .HK, .AX). Divide annual revenue by 4 as proxy for quarterly.
+        # Flagged with revenue_source="annual_estimated" so consumers know.
+        if not out.get("quarterly_revenue"):
+            _ANNUAL_FALLBACK_SUFFIXES = {"T", "JO", "HK", "AX", "L", "PA", "SW"}
+            t_suffix = ticker.rsplit(".", 1)[-1] if "." in ticker else "US"
+            if t_suffix in _ANNUAL_FALLBACK_SUFFIXES:
+                try:
+                    ann = tk.income_stmt
+                    if ann is not None and not ann.empty:
+                        rev_label = None
+                        for label in ["Total Revenue", "Revenue", "TotalRevenue"]:
+                            if label in ann.index:
+                                rev_label = label
+                                break
+                        if rev_label is not None:
+                            ann_series = ann.loc[rev_label].dropna().sort_index()
+                            ann_rows = []
+                            for date_col, val in ann_series.items():
+                                ann_rows.append({
+                                    "date": str(pd.Timestamp(date_col).date()),
+                                    "revenue": _safe_float(val / 4.0),  # annualised ÷ 4
+                                    "revenue_yoy_growth": None,
+                                    "revenue_source": "annual_estimated",
+                                })
+                            # Compute YoY on annual estimates
+                            for i, row in enumerate(ann_rows):
+                                if i >= 1:
+                                    prev = ann_rows[i - 1]["revenue"]
+                                    curr = row["revenue"]
+                                    if prev and prev > 0 and np.isfinite(prev) and np.isfinite(curr):
+                                        row["revenue_yoy_growth"] = round(
+                                            (curr / prev - 1.0) * 100.0, 2
+                                        )
+                            if ann_rows:
+                                out["quarterly_revenue"] = ann_rows
+                                out["_rev_fallback"] = "annual_estimated"
+                except Exception:
+                    pass
+
         # 2) EPS beat/miss — try 4 methods in order, pick best result
         method_results = []
         errors = []
@@ -777,7 +827,7 @@ _FMP_SUFFIX_MAP: Dict[str, Optional[str]] = {
     "SA": "SA",   # Brazil B3: keep .SA
 }
 
-_FMP_BASE = "https://financialmodelingprep.com/api"
+_FMP_BASE = "https://financialmodelingprep.com/stable"
 
 
 def _yahoo_to_fmp(ticker: str) -> str:
@@ -786,8 +836,10 @@ def _yahoo_to_fmp(ticker: str) -> str:
         return ticker  # US ticker — same in both
     base, suffix = ticker.rsplit(".", 1)
     fmp_suffix = _FMP_SUFFIX_MAP.get(suffix)
-    if fmp_suffix is None:
-        return base           # Strip suffix (e.g. LSE .L)
+    if fmp_suffix is None and suffix in _FMP_SUFFIX_MAP:
+        return base           # Explicitly mapped to None = strip (e.g. LSE .L)
+    elif suffix not in _FMP_SUFFIX_MAP:
+        return f"{base}.{suffix}"   # Unknown suffix — pass through as-is
     return f"{base}.{fmp_suffix}"
 
 
@@ -832,7 +884,7 @@ def fetch_fmp_single(yahoo_ticker: str, api_key: str) -> Dict[str, Any]:
 
     # 1) Quarterly revenue from income statement
     try:
-        stmt = _fmp_get(f"/v3/income-statement/{sym}", {"period": "quarter", "limit": 12}, api_key)
+        stmt = _fmp_get("/income-statement", {"symbol": sym, "period": "quarter", "limit": 12}, api_key)
         if stmt and isinstance(stmt, list):
             rev_rows = []
             for q in reversed(stmt):  # FMP returns newest first — reverse for chronological
@@ -857,7 +909,7 @@ def fetch_fmp_single(yahoo_ticker: str, api_key: str) -> Dict[str, Any]:
 
     # 2) EPS beat/miss from earnings surprises endpoint
     try:
-        surprises = _fmp_get(f"/v3/earnings-surprises/{sym}", {}, api_key)
+        surprises = _fmp_get("/earnings-surprises", {"symbol": sym}, api_key)
         if surprises and isinstance(surprises, list):
             eps_rows = []
             for s in surprises[:16]:  # last 16 quarters max
@@ -1001,6 +1053,12 @@ def fetch_earnings_universe(
         "AD",    # Abu Dhabi
         "DU",    # Dubai
         "AT",    # Athens
+        "SA",    # B3 Brazil (also catches suffix-fixed Brazilian tickers)
+        "SN",    # Santiago Chile
+        "PR",    # Prague Czech Republic
+        "BD",    # Budapest Hungary
+        "CA",    # Cairo Egypt
+        "KA",    # Karachi Pakistan
     ]
 
     # Exchanges where FMP fallback is activated after yfinance failure
