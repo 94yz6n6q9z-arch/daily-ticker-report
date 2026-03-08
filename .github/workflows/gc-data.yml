@@ -1,7 +1,15 @@
 # .github/workflows/gc-data.yml
-# Run Growth Compounder data layer to fetch/cache earnings data
-# Covers MSCI World + MSCI EM combined universe (~2,600 tickers)
-# Can be triggered manually or scheduled
+# Run Growth Compounder data layer — fetches/caches earnings data for
+# MSCI World + MSCI EM combined universe (~2,600 tickers).
+#
+# Data source priority:
+#   1. yfinance (4-method EPS chain, exchange-ordered fetch)
+#   2. yfinance retry pass (5-sec cooldown)
+#   3. FMP fallback — only for tickers still empty after both yfinance passes
+#      Priority order: UK (.L) → Korea (.KS) → Japan (.T) → rest
+#      Requires FMP_API_KEY secret (free tier: 250 calls/day ≈ 125 tickers)
+#
+# To activate FMP: repo Settings → Secrets → Add FMP_API_KEY
 
 name: gc-data-refresh
 
@@ -9,17 +17,17 @@ on:
   workflow_dispatch:
     inputs:
       force:
-        description: 'Force re-download all earnings data'
+        description: 'Force re-download all earnings data (ignore cache)'
         required: false
         default: 'false'
         type: boolean
       limit:
-        description: 'Limit universe size (0 = full)'
+        description: 'Limit universe size for testing (0 = full universe)'
         required: false
         default: '0'
         type: string
   schedule:
-    # Run daily at 06:00 UTC (after US market close + after-hours)
+    # Run daily at 06:00 UTC Mon–Sat (after US market close + after-hours)
     - cron: '0 6 * * 1-6'
 
 jobs:
@@ -55,6 +63,12 @@ jobs:
             --meta-em docs/msci_em_classification_meta.json
 
       - name: Run GC data layer
+        env:
+          # Optional — activates FMP fallback for tickers yfinance cannot cover.
+          # Free tier (250 calls/day) covers UK+Korea+Japan gaps over a few days.
+          # Get a free key at: https://financialmodelingprep.com/developer/docs
+          # Add it via: repo Settings → Secrets and variables → Actions → FMP_API_KEY
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
         run: |
           cd ${{ github.workspace }}
           FORCE_FLAG=""
