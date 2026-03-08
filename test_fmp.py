@@ -42,14 +42,22 @@ def fmp_get(path, params=None):
 
 # ── Test 1: Key validity ──────────────────────────────────────────
 print("\n── Test 1: Key validity ─────────────────────────────────────")
-data, err = fmp_get("/v3/profile/AAPL")
-if err:
-    print(f"{FAIL} Key invalid or network error: {err}")
+# Use income-statement — available on all tiers including free
+data, err = fmp_get("/v3/income-statement/AAPL", {"period": "quarter", "limit": 1})
+if err and "403" in str(err):
+    print(f"{FAIL} Key rejected (403 Forbidden) — key may be invalid or expired")
+    print(f"       Check your FMP key at https://financialmodelingprep.com/developer/docs")
     sys.exit(1)
-if data and isinstance(data, list) and data[0].get("symbol") == "AAPL":
-    print(f"{OK} Key valid — AAPL profile returned OK")
+elif err:
+    print(f"{FAIL} Network error: {err}")
+    sys.exit(1)
+elif data and isinstance(data, list) and len(data) > 0:
+    print(f"{OK} Key valid — FMP free tier confirmed working")
+elif isinstance(data, dict) and data.get("Error Message"):
+    print(f"{FAIL} FMP error: {data['Error Message']}")
+    sys.exit(1)
 else:
-    print(f"{WARN} Unexpected response: {str(data)[:100]}")
+    print(f"{WARN} Unexpected response shape: {str(data)[:120]}")
 
 
 # ── Test 2: Symbol mapping ────────────────────────────────────────
