@@ -37,7 +37,7 @@ import yfinance as yf
 # ────────────────────────────────────────────────────────────────
 # Configuration
 # ────────────────────────────────────────────────────────────────
-GC_VERSION = "0.3.0"
+GC_VERSION = "0.4.0"
 
 # Version history (mirrors the changelog pattern in scan.py)
 _GC_VERSION_LOG: dict = {
@@ -60,6 +60,16 @@ _GC_VERSION_LOG: dict = {
         "v92 sync: universe label updated to 'MSCI World + EM' in all user-facing log output. "
         "GC_VERSION constant now follows scan.py version-log pattern so both files track "
         "changes identically. No logic changes — version bump is documentation only."
+    ),
+    "0.4.0": (
+        "Layer star-gate redesign. Star 1: technical ignition (unchanged). "
+        "Star 2: BOTH eps_beat_streak>=2 AND revenue_beat_streak>=2 OR a massive catalyst "
+        "confirmed by OpenAI (not just keyword match). Star 3: Star 2 + rev>=20% YoY + "
+        "OpenAI moat confirmation. compute_eps_analytics() gains revenue_beat_streak. "
+        "_openai_catalyst_is_massive() added: sends headline to gpt-4o-mini to judge whether "
+        "it is a genuinely company-thesis-changing event. _openai_moat_assessment() added: "
+        "sends company profile to gpt-4o-mini to confirm durable moat. Both fall back "
+        "gracefully when OPENAI_API_KEY is absent. Star counts logged in data summary."
     ),
 }
 
@@ -106,6 +116,7 @@ _GHOST_PATTERN = _re.compile(
     r"|^\d+D?$"           # pure numeric, optionally ending in D
     r"|^[A-Z]{1,5}\d{6,}D$"  # alpha prefix + long numeric + D
     r"|^\.$"              # bare dot
+    r"|^DUMMY$"           # iShares CSV placeholder row
 )
 
 
@@ -1366,7 +1377,7 @@ def compute_eps_analytics(earnings_data: Dict[str, Any]) -> Dict[str, Any]:
         and eps_surprise > 0
     )
 
-    # Beat streak
+    # EPS beat streak
     beat_streak = 0
     miss_streak = 0
     for r in past_sorted:
@@ -1390,6 +1401,30 @@ def compute_eps_analytics(earnings_data: Dict[str, Any]) -> Dict[str, Any]:
             break
     out["eps_beat_streak"] = beat_streak
     out["eps_miss_streak"] = miss_streak
+
+    # Revenue + EPS dual-beat streak: consecutive quarters where BOTH
+    # EPS AND revenue beat consensus. yfinance often lacks revenue_estimate
+    # so streak may be 0 even for genuine compounders — caller must handle.
+    rev_beat_streak = 0
+    for r in past_sorted:
+        r_est = _safe_float(r.get("revenue_estimate"))
+        r_rep = _safe_float(r.get("revenue_reported"))
+        rev_beat = (
+            np.isfinite(r_est) and np.isfinite(r_rep)
+            and r_est > 0 and r_rep > r_est
+        )
+        s = r.get("eps_surprise_pct")
+        if s is None:
+            est = _safe_float(r.get("eps_estimate"))
+            rep = _safe_float(r.get("eps_reported"))
+            if np.isfinite(est) and np.isfinite(rep) and abs(est) > 0.001:
+                s = (rep / est - 1.0) * 100.0
+        eps_beat = s is not None and s > 0
+        if rev_beat and eps_beat:
+            rev_beat_streak += 1
+        else:
+            break
+    out["revenue_beat_streak"] = rev_beat_streak
 
     return out
 
@@ -1474,14 +1509,20 @@ def print_data_summary(
               f"Growth streak: {r['growth_streak']}Q  EPS beat streak: {r['eps_beat_streak']}Q")
 
     # Stocks with consecutive earnings beats + strong revenue
-    print(f"\nStocks with >={EPS_BEAT_STREAK_MIN} consecutive EPS beats AND revenue >= 20% YoY:")
-    stars = [r for r in growth_list if r["eps_beat_streak"] >= EPS_BEAT_STREAK_MIN and r["golden"]]
-    stars.sort(key=lambda x: x["yoy_growth"], reverse=True)
-    for r in stars[:15]:
+    print(f"\nStar 2 candidates (dual EPS+Rev beat ≥{EPS_BEAT_STREAK_MIN}Q OR massive catalyst):")
+    # Note: full star scoring incl. OpenAI moat only runs in scan mode (detect_ignition).
+    # Data mode shows a proxy count using eps_beat_streak + golden momentum.
+    star2_proxy = [r for r in growth_list if r["eps_beat_streak"] >= EPS_BEAT_STREAK_MIN]
+    star3_proxy = [r for r in growth_list if r["eps_beat_streak"] >= EPS_BEAT_STREAK_MIN and r["golden"]]
+    print(f"  Star 1 (technical): scored in scan mode only")
+    print(f"  Star 2 proxy (EPS beat streak ≥{EPS_BEAT_STREAK_MIN}Q): {len(star2_proxy)}")
+    print(f"  Star 3 proxy (Star 2 + rev ≥20% YoY): {len(star3_proxy)} — moat confirmed in scan mode")
+    star3_proxy.sort(key=lambda x: x["yoy_growth"], reverse=True)
+    for r in star3_proxy[:15]:
         accel = "ACCEL" if r["accel"] else "     "
         print(f"  ★★★ {r['ticker']:12s} Rev YoY: {r['yoy_growth']:+7.1f}%  {accel}  "
               f"EPS beats: {r['eps_beat_streak']}Q")
-    if not stars:
+    if not star3_proxy:
         print("  (none found)")
 
     # Catalyst events summary (Layer-2 non-earnings triggers)
@@ -1506,6 +1547,134 @@ def print_data_summary(
 
 # ────────────────────────────────────────────────────────────────
 # Step 2: Ignition detection (Phase 0)
+# ─────────────────────────────────────────────────────────────────────────────
+# OpenAI helpers — Star 2 catalyst confirmation + Star 3 moat assessment
+# Both functions fall back gracefully when OPENAI_API_KEY is absent or call fails.
+# Using gpt-4o-mini: fast, cheap, good enough for binary yes/no + 1-sentence rationale.
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _openai_chat(prompt: str, max_tokens: int = 100) -> Optional[str]:
+    """
+    Shared helper: single OpenAI chat/completions call.
+    Returns the raw assistant message text, or None on any failure.
+    """
+    import urllib.request as _req, json as _json, os as _os
+    api_key = _os.environ.get("OPENAI_API_KEY", "").strip()
+    if not api_key:
+        return None
+    body = _json.dumps({
+        "model": "gpt-4o-mini",
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.1,
+        "max_tokens": max_tokens,
+    }).encode("utf-8")
+    try:
+        req = _req.Request(
+            "https://api.openai.com/v1/chat/completions",
+            data=body,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+        )
+        with _req.urlopen(req, timeout=15) as resp:
+            data = _json.loads(resp.read())
+        raw = data["choices"][0]["message"]["content"].strip()
+        # strip markdown code fences if model wraps output
+        raw = raw.strip("`").strip()
+        if raw.lower().startswith("json"):
+            raw = raw[4:].strip()
+        return raw
+    except Exception as e:
+        print(f"  [openai] call failed: {e}")
+        return None
+
+
+def _openai_catalyst_is_massive(headline: str, company: str) -> Dict[str, Any]:
+    """
+    Ask OpenAI whether a catalyst headline is a genuinely company-thesis-changing
+    event (Star 2 equivalent without earnings data).
+
+    Examples that qualify: FDA approval, $1B+ government contract, war-driven demand surge.
+    Examples that do NOT: routine partnerships, minor product updates, analyst upgrades.
+
+    Returns:
+        confirmed  bool | None  — True=massive, False=not massive, None=API unavailable
+        rationale  str          — one-sentence reasoning
+    """
+    prompt = (
+        f"Company: {company}\n"
+        f"News headline: \"{headline}\"\n\n"
+        "Is this a MASSIVE, company-thesis-changing catalyst? "
+        "Qualifying events: FDA approval, >$500M government/defense contract, "
+        "geopolitical shock that directly reshapes demand (e.g. war, sanctions), "
+        "transformative M&A (company doubles in size).\n"
+        "Non-qualifying: routine partnerships, analyst upgrades, minor product launches, "
+        "earnings beats (those are scored separately).\n\n"
+        "Respond ONLY as JSON: {\"massive\": true/false, \"rationale\": \"one sentence\"}"
+    )
+    raw = _openai_chat(prompt, max_tokens=80)
+    if raw is None:
+        return {"confirmed": None, "rationale": "API unavailable"}
+    try:
+        import json as _json
+        parsed = _json.loads(raw)
+        return {
+            "confirmed": bool(parsed.get("massive")),
+            "rationale": str(parsed.get("rationale", "")).strip(),
+        }
+    except Exception:
+        return {"confirmed": None, "rationale": f"Parse error: {raw[:60]}"}
+
+
+def _openai_moat_assessment(
+    ticker: str,
+    short_name: str,
+    sector: str,
+    industry: str,
+    yoy_growth: float,
+    eps_beat_streak: int,
+    revenue_beat_streak: int,
+) -> Dict[str, Any]:
+    """
+    Ask OpenAI whether a Star 3 candidate has a durable economic moat —
+    i.e. does it do what it does significantly better than any direct competitor,
+    protected by structural advantages (network effects, switching costs,
+    cost advantages, intangible assets, or efficient scale).
+
+    Think Netflix/Amazon circa 2005 — structural lead, not just a good quarter.
+
+    Returns:
+        moat_confirmed  bool | None
+        moat_rationale  str
+        moat_source     str
+    """
+    prompt = (
+        f"Company: {short_name} ({ticker})\n"
+        f"Sector: {sector} | Industry: {industry}\n"
+        f"Revenue YoY growth: {yoy_growth:.1f}%\n"
+        f"EPS beat streak: {eps_beat_streak}Q | Revenue beat streak: {revenue_beat_streak}Q\n\n"
+        "Does this company have a DURABLE ECONOMIC MOAT — structural advantages that make it "
+        "significantly better than any direct competitor and hard to displace? "
+        "Think network effects, switching costs, proprietary IP, cost scale, or brand. "
+        "A fast-growing company without a moat (e.g. commodity producer, cyclical) does NOT qualify.\n\n"
+        "Respond ONLY as JSON: {\"moat\": true/false, \"rationale\": \"one sentence max 20 words\"}"
+    )
+    raw = _openai_chat(prompt, max_tokens=80)
+    if raw is None:
+        return {"moat_confirmed": None, "moat_rationale": "API unavailable — moat not assessed", "moat_source": "fallback"}
+    try:
+        import json as _json
+        parsed = _json.loads(raw)
+        return {
+            "moat_confirmed": bool(parsed.get("moat")),
+            "moat_rationale": str(parsed.get("rationale", "")).strip(),
+            "moat_source": "gpt-4o-mini",
+        }
+    except Exception:
+        return {"moat_confirmed": None, "moat_rationale": f"Parse error: {raw[:60]}", "moat_source": "fallback"}
+
+
 # All 4 criteria must hold for MIN_IGNITION_SESSIONS consecutive bars.
 #   I1: daily price move >= 0.5 × ATR(14)
 #   I2: CLV >= +0.70  (buyers dominating top 15% of range)
@@ -1619,31 +1788,86 @@ def detect_ignition(
     rev_analytics = compute_revenue_analytics(edata)
     eps_analytics = compute_eps_analytics(edata)
 
-    out["yoy_growth"]       = rev_analytics.get("latest_yoy_growth")
-    out["is_accelerating"]  = rev_analytics.get("is_accelerating")
-    out["eps_beat_streak"]  = eps_analytics.get("eps_beat_streak", 0)
-    out["revenue_source"]   = rev_analytics.get("revenue_source", "none")
+    out["yoy_growth"]            = rev_analytics.get("latest_yoy_growth")
+    out["latest_revenue_date"]   = rev_analytics.get("latest_revenue_date")   # date of last quarterly report
+    out["is_accelerating"]       = rev_analytics.get("is_accelerating")
+    out["eps_beat_streak"]       = eps_analytics.get("eps_beat_streak", 0)
+    out["revenue_beat_streak"]   = eps_analytics.get("revenue_beat_streak", 0)
+    out["revenue_source"]        = rev_analytics.get("revenue_source", "none")
 
-    # ── Star 2: Performance Validation ───────────────────────────
-    # Earnings: latest EPS beat OR catalyst event tier 1
-    has_eps_beat    = eps_analytics.get("latest_eps_beat", False)
-    has_catalyst    = any(
-        e.get("catalyst_tier") == 1
-        for e in edata.get("catalyst_events", [])
-    )
-    star2 = has_eps_beat or has_catalyst
+    # ── Star 2: BOTH EPS + Revenue beats ≥2Q in a row OR massive catalyst ──
+    # Dual-beat: company must have beaten consensus on BOTH top-line and
+    # bottom-line for at least 2 consecutive quarters.
+    # Catalyst path: a truly company-thesis-changing event (FDA, major contract,
+    # geopolitical demand shock) confirmed by OpenAI — not just a keyword match.
+    eps_streak  = out["eps_beat_streak"]
+    rev_streak  = out["revenue_beat_streak"]
+    meets_dual_beat = (eps_streak >= EPS_BEAT_STREAK_MIN and rev_streak >= EPS_BEAT_STREAK_MIN)
+
+    # Check for massive catalyst (OpenAI-confirmed)
+    massive_catalyst = False
+    catalyst_rationale = ""
+    for ev in edata.get("catalyst_events", []):
+        if ev.get("catalyst_tier") == 1:
+            info_block = edata.get("info") or {}
+            ai_result = _openai_catalyst_is_massive(
+                headline=ev.get("headline", ""),
+                company=info_block.get("short_name", ticker),
+            )
+            if ai_result.get("confirmed"):
+                massive_catalyst = True
+                catalyst_rationale = ai_result.get("rationale", "")
+                ev["ai_confirmed_massive"] = True
+                ev["ai_rationale"] = catalyst_rationale
+                break
+            else:
+                ev["ai_confirmed_massive"] = False
+
+    out["massive_catalyst"] = massive_catalyst
+    out["catalyst_rationale"] = catalyst_rationale
+
+    star2 = meets_dual_beat or massive_catalyst
     if out["data_gap_alert"]:
-        out["star2_blocked"] = "no_data"   # signal to report: cannot confirm
+        out["star2_blocked"] = "no_data"
     elif star2:
         out["stars"] = 2
+        out["star2_via"] = "dual_beat" if meets_dual_beat else "catalyst"
 
-    # ── Star 3: Golden Momentum ───────────────────────────────────
-    # Revenue >= 20% YoY AND moat (AI assessment deferred — flag for now)
+    # ── Star 3: Golden Momentum — Rev ≥20% YoY + Moat confirmed ──
+    # Requires Star 2. Revenue must be growing ≥20% YoY (structural momentum,
+    # not a one-off). Moat confirmed by OpenAI: company must do what it does
+    # significantly better than any competitor (network effects, switching costs,
+    # proprietary IP, cost scale). Think Netflix/Amazon in 2005.
     yoy = out.get("yoy_growth")
-    meets_rev = yoy is not None and np.isfinite(yoy) and yoy >= 20.0
-    if out["stars"] == 2 and meets_rev:
-        out["stars"] = 3   # moat check deferred until AI layer implemented
-        out["moat_check_pending"] = True
+    rev_source = out.get("revenue_source", "none")
+    # Star 3 requires the 20% growth to be from the LAST QUARTERLY EARNINGS REPORT,
+    # not from FY/TTM info.revenueGrowth. Exclude info_fallback and annual_estimated.
+    quarterly_yoy_only = rev_source not in ("info_fallback", "annual_estimated", "none")
+    meets_rev20 = (
+        yoy is not None and np.isfinite(yoy) and yoy >= 20.0
+        and quarterly_yoy_only
+    )
+
+    if out["stars"] == 2 and meets_rev20:
+        info_block = edata.get("info") or {}
+        moat_result = _openai_moat_assessment(
+            ticker              = ticker,
+            short_name          = info_block.get("short_name", ticker),
+            sector              = info_block.get("sector", ""),
+            industry            = info_block.get("industry", ""),
+            yoy_growth          = yoy,
+            eps_beat_streak     = eps_streak,
+            revenue_beat_streak = rev_streak,
+        )
+        out["moat_confirmed"]  = moat_result.get("moat_confirmed")
+        out["moat_rationale"]  = moat_result.get("moat_rationale", "")
+        out["moat_source"]     = moat_result.get("moat_source", "fallback")
+
+        if moat_result.get("moat_confirmed"):
+            out["stars"] = 3
+            print(f"  [★★★] {ticker}: rev={yoy:.1f}%  moat={out['moat_rationale'][:70]}")
+        else:
+            print(f"  [★★ ] {ticker}: rev={yoy:.1f}% — moat NOT confirmed: {out['moat_rationale'][:70]}")
 
     return out
 
