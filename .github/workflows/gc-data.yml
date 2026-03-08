@@ -48,7 +48,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.11'
 
       - name: Install dependencies
         run: pip install yfinance pandas numpy lxml requests
@@ -92,4 +92,5 @@ jobs:
                   docs/msci_world_classification_meta.json \
                   docs/msci_em_classification_meta.json
           git diff --cached --quiet || git commit -m "GC data + MSCI refresh $(date -u +%Y-%m-%d)"
+          git pull --rebase
           git push
