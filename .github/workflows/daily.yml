@@ -16,7 +16,7 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 55
     env:
       TZ: Europe/Vienna
       PUBLIC_IMG_BASE: https://94yz6n6q9z-arch.github.io/daily-ticker-report
@@ -116,6 +116,7 @@ jobs:
           OPENAI_MODEL: gpt-5.2
           OPENAI_REASONING_EFFORT: medium
           EXEC_SUMMARY_DEBUG: "1"
+          MODE: full
         run: |
           set -o pipefail
           mkdir -p docs
@@ -131,6 +132,7 @@ jobs:
           OPENAI_MODEL: gpt-5.2
           OPENAI_REASONING_EFFORT: medium
           EXEC_SUMMARY_DEBUG: "1"
+          MODE: full
         run: |
           set -o pipefail
           echo "First run failed; retrying in 60s..."
