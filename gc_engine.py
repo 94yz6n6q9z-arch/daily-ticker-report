@@ -130,12 +130,18 @@ def _should_fetch_today(ticker: str, cached: Dict[str, Any], now: dt.datetime, f
     """Decide whether this ticker should be fetched in today's run.
 
     Rules (in priority order):
-      1. force=True          → always fetch
-      2. earnings trigger    → fetch if earnings ±1 day
-      3. US ticker           → fetch on weekdays only
-      4. RoW ticker          → fetch on assigned batch day (any day of week)
+      1. force=True              → always fetch
+      2. inactive constituent    → never fetch (left MSCI universe)
+      3. new_constituent         → always fetch immediately (just joined MSCI)
+      4. earnings trigger        → fetch if earnings ±1 day
+      5. US ticker               → fetch on weekdays only
+      6. RoW ticker              → fetch on assigned batch day (any day of week)
     """
     if force:
+        return True
+    if cached.get("inactive"):
+        return False
+    if cached.get("new_constituent"):
         return True
     today = now.date()
     if _has_earnings_today(cached, today):
@@ -628,6 +634,8 @@ def fetch_earnings_data(ticker: str) -> Dict[str, Any]:
         out["error"] = str(e)
 
     out["fetched_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
+    # Clear new_constituent flag — ticker has now been fetched at least once
+    out.pop("new_constituent", None)
     return out
     """Fetch earnings and revenue data for a single ticker from yfinance.
 
@@ -1583,6 +1591,45 @@ def main():
         # Load existing cache
         state = load_gc_state()
         existing_cache = state.get("earnings_cache", {})
+
+        # ── Universe reconciliation ───────────────────────────────
+        # Runs every time so the cache stays in sync with MSCI CSV changes.
+        # New tickers (just added to MSCI): flagged as new_constituent=True
+        #   → force-fetched immediately regardless of batch day
+        # Removed tickers (left MSCI): marked inactive=True in cache
+        #   → retained for 90 days (signals may still be active) then pruned
+        live_set  = set(tickers)
+        cache_set = set(existing_cache.keys())
+        now_utc   = dt.datetime.now(dt.timezone.utc)
+
+        # New constituents — mark for immediate fetch
+        new_tickers = live_set - cache_set
+        if new_tickers:
+            print(f"[gc] {len(new_tickers)} new MSCI constituents — will force-fetch today")
+        for t in new_tickers:
+            existing_cache[t] = {"ticker": t, "new_constituent": True}
+
+        # Removed constituents — mark inactive, prune after 90 days
+        removed_tickers = cache_set - live_set
+        pruned = 0
+        for t in removed_tickers:
+            entry = existing_cache[t]
+            if entry.get("inactive"):
+                # Already flagged — check if 90 days old
+                flagged_at = entry.get("inactive_since", "")
+                try:
+                    age_days = (now_utc - dt.datetime.fromisoformat(flagged_at)).days
+                    if age_days > 90:
+                        del existing_cache[t]
+                        pruned += 1
+                except Exception:
+                    pass
+            else:
+                entry["inactive"] = True
+                entry["inactive_since"] = now_utc.isoformat()
+        if removed_tickers:
+            print(f"[gc] {len(removed_tickers)} tickers no longer in MSCI universe "
+                  f"({pruned} pruned after 90d, rest retained)")
 
         # Fetch earnings data
         earnings_cache = fetch_earnings_universe(
