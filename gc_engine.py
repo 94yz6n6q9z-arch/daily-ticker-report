@@ -37,7 +37,32 @@ import yfinance as yf
 # ────────────────────────────────────────────────────────────────
 # Configuration
 # ────────────────────────────────────────────────────────────────
-GC_VERSION = "0.1.0"
+GC_VERSION = "0.3.0"
+
+# Version history (mirrors the changelog pattern in scan.py)
+_GC_VERSION_LOG: dict = {
+    "0.1.0": (
+        "Initial release. Data layer: earnings dates, quarterly revenue, EPS surprise "
+        "for MSCI World universe. Compute YoY revenue growth, acceleration, sector medians. "
+        "Cache in gc_state.json."
+    ),
+    "0.2.0": (
+        "v91 integration: MSCI EM universe merged into load_universe() via msci_em_classification.csv. "
+        "TICKER_OVERRIDES dict auto-corrects 7 known bad mappings. "
+        "compute_revenue_analytics() falls back to info.revenue_growth for markets with no "
+        "quarterly data (recovers ~348 tickers: Japan, UK, Australia, France, Switzerland). "
+        "is_ghost_ticker() filter added to skip Bloomberg placeholders before any yfinance call. "
+        "FMP_TARGET_EXCHANGES list for exchanges where yfinance is structurally weak. "
+        "Batch scheduling: US tickers daily (Mon–Fri); RoW tickers once/week via stable hash. "
+        "EPS_BEAT_STREAK_MIN lowered from 3 to 2."
+    ),
+    "0.3.0": (
+        "v92 sync: universe label updated to 'MSCI World + EM' in all user-facing log output. "
+        "GC_VERSION constant now follows scan.py version-log pattern so both files track "
+        "changes identically. No logic changes — version bump is documentation only."
+    ),
+}
+
 BASE_DIR = Path(os.environ.get("BASE_DIR", Path(__file__).resolve().parent))
 CONFIG_DIR = BASE_DIR / "config"
 DOCS_DIR = BASE_DIR / "docs"
@@ -1643,7 +1668,7 @@ def main():
     tickers = sorted(universe_df["Ticker"].astype(str).unique().tolist())
     if args.limit > 0:
         tickers = tickers[:args.limit]
-    print(f"[gc] Universe: {len(tickers)} tickers")
+    print(f"[gc] Universe (MSCI World + EM): {len(tickers)} tickers")
 
     if args.mode == "data":
         # Load existing cache
