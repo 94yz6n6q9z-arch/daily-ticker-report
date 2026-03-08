@@ -43,9 +43,11 @@ jobs:
           today = now.strftime("%Y-%m-%d")
           now_hm = now.strftime("%H:%M")
 
-          # Scheduled send window (Vienna local time)
-          start = time(22, 30)   # earliest allowed
-          end = time(23, 45)     # wide window to tolerate drift
+          # Scheduled send window (Vienna local time = CET/CEST)
+          # gc_engine runs 23:00–02:00 CET, so report fires at 04:00 CET
+          # giving a comfortable 2hr buffer after gc_engine finishes.
+          start = time(4, 0)    # earliest allowed
+          end   = time(5, 15)   # wide window to tolerate scheduler drift
 
           def in_window(t):
               return start <= t <= end
@@ -54,14 +56,14 @@ jobs:
           reason = ""
 
           if event_name == "workflow_dispatch":
-              # Manual runs should ALWAYS send immediately (do not enforce time window, do not enforce lock).
+              # Manual runs always send immediately — no time window enforced.
               run = True
               reason = "manual_run"
           else:
               # Scheduled runs: only send inside window, and at most once per day.
               if not in_window(now.time()):
                   run = False
-                  reason = f"outside_window ({now_hm} not in 22:30-23:45)"
+                  reason = f"outside_window ({now_hm} not in 04:00-05:15)"
               else:
                   lock = Path("docs/email_state.json")
                   last = ""
@@ -171,10 +173,18 @@ jobs:
               (docs / "email.md").write_text(txt, encoding="utf-8")
 
               body_html = md.markdown(txt, extensions=["tables","sane_lists","fenced_code"])
-              html = "<!doctype html><html><head>"                      "<meta charset='utf-8'/><meta name='viewport' content='width=device-width, initial-scale=1'/>"                      "<style>"                      "body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif;line-height:1.35;}"                      "h1,h2,h3{margin:16px 0 10px;}"                      "table{border-collapse:collapse;width:100%;margin:10px 0 18px;}"                      "th,td{border:1px solid #ddd;padding:8px;vertical-align:top;}"                      "th{background:#f6f8fa;}"                      "img{max-width:100%;height:auto;}"                      "</style></head><body>" + body_html + "</body></html>"
+              html = "<!doctype html><html><head>" \
+                     "<meta charset='utf-8'/><meta name='viewport' content='width=device-width, initial-scale=1'/>" \
+                     "<style>" \
+                     "body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif;line-height:1.35;}" \
+                     "h1,h2,h3{margin:16px 0 10px;}" \
+                     "table{border-collapse:collapse;width:100%;margin:10px 0 18px;}" \
+                     "th,td{border:1px solid #ddd;padding:8px;vertical-align:top;}" \
+                     "th{background:#f6f8fa;}" \
+                     "img{max-width:100%;height:auto;}" \
+                     "</style></head><body>" + body_html + "</body></html>"
               (docs / "email.html").write_text(html, encoding="utf-8")
 
-              # Keep line breaks (don't collapse whitespace) to avoid table distortion
               (docs / "email.txt").write_text(txt[:12000], encoding="utf-8")
           else:
               log_tail = ""
@@ -183,7 +193,9 @@ jobs:
                   log_tail = "\n".join(lines[-120:])
               txt = "Daily Ticker Report — ERROR\n\nscan.py did not produce docs/report.md.\n\nLast log lines:\n" + log_tail
               (docs / "email.txt").write_text(txt[:12000], encoding="utf-8")
-              html = "<html><body><h1>Daily Ticker Report</h1><h2>ERROR</h2><pre style='white-space:pre-wrap'>" +                      (txt.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")) +                      "</pre></body></html>"
+              html = "<html><body><h1>Daily Ticker Report</h1><h2>ERROR</h2><pre style='white-space:pre-wrap'>" + \
+                     (txt.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")) + \
+                     "</pre></body></html>"
               (docs / "email.html").write_text(html, encoding="utf-8")
               (docs / "email.md").write_text(txt, encoding="utf-8")
           PY
