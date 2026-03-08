@@ -6987,6 +6987,95 @@ def main():
                 md.append(f"  - No data by exchange: {', '.join(f'{k}: {v}/{_total_by_exch.get(k,0)}' for k, v in _dl_diag['fail_by_exch'])}\n")
             if _dl_diag.get('fail_by_country'):
                 md.append(f"  - No data by country: {', '.join(f'{k}: {v}' for k, v in _dl_diag['fail_by_country'])}\n")
+        # GC data layer diagnostic — load gc_state.json if available
+        try:
+            gc_state_path = DOCS_DIR / "gc_state.json"
+            if gc_state_path.exists():
+                import json as _json
+                gc_state = _json.loads(gc_state_path.read_text(encoding="utf-8"))
+                ec = gc_state.get("earnings_cache", {})
+                gc_total = len(ec)
+                gc_rev = sum(1 for d in ec.values() if len(d.get("quarterly_revenue", [])) >= 4)
+                gc_eps = sum(1 for d in ec.values() if any(e.get("eps_reported") for e in d.get("earnings_dates", [])))
+                gc_catalyst = sum(1 for d in ec.values() if d.get("catalyst_events"))
+                gc_blind = sum(1 for d in ec.values()
+                    if len(d.get("quarterly_revenue", [])) < 4
+                    and not any(e.get("eps_reported") for e in d.get("earnings_dates", []))
+                    and not d.get("info", {}).get("revenue_growth"))
+
+                # GC candidates: rev >= 20% YoY + >= 2 EPS beats
+                import math as _math
+                def _yoy(d):
+                    wg = [r for r in d.get("quarterly_revenue", []) if r.get("revenue_yoy_growth") is not None]
+                    if wg:
+                        v = sorted(wg, key=lambda r: r["date"], reverse=True)[0]["revenue_yoy_growth"]
+                        return float(v) if v is not None else None
+                    ig = d.get("info", {}).get("revenue_growth")
+                    if ig is not None:
+                        try:
+                            v = float(ig) * 100
+                            return v if _math.isfinite(v) else None
+                        except Exception: pass
+                    return None
+                def _beat_streak(d):
+                    past = sorted([e for e in d.get("earnings_dates", []) if e.get("eps_reported") is not None],
+                                  key=lambda e: e.get("date", ""), reverse=True)
+                    streak = 0
+                    for e in past:
+                        s = e.get("eps_surprise_pct")
+                        if s is None:
+                            est = e.get("eps_estimate"); rep = e.get("eps_reported")
+                            if est and rep and abs(float(est)) > 0.001:
+                                s = (float(rep) / float(est) - 1.0) * 100
+                        if s is not None and float(s) > 0: streak += 1
+                        else: break
+                    return streak
+
+                gc_layer3 = sum(1 for d in ec.values() if (_yoy(d) or 0) >= 20.0)
+                gc_confirmed = sum(1 for d in ec.values() if (_yoy(d) or 0) >= 20.0 and _beat_streak(d) >= 2)
+                gc_updated = gc_state.get("last_data_update", "unknown")[:10]
+
+                # World vs EM breakdown
+                world_csv = CONFIG_DIR / "msci_world_classification.csv"
+                em_csv = CONFIG_DIR / "msci_em_classification.csv"
+                world_count = 0
+                em_count = 0
+                try:
+                    import pandas as _pd
+                    if world_csv.exists():
+                        world_count = len(_pd.read_csv(world_csv, dtype=str))
+                    if em_csv.exists():
+                        em_count = len(_pd.read_csv(em_csv, dtype=str))
+                except Exception: pass
+
+                gc_fmp = sum(1 for d in ec.values() if d.get("data_source") == "fmp_fallback")
+
+                md.append(f"- **GC Data Layer** (as of {gc_updated}): universe **{gc_total}** tickers")
+                if world_count or em_count:
+                    md.append(f" (World: {world_count} + EM: {em_count})")
+                md.append(f" | rev data: **{gc_rev}** ({gc_rev*100//max(gc_total,1)}%) | EPS history: **{gc_eps}** ({gc_eps*100//max(gc_total,1)}%) | blind: **{gc_blind}** ({gc_blind*100//max(gc_total,1)}%)\n")
+                md.append(f"  - Layer 3 candidates (rev ≥20% YoY): **{gc_layer3}** | Layer 2+3 confirmed (rev ≥20% + ≥2 EPS beats): **{gc_confirmed}**\n")
+                if gc_catalyst > 0:
+                    md.append(f"  - Tier-1 catalyst events detected: **{gc_catalyst}** tickers with major announcements (FDA/contract/geopolitical) in last 180 days\n")
+                if gc_fmp > 0:
+                    md.append(f"  - FMP fallback: **{gc_fmp}** tickers recovered via Financial Modeling Prep (yfinance had no data)\n")
+                else:
+                    md.append(f"  - Data source: yfinance only (FMP_API_KEY not set or not needed)\n")
+
+                # Coverage gaps by exchange (blind ≥ 10 tickers)
+                blind_by_ex = {}
+                for ticker, d in ec.items():
+                    if (len(d.get("quarterly_revenue", [])) < 4
+                            and not any(e.get("eps_reported") for e in d.get("earnings_dates", []))
+                            and not d.get("info", {}).get("revenue_growth")):
+                        ex = ticker.split(".")[-1] if "." in ticker else "US"
+                        blind_by_ex[ex] = blind_by_ex.get(ex, 0) + 1
+                significant_gaps = [(ex, n) for ex, n in sorted(blind_by_ex.items(), key=lambda x: -x[1]) if n >= 5]
+                if significant_gaps:
+                    gap_str = ", ".join(f".{ex}: {n}" for ex, n in significant_gaps[:8])
+                    md.append(f"  - Coverage gaps (blind ≥5 tickers by exchange): {gap_str}\n")
+        except Exception:
+            pass
         md.append("\n")
     except Exception:
         pass
