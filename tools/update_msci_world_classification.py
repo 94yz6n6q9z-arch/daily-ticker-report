@@ -54,7 +54,7 @@ import requests
 # ────────────────────────────────────────────────────────────────
 # Version tracker (mirrors scan.py / gc_engine.py pattern)
 # ────────────────────────────────────────────────────────────────
-MSCI_UPDATE_VERSION = "1.3.0"
+MSCI_UPDATE_VERSION = "1.4.0"
 
 _MSCI_UPDATE_VERSION_LOG: dict = {
     "1.0.0": (
@@ -81,6 +81,15 @@ _MSCI_UPDATE_VERSION_LOG: dict = {
         "MSCI_UPDATE_VERSION constant + _MSCI_UPDATE_VERSION_LOG added so this file "
         "tracks changes identically to scan.py and gc_engine.py. CLI description updated. "
         "No logic changes."
+    ),
+    "1.4.0": (
+        "Fix: UCITS iShares exports (IWDA, EIMI) truncate long sector names — 'Communication' "
+        "instead of 'Communication Services', etc. This was silently dropping 56 World + 65 EM "
+        "real constituents (121 total, including Alphabet, Meta, Netflix). "
+        "Added full set of truncated/abbreviated variants to SECTOR_MAP: communication, "
+        "consumer disc/discr/cons discr, consumer stap/cons staples, hlth care/health, "
+        "info technology/info tech/it/technology, real est, financial, industrial, "
+        "material, utility. Recovers all 121 previously lost constituents."
     ),
 }
 
@@ -142,7 +151,7 @@ SP500_11 = [
 ]
 
 SECTOR_MAP = {
-    # English
+    # ── Canonical English (full names) ──────────────────────────────────────
     "communication services": "Communication Services",
     "consumer discretionary": "Consumer Discretionary",
     "consumer staples": "Consumer Staples",
@@ -156,6 +165,26 @@ SECTOR_MAP = {
     "materials": "Materials",
     "real estate": "Real Estate",
     "utilities": "Utilities",
+    # ── Truncated / abbreviated labels from UCITS iShares exports ───────────
+    # These appear when iShares UK/EU CSVs shorten the longer sector names.
+    # v1.4.0: added after losing 121 constituents (56 World + 65 EM) in prod.
+    "communication": "Communication Services",       # truncated "Communication Services"
+    "consumer disc": "Consumer Discretionary",       # truncated
+    "consumer discr": "Consumer Discretionary",
+    "cons discr": "Consumer Discretionary",
+    "consumer stap": "Consumer Staples",             # truncated
+    "cons staples": "Consumer Staples",
+    "hlth care": "Health Care",
+    "health": "Health Care",
+    "info technology": "Information Technology",     # truncated
+    "info tech": "Information Technology",
+    "it": "Information Technology",
+    "technology": "Information Technology",          # common alias in some ETF exports
+    "real est": "Real Estate",
+    "financial": "Financials",
+    "industrial": "Industrials",
+    "material": "Materials",
+    "utility": "Utilities",
     # German (common iShares DE export labels)
     "kommunikationsdienste": "Communication Services",
     "zyklische konsumgüter": "Consumer Discretionary",
