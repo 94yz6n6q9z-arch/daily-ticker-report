@@ -15,7 +15,7 @@ import sys
 import urllib.parse
 import urllib.request
 
-FMP_BASE = "https://financialmodelingprep.com/api"
+FMP_BASE = "https://financialmodelingprep.com/stable"
 
 API_KEY = os.environ.get("FMP_API_KEY", "").strip()
 if not API_KEY:
@@ -43,7 +43,7 @@ def fmp_get(path, params=None):
 # ── Test 1: Key validity ──────────────────────────────────────────
 print("\n── Test 1: Key validity ─────────────────────────────────────")
 # Use income-statement — available on all tiers including free
-data, err = fmp_get("/v3/income-statement/AAPL", {"period": "quarter", "limit": 1})
+data, err = fmp_get("/income-statement", {"symbol": "AAPL", "period": "quarter", "limit": 1})
 if err and "403" in str(err):
     print(f"{FAIL} Key rejected (403 Forbidden) — key may be invalid or expired")
     print(f"       Check your FMP key at https://financialmodelingprep.com/developer/docs")
@@ -124,8 +124,8 @@ test_tickers = [
 ]
 
 for yahoo, fmp_sym, label in test_tickers:
-    rev_data, err1 = fmp_get(f"/v3/income-statement/{fmp_sym}", {"period": "quarter", "limit": 4})
-    eps_data, err2 = fmp_get(f"/v3/earnings-surprises/{fmp_sym}")
+    rev_data, err1 = fmp_get("/income-statement", {"symbol": fmp_sym, "period": "quarter", "limit": 4})
+    eps_data, err2 = fmp_get("/earnings-surprises", {"symbol": fmp_sym})
 
     has_rev = isinstance(rev_data, list) and len(rev_data) > 0
     has_eps = isinstance(eps_data, list) and len(eps_data) > 0
