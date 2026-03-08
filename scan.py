@@ -36,7 +36,8 @@ NEW (this update):
 - v88: Rewrite yf_download_chunk — group tickers by exchange suffix before chunking. Mixed-exchange bulk downloads cause Yahoo to silently drop non-US tickers. Each exchange group (.L, .TO, .DE, etc.) now downloads in its own homogeneous chunks. Removes all sleep/throttling (was counterproductive). Per-exchange progress logging.
 - v89: ROOT CAUSE FIX — _clean_ticker regex [A-Z]+\.[A-Z]+ was converting exchange suffixes (.L, .DE, .TO, .AX, etc.) to hyphens (BP.L→BP-L). This destroyed ~400 international tickers. Now checks against known exchange suffixes before converting. Also: yfinance Ticker fallback for after-hours movers, diagnostic logging for yahoo_quote endpoint.
 - v90: Fix Nordic share classes in MSCI script: "VOLV B"→"VOLV-B.ST" not "VOLVB.ST" (31 Swedish + 7 Danish tickers). Rewrite after-hours movers: primary source now yfinance Ticker.info (authenticated) instead of deprecated v7/finance/quote endpoint (was returning 403). Fixes AVGO and other after-hours missing movers.
-- v91: Expand universe to MSCI World + MSCI EM (~2,641 tickers, ~1,400 net new). Add MSCI_EM_CLASSIFICATION_CSV path constant. Universe builder merges EM CSV if present, gracefully skips if not yet generated. Sector/company/country resolvers now cover EM tickers. update_msci_world_classification.py gains --universe world|em|both, SOURCE_CANDIDATES_EM (EIMI + EEM), 30+ new EM exchange suffix rules (.KS .TW .NS .BO .SA .JO .MX .SS .SZ .JK .BK .KL .SR .IS .WA etc.), and KNOWN_TICKER_OVERRIDES applied post-guessing. gc_engine.py: MSCI_EM_CSV path, load_universe() merges both CSVs, TICKER_OVERRIDES auto-corrects 7 bad mappings, compute_revenue_analytics() falls back to info.revenue_growth for markets with no quarterly data (recovers ~348 tickers: Japan, UK, Australia, France, Switzerland). gc-data.yml: refreshes both World + EM CSVs before data layer, adds lxml to install step, commits all 5 generated files."""
+- v91: Expand universe to MSCI World + MSCI EM (~2,641 tickers, ~1,400 net new). Add MSCI_EM_CLASSIFICATION_CSV path constant. Universe builder merges EM CSV if present, gracefully skips if not yet generated. Sector/company/country resolvers now cover EM tickers. update_msci_world_classification.py gains --universe world|em|both, SOURCE_CANDIDATES_EM (EIMI + EEM), 30+ new EM exchange suffix rules (.KS .TW .NS .BO .SA .JO .MX .SS .SZ .JK .BK .KL .SR .IS .WA etc.), and KNOWN_TICKER_OVERRIDES applied post-guessing. gc_engine.py: MSCI_EM_CSV path, load_universe() merges both CSVs, TICKER_OVERRIDES auto-corrects 7 bad mappings, compute_revenue_analytics() falls back to info.revenue_growth for markets with no quarterly data (recovers ~348 tickers: Japan, UK, Australia, France, Switzerland). gc-data.yml: refreshes both World + EM CSVs before data layer, adds lxml to install step, commits all 5 generated files.
+- v92: Fix job timeout caused by bare EM numeric tickers (e.g. 6488, 3227 — missing .T/.NS/.BO suffix) flooding yfinance with 404 requests. Add _is_ghost_ticker() guard in universe builder: filters Bloomberg placeholders (pure numeric, *D suffix, bare dash, multi-dot) before they enter tech_scan_universe. Expand _clean_ticker _EXCHANGE_SUFFIXES to cover all EM markets (.TW .SS .SZ .JO .MX .JK .BK .KL .SR .AD .DU .WA .AT .CA .PS .QA .KQ etc.) so no EM suffix is ever mangled to a hyphen. Rename user-facing "MSCI World" labels to "MSCI World + EM" in Section 4C header and engine-health log. update_msci_world_classification.py and gc_engine.py gain version-tracker constants + changelog log (matching scan.py pattern)."""
 from __future__ import annotations
 import argparse
 import datetime as dt
@@ -59,7 +60,7 @@ import yfinance as yf
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-SCAN_VERSION: str = "v90"
+SCAN_VERSION: str = "v92"
 # ----------------------------
 # Public asset URLs (email-safe) + cache busting
 # ----------------------------
@@ -560,11 +561,32 @@ def _clean_ticker(t: str) -> str:
     # MUST NOT convert exchange suffixes like .L, .DE, .TO, .AX, .SW, etc.
     # Strategy: if the part after the dot is a known exchange suffix, leave it alone.
     _EXCHANGE_SUFFIXES = {
+        # Developed markets
         "L", "DE", "TO", "AX", "SW", "MI", "HK", "MC", "CO", "SI", "AS",
         "OL", "TA", "VI", "NZ", "IR", "PA", "ST", "BR", "HE", "LS", "T",
         "V", "F",  # Toronto Venture (.V), Frankfurt (.F)
-        "KS", "KQ",  # Korea
-        "SA", "JK", "BK", "IS", "NS", "BO",  # Other emerging
+        # Korea
+        "KS", "KQ",
+        # EM — v92: full set so no EM suffix is ever mangled to a hyphen
+        "SA", "JK", "BK", "IS", "NS", "BO",  # Brazil, Indonesia, Thailand, Turkey, India NSE/BSE
+        "TW",        # Taiwan
+        "SS", "SZ",  # China Shanghai / Shenzhen
+        "JO",        # South Africa (Johannesburg)
+        "MX",        # Mexico
+        "KL",        # Malaysia
+        "SR",        # Saudi Arabia
+        "AD", "DU",  # UAE (Abu Dhabi / Dubai)
+        "WA",        # Poland (Warsaw)
+        "AT",        # Greece (Athens)
+        "CA",        # Egypt (Cairo)
+        "PS",        # Philippines
+        "QA",        # Qatar
+        "PR",        # Czech Republic (Prague)
+        "BD",        # Hungary (Budapest)
+        "SN",        # Chile (Santiago)
+        "CL",        # Colombia
+        "LM",        # Peru (Lima)
+        "KA",        # Pakistan (Karachi)
     }
     if "." in t:
         parts = t.rsplit(".", 1)
@@ -574,6 +596,34 @@ def _clean_ticker(t: str) -> str:
     if re.fullmatch(r"[A-Z]+\.[A-Z]+", t):
         return t.replace(".", "-")
     return t
+
+# ── Ghost ticker guard (v92) ──────────────────────────────────────────────────
+# Bloomberg/iShares EM CSV exports contain placeholder symbols that will never
+# resolve on Yahoo Finance.  Filter these from the universe *before* any network
+# call so we don't waste fetch slots and blow the GitHub Actions time budget.
+_GHOST_RE = re.compile(
+    r"^-$"               # bare dash
+    r"|^\d+D?$"          # pure numeric, optionally ending in D  (e.g. 6488, 3227, 2622484D)
+    r"|^[A-Z]{1,5}\d{6,}D$"  # alpha prefix + long numeric + D (e.g. ABMB2655115D)
+    r"|^\.$"             # bare dot
+)
+
+def _is_ghost_ticker(ticker: str) -> bool:
+    """Return True for any symbol that will never resolve on Yahoo Finance.
+
+    Catches: bare numerics (raw Japanese/Indian codes without a .T/.NS suffix),
+    Bloomberg placeholders (*D), the bare-dash null row, and multi-dot malforms.
+    Mirrors the is_ghost_ticker() logic in gc_engine.py so both files stay in sync.
+    """
+    t = str(ticker).strip()
+    if not t:
+        return True
+    if "." not in t and t.replace("-", "").isdigit():
+        return True        # pure numeric without a suffix → never valid on Yahoo
+    if t.count(".") > 1:   # multi-dot = malformed (e.g. BAJAJ.AUTO.NS)
+        return True
+    return bool(_GHOST_RE.match(t))
+
 def get_sp500_tickers() -> List[str]:
     local = read_lines(SP500_LOCAL)
     if local:
@@ -6548,11 +6598,11 @@ def main():
     else:
         print(f"[msci] MSCI EM CSV not found at {MSCI_EM_CLASSIFICATION_CSV} — run update_msci_world_classification.py --universe em to generate")
 
-    msci_tickers = sorted({t for t in msci_tickers if t and t not in set(base_universe)})
+    msci_tickers = sorted({t for t in msci_tickers if t and t not in set(base_universe) and not _is_ghost_ticker(t)})
     if msci_tickers:
-        print(f"[msci] loaded {len(msci_tickers)} non-watchlist/non-base tickers from {MSCI_WORLD_CLASSIFICATION_CSV}")
+        print(f"[msci] loaded {len(msci_tickers)} non-watchlist/non-base tickers from MSCI World + EM")
     else:
-        print(f"[msci] no extra tickers loaded from {MSCI_WORLD_CLASSIFICATION_CSV} (4B remains base universe only)")
+        print(f"[msci] no extra tickers loaded from MSCI World + EM (4B remains base universe only)")
     tech_scan_universe = sorted(set(base_universe + msci_tickers))
     sector_resolver = build_sector_resolver(msci_df)
     company_name_for_ticker, country_for_ticker = build_company_country_resolvers(msci_df)
@@ -7569,7 +7619,7 @@ def main():
             md.append(f"- {x}")
         md.append("")
     md.append("")
-    md.append("### 4C) Confirmed breakouts / breakdowns (watchlist + MSCI World)\n")
+    md.append("### 4C) Confirmed breakouts / breakdowns (watchlist + MSCI World + EM)\n")
     md.append("_Includes **CONFIRMED** only: **Day 0 (NEW)** requires **all 3** gates (Price+CLV+Volume). **Day 1 (ONGOING)** requires **Price+Volume** (CLV optional). All tickers use S&P 500 11-sector labels (Sector)._ \n")
     md.append("**NEW (today):**\n")
     df_conf_new_tbl = df_conf_new.copy()
