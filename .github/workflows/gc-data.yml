@@ -2,9 +2,12 @@
 # Run Growth Compounder data layer — fetches/caches earnings data for
 # MSCI World + MSCI EM combined universe (~2,600 tickers).
 #
+# Schedule: starts 23:00 CET (22:00 UTC) Mon–Fri, after US earnings drop.
+# Runtime: ~2–3 hours. Daily report (daily.yml) runs at 04:00 CET (03:00 UTC).
+#
 # Data source priority:
-#   1. yfinance (4-method EPS chain, exchange-ordered fetch)
-#   2. yfinance retry pass (5-sec cooldown)
+#   1. yfinance (4-method EPS chain, exchange-ordered fetch, 1–1.5s per ticker)
+#   2. yfinance retry pass (60s cooldown)
 #   3. FMP fallback — only for tickers still empty after both yfinance passes
 #      Priority order: UK (.L) → Korea (.KS) → Japan (.T) → rest
 #      Requires FMP_API_KEY secret (free tier: 250 calls/day ≈ 125 tickers)
@@ -27,12 +30,14 @@ on:
         default: '0'
         type: string
   schedule:
-    # Run daily at 06:00 UTC Mon–Sat (after US market close + after-hours)
-    - cron: '0 6 * * 1-6'
+    # 23:00 CET = 22:00 UTC Mon–Fri (after US market close + after-hours earnings)
+    # Runtime ~2–3hrs → finishes by 02:00 CET. Daily report runs at 04:00 CET.
+    - cron: '0 22 * * 1-5'
 
 jobs:
   gc-data:
     runs-on: ubuntu-latest
+    timeout-minutes: 240   # 4hr cap — full universe at 1.5s/ticker needs ~3hr
     permissions:
       contents: write
 
@@ -64,10 +69,6 @@ jobs:
 
       - name: Run GC data layer
         env:
-          # Optional — activates FMP fallback for tickers yfinance cannot cover.
-          # Free tier (250 calls/day) covers UK+Korea+Japan gaps over a few days.
-          # Get a free key at: https://financialmodelingprep.com/developer/docs
-          # Add it via: repo Settings → Secrets and variables → Actions → FMP_API_KEY
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
         run: |
           cd ${{ github.workspace }}
