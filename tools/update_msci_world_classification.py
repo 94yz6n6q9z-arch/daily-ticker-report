@@ -2,19 +2,23 @@
 # -*- coding: utf-8 -*-
 
 """
-Refresh config/msci_world_classification.csv from a public iShares MSCI World ETF holdings CSV
+Refresh MSCI World + EM classification CSVs from public iShares ETF holdings
 and normalize sector labels to the S&P 500 / GICS 11 sectors used by scan.py.
 
 Why this exists
 ---------------
-The exact MSCI World constituent list is typically distributed through licensed data feeds.
-For an automated public-source workflow, we use a broad iShares MSCI World ETF holdings file as
-an operational proxy (typically ~1,200-1,400 positions, depending on fund replication and date).
+The exact MSCI World + EM constituent lists are typically distributed through
+licensed data feeds.  For an automated public-source workflow, we use broad
+iShares ETF holdings files as operational proxies:
+  - MSCI World:            iShares EUNL / IWDA / URTH  (~1,200-1,400 positions)
+  - MSCI Emerging Markets: iShares EIMI / EEM           (~800-1,300 positions)
 
 Outputs
 -------
-- CSV (default): config/msci_world_classification.csv
-- Metadata JSON (optional): docs/msci_world_classification_meta.json
+- CSV (World):  config/msci_world_classification.csv
+- CSV (EM):     config/msci_em_classification.csv
+- Meta (World): docs/msci_world_classification_meta.json
+- Meta (EM):    docs/msci_em_classification_meta.json
 
 CSV columns (scan.py only requires Ticker/Company/Sector; extras are kept for debugging):
 - Ticker (best-effort Yahoo Finance style symbol)
@@ -47,12 +51,46 @@ from typing import Dict, Iterable, List, Optional, Tuple
 import pandas as pd
 import requests
 
+# ────────────────────────────────────────────────────────────────
+# Version tracker (mirrors scan.py / gc_engine.py pattern)
+# ────────────────────────────────────────────────────────────────
+MSCI_UPDATE_VERSION = "1.3.0"
+
+_MSCI_UPDATE_VERSION_LOG: dict = {
+    "1.0.0": (
+        "Initial release. Refreshes config/msci_world_classification.csv from iShares "
+        "MSCI World ETF (EUNL / IWDA / URTH). Normalises sector labels to S&P 500 11-sector "
+        "taxonomy. Deduplicates, validates, and writes metadata JSON."
+    ),
+    "1.1.0": (
+        "EXCHANGE_SUFFIX_RULES reordered so Euronext/Nordic rules fire before the US "
+        "catch-all, fixing 114 French/Swedish/Belgian/Finnish/Portuguese tickers. "
+        "NORDIC regex extended to match Stockholm (NASDAQ OMX NORDIC → .ST)."
+    ),
+    "1.2.0": (
+        "MSCI EM universe added: SOURCE_CANDIDATES_EM (EIMI + EEM), --universe world|em|both "
+        "CLI flag, _run_one_universe() helper. 30+ new EM exchange suffix rules "
+        "(.KS .TW .NS .BO .SA .JO .MX .SS .SZ .JK .BK .KL .SR .IS .WA .AD .DU .AT .CA "
+        ".PS .QA .PR .BD .SN .CL .LM .KA). KNOWN_TICKER_OVERRIDES applied post-guessing. "
+        "GHOST_COUNTRIES set drops Kuwait/Russia. COUNTRY_SUFFIX_FALLBACK covers "
+        "Brazil/Greece/Chile/etc. when Exchange column is empty. multi-dot ticker filter. "
+        "min-rows-em CLI arg (default 700)."
+    ),
+    "1.3.0": (
+        "v92 sync: module docstring updated to reflect 'MSCI World + EM' scope. "
+        "MSCI_UPDATE_VERSION constant + _MSCI_UPDATE_VERSION_LOG added so this file "
+        "tracks changes identically to scan.py and gc_engine.py. CLI description updated. "
+        "No logic changes."
+    ),
+}
+
 USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36"
 )
 
 # Try UCITS + US listings; first success wins.
+
 # These endpoints are the same style as the ones exposed by iShares pages' "download holdings" links.
 SOURCE_CANDIDATES_WORLD = [
     {
