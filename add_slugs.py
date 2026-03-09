@@ -79,20 +79,20 @@ def load_current_slugs():
     return slugs
 
 def get_targets(state, current_slugs, region_filter=None):
-    """Tickers with yfinance EPS but no revenue estimates and no slug yet."""
+    """Tickers with analyst EPS estimates but no IC slug yet.
+    We target tickers with eps_estimate (analyst coverage), not just eps_reported.
+    We do NOT skip tickers that already have revenue_estimate — FMP may have filled
+    those temporarily, but we still need a permanent IC slug for when FMP expires."""
     candidates = []
     for ticker, data in state.items():
         if data.get("inactive"):
             continue
-        has_eps = any(r.get("eps_reported") is not None
-                      for r in data.get("earnings_dates", []))
-        if not has_eps:
+        # Target universe: tickers where analysts publish EPS estimates
+        has_eps_est = any(r.get("eps_estimate") is not None
+                          for r in data.get("earnings_dates", []))
+        if not has_eps_est:
             continue
-        has_rev_est = any(r.get("revenue_estimate") is not None
-                          for r in data.get("earnings_dates", [])
-                          if r.get("eps_reported") is not None)
-        if has_rev_est:
-            continue
+        # Skip only if already has a confirmed IC slug — not based on rev est presence
         bare = ticker.split(".")[0].upper()
         if bare in current_slugs:
             continue
@@ -168,13 +168,13 @@ def show_stats(state, current_slugs):
     active     = len(state) - inactive
     yf_covered = sum(1 for d in state.values()
                      if not d.get("inactive")
-                     and any(r.get("eps_reported") is not None
+                     and any(r.get("eps_estimate") is not None
                              for r in d.get("earnings_dates", [])))
     has_rev    = sum(1 for t, d in state.items()
                      if not d.get("inactive")
                      and any(r.get("revenue_estimate") is not None
                              for r in d.get("earnings_dates", [])
-                             if r.get("eps_reported") is not None))
+                             if r.get("eps_estimate") is not None))
     targets    = get_targets(state, current_slugs)
     by_region  = {}
     for region, ticker in targets:
