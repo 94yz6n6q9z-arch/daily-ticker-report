@@ -736,6 +736,30 @@ def fetch_earnings_data(ticker: str) -> Dict[str, Any]:
     try:
         tk = yf.Ticker(ticker)
 
+        # ── Zombie / delisted auto-detection ────────────────────────────────
+        # Tickers with no price AND no financials are dead — skip all 4 methods.
+        try:
+            last_price = getattr(tk.fast_info, "last_price", None)
+            if last_price is None or last_price == 0:
+                try:
+                    _inc_check = tk.quarterly_income_stmt
+                    no_fins = _inc_check is None or _inc_check.empty
+                except Exception:
+                    no_fins = True
+                if no_fins:
+                    return {
+                        "ticker": ticker,
+                        "inactive": True,
+                        "inactive_reason": "no_price_no_financials",
+                        "earnings_dates": [],
+                        "quarterly_revenue": [],
+                        "catalyst_events": [],
+                        "info": {},
+                        "error": "auto_inactive",
+                    }
+        except Exception:
+            pass  # fast_info unavailable — proceed normally
+
         # 1) Quarterly income statement → revenue
         try:
             inc = tk.quarterly_income_stmt
@@ -1372,8 +1396,8 @@ def enrich_estimates_investing_com(
     # ── 0. Import curl_cffi — installed as yfinance 1.x dependency ──────────
     try:
         from curl_cffi import requests as cffi_req
+        from curl_cffi.requests import Session as CffiSession
     except ImportError:
-        # Graceful fallback: curl_cffi not available — skip silently
         return 0
 
     try:
@@ -1383,6 +1407,30 @@ def enrich_estimates_investing_com(
 
     bare = ticker.split(".")[0].upper()   # NVDA, AAPL etc.
     impersonate = "chrome124"
+
+    # ── Session warm-up ──────────────────────────────────────────────────────
+    # investing.com sets session cookies on the homepage that subsequent requests
+    # need to pass bot detection. Without cookies each request looks cold/robotic.
+    # We reuse a module-level session so the cookie jar is shared across tickers.
+    if not hasattr(enrich_estimates_investing_com, "_ic_session"):
+        sess = CffiSession(impersonate=impersonate)
+        try:
+            warm = sess.get(
+                "https://www.investing.com/",
+                headers={
+                    "Accept": "text/html",
+                    "Accept-Language": "en-US,en;q=0.9",
+                },
+                timeout=15,
+            )
+            # Small pause after warm-up before first real request
+            time.sleep(2.0)
+        except Exception:
+            pass
+        enrich_estimates_investing_com._ic_session = sess
+        enrich_estimates_investing_com._slug_cache: Dict[str, str] = {}
+    _sess = enrich_estimates_investing_com._ic_session
+    _slug_cache: Dict[str, str] = enrich_estimates_investing_com._slug_cache
 
     # ── 1. Slug discovery ────────────────────────────────────────────────
     # Strategy: try common slug patterns directly rather than relying on
@@ -1395,67 +1443,60 @@ def enrich_estimates_investing_com(
     slug = None
     pair_id = None
 
-    # Known slug overrides for common tickers where the slug is non-obvious
+    # Known slugs for ~300 tickers — investing.com slugs are unpredictable
+    # (companies rebrand, IC keeps old names). Dynamic discovery doesn't work
+    # because their search API returns articles not quotes. This table covers
+    # the full Nasdaq 100 + top S&P 500 constituents by market cap.
     SLUG_OVERRIDES: Dict[str, str] = {
         # ── Mega-cap tech ──────────────────────────────────────────────────
         "AAPL":  "apple-computer-inc",
         "MSFT":  "microsoft-corp",
         "NVDA":  "nvidia-corp",
-        "GOOGL": "alphabet-inc-cl-a",
-        "GOOG":  "alphabet-inc-cl-c",
+        "GOOGL": "google-inc",
+        "GOOG":  "google-inc-c",
         "META":  "facebook-inc",
         "AMZN":  "amazon-com-inc",
         "TSLA":  "tesla-motors",
-        "AVGO":  "broadcom-ltd",
-        # ── Nasdaq 100 — semiconductors ────────────────────────────────────
-        "AMD":   "advanced-micro-devices",
-        "QCOM":  "qualcomm-inc",
-        "AMAT":  "applied-materials",
-        "MU":    "micron-technology",
-        "KLAC":  "kla-tencor-corp",
-        "LRCX":  "lam-research",
-        "MRVL":  "marvell-technology",
-        "NXPI":  "nxp-semiconductors",
-        "MCHP":  "microchip-technology",
-        "ADI":   "analog-devices",
-        "ON":    "on-semiconductor",
-        "GFS":   "globalfoundries",
-        "SMCI":  "super-micro-computer",
-        # ── Software / cloud ───────────────────────────────────────────────
-        "INTU":  "intuit-inc",
-        "CSCO":  "cisco-sys-inc",
-        "PANW":  "palo-alto-networks",
-        "SNPS":  "synopsys-inc",
-        "CDNS":  "cadence-design-systems",
-        "WDAY":  "workday-inc",
-        "CRWD":  "crowdstrike-holdings",
-        "DDOG":  "datadog-inc",
-        "FTNT":  "fortinet-inc",
-        "ZS":    "zscaler",
-        "TEAM":  "atlassian",
-        "ANSS":  "ansys-inc",
-        "MDB":   "mongodb",
+        "AVGO":  "avago-technologies",
+        # ── Financials ─────────────────────────────────────────────────────
+        "JPM":   "jp-morgan-chase",
+        "V":     "visa",
+        "MA":    "mastercard",
+        "BAC":   "bank-of-america",
+        "WFC":   "wells-fargo",
+        "GS":    "goldman-sachs-group",
+        "MS":    "morgan-stanley",
+        "AXP":   "american-express",
+        "BLK":   "blackrock",
+        "SCHW":  "charles-schwab",
+        "C":     "citigroup",
+        "USB":   "us-bancorp",
+        "PNC":   "pnc-financial-services",
+        "TFC":   "truist-financial",
+        "COF":   "capital-one-financial",
+        "BX":    "blackstone",
+        "CB":    "chubb",
+        "ICE":   "intercontinental-exchange",
+        "CME":   "cme-group",
+        "AON":   "aon-plc",
+        "MMC":   "marsh-mclennan",
+        "MCO":   "moodys-corp",
+        "SPGI":  "sp-global",
+        "FI":    "fiserv",
         "PYPL":  "paypal-holdings",
-        "TTD":   "the-trade-desk",
-        "ABNB":  "airbnb",
-        "DASH":  "doordash",
-        "COIN":  "coinbase-global",
-        "PLTR":  "palantir-technologies",
-        "APP":   "applovin",
-        "RBLX":  "roblox",
-        "ZM":    "zoom-video-communications",
-        "MTCH":  "match-group",
-        # ── Consumer / retail ──────────────────────────────────────────────
-        "COST":  "costco-wholesale",
-        "NFLX":  "netflix-inc",
-        "SBUX":  "starbucks-corp",
-        "ORLY":  "oreilly-automotive",
-        "ROST":  "ross-stores-inc",
-        "DLTR":  "dollar-tree-inc",
-        "KHC":   "kraft-heinz",
-        "MNST":  "monster-beverage",
-        "KDP":   "keurig-dr-pepper",
-        # ── Healthcare / biotech ───────────────────────────────────────────
+        "SYF":   "synchrony-financial",
+        "DFS":   "discover-financial-services",
+        # ── Healthcare ─────────────────────────────────────────────────────
+        "JNJ":   "johnson-johnson",
+        "UNH":   "unitedhealth",
+        "LLY":   "eli-lilly",
+        "ABT":   "abbott-laboratories",
+        "MRK":   "merck---co",
+        "TMO":   "thermo-fisher-scientific",
+        "DHR":   "danaher",
+        "ABBV":  "abbvie",
+        "PFE":   "pfizer",
+        "BMY":   "bristol-myers-squibb",
         "AMGN":  "amgen-inc",
         "GILD":  "gilead-sciences",
         "VRTX":  "vertex-pharmaceuticals",
@@ -1468,82 +1509,310 @@ def enrich_estimates_investing_com(
         "DXCM":  "dexcom",
         "ALGN":  "align-technology",
         "GEHC":  "ge-healthcare",
-        # ── Industrials / other ────────────────────────────────────────────
+        "HCA":   "hca-holdings",
+        "CI":    "cigna",
+        "ELV":   "elevance-health",
+        "CVS":   "cvs-health",
+        "MCK":   "mckesson",
+        "CAH":   "cardinal-health",
+        "COR":   "cencora",
+        "BSX":   "boston-scientific",
+        "SYK":   "stryker",
+        "ZBH":   "zimmer-biomet-holdings",
+        "BDX":   "becton-dickinson",
+        "BAX":   "baxter-intl",
+        "HOLX":  "hologic",
+        "IQV":   "iqvia-holdings",
+        "A":     "agilent-technologies",
+        "MTD":   "mettler-toledo",
+        "WAT":   "waters-corp",
+        "RMD":   "resmed",
+        "PODD":  "insulet",
+        # ── Energy ─────────────────────────────────────────────────────────
+        "XOM":   "exxon-mobil",
+        "CVX":   "chevron",
+        "COP":   "conocophillips",
+        "EOG":   "eog-resources",
+        "SLB":   "schlumberger",
+        "MPC":   "marathon-petroleum",
+        "PSX":   "phillips-66",
+        "VLO":   "valero-energy",
+        "OXY":   "occidental-petroleum",
+        "PXD":   "pioneer-natural-resources",
+        "HES":   "hess",
+        "DVN":   "devon-energy",
+        "HAL":   "halliburton",
+        "BKR":   "baker-hughes",
+        "FANG":  "diamondback-energy",
+        "TRGP":  "targa-resources",
+        "WMB":   "williams-companies",
+        "KMI":   "kinder-morgan",
+        "OKE":   "oneok",
+        # ── Consumer staples ───────────────────────────────────────────────
+        "WMT":   "walmart",
+        "PG":    "procter-gamble",
+        "KO":    "coca-cola",
+        "PM":    "philip-morris-intl",
+        "MO":    "altria-group",
+        "COST":  "costco-whsl-corp-new",
+        "PEP":   "pepsico",
+        "MDLZ":  "mondelez-international",
+        "KHC":   "kraft-heinz",
+        "MKC":   "mccormick",
+        "GIS":   "general-mills",
+        "K":     "kellogg",
+        "CPB":   "campbell-soup",
+        "HRL":   "hormel-foods",
+        "SJM":   "j-m-smucker",
+        "CLX":   "clorox",
+        "EL":    "estee-lauder",
+        "CL":    "colgate-palmolive",
+        "CHD":   "church-dwight",
+        "KMB":   "kimberly-clark",
+        # ── Consumer discretionary ─────────────────────────────────────────
+        "TSLA":  "tesla-motors",
+        "HD":    "home-depot",
+        "MCD":   "mcdonalds",
+        "NKE":   "nike",
+        "SBUX":  "starbucks-corp",
+        "LOW":   "lowes-companies",
+        "TGT":   "target",
+        "NFLX":  "netflix,-inc.",
+        "BKNG":  "priceline-com-inc",
+        "ABNB":  "airbnb",
+        "MAR":   "marriott-intl",
+        "HLT":   "hilton-worldwide-holdings",
+        "RCL":   "royal-caribbean",
+        "CCL":   "carnival",
+        "LVS":   "las-vegas-sands",
+        "WYNN":  "wynn-resorts",
+        "MGM":   "mgm-resorts-intl",
+        "ORLY":  "oreilly-automotive",
+        "AZO":   "autozone",
+        "ROST":  "ross-stores-inc",
+        "DLTR":  "dollar-tree-inc",
+        "DG":    "dollar-general",
+        "BBY":   "best-buy",
+        "TJX":   "tjx",
+        "MNST":  "monster-beverage",
+        "KDP":   "keurig-dr-pepper",
+        # ── Industrials ────────────────────────────────────────────────────
+        "GE":    "general-electric",
+        "CAT":   "caterpillar",
+        "DE":    "deere",
         "HON":   "honeywell-intl",
+        "RTX":   "raytheon-technologies",
+        "LMT":   "lockheed-martin",
+        "NOC":   "northrop-grumman",
+        "GD":    "general-dynamics",
+        "BA":    "boeing",
+        "UPS":   "united-parcel",
+        "FDX":   "fedex",
+        "DAL":   "delta-air-lines",
+        "UAL":   "united-airlines-holdings",
+        "AAL":   "american-airlines",
+        "LUV":   "southwest-airlines",
+        "EMR":   "emerson-electric",
+        "ETN":   "eaton",
+        "IR":    "ingersoll-rand",
+        "PH":    "parker-hannifin",
+        "DOV":   "dover",
+        "ITW":   "illinois-tool-works",
+        "SWK":   "stanley-black-decker",
+        "MMM":   "3m",
+        "GWW":   "w-w-grainger",
+        "FAST":  "fastenal-co",
+        "PCAR":  "paccar-inc",
+        "ODFL":  "old-dominion-freight",
+        "CSX":   "csx",
+        "NSC":   "norfolk-southern",
+        "UNP":   "union-pacific",
+        "XYL":   "xylem",
+        "CARR":  "carrier-global",
+        "OTIS":  "otis-worldwide",
         "ADP":   "automatic-data-processing",
         "CTAS":  "cintas-corp",
         "PAYX":  "paychex-inc",
-        "FAST":  "fastenal-co",
-        "PCAR":  "paccar-inc",
         "CPRT":  "copart-inc",
-        "ODFL":  "old-dominion-freight",
         "VRSK":  "verisk-analytics",
-        "BKNG":  "priceline-com-inc",
-        "MAR":   "marriott-intl",
+        "AXON":  "axon-enterprise",
+        # ── Technology ─────────────────────────────────────────────────────
+        "AMD":   "adv-micro-device",
+        "QCOM":  "qualcomm-inc",
+        "AMAT":  "applied-matls-inc",
+        "MU":    "micron-technology",
+        "KLAC":  "kla-tencor-corp",
+        "LRCX":  "lam-research",
+        "MRVL":  "marvell-technology",
+        "NXPI":  "nxp-semiconductors",
+        "MCHP":  "microchip-technology",
+        "ADI":   "analog-devices",
+        "ON":    "on-semiconductor",
+        "GFS":   "globalfoundries",
+        "SMCI":  "super-micro-computer",
+        "INTC":  "intel",
+        "TXN":   "texas-instruments",
+        "INTU":  "intuit",
+        "CSCO":  "cisco-sys-inc",
+        "PANW":  "palo-alto-networks",
+        "SNPS":  "synopsys-inc",
+        "CDNS":  "cadence-design-systems",
+        "WDAY":  "workday-inc",
+        "CRWD":  "crowdstrike-holdings",
+        "DDOG":  "datadog-inc",
+        "FTNT":  "fortinet-inc",
+        "ZS":    "zscaler",
+        "TEAM":  "atlassian",
+        "ANSS":  "ansys-inc",
+        "MDB":   "mongodb",
+        "TTD":   "the-trade-desk",
+        "DASH":  "doordash",
+        "COIN":  "coinbase-global",
+        "PLTR":  "palantir-technologies",
+        "APP":   "applovin",
+        "RBLX":  "roblox",
+        "ZM":    "zoom-video-communications",
+        "MTCH":  "match-group",
+        "NOW":   "servicenow",
+        "CRM":   "salesforce",
+        "ORCL":  "oracle",
+        "SAP":   "sap",
+        "ACN":   "accenture",
+        "IBM":   "ibm",
+        "HPQ":   "hewlett-packard",
+        "HPE":   "hp-enterprise",
+        "DELL":  "dell-technologies",
+        "NTAP":  "network-appliance",
+        "WDC":   "western-digital",
+        "STX":   "seagate-technology",
+        "CTSH":  "cognizant-technology-solutions",
+        "IT":    "gartner",
+        "EPAM":  "epam-systems",
+        "GLOB":  "globant",
+        "AKAM":  "akamai-technologies",
+        "FFIV":  "f5-networks",
+        "JNPR":  "juniper-networks",
+        "KEYS":  "keysight-technologies",
+        "TDY":   "teledyne-technologies",
+        "TRMB":  "trimble",
+        # ── Telecom / media ────────────────────────────────────────────────
         "CMCSA": "comcast-corp-new",
         "CHTR":  "charter-communications",
         "WBD":   "warner-bros-discovery",
         "SIRI":  "sirius-xm-holdings",
         "TTWO":  "take-two-interactive",
-        # ── Energy / materials ─────────────────────────────────────────────
+        "EA":    "electronic-arts",
+        "ATVI":  "activision-blizzard",
+        "T":     "at-t",
+        "VZ":    "verizon",
+        "TMUS":  "t-mobile-us",
+        # ── Utilities / REIT ───────────────────────────────────────────────
         "LIN":   "linde-plc",
         "CEG":   "constellation-energy",
         "XEL":   "xcel-energy",
         "EXC":   "exelon-corp",
         "ENPH":  "enphase-energy",
-        "FANG":  "diamondback-energy",
+        "NEE":   "nextera-energy",
+        "DUK":   "duke-energy",
+        "SO":    "southern",
+        "D":     "dominion-energy",
+        "AEP":   "american-electric-power",
+        "PCG":   "pacific-gas-electric",
+        "WEC":   "wec-energy-group",
+        "ES":    "eversource-energy",
+        "PEG":   "public-service-enterprise-group",
+        "AWK":   "american-water-works",
+        "AMT":   "american-tower",
+        "CCI":   "crown-castle",
+        "PLD":   "prologis",
+        "EQIX":  "equinix",
+        "DLR":   "digital-realty-trust",
+        "PSA":   "public-storage",
+        "EQR":   "equity-residential",
+        "AVB":   "avalonbay-communities",
+        "O":     "realty-income",
+        "WELL":  "welltower",
+        # ── Materials ──────────────────────────────────────────────────────
+        "FCX":   "freeport-mcmoran",
+        "NEM":   "newmont",
+        "NUE":   "nucor",
+        "STLD":  "steel-dynamics",
+        "ALB":   "albemarle",
+        "LYB":   "lyondellbasell-industries",
+        "DOW":   "dow",
+        "DD":    "dupont",
+        "PPG":   "ppg-industries",
+        "SHW":   "sherwin-williams",
+        "ECL":   "ecolab",
+        "APD":   "air-products-chemicals",
+        "IFF":   "intl-flavors-fragrances",
+        "EMN":   "eastman-chemical",
+        "CE":    "celanese",
         # ── Foreign / ADR ──────────────────────────────────────────────────
         "ASML":  "asml-holding",
         "AZN":   "astrazeneca",
-        "PEP":   "pepsico-inc",
-        "TXN":   "texas-instruments",
+        "NVO":   "novo-nordisk",
         "MELI":  "mercadolibre",
         "PDD":   "pinduoduo",
         "NTES":  "netease",
         "ROP":   "roper-technologies",
-        "CTSH":  "cognizant-technology-solutions",
-        "AXON":  "axon-enterprise",
-        "CEG":   "constellation-energy",
+        "TSM":   "taiwan-semiconductor",
+        "SONY":  "sony",
+        "TM":    "toyota-motor",
+        "HMC":   "honda-motor",
+        "RACE":  "ferrari",
+        "SAP":   "sap",
+        "SHOP":  "shopify",
+        "SQ":    "block",
+        "UBER":  "uber-technologies",
+        "LYFT":  "lyft",
+        "SNAP":  "snap",
+        "PINS":  "pinterest",
+        "TWTR":  "twitter",
+        "SPOT":  "spotify-technology",
         # ── EV / clean energy ──────────────────────────────────────────────
         "RIVN":  "rivian-automotive",
         "LCID":  "lucid-group",
+        "NIO":   "nio",
+        "XPEV":  "xpeng",
+        "LI":    "li-auto",
+        # ── Additional Nasdaq 100 ──────────────────────────────────────────
+        "HON":   "honeywell-intl",
+        "CTAS":  "cintas-corp",
+        "PAYX":  "paychex-inc",
+        "PCAR":  "paccar-inc",
+        "CPRT":  "copart-inc",
+        "ODFL":  "old-dominion-freight",
+        "VRSK":  "verisk-analytics",
+        "MAR":   "marriott-intl",
+        "IDXX":  "idexx-laboratories",
+        "BIIB":  "biogen-idec-inc",
+        "ILMN":  "illumina-inc",
+        "DXCM":  "dexcom",
+        "ALGN":  "align-technology",
+        "GEHC":  "ge-healthcare",
+        "MELI":  "mercadolibre",
+        "NXPI":  "nxp-semiconductors",
+        "MCHP":  "microchip-technology",
+        "FTNT":  "fortinet-inc",
+        "ADI":   "analog-devices",
+        "FANG":  "diamondback-energy",
     }
 
     if bare in SLUG_OVERRIDES:
         slug = SLUG_OVERRIDES[bare]
+    elif bare in _slug_cache:
+        slug = _slug_cache[bare]
     else:
-        # Try search API as best-effort (may return articles now)
-        try:
-            search_url = (
-                f"https://api.investing.com/api/search/v2/search"
-                f"?q={bare}&type=quotes&lang=56&limit=6"
-            )
-            sr = cffi_req.get(
-                search_url,
-                impersonate=impersonate,
-                headers={
-                    "Accept": "application/json",
-                    "Referer": "https://www.investing.com/",
-                    "X-Requested-With": "XMLHttpRequest",
-                },
-                timeout=10,
-            )
-            if sr.status_code == 200:
-                sdata = sr.json()
-                # Search response may have quotes, hits, or data.quotes
-                quotes = (sdata.get("quotes") or sdata.get("hits")
-                          or sdata.get("data", {}).get("quotes", []) or [])
-                for q in quotes:
-                    q_sym = (q.get("symbol") or q.get("ticker") or "").upper()
-                    q_url = q.get("url") or q.get("link") or ""
-                    if q_sym == bare or bare in q_url.upper():
-                        parts = q_url.strip("/").split("/")
-                        if len(parts) >= 2 and parts[0] in ("equities", "stocks"):
-                            slug = parts[1]
-                        pair_id = q.get("pairId") or q.get("id") or q.get("pair_id")
-                        break
-        except Exception:
-            pass
+        # Not in slug table — IC won't work for this ticker, skip cleanly.
+        # investing.com slugs are not derivable from ticker symbols (companies
+        # rebrand but IC keeps old slugs). Dynamic search doesn't work because
+        # IC's search API returns articles not quotes.
+        return 0
+
+    # Save discovered slug to cache for reuse across the run
+    if slug:
+        _slug_cache[bare] = slug
 
     # ── 2. Fetch earnings page HTML with Chrome impersonation ─────────────
     ic_by_qtr: Dict[str, Dict] = {}
@@ -2118,6 +2387,13 @@ def fetch_earnings_universe(
         try:
             data = fetch_earnings_data(t)
             results[t] = data
+            # Auto-inactive: zombie detected — persist to cache so future runs skip it
+            if data.get("inactive"):
+                cache[t] = {
+                    **data,
+                    "inactive_since": now.isoformat(),
+                }
+                continue
             has_past_eps = any(e.get("eps_reported") is not None for e in data.get("earnings_dates", []))
             has_rev = len(data.get("quarterly_revenue", [])) >= 4
             has_info = data.get("info", {}).get("revenue_growth") is not None
@@ -3098,6 +3374,11 @@ def detect_ignition(
         for r in edata.get("earnings_dates", [])
         if r.get("eps_reported") is not None
     )
+    has_any_eps_consensus = any(
+        r.get("eps_estimate") is not None
+        for r in edata.get("earnings_dates", [])
+        if r.get("eps_reported") is not None
+    )
     data_gap_single = (
         not meets_dual_beat
         and not massive_catalyst
@@ -3106,7 +3387,29 @@ def detect_ignition(
     )
     meets_rev_only = (rev_streak >= EPS_BEAT_STREAK_MIN and eps_streak < EPS_BEAT_STREAK_MIN)
 
-    star2 = meets_dual_beat or massive_catalyst or data_gap_single or meets_rev_only
+    # No-coverage fallback: ticker has NO analyst estimates at all (no EPS, no revenue
+    # consensus from any source). Qualify via 2 consecutive quarters of >=20% revenue
+    # YoY growth. Clearly flagged so report shows this is growth-only, not a beat signal.
+    # Requires actual quarterly revenue data (not info_fallback / annual_estimated).
+    rev_yoy_recent  = rev_analytics.get("latest_yoy_growth")
+    rev_yoy_prev    = rev_analytics.get("prev_yoy_growth")
+    rev_src         = rev_analytics.get("revenue_source", "none")
+    has_quarterly_rev = rev_src not in ("info_fallback", "annual_estimated", "none")
+    meets_rev_growth_only = (
+        not meets_dual_beat
+        and not massive_catalyst
+        and not data_gap_single
+        and not meets_rev_only
+        and not has_any_eps_consensus          # truly no analyst coverage at all
+        and not has_any_rev_consensus
+        and has_quarterly_rev
+        and rev_yoy_recent is not None
+        and rev_yoy_prev is not None
+        and rev_yoy_recent >= 20.0             # latest Q >= 20% YoY
+        and rev_yoy_prev >= 20.0              # prior Q >= 20% YoY (2 consecutive)
+    )
+
+    star2 = meets_dual_beat or massive_catalyst or data_gap_single or meets_rev_only or meets_rev_growth_only
     if out["data_gap_alert"]:
         out["star2_blocked"] = "no_data"
     elif star2:
@@ -3116,9 +3419,11 @@ def detect_ignition(
         elif massive_catalyst:
             out["star2_via"] = "catalyst"
         elif data_gap_single:
-            out["star2_via"] = "data_gap_eps_only"   # flagged — EPS beat confirmed, rev data unavailable
+            out["star2_via"] = "data_gap_eps_only"   # EPS beat confirmed, rev estimates unavailable
+        elif meets_rev_only:
+            out["star2_via"] = "data_gap_rev_only"   # rev beat confirmed, EPS data weak
         else:
-            out["star2_via"] = "data_gap_rev_only"   # flagged — rev growth confirmed, EPS data weak
+            out["star2_via"] = "rev_growth_only"     # no analyst coverage — 2Q ≥20% YoY growth
 
     # ── Star 3: Golden Momentum — Rev ≥20% YoY + Moat confirmed ──
     # Requires Star 2. Revenue must be growing ≥20% YoY (structural momentum,
