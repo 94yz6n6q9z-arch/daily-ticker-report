@@ -967,7 +967,10 @@ def fetch_earnings_data(ticker: str) -> Dict[str, Any]:
     # 5a) investing.com — no API key. Fills EPS + revenue together.
     if _missing_estimates_count() > 0:
         try:
-            filled_ic = enrich_estimates_investing_com(out["earnings_dates"], ticker)
+            filled_ic = enrich_estimates_investing_com(
+                out["earnings_dates"], ticker,
+                quarterly_revenue=out.get("quarterly_revenue"),
+            )
             if filled_ic:
                 out["_investing_com_filled"] = filled_ic
         except Exception as _ic_err:
@@ -1321,7 +1324,11 @@ def enrich_estimates_finnhub(earnings_dates: List[Dict], ticker: str, api_key: s
     return filled
 
 
-def enrich_estimates_investing_com(earnings_dates: List[Dict], ticker: str) -> int:
+def enrich_estimates_investing_com(
+    earnings_dates: List[Dict],
+    ticker: str,
+    quarterly_revenue: Optional[List[Dict]] = None,
+) -> int:
     """Scrape EPS + revenue estimates and actuals from investing.com earnings page.
 
     Uses curl_cffi (Chrome TLS impersonation) to bypass Cloudflare bot detection.
@@ -1338,14 +1345,28 @@ def enrich_estimates_investing_com(earnings_dates: List[Dict], ticker: str) -> i
     curl_cffi mimics Chrome's TLS fingerprint (JA3/JA4) which passes Cloudflare's
     bot detection. This is the same approach yfinance uses internally for auth.
 
-    Returns count of fields filled across all earnings_dates rows.
+    Args:
+        earnings_dates:    List of per-quarter dicts to enrich with EPS/rev estimates.
+                           Rows without eps_reported are skipped.
+        ticker:            Yahoo Finance ticker (e.g. 'NVDA', 'AZN.L').
+        quarterly_revenue: If provided (mutable list), revenue actuals from investing.com
+                           are APPENDED for quarters not already present. This extends
+                           yfinance's hard 5-quarter cap — investing.com covers ~16-20 quarters.
+                           Caller should pass the existing list; this function extends it.
+
+    Returns:
+        Count of fields filled across all earnings_dates rows.
+        quarterly_revenue is mutated in-place (appended) when provided.
     """
     missing = [r for r in earnings_dates
                if r.get("eps_reported") is not None
                and (r.get("eps_estimate") is None
                     or r.get("revenue_estimate") is None
                     or r.get("revenue_reported") is None)]
-    if not missing:
+    # Also run if quarterly_revenue is shallow (< 8 quarters) — IC extends history
+    qr_shallow = (quarterly_revenue is not None
+                  and len([r for r in quarterly_revenue if r.get("revenue") is not None]) < 8)
+    if not missing and not qr_shallow:
         return 0
 
     # ── 0. Import curl_cffi — installed as yfinance 1.x dependency ──────────
@@ -1363,45 +1384,106 @@ def enrich_estimates_investing_com(earnings_dates: List[Dict], ticker: str) -> i
     bare = ticker.split(".")[0].upper()   # NVDA, AAPL etc.
     impersonate = "chrome124"
 
-    # ── 1. Slug discovery via investing.com search API ─────────────────────
+    # ── 1. Slug discovery ────────────────────────────────────────────────
+    # Strategy: try common slug patterns directly rather than relying on
+    # the search API (which changed response format and now returns articles).
+    # investing.com slugs follow predictable patterns:
+    #   NVDA  → nvidia-corp
+    #   AAPL  → apple-computer-inc
+    #   MSFT  → microsoft-corp
+    # We try the bare ticker lowercased, then known overrides, then skip slug step.
     slug = None
     pair_id = None
-    try:
-        search_url = (
-            f"https://api.investing.com/api/search/v2/search"
-            f"?q={bare}&type=quotes&limit=6"
-        )
-        sr = cffi_req.get(
-            search_url,
-            impersonate=impersonate,
-            headers={
-                "User-Agent": (
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/124.0.0.0 Safari/537.36"
-                ),
-                "Accept": "application/json",
-                "Referer": "https://www.investing.com/",
-                "X-Requested-With": "XMLHttpRequest",
-            },
-            timeout=12,
-        )
-        if sr.status_code == 200:
-            sdata = sr.json()
-            quotes = (sdata.get("quotes") or sdata.get("hits")
-                      or sdata.get("data", {}).get("quotes", []) or [])
-            for q in quotes:
-                q_symbol = (q.get("symbol") or q.get("ticker") or "").upper()
-                q_url    = q.get("url") or q.get("link") or ""
-                if q_symbol == bare or bare in q_url.upper():
-                    # Extract slug from URL like '/equities/nvidia-corp'
-                    parts = q_url.strip("/").split("/")
-                    if len(parts) >= 2 and parts[0] in ("equities", "stocks"):
-                        slug = parts[1]
-                    pair_id = q.get("pairId") or q.get("id") or q.get("pair_id")
-                    break
-    except Exception:
-        pass
+
+    # Known slug overrides for common tickers where the slug is non-obvious
+    SLUG_OVERRIDES: Dict[str, str] = {
+        "AAPL": "apple-computer-inc",
+        "MSFT": "microsoft-corp",
+        "NVDA": "nvidia-corp",
+        "GOOGL": "alphabet-inc-cl-a",
+        "GOOG":  "alphabet-inc-cl-c",
+        "META":  "facebook-inc",
+        "AMZN":  "amazon-com-inc",
+        "TSLA":  "tesla-motors",
+        "AVGO":  "broadcom-ltd",
+        "COST":  "costco-wholesale",
+        "NFLX":  "netflix-inc",
+        "AMD":   "advanced-micro-devices",
+        "QCOM":  "qualcomm-inc",
+        "INTU":  "intuit-inc",
+        "AMAT":  "applied-materials",
+        "CSCO":  "cisco-sys-inc",
+        "AMGN":  "amgen-inc",
+        "TXN":   "texas-instruments",
+        "CMCSA": "comcast-corp-new",
+        "BKNG":  "priceline-com-inc",
+        "MU":    "micron-technology",
+        "PANW":  "palo-alto-networks",
+        "GILD":  "gilead-sciences",
+        "SBUX":  "starbucks-corp",
+        "ISRG":  "intuitive-surgical-inc",
+        "REGN":  "regeneron-pharmaceuticals",
+        "KLAC":  "kla-tencor-corp",
+        "LRCX":  "lam-research",
+        "SNPS":  "synopsys-inc",
+        "CDNS":  "cadence-design-systems",
+        "MRVL":  "marvell-technology",
+        "PYPL":  "paypal-holdings",
+        "WDAY":  "workday-inc",
+        "CRWD":  "crowdstrike-holdings",
+        "DDOG":  "datadog-inc",
+        "MELI":  "mercadolibre",
+        "NXPI":  "nxp-semiconductors",
+        "MCHP":  "microchip-technology",
+        "FTNT":  "fortinet-inc",
+        "ADI":   "analog-devices",
+        "IDXX":  "idexx-laboratories",
+        "BIIB":  "biogen-idec-inc",
+        "ILMN":  "illumina-inc",
+        "PCAR":  "paccar-inc",
+        "FAST":  "fastenal-co",
+        "ROST":  "ross-stores-inc",
+        "ORLY":  "oreilly-automotive",
+        "PAYX":  "paychex-inc",
+        "CTAS":  "cintas-corp",
+        "CPRT":  "copart-inc",
+    }
+
+    if bare in SLUG_OVERRIDES:
+        slug = SLUG_OVERRIDES[bare]
+    else:
+        # Try search API as best-effort (may return articles now)
+        try:
+            search_url = (
+                f"https://api.investing.com/api/search/v2/search"
+                f"?q={bare}&type=quotes&lang=56&limit=6"
+            )
+            sr = cffi_req.get(
+                search_url,
+                impersonate=impersonate,
+                headers={
+                    "Accept": "application/json",
+                    "Referer": "https://www.investing.com/",
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                timeout=10,
+            )
+            if sr.status_code == 200:
+                sdata = sr.json()
+                # Search response may have quotes, hits, or data.quotes
+                quotes = (sdata.get("quotes") or sdata.get("hits")
+                          or sdata.get("data", {}).get("quotes", []) or [])
+                for q in quotes:
+                    q_sym = (q.get("symbol") or q.get("ticker") or "").upper()
+                    q_url = q.get("url") or q.get("link") or ""
+                    if q_sym == bare or bare in q_url.upper():
+                        parts = q_url.strip("/").split("/")
+                        if len(parts) >= 2 and parts[0] in ("equities", "stocks"):
+                            slug = parts[1]
+                        pair_id = q.get("pairId") or q.get("id") or q.get("pair_id")
+                        break
+        except Exception:
+            pass
 
     # ── 2. Fetch earnings page HTML with Chrome impersonation ─────────────
     ic_by_qtr: Dict[str, Dict] = {}
@@ -1498,72 +1580,88 @@ def enrich_estimates_investing_com(earnings_dates: List[Dict], ticker: str) -> i
             pass
 
     # ── 4. Parse HTML table if we got a page ─────────────────────────────
+    # investing.com earnings page structure (confirmed Mar 2026):
+    #   Table headers: ['Release Date', 'Period End', 'EPS', '/Forecast',
+    #                   'Revenue', '/Forecast', 'EPS Surprise %', 'Revenue Surprise %']
+    #   Col 0 = Release Date  ("Feb 25, 2026")
+    #   Col 1 = Period End    ("01/2026") ← use for quarter key
+    #   Col 2 = EPS actual    ("1.62")
+    #   Col 3 = EPS forecast  ("/1.52")  ← strip leading "/"
+    #   Col 4 = Revenue actual ("68.1B")
+    #   Col 5 = Rev forecast  ("/65.56B") ← strip leading "/"
+    #   Col 6 = EPS Surprise %
+    #   Col 7 = Revenue Surprise %
     if soup is not None:
-        # Try multiple table selectors — investing.com has changed layout over time
-        table = (
-            soup.find("table", {"id": "earningsCalendarData"})
-            or soup.find("table", class_=lambda c: c and any(
-                k in c for k in ["earningsCalendar", "earnings-calendar", "genTbl"]))
-            or soup.find("table")  # last resort: any table on the page
-        )
-        if table:
-            thead = table.find("thead") or table.find("tr")
-            headers_text: List[str] = []
-            if thead:
-                headers_text = [th.get_text(strip=True).lower()
-                                for th in thead.find_all(["th", "td"])]
-            eps_est_col = eps_act_col = rev_est_col = rev_act_col = date_col = None
-            for i, h in enumerate(headers_text):
-                if ("eps" in h or "earn" in h) and "est" in h and "for" in h: eps_est_col = i
-                elif ("eps" in h or "earn" in h) and "est" in h: eps_est_col = i
-                if ("eps" in h or "earn" in h) and ("act" in h or "rep" in h): eps_act_col = i
-                if "rev" in h and ("est" in h or "for" in h): rev_est_col = i
-                if "rev" in h and ("act" in h or "rep" in h): rev_act_col = i
-                if "date" in h or "period" in h or "release" in h: date_col = i
+        # Find earnings table: the one with 'Period End' and 'Revenue' headers
+        target_table = None
+        for tbl in soup.find_all("table"):
+            ths = [th.get_text(strip=True) for th in tbl.find_all("th")]
+            if "Period End" in ths and "Revenue" in ths:
+                target_table = tbl
+                break
+        # Fallback: second table on page (index 1) which is the earnings table
+        if target_table is None:
+            all_tables = soup.find_all("table")
+            if len(all_tables) > 1:
+                target_table = all_tables[1]
 
-            tbody = table.find("tbody") or table
-            for tr in tbody.find_all("tr"):
-                cells = tr.find_all("td")
-                if len(cells) < 2:
-                    continue
-                # Parse date
-                date_text = cells[date_col].get_text(strip=True) if date_col is not None and date_col < len(cells) else ""
-                if not date_text:
-                    # Try first cell
-                    date_text = cells[0].get_text(strip=True)
+        if target_table:
+            COL_PERIOD_END = 1
+            COL_EPS_ACT    = 2
+            COL_EPS_EST    = 3
+            COL_REV_ACT    = 4
+            COL_REV_EST    = 5
+
+            def _parse_rev_cell(cell_text: str) -> Optional[float]:
+                t = cell_text.strip().lstrip("/").replace(",", "").replace(" ", "")
+                if not t or t in ("-", "N/A", "", "--"): return None
+                mult = 1.0
+                if t[-1].upper() == "T": mult = 1e12; t = t[:-1]
+                elif t[-1].upper() == "B": mult = 1e9;  t = t[:-1]
+                elif t[-1].upper() == "M": mult = 1e6;  t = t[:-1]
+                elif t[-1].upper() == "K": mult = 1e3;  t = t[:-1]
+                try: return float(t) * mult
+                except: return None
+
+            def _parse_eps_cell(cell_text: str) -> Optional[float]:
+                t = cell_text.strip().lstrip("/").replace(",", "")
+                if not t or t in ("-", "N/A", "", "--"): return None
+                try: return float(t)
+                except: return None
+
+            def _parse_period_end(cell_text: str) -> Optional[str]:
+                """'04/2026' → '2026-04'"""
+                t = cell_text.strip()
+                if "/" in t:
+                    parts = t.split("/")
+                    if len(parts) == 2:
+                        try:
+                            return f"{int(parts[1]):04d}-{int(parts[0]):02d}"
+                        except Exception:
+                            pass
                 try:
                     import dateutil.parser as _dp
-                    d = _dp.parse(date_text).strftime("%Y-%m")
+                    return _dp.parse(t).strftime("%Y-%m")
                 except Exception:
+                    return None
+
+            tbody = target_table.find("tbody") or target_table
+            for tr in tbody.find_all("tr"):
+                cells = tr.find_all("td")
+                if len(cells) < 6:
+                    continue
+                def _cell(col):
+                    return cells[col].get_text(strip=True) if col < len(cells) else ""
+
+                d = _parse_period_end(_cell(COL_PERIOD_END))
+                if not d:
                     continue
 
-                def _parse_rev_cell(cell_text: str) -> Optional[float]:
-                    t = cell_text.strip().replace(",", "").replace(" ", "")
-                    if not t or t in ("-", "N/A", "", "--"): return None
-                    mult = 1.0
-                    if t[-1].upper() == "B": mult = 1e9; t = t[:-1]
-                    elif t[-1].upper() == "M": mult = 1e6; t = t[:-1]
-                    elif t[-1].upper() == "K": mult = 1e3; t = t[:-1]
-                    elif t[-1].upper() == "T": mult = 1e12; t = t[:-1]
-                    try: return float(t) * mult
-                    except: return None
-
-                def _parse_eps_cell(cell_text: str) -> Optional[float]:
-                    t = cell_text.strip().replace(",", "")
-                    if not t or t in ("-", "N/A", "", "--"): return None
-                    try: return float(t)
-                    except: return None
-
-                def _cell(col):
-                    if col is not None and col < len(cells):
-                        return cells[col].get_text(strip=True)
-                    return ""
-
                 ic_by_qtr[d] = {
-                    "eps_estimate": _parse_eps_cell(_cell(eps_est_col)) if eps_est_col is not None else None,
-                    "eps_actual":   _parse_eps_cell(_cell(eps_act_col)) if eps_act_col is not None else None,
-                    "rev_estimate": _parse_rev_cell(_cell(rev_est_col)) if rev_est_col is not None else None,
-                    "rev_actual":   _parse_rev_cell(_cell(rev_act_col)) if rev_act_col is not None else None,
+                    "eps_actual":   _parse_eps_cell(_cell(COL_EPS_ACT)),
+                    "eps_estimate": _parse_eps_cell(_cell(COL_EPS_EST)),
+                    "rev_actual":   _parse_rev_cell(_cell(COL_REV_ACT)),
+                    "rev_estimate": _parse_rev_cell(_cell(COL_REV_EST)),
                 }
 
     # ── 5. Merge ic_by_qtr into earnings_dates rows ──────────────────────
@@ -1605,6 +1703,57 @@ def enrich_estimates_investing_com(earnings_dates: List[Dict], ticker: str) -> i
                 row["revenue_reported"] = q["rev_actual"]
                 row["_rev_act_source"] = "investing_com"
             break
+
+    # ── 6. Extend quarterly_revenue with IC actuals (deeper history) ──────
+    # investing.com covers ~16-20 quarters vs yfinance's hard 5-quarter cap.
+    # We write IC revenue actuals into quarterly_revenue for quarters NOT already
+    # present, ordered chronologically. YoY growth is recomputed after extension.
+    if quarterly_revenue is not None and ic_by_qtr:
+        existing_months = {(r.get("date") or "")[:7]
+                           for r in quarterly_revenue if r.get("date")}
+        new_rows = []
+        for month_key, q in ic_by_qtr.items():
+            rev_act = q.get("rev_actual")
+            if rev_act is None or not np.isfinite(float(rev_act) if rev_act else float("nan")):
+                continue
+            # Skip if we already have this quarter from yfinance/FMP
+            if month_key in existing_months:
+                continue
+            # Also skip if within ±1 month of an existing entry
+            try:
+                y, m = int(month_key[:4]), int(month_key[5:7])
+                adjacent = False
+                for delta in [-1, 1]:
+                    nm = m + delta; ny = y + (nm-1)//12; nm = ((nm-1)%12)+1
+                    if f"{ny:04d}-{nm:02d}" in existing_months:
+                        adjacent = True
+                        break
+                if adjacent:
+                    continue
+            except Exception:
+                pass
+            new_rows.append({
+                "date": f"{month_key}-01",   # first of month as date string
+                "revenue": float(rev_act),
+                "revenue_yoy_growth": None,
+                "revenue_source": "investing_com",
+            })
+
+        if new_rows:
+            # Merge and sort all rows chronologically
+            combined = list(quarterly_revenue) + new_rows
+            combined.sort(key=lambda r: (r.get("date") or ""))
+            # Recompute YoY on the extended series (quarter i vs i-4)
+            for i, row in enumerate(combined):
+                if i >= 4:
+                    prev = combined[i - 4].get("revenue")
+                    curr = row.get("revenue")
+                    if prev and prev > 0 and curr and np.isfinite(curr) and np.isfinite(prev):
+                        row["revenue_yoy_growth"] = round((curr / prev - 1.0) * 100.0, 2)
+            # Update the list in-place: clear and re-extend
+            quarterly_revenue.clear()
+            quarterly_revenue.extend(combined)
+            filled += len(new_rows)
 
     return filled
 
