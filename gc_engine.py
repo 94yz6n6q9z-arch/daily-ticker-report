@@ -63,7 +63,7 @@ _GC_VERSION_LOG: dict = {
     ),
     "0.4.0": (
         "Layer star-gate redesign. Star 1: technical ignition (unchanged). "
-        "Star 2: BOTH eps_beat_streak>=2 AND revenue_beat_streak>=2 OR a massive catalyst "
+        "Star 2: BOTH eps_beat_streak>=2 AND revenue_beat_streak>=2 (YoY proxy when estimates unavailable) OR a massive catalyst "
         "confirmed by OpenAI (not just keyword match). Star 3: Star 2 + rev>=20% YoY + "
         "OpenAI moat confirmation. compute_eps_analytics() gains revenue_beat_streak. "
         "_openai_catalyst_is_massive() added: sends headline to gpt-4o-mini to judge whether "
@@ -340,6 +340,17 @@ def load_universe() -> pd.DataFrame:
     combined = combined.sort_values("_source", ascending=True)  # 'em' > 'world' alphabetically — world sorts first
     combined = combined.drop_duplicates(subset=["Ticker"], keep="first")
     combined = combined.drop(columns=["_source"], errors="ignore")
+
+    # Normalize exchange-specific ticker format quirks before any lookup:
+    # Borsa Istanbul (BIST): iShares/MSCI carry the equity share class suffix "-E"
+    # (e.g. KCHOL-E.IS, BIMAS-E.IS) which yfinance does NOT recognise — it expects
+    # plain KCHOL.IS.  Strip "-E" immediately before ".IS".
+    before_norm = combined["Ticker"].copy()
+    combined["Ticker"] = combined["Ticker"].str.replace(r"-E\.IS$", ".IS", regex=True)
+    normalized = (combined["Ticker"] != before_norm).sum()
+    if normalized:
+        print(f"[gc] Normalized {normalized} Turkish .IS tickers (stripped -E suffix)")
+    combined = combined.drop_duplicates(subset=["Ticker"], keep="first")
 
     # Apply known ticker overrides (runtime corrections only — symbol renames,
     # corporate actions etc. that can't be detected at CSV build time)
@@ -719,6 +730,113 @@ def fetch_earnings_data(ticker: str) -> Dict[str, Any]:
     except Exception as e:
         out["error"] = str(e)
 
+    # ── EPS + Revenue estimate enrichment cascade ────────────────────────────
+    # Both EPS AND revenue estimates can be missing from yfinance:
+    #   - revenue_estimate: missing for ~88% of universe since yfinance 1.2.0
+    #   - eps_estimate: missing when method 4 (income_stmt_derived) runs,
+    #     or for non-US tickers where yfinance returns eps_reported only
+    # We enrich both fields symmetrically across all fallback sources.
+    # Source tagging: _eps_est_source / _rev_est_source / _rev_act_source on each row.
+
+    for r in out.get("earnings_dates", []):
+        if r.get("eps_estimate") is not None:
+            r.setdefault("_eps_est_source", "yfinance")
+        if r.get("revenue_estimate") is not None:
+            r.setdefault("_rev_est_source", "yfinance")
+        if r.get("revenue_reported") is not None:
+            r.setdefault("_rev_act_source", "yfinance")
+
+    def _missing_estimates_count():
+        return sum(1 for r in out.get("earnings_dates", [])
+                   if r.get("eps_reported") is not None
+                   and (r.get("eps_estimate") is None
+                        or r.get("revenue_estimate") is None
+                        or r.get("revenue_reported") is None))
+
+    # 5a) investing.com — no API key. Fills EPS + revenue together.
+    if _missing_estimates_count() > 0:
+        try:
+            filled_ic = enrich_estimates_investing_com(out["earnings_dates"], ticker)
+            if filled_ic:
+                out["_investing_com_filled"] = filled_ic
+        except Exception as _ic_err:
+            out["_investing_com_error"] = str(_ic_err)
+
+    # 5b) FMP analyst-estimates — fills both EPS (estimatedEpsAvg) and revenue (estimatedRevenueAvg).
+    fmp_key_enrich = os.environ.get("FMP_API_KEY", "").strip()
+    if fmp_key_enrich and _missing_estimates_count() > 0 and out.get("earnings_dates"):
+        try:
+            from urllib.parse import urlencode
+            import urllib.request as _ureq
+            sym_fmp = out.get("fmp_symbol") or ticker.split(".")[0].upper()
+            est_data = None
+            qs = urlencode({"symbol": sym_fmp, "period": "quarter", "limit": 16,
+                            "apikey": fmp_key_enrich})
+            try:
+                with _ureq.urlopen(f"{_FMP_BASE}/analyst-estimates?{qs}", timeout=8) as r:
+                    raw = json.loads(r.read().decode())
+                    if isinstance(raw, list):
+                        est_data = raw
+            except Exception: pass
+            if est_data:
+                fmp_est_by_qtr = {}
+                for q in est_data:
+                    d = str(q.get("date", ""))[:7]
+                    eps_avg = _safe_float(q.get("estimatedEpsAvg") or q.get("epsAvg"))
+                    rev_avg = _safe_float(q.get("estimatedRevenueAvg") or q.get("revenueAvg"))
+                    if d:
+                        fmp_est_by_qtr[d] = {"eps": eps_avg, "rev": rev_avg}
+                rev_act_by_qtr = {(qr.get("date", ""))[:7]: qr["revenue"]
+                                  for qr in out.get("quarterly_revenue", [])
+                                  if qr.get("revenue") is not None}
+                filled_fmp = 0
+                for row in out["earnings_dates"]:
+                    d = (row.get("date") or "")[:7]
+                    candidates = [d]
+                    try:
+                        y, m = int(d[:4]), int(d[5:7])
+                        for delta in [-1, -2, 1, 2]:
+                            nm = m + delta; ny = y + (nm-1)//12; nm = ((nm-1)%12)+1
+                            candidates.append(f"{ny:04d}-{nm:02d}")
+                    except Exception: pass
+                    for key in candidates:
+                        if key not in fmp_est_by_qtr:
+                            continue
+                        q_est = fmp_est_by_qtr[key]
+                        if (row.get("eps_estimate") is None
+                                and q_est["eps"] is not None and np.isfinite(q_est["eps"])):
+                            row["eps_estimate"] = q_est["eps"]
+                            row["_eps_est_source"] = "fmp"
+                            filled_fmp += 1
+                            est = _safe_float(row["eps_estimate"])
+                            rep = _safe_float(row.get("eps_reported"))
+                            if np.isfinite(est) and np.isfinite(rep) and abs(est) > 0.001:
+                                row["eps_surprise_pct"] = round((rep / est - 1.0) * 100.0, 2)
+                        if (row.get("revenue_estimate") is None
+                                and q_est["rev"] is not None
+                                and np.isfinite(q_est["rev"]) and q_est["rev"] > 0):
+                            row["revenue_estimate"] = q_est["rev"]
+                            row["_rev_est_source"] = "fmp"
+                            filled_fmp += 1
+                        if row.get("revenue_reported") is None and key in rev_act_by_qtr:
+                            row["revenue_reported"] = rev_act_by_qtr[key]
+                            row["_rev_act_source"] = "fmp"
+                        break
+                if filled_fmp:
+                    out["_fmp_enrich_filled"] = filled_fmp
+        except Exception as _fmp_enr_err:
+            out["_fmp_enrich_error"] = str(_fmp_enr_err)
+
+    # 5c) Finnhub — final fallback. Enriches both EPS and revenue.
+    finnhub_key = os.environ.get("FINNHUB_API_KEY", "").strip()
+    if finnhub_key and _missing_estimates_count() > 0:
+        try:
+            filled_fh = enrich_estimates_finnhub(out["earnings_dates"], ticker, finnhub_key)
+            if filled_fh:
+                out["_finnhub_filled"] = filled_fh
+        except Exception as _fh_err:
+            out["_finnhub_error"] = str(_fh_err)
+
     out["fetched_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
     # Clear new_constituent flag — ticker has now been fetched at least once
     out.pop("new_constituent", None)
@@ -897,6 +1015,255 @@ def _fmp_get(path: str, params: Dict, api_key: str) -> Any:
         return None
 
 
+_FINNHUB_BASE = "https://finnhub.io/api/v1"
+
+def _finnhub_get(path: str, params: Dict, api_key: str) -> Any:
+    """Single Finnhub API call. Free tier: 60 calls/min. Returns parsed JSON or None."""
+    import urllib.request, urllib.parse
+    params = {**params, "token": api_key}
+    url = f"{_FINNHUB_BASE}{path}?{urllib.parse.urlencode(params)}"
+    try:
+        with urllib.request.urlopen(url, timeout=10) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except Exception:
+        return None
+
+
+def enrich_estimates_finnhub(earnings_dates: List[Dict], ticker: str, api_key: str) -> int:
+    """Fill EPS + revenue estimates and actuals from Finnhub /stock/earnings.
+
+    Finnhub returns per-quarter: epsEstimate, epsActual, revenueEstimate, revenueActual.
+    Enriches BOTH EPS and revenue fields symmetrically — not just revenue.
+    Free tier: US stocks well covered. International coverage varies.
+    Returns count of individual fields filled.
+    """
+    if not api_key or not earnings_dates:
+        return 0
+    # Only call if something is still missing (EPS or revenue)
+    missing = [r for r in earnings_dates
+               if r.get("eps_reported") is not None
+               and (r.get("eps_estimate") is None
+                    or r.get("revenue_estimate") is None
+                    or r.get("revenue_reported") is None)]
+    if not missing:
+        return 0
+    sym = ticker.split(".")[0]  # Finnhub uses bare symbol for most US tickers
+    data = _finnhub_get("/stock/earnings", {"symbol": sym, "limit": 16}, api_key)
+    if not data or not isinstance(data, list):
+        return 0
+    # Build YYYY-MM -> {eps_est, eps_act, rev_est, rev_act} from Finnhub
+    fh_by_qtr = {}
+    for q in data:
+        d = str(q.get("period") or q.get("date") or "")[:7]
+        if d:
+            fh_by_qtr[d] = {
+                "eps_est": _safe_float(q.get("epsEstimate") or q.get("estimatedEps")),
+                "eps_act": _safe_float(q.get("epsActual") or q.get("actualEps")),
+                "rev_est": _safe_float(q.get("revenueEstimate") or q.get("estimatedRevenue")),
+                "rev_act": _safe_float(q.get("revenueActual") or q.get("actualRevenue")),
+            }
+    filled = 0
+    for row in earnings_dates:
+        d = (row.get("date") or "")[:7]
+        candidates = [d]
+        try:
+            y, m = int(d[:4]), int(d[5:7])
+            for delta in [-1, -2, 1, 2]:
+                nm = m + delta; ny = y + (nm-1)//12; nm = ((nm-1)%12)+1
+                candidates.append(f"{ny:04d}-{nm:02d}")
+        except Exception: pass
+        for key in candidates:
+            if key in fh_by_qtr:
+                q_data = fh_by_qtr[key]
+                # EPS fields
+                if (row.get("eps_estimate") is None
+                        and q_data["eps_est"] is not None
+                        and np.isfinite(q_data["eps_est"])):
+                    row["eps_estimate"] = q_data["eps_est"]
+                    row["_eps_est_source"] = "finnhub"
+                    filled += 1
+                    # Recompute surprise
+                    est = _safe_float(row["eps_estimate"])
+                    rep = _safe_float(row.get("eps_reported"))
+                    if np.isfinite(est) and np.isfinite(rep) and abs(est) > 0.001:
+                        row["eps_surprise_pct"] = round((rep / est - 1.0) * 100.0, 2)
+                # Revenue fields
+                if (row.get("revenue_estimate") is None
+                        and q_data["rev_est"] is not None
+                        and np.isfinite(q_data["rev_est"])):
+                    row["revenue_estimate"] = q_data["rev_est"]
+                    row["_rev_est_source"] = "finnhub"
+                    filled += 1
+                if (row.get("revenue_reported") is None
+                        and q_data["rev_act"] is not None
+                        and np.isfinite(q_data["rev_act"])):
+                    row["revenue_reported"] = q_data["rev_act"]
+                    row["_rev_act_source"] = "finnhub"
+                break
+    return filled
+
+
+def enrich_estimates_investing_com(earnings_dates: List[Dict], ticker: str) -> int:
+    """Scrape EPS + revenue estimates and actuals from investing.com earnings page.
+
+    Covers BOTH EPS and revenue symmetrically — yfinance often returns eps_reported
+    but not eps_estimate (especially via method 4 / income_stmt_derived), and
+    revenue_estimate is missing for most tickers since yfinance 1.2.0.
+
+    investing.com exposes a public earnings table at:
+      https://www.investing.com/equities/{slug}-earnings
+    Columns: Date | EPS Est | EPS Act | Rev Est | Rev Act | ...
+
+    Notes:
+    - Requires requests + beautifulsoup4 (both in requirements)
+    - investing.com uses Cloudflare — sends browser-like headers; may 403 on server IPs
+    - Only called when at least one row is still missing EPS OR revenue estimate
+    - Non-US tickers may not have investing.com pages; failure is silent
+    - Returns count of earnings_dates rows enriched (EPS fields + revenue fields combined)
+    """
+    try:
+        import requests
+        from bs4 import BeautifulSoup
+    except ImportError:
+        return 0
+
+    missing = [r for r in earnings_dates
+               if r.get("eps_reported") is not None
+               and (r.get("eps_estimate") is None
+                    or r.get("revenue_estimate") is None
+                    or r.get("revenue_reported") is None)]
+    if not missing:
+        return 0
+
+    # Build slug candidates from ticker (bare symbol, lowercased, hyphenated)
+    bare = ticker.split(".")[0].lower().replace("_", "-")
+    slug_candidates = [bare]
+
+    headers = {
+        "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                       "AppleWebKit/537.36 (KHTML, like Gecko) "
+                       "Chrome/122.0.0.0 Safari/537.36"),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Referer": "https://www.investing.com/",
+        "DNT": "1",
+    }
+
+    soup = None
+    for slug in slug_candidates:
+        url = f"https://www.investing.com/equities/{slug}-earnings"
+        try:
+            resp = requests.get(url, headers=headers, timeout=8, allow_redirects=True)
+            if resp.status_code == 200 and "earningsConsensus" in resp.text:
+                soup = BeautifulSoup(resp.text, "lxml")
+                break
+            elif resp.status_code == 403:
+                break  # Cloudflare block — don't retry
+        except Exception:
+            continue
+
+    if soup is None:
+        return 0
+
+    # Parse the earnings table — investing.com uses id="earningsCalendarData"
+    # or class="genTbl" with columns: Date, EPS Est, EPS Act, Rev Est, Rev Act, ...
+    filled = 0
+    table = soup.find("table", {"id": "earningsCalendarData"})
+    if table is None:
+        table = soup.find("table", class_=lambda c: c and "earningsCalendar" in c)
+    if table is None:
+        return 0
+
+    # Find column indices for EPS Est / EPS Act / Rev Est / Rev Act
+    header_row = table.find("thead")
+    if not header_row:
+        return 0
+    headers_text = [th.get_text(strip=True).lower() for th in header_row.find_all("th")]
+    eps_est_col = eps_act_col = rev_est_col = rev_act_col = date_col = None
+    for i, h in enumerate(headers_text):
+        if ("eps" in h or "earn" in h) and "est" in h: eps_est_col = i
+        if ("eps" in h or "earn" in h) and ("act" in h or "rep" in h): eps_act_col = i
+        if "rev" in h and "est" in h: rev_est_col = i
+        if "rev" in h and ("act" in h or "rep" in h): rev_act_col = i
+        if "date" in h or "period" in h: date_col = i
+    if eps_est_col is None and rev_est_col is None:
+        return 0
+
+    # Build lookup: YYYY-MM -> {estimate, actual} from table rows
+    ic_by_qtr: Dict[str, Dict] = {}
+    tbody = table.find("tbody")
+    if not tbody:
+        return 0
+    for tr in tbody.find_all("tr"):
+        cells = tr.find_all("td")
+        if not cells or len(cells) < max(filter(None, [rev_est_col, rev_act_col, 0])) + 1:
+            continue
+        # Parse date
+        date_text = cells[date_col].get_text(strip=True) if date_col is not None else ""
+        try:
+            import dateutil.parser
+            d = dateutil.parser.parse(date_text).strftime("%Y-%m")
+        except Exception:
+            continue
+        def _parse_rev(cell_text: str) -> Optional[float]:
+            """Parse investing.com revenue: may be '1.23B', '456M', '1,234.5'"""
+            t = cell_text.strip().replace(",", "").replace(" ", "")
+            if not t or t in ("-", "N/A", ""): return None
+            mult = 1.0
+            if t.endswith("B") or t.endswith("b"): mult = 1e9; t = t[:-1]
+            elif t.endswith("M") or t.endswith("m"): mult = 1e6; t = t[:-1]
+            elif t.endswith("K") or t.endswith("k"): mult = 1e3; t = t[:-1]
+            elif t.endswith("T") or t.endswith("t"): mult = 1e12; t = t[:-1]
+            try: return float(t) * mult
+            except Exception: return None
+        def _parse_eps(cell_text: str) -> Optional[float]:
+            t = cell_text.strip().replace(",", "").replace(" ", "")
+            if not t or t in ("-", "N/A", ""): return None
+            try: return float(t)
+            except Exception: return None
+
+        ic_by_qtr[d] = {
+            "eps_estimate": _parse_eps(cells[eps_est_col].get_text(strip=True)) if eps_est_col is not None else None,
+            "eps_actual":   _parse_eps(cells[eps_act_col].get_text(strip=True)) if eps_act_col is not None else None,
+            "rev_estimate": _parse_rev(cells[rev_est_col].get_text(strip=True)) if rev_est_col is not None else None,
+            "rev_actual":   _parse_rev(cells[rev_act_col].get_text(strip=True)) if rev_act_col is not None else None,
+        }
+
+    for row in earnings_dates:
+        d = (row.get("date") or "")[:7]
+        candidates = [d]
+        try:
+            y, m = int(d[:4]), int(d[5:7])
+            for delta in [-1, -2, 1, 2]:
+                nm = m + delta; ny = y + (nm-1)//12; nm = ((nm-1)%12)+1
+                candidates.append(f"{ny:04d}-{nm:02d}")
+        except Exception: pass
+        for key in candidates:
+            if key in ic_by_qtr:
+                q = ic_by_qtr[key]
+                # EPS fields
+                if row.get("eps_estimate") is None and q.get("eps_estimate") is not None:
+                    row["eps_estimate"] = q["eps_estimate"]
+                    row["_eps_est_source"] = "investing_com"
+                    filled += 1
+                    # Recompute surprise if we now have both
+                    est = _safe_float(row["eps_estimate"])
+                    rep = _safe_float(row.get("eps_reported"))
+                    if np.isfinite(est) and np.isfinite(rep) and abs(est) > 0.001:
+                        row["eps_surprise_pct"] = round((rep / est - 1.0) * 100.0, 2)
+                # Revenue fields
+                if row.get("revenue_estimate") is None and q.get("rev_estimate") is not None:
+                    row["revenue_estimate"] = q["rev_estimate"]
+                    row["_rev_est_source"] = "investing_com"
+                    filled += 1
+                if row.get("revenue_reported") is None and q.get("rev_actual") is not None:
+                    row["revenue_reported"] = q["rev_actual"]
+                    row["_rev_act_source"] = "investing_com"
+                break
+    return filled
+
+
 def fetch_fmp_single(yahoo_ticker: str, api_key: str) -> Dict[str, Any]:
     """Fetch earnings + revenue data for one ticker from FMP.
 
@@ -944,6 +1311,8 @@ def fetch_fmp_single(yahoo_ticker: str, api_key: str) -> Dict[str, Any]:
         out["_fmp_rev_error"] = str(e)
 
     # 2) EPS beat/miss from earnings surprises endpoint
+    # Also pull revenue estimates from FMP analyst-estimates (quarterly) to get
+    # real revenue consensus beat/miss — this is what yfinance fails to return.
     try:
         surprises = _fmp_get("/earnings-surprises", {"symbol": sym}, api_key)
         if surprises and isinstance(surprises, list):
@@ -961,13 +1330,57 @@ def fetch_fmp_single(yahoo_ticker: str, api_key: str) -> Dict[str, Any]:
                     "eps_estimate": est if (est is not None and np.isfinite(est)) else None,
                     "eps_reported": act if (act is not None and np.isfinite(act)) else None,
                     "eps_surprise_pct": surprise_pct,
-                    "revenue_estimate": None,
-                    "revenue_reported": None,
+                    "revenue_estimate": None,   # populated below from analyst-estimates
+                    "revenue_reported": None,   # populated below from income-statement match
                     "_method": "fmp_earnings_surprises",
                 })
             out["earnings_dates"] = eps_rows
     except Exception as e:
         out["_fmp_eps_error"] = str(e)
+
+    # 2b) Revenue consensus estimates from FMP analyst-estimates endpoint
+    # Matches estimates to eps_rows by YYYY-MM key, fills revenue_estimate + revenue_reported.
+    # Free tier: available for US tickers. Non-US may return empty list.
+    try:
+        rev_est_data = _fmp_get("/analyst-estimates", {"symbol": sym, "period": "quarter", "limit": 16}, api_key)
+        if rev_est_data and isinstance(rev_est_data, list):
+            # Build YYYY-MM -> revenue consensus estimate
+            rev_est_by_qtr = {}
+            for q in rev_est_data:
+                d = str(q.get("date", ""))[:7]
+                avg = _safe_float(q.get("estimatedRevenueAvg") or q.get("revenueAvg"))
+                if d and avg is not None and np.isfinite(avg) and avg > 0:
+                    rev_est_by_qtr[d] = avg
+            # Build YYYY-MM -> actual revenue from income statement (already fetched)
+            rev_act_by_qtr = {}
+            for qr in out.get("quarterly_revenue", []):
+                d = (qr.get("date") or "")[:7]
+                if d and qr.get("revenue") is not None:
+                    rev_act_by_qtr[d] = qr["revenue"]
+            # Populate revenue_estimate / revenue_reported in eps_rows
+            filled = 0
+            for row in out.get("earnings_dates", []):
+                d = (row.get("date") or "")[:7]
+                # Try exact match then ±2 month window
+                candidates = [d]
+                try:
+                    y, m = int(d[:4]), int(d[5:7])
+                    for delta in [-1, -2, 1, 2]:
+                        nm = m + delta; ny = y + (nm-1)//12; nm = ((nm-1)%12)+1
+                        candidates.append(f"{ny:04d}-{nm:02d}")
+                except Exception: pass
+                for key in candidates:
+                    if row.get("revenue_estimate") is None and key in rev_est_by_qtr:
+                        row["revenue_estimate"] = rev_est_by_qtr[key]
+                        filled += 1
+                    if row.get("revenue_reported") is None and key in rev_act_by_qtr:
+                        row["revenue_reported"] = rev_act_by_qtr[key]
+                    if row.get("revenue_estimate") is not None and row.get("revenue_reported") is not None:
+                        break
+            if filled:
+                out["_fmp_rev_estimates_filled"] = filled
+    except Exception as e:
+        out["_fmp_rev_est_error"] = str(e)
 
     out["fetched_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
     return out
@@ -1377,50 +1790,120 @@ def compute_eps_analytics(earnings_data: Dict[str, Any]) -> Dict[str, Any]:
         and eps_surprise > 0
     )
 
+    # Build EPS YoY lookup: YYYY-MM -> eps_reported (for proxy when estimate unavailable)
+    # Same-quarter-prior-year comparison: if this Q's EPS > Q-4's EPS, treat as "beat".
+    # This is the last resort — only used when eps_estimate is still None after all
+    # enrichment sources (investing.com, FMP, Finnhub) have been tried.
+    eps_by_qtr: Dict[str, float] = {}
+    for r in past_sorted:
+        d = (r.get("date") or "")[:7]
+        rep = _safe_float(r.get("eps_reported"))
+        if d and np.isfinite(rep):
+            eps_by_qtr[d] = rep
+
+    def _eps_beat_for_row(r: Dict) -> Optional[bool]:
+        """True/False/None. Uses surprise_pct, then computed from estimate,
+        then YoY proxy (same quarter prior year). Returns None if undeterminable."""
+        s = r.get("eps_surprise_pct")
+        if s is not None:
+            return s > 0
+        est = _safe_float(r.get("eps_estimate"))
+        rep = _safe_float(r.get("eps_reported"))
+        if np.isfinite(est) and np.isfinite(rep) and abs(est) > 0.001:
+            return (rep / est - 1.0) * 100.0 > 0
+        # YoY proxy: compare to same quarter 12 months ago
+        if np.isfinite(rep):
+            d = (r.get("date") or "")[:7]
+            try:
+                y, m = int(d[:4]), int(d[5:7])
+                py = y - 1
+                prior_key = f"{py:04d}-{m:02d}"
+                # Also try ±1 month around the prior-year quarter
+                for delta in [0, -1, 1, -2, 2]:
+                    nm = m + delta; ny = py + (nm-1)//12; nm = ((nm-1)%12)+1
+                    key = f"{ny:04d}-{nm:02d}"
+                    if key in eps_by_qtr:
+                        prior_eps = eps_by_qtr[key]
+                        # Meaningful comparison: prior EPS positive (avoid sign-flip distortions)
+                        if prior_eps > 0.001:
+                            result = rep > prior_eps
+                            r["_eps_est_source"] = r.get("_eps_est_source", "yoy_proxy")
+                            return result
+            except Exception:
+                pass
+        return None  # truly cannot determine
+
     # EPS beat streak
     beat_streak = 0
     miss_streak = 0
     for r in past_sorted:
-        s = r.get("eps_surprise_pct")
-        if s is None:
-            est = _safe_float(r.get("eps_estimate"))
-            rep = _safe_float(r.get("eps_reported"))
-            if np.isfinite(est) and np.isfinite(rep) and abs(est) > 0.001:
-                s = (rep / est - 1.0) * 100.0
-        if s is not None and s > 0:
+        result = _eps_beat_for_row(r)
+        if result is True:
             if miss_streak == 0:
                 beat_streak += 1
             else:
                 break
-        elif s is not None and s < 0:
+        elif result is False:
             if beat_streak == 0:
                 miss_streak += 1
             else:
                 break
         else:
-            break
+            break  # undeterminable — stop streak
     out["eps_beat_streak"] = beat_streak
     out["eps_miss_streak"] = miss_streak
 
     # Revenue + EPS dual-beat streak: consecutive quarters where BOTH
-    # EPS AND revenue beat consensus. yfinance often lacks revenue_estimate
-    # so streak may be 0 even for genuine compounders — caller must handle.
-    rev_beat_streak = 0
-    for r in past_sorted:
+    # EPS AND revenue beat.
+    #
+    # Revenue beat priority:
+    #   1) Strict: revenue_reported > revenue_estimate from earnings_dates
+    #      (yfinance often lacks these — frequently None even for US large-caps)
+    #   2) Proxy: quarterly_revenue YoY growth > 0 for that period
+    #      (from income statement — available for ~75% of universe incl. NVDA, LLY)
+    #
+    # Without the proxy, NVDA/LLY/CRDO all score 0 despite massive revenue beats,
+    # because yfinance 1.2.0 no longer reliably returns Revenue Estimate column.
+
+    # Build a lookup: YYYY-MM -> revenue_yoy_growth from quarterly_revenue (income stmt)
+    rev_yoy_by_qtr: Dict[str, float] = {}
+    for qr in earnings_data.get("quarterly_revenue", []):
+        d = qr.get("date")
+        g = qr.get("revenue_yoy_growth")
+        if d and g is not None and np.isfinite(g):
+            rev_yoy_by_qtr[d[:7]] = g
+
+    def _revenue_beat_for_row(r: Dict) -> bool:
+        """True if revenue beat for this earnings row.
+        Uses consensus estimate if available, falls back to YoY > 0 from income stmt."""
         r_est = _safe_float(r.get("revenue_estimate"))
         r_rep = _safe_float(r.get("revenue_reported"))
-        rev_beat = (
-            np.isfinite(r_est) and np.isfinite(r_rep)
-            and r_est > 0 and r_rep > r_est
-        )
-        s = r.get("eps_surprise_pct")
-        if s is None:
-            est = _safe_float(r.get("eps_estimate"))
-            rep = _safe_float(r.get("eps_reported"))
-            if np.isfinite(est) and np.isfinite(rep) and abs(est) > 0.001:
-                s = (rep / est - 1.0) * 100.0
-        eps_beat = s is not None and s > 0
-        if rev_beat and eps_beat:
+        if np.isfinite(r_est) and np.isfinite(r_rep) and r_est > 0:
+            return r_rep > r_est  # strict consensus beat
+        # Proxy: find matching quarter in quarterly_revenue by YYYY-MM
+        d = (r.get("date") or "")[:7]
+        if d in rev_yoy_by_qtr:
+            return rev_yoy_by_qtr[d] > 0
+        # Try adjacent months (earnings date lags quarter-end by 1-2 months)
+        try:
+            y, m = int(d[:4]), int(d[5:7])
+            for delta in [-1, -2, 1, 2]:
+                nm = m + delta
+                ny = y + (nm - 1) // 12
+                nm = ((nm - 1) % 12) + 1
+                key = f"{ny:04d}-{nm:02d}"
+                if key in rev_yoy_by_qtr:
+                    return rev_yoy_by_qtr[key] > 0
+        except Exception:
+            pass
+        return False  # conservative: cannot determine
+
+    rev_beat_streak = 0
+    for r in past_sorted:
+        rev_beat = _revenue_beat_for_row(r)
+        eps_beat = _eps_beat_for_row(r)  # uses surprise_pct, estimate, or YoY proxy
+        # eps_beat=None means undeterminable — treat as not-beat (conservative)
+        if rev_beat and eps_beat is True:
             rev_beat_streak += 1
         else:
             break
@@ -1499,7 +1982,9 @@ def print_data_summary(
                 "accel": rev.get("is_accelerating"),
                 "growth_streak": rev.get("growth_streak", 0),
                 "eps_beat_streak": eps.get("eps_beat_streak", 0),
+                "revenue_beat_streak": eps.get("revenue_beat_streak", 0),
                 "golden": rev.get("meets_golden_momentum_revenue", False),
+                "rev_source": rev.get("revenue_source", "none"),
             })
     growth_list.sort(key=lambda x: x["yoy_growth"], reverse=True)
     for r in growth_list[:20]:
@@ -1508,22 +1993,134 @@ def print_data_summary(
         print(f"  {golden} {r['ticker']:12s} Rev YoY: {r['yoy_growth']:+7.1f}%  {accel}  "
               f"Growth streak: {r['growth_streak']}Q  EPS beat streak: {r['eps_beat_streak']}Q")
 
-    # Stocks with consecutive earnings beats + strong revenue
-    print(f"\nStar 2 candidates (dual EPS+Rev beat ≥{EPS_BEAT_STREAK_MIN}Q OR massive catalyst):")
-    # Note: full star scoring incl. OpenAI moat only runs in scan mode (detect_ignition).
-    # Data mode shows a proxy count using eps_beat_streak + golden momentum.
-    star2_proxy = [r for r in growth_list if r["eps_beat_streak"] >= EPS_BEAT_STREAK_MIN]
-    star3_proxy = [r for r in growth_list if r["eps_beat_streak"] >= EPS_BEAT_STREAK_MIN and r["golden"]]
-    print(f"  Star 1 (technical): scored in scan mode only")
-    print(f"  Star 2 proxy (EPS beat streak ≥{EPS_BEAT_STREAK_MIN}Q): {len(star2_proxy)}")
-    print(f"  Star 3 proxy (Star 2 + rev ≥20% YoY): {len(star3_proxy)} — moat confirmed in scan mode")
+    # Star counts — data mode proxy
+    # Star 1: technical ignition, scored in scan mode only (needs OHLCV).
+    # Star 2: BOTH EPS beat AND revenue beat >= EPS_BEAT_STREAK_MIN consecutive quarters.
+    #         Note: revenue_beat_streak is 0 when yfinance lacks revenue estimates (common
+    #         for non-US), so this proxy undercounts real Star 2 candidates. Catalyst path
+    #         (OpenAI-confirmed) is not scored here — scan mode only.
+    # Star 3: Star 2 + rev >= 20% YoY (last quarter, not FY/TTM) — moat confirmed in scan.
+    # ── Revenue + EPS estimate coverage diagnostic ───────────────────────────
+    # Per-source breakdown: yfinance / investing.com / FMP / Finnhub / YoY-proxy / none
+    # "consensus" = at least 1 past quarter with BOTH revenue_estimate AND revenue_reported
+    # "eps_consensus" = at least 1 past quarter with BOTH eps_estimate AND eps_reported
+
+    src_counts = {
+        "rev_yfinance": 0, "rev_investing_com": 0, "rev_fmp": 0, "rev_finnhub": 0,
+        "rev_yoy_proxy": 0, "rev_nothing": 0,
+        "eps_yfinance": 0, "eps_investing_com": 0, "eps_fmp": 0, "eps_finnhub": 0,
+        "eps_yoy_proxy": 0, "eps_nothing": 0,
+    }
+    ic_filled_total = fmp_enrich_total = finnhub_filled_total = 0
+
+    for t_key, data in earnings_cache.items():
+        past_ed = [r for r in data.get("earnings_dates", [])
+                   if r.get("eps_reported") is not None]
+
+        def _dominant_src(rows, field):
+            srcs = [r.get(field, "yfinance") for r in rows if r.get(field.replace("_source","").replace("_est","_estimate").replace("_act","_reported")) is not None]
+            return max(set(srcs), key=srcs.count) if srcs else None
+
+        # EPS estimate source — best source wins per ticker
+        if any(r.get("eps_estimate") is not None for r in past_ed):
+            sources = [r.get("_eps_est_source", "yfinance") for r in past_ed
+                       if r.get("eps_estimate") is not None]
+            dominant = max(set(sources), key=sources.count) if sources else "yfinance"
+            key = f"eps_{dominant}" if f"eps_{dominant}" in src_counts else "eps_yfinance"
+            src_counts[key] += 1
+        elif any(r.get("_eps_est_source") == "yoy_proxy" for r in past_ed):
+            src_counts["eps_yoy_proxy"] += 1
+        else:
+            src_counts["eps_nothing"] += 1
+
+        # Revenue source — highest-quality source wins per ticker
+        has_rev_est = any(r.get("revenue_estimate") is not None for r in past_ed)
+        has_rev_act = any(r.get("revenue_reported") is not None for r in past_ed)
+        has_consensus = has_rev_est and has_rev_act
+        if has_consensus:
+            sources = [r.get("_rev_est_source", "yfinance") for r in past_ed
+                       if r.get("revenue_estimate") is not None]
+            dominant = max(set(sources), key=sources.count) if sources else "yfinance"
+            rkey = f"rev_{dominant}" if f"rev_{dominant}" in src_counts else "rev_yfinance"
+            src_counts[rkey] += 1
+        elif data.get("quarterly_revenue"):
+            src_counts["rev_yoy_proxy"] += 1
+        else:
+            src_counts["rev_nothing"] += 1
+
+        ic_filled_total      += data.get("_investing_com_filled", 0)
+        fmp_enrich_total     += data.get("_fmp_enrich_filled", 0)
+        finnhub_filled_total += data.get("_finnhub_filled", 0)
+
+    total_ec = max(len(earnings_cache), 1)
+
+    def _pct(n): return f"{n*100//total_ec:>3}%"
+    def _bar(n): return "█" * (n * 15 // max(total_ec, 1))
+
+    print(f"\nData coverage — EPS estimates (affects eps_beat_streak):")
+    print(f"  {'Source':<22} {'Tickers':>7}  {'':4}")
+    print(f"  {'-'*38}")
+    for label, key in [
+        ("yfinance",        "eps_yfinance"),
+        ("investing.com",   "eps_investing_com"),
+        ("FMP",             "eps_fmp"),
+        ("Finnhub",         "eps_finnhub"),
+        ("YoY proxy",       "eps_yoy_proxy"),
+        ("none",            "eps_nothing"),
+    ]:
+        n = src_counts.get(key, 0)
+        print(f"  {label:<22} {n:>7}  {_pct(n)}  {_bar(n)}")
+
+    print(f"\nData coverage — Revenue estimates (affects revenue_beat_streak):")
+    print(f"  {'Source':<22} {'Tickers':>7}  {'':4}")
+    print(f"  {'-'*38}")
+    for label, key in [
+        ("yfinance",        "rev_yfinance"),
+        ("investing.com",   "rev_investing_com"),
+        ("FMP",             "rev_fmp"),
+        ("Finnhub",         "rev_finnhub"),
+        ("YoY proxy",       "rev_yoy_proxy"),
+        ("none",            "rev_nothing"),
+    ]:
+        n = src_counts.get(key, 0)
+        print(f"  {label:<22} {n:>7}  {_pct(n)}  {_bar(n)}")
+
+    if ic_filled_total or fmp_enrich_total or finnhub_filled_total:
+        print(f"  Fields filled this run — investing.com: {ic_filled_total}  "
+              f"FMP: {fmp_enrich_total}  Finnhub: {finnhub_filled_total}")
+    hints = []
+    if not os.environ.get("FINNHUB_API_KEY"):
+        hints.append("FINNHUB_API_KEY")
+    if not os.environ.get("FMP_API_KEY"):
+        hints.append("FMP_API_KEY")
+    if hints:
+        print(f"  [tip] Set secrets to improve coverage: {', '.join(hints)}")
+    # ──────────────────────────────────────────────────────────────────────────
+
+    print(f"\nStar gate proxy counts (data mode — no OHLCV, no OpenAI):")
+    star2_proxy = [r for r in growth_list
+                   if r["eps_beat_streak"] >= EPS_BEAT_STREAK_MIN
+                   and r["revenue_beat_streak"] >= EPS_BEAT_STREAK_MIN]
+    # Star 2 via EPS-only (yfinance missing revenue estimates — undercounted dual beat)
+    star2_eps_only = [r for r in growth_list
+                      if r["eps_beat_streak"] >= EPS_BEAT_STREAK_MIN
+                      and r["revenue_beat_streak"] < EPS_BEAT_STREAK_MIN]
+    # Star 3: Star 2 (dual beat) + last-quarter rev >= 20% YoY + quarterly source only
+    star3_proxy = [r for r in star2_proxy
+                   if r["golden"]
+                   and r["rev_source"] not in ("info_fallback", "annual_estimated", "none")]
+    print(f"  Star 1 (technical ignition):  scored in scan mode only")
+    print(f"  Star 2 (dual EPS+Rev beat >={EPS_BEAT_STREAK_MIN}Q):  {len(star2_proxy)}"
+          f"  (+{len(star2_eps_only)} EPS-only, rev estimates missing from yfinance)")
+    print(f"  Star 3 (Star 2 + last-Q rev >=20% YoY):  {len(star3_proxy)}"
+          f"  — moat confirmed per ticker in scan mode via OpenAI")
     star3_proxy.sort(key=lambda x: x["yoy_growth"], reverse=True)
     for r in star3_proxy[:15]:
         accel = "ACCEL" if r["accel"] else "     "
-        print(f"  ★★★ {r['ticker']:12s} Rev YoY: {r['yoy_growth']:+7.1f}%  {accel}  "
-              f"EPS beats: {r['eps_beat_streak']}Q")
+        print(f"  *** {r['ticker']:14s} Rev YoY: {r['yoy_growth']:+7.1f}%  {accel}"
+              f"  EPS: {r['eps_beat_streak']}Q  RevBeat: {r['revenue_beat_streak']}Q")
     if not star3_proxy:
-        print("  (none found)")
+        print("  (none — note: revenue_beat_streak requires yfinance revenue estimates per quarter)")
 
     # Catalyst events summary (Layer-2 non-earnings triggers)
     print(f"\nTier-1 catalyst events detected (last 180 days):")
@@ -1826,12 +2423,38 @@ def detect_ignition(
     out["massive_catalyst"] = massive_catalyst
     out["catalyst_rationale"] = catalyst_rationale
 
-    star2 = meets_dual_beat or massive_catalyst
+    # Star 2 data-gap fallback:
+    # If we exhausted all 4 sources (yfinance, investing.com, FMP, Finnhub) and
+    # still can't confirm BOTH beats, allow EITHER EPS>=2Q OR revenue>=2Q to
+    # proceed to Star 3 assessment. This prevents good companies from being
+    # knocked out due to missing consensus data, not actual performance.
+    # The Star 3 moat + 20% YoY gate is the real quality filter anyway.
+    has_any_rev_consensus = any(
+        r.get("revenue_estimate") is not None
+        for r in edata.get("earnings_dates", [])
+        if r.get("eps_reported") is not None
+    )
+    data_gap_single = (
+        not meets_dual_beat
+        and not massive_catalyst
+        and not has_any_rev_consensus        # truly no revenue data from any source
+        and eps_streak >= EPS_BEAT_STREAK_MIN  # at least EPS beat confirmed
+    )
+    meets_rev_only = (rev_streak >= EPS_BEAT_STREAK_MIN and eps_streak < EPS_BEAT_STREAK_MIN)
+
+    star2 = meets_dual_beat or massive_catalyst or data_gap_single or meets_rev_only
     if out["data_gap_alert"]:
         out["star2_blocked"] = "no_data"
     elif star2:
         out["stars"] = 2
-        out["star2_via"] = "dual_beat" if meets_dual_beat else "catalyst"
+        if meets_dual_beat:
+            out["star2_via"] = "dual_beat"
+        elif massive_catalyst:
+            out["star2_via"] = "catalyst"
+        elif data_gap_single:
+            out["star2_via"] = "data_gap_eps_only"   # flagged — EPS beat confirmed, rev data unavailable
+        else:
+            out["star2_via"] = "data_gap_rev_only"   # flagged — rev growth confirmed, EPS data weak
 
     # ── Star 3: Golden Momentum — Rev ≥20% YoY + Moat confirmed ──
     # Requires Star 2. Revenue must be growing ≥20% YoY (structural momentum,
