@@ -1,13 +1,13 @@
 {
-  "generated_utc": "2026-03-08T21:13:24Z",
+  "generated_utc": "2026-03-09T09:35:09Z",
   "universe": "World",
   "source_fund": "IWDA",
   "source_url": "https://www.ishares.com/uk/individual/en/products/251882/ishares-core-msci-world-ucits-etf-acc-fund/1506575576011.ajax?dataType=fund&fileName=IWDA_holdings&fileType=csv",
   "source_as_of": null,
-  "row_count": 1106,
-  "unique_tickers": 1106,
+  "row_count": 1107,
+  "unique_tickers": 1107,
   "sector_counts": {
-    "Communication Services": 55,
+    "Communication Services": 56,
     "Consumer Discretionary": 97,
     "Consumer Staples": 78,
     "Energy": 47,
@@ -20,13 +20,15 @@
     "Utilities": 66
   },
   "mapping_confidence_counts": {
-    "high": 978,
+    "high": 979,
     "low": 10,
     "med": 118
   },
-  "added_count": 0,
+  "added_count": 1,
   "removed_count": 0,
-  "added_sample": [],
+  "added_sample": [
+    "T.TO"
+  ],
   "removed_sample": [],
   "notes": [
     "Public-source proxy (iShares World ETF holdings), not a licensed direct MSCI constituent feed.",
