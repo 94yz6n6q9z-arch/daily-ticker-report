@@ -39,7 +39,9 @@ NEW (this update):
 - v91: Expand universe to MSCI World + MSCI EM (~2,641 tickers, ~1,400 net new). Add MSCI_EM_CLASSIFICATION_CSV path constant. Universe builder merges EM CSV if present, gracefully skips if not yet generated. Sector/company/country resolvers now cover EM tickers. update_msci_world_classification.py gains --universe world|em|both, SOURCE_CANDIDATES_EM (EIMI + EEM), 30+ new EM exchange suffix rules (.KS .TW .NS .BO .SA .JO .MX .SS .SZ .JK .BK .KL .SR .IS .WA etc.), and KNOWN_TICKER_OVERRIDES applied post-guessing. gc_engine.py: MSCI_EM_CSV path, load_universe() merges both CSVs, TICKER_OVERRIDES auto-corrects 7 bad mappings, compute_revenue_analytics() falls back to info.revenue_growth for markets with no quarterly data (recovers ~348 tickers: Japan, UK, Australia, France, Switzerland). gc-data.yml: refreshes both World + EM CSVs before data layer, adds lxml to install step, commits all 5 generated files.
 - v92: Fix job timeout caused by bare EM numeric tickers (e.g. 6488, 3227 — missing .T/.NS/.BO suffix) flooding yfinance with 404 requests. Add _is_ghost_ticker() guard in universe builder: filters Bloomberg placeholders (pure numeric, *D suffix, bare dash, multi-dot) before they enter tech_scan_universe. Expand _clean_ticker _EXCHANGE_SUFFIXES to cover all EM markets (.TW .SS .SZ .JO .MX .JK .BK .KL .SR .AD .DU .WA .AT .CA .PS .QA .KQ etc.) so no EM suffix is ever mangled to a hyphen. Rename user-facing "MSCI World" labels to "MSCI World + EM" in Section 4C header and engine-health log. update_msci_world_classification.py and gc_engine.py gain version-tracker constants + changelog log (matching scan.py pattern).
 - v93: Add DUMMY to _GHOST_RE. GC diagnostic: add revenue_beat_streak counter, fix star counts in engine health panel to show Star 2/3 separately.
-- v94: Section 7 Growth Compounders Three-Star Signals. build_gc_three_star_section_md() reads ignition_signals from gc_state.json, renders summary table + OpenAI per-ticker brief (what company does + moat explanation). GC diagnostic shows Star 2 dual-beat vs Star 3 moat-confirmed counts."""
+- v94: Section 7 Growth Compounders Three-Star Signals. build_gc_three_star_section_md() reads ignition_signals from gc_state.json, renders summary table + OpenAI per-ticker brief (what company does + moat explanation). GC diagnostic shows Star 2 dual-beat vs Star 3 moat-confirmed counts.
+- v95: Fix Star 2/3 broken counts. Revenue beat cascade: yfinance → investing.com scrape → FMP analyst-estimates → Finnhub → YoY proxy. Star 2 data-gap fallback: allow single beat (EPS or Rev) when all sources exhausted. Diagnostic shows per-source coverage counts.
+- v96: Add FINNHUB_API_KEY env note. investing.com layer added between yfinance and FMP. (1) revenue_beat_streak now falls back to quarterly_revenue YoY>0 when yfinance lacks consensus revenue estimates — fixes NVDA/LLY always showing 0. (2) Add run_gc_ignition_scoring() called from main() after Star 1 — scores Star 2/3 for all Star 1 tickers, writes ignition_signals to gc_state.json. Section 7 now always rendered (shows placeholder when no 3-star signals). (3) Turkish .IS tickers normalised from TICKER-E.IS to TICKER.IS at load time in both scan.py and gc_engine.py."""
 from __future__ import annotations
 import argparse
 import datetime as dt
@@ -820,6 +822,8 @@ def load_msci_world_classification(path: Path = MSCI_WORLD_CLASSIFICATION_CSV) -
         return pd.DataFrame(columns=cols)
     df = raw.copy()
     df["Ticker"] = df[col_t].astype(str).map(_clean_ticker).str.strip()
+    # Normalize Borsa Istanbul format: iShares/MSCI use TICKER-E.IS; yfinance expects TICKER.IS
+    df["Ticker"] = df["Ticker"].str.replace(r"-E\.IS$", ".IS", regex=True)
     df["Company"] = df[col_c].astype(str).str.strip() if col_c is not None else ""
     df["Country"] = df[col_country].astype(str).str.strip() if col_country is not None else ""
     df["Sector"] = df[col_s].astype(str).map(_normalize_sp500_sector_label).str.strip()
@@ -6568,6 +6572,363 @@ def _strip_macro_images_for_email(md_str: str) -> str:
         out_lines.append(ln)
     return "\n".join(out_lines).strip() + "\n"
 
+# ─────────────────────────────────────────────────────────────────────────────
+# GC IGNITION SCORING PASS
+# Called from main() after all_signals is built (Star 1 already fired).
+# Scores Star 2 (dual EPS+Rev beat OR catalyst) and Star 3 (Star 2 + rev
+# >=20% YoY + moat via OpenAI) for all Star 1 tickers. Writes results back
+# to gc_state.json as ignition_signals[]. Section 7 reads from there.
+# ─────────────────────────────────────────────────────────────────────────────
+def _gc_openai_chat(prompt: str, max_tokens: int = 100):
+    """Shared OpenAI chat call for GC scoring. Returns raw text or None."""
+    import urllib.request as _req, json as _json, os as _os
+    api_key = _os.environ.get("OPENAI_API_KEY", "").strip()
+    if not api_key:
+        return None
+    body = _json.dumps({
+        "model": "gpt-4o-mini",
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.1, "max_tokens": max_tokens,
+    }).encode("utf-8")
+    try:
+        req = _req.Request(
+            "https://api.openai.com/v1/chat/completions",
+            data=body,
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        )
+        with _req.urlopen(req, timeout=15) as resp:
+            data = _json.loads(resp.read())
+        return data["choices"][0]["message"]["content"].strip()
+    except Exception as e:
+        print(f"  [gc-openai] {e}")
+        return None
+
+
+def _gc_moat_assessment(ticker: str, name: str, sector: str, industry: str,
+                         yoy: float, eps_streak: int, rev_streak: int) -> dict:
+    """Ask OpenAI if this Star 3 candidate has a durable structural moat."""
+    import json as _json
+    prompt = (
+        f"Company: {name} ({ticker})\n"
+        f"Sector: {sector} | Industry: {industry}\n"
+        f"Revenue YoY: {yoy:.1f}% | EPS beat streak: {eps_streak}Q | Rev growth streak: {rev_streak}Q\n\n"
+        "Does this company have a DURABLE ECONOMIC MOAT — structural advantages making it "
+        "significantly better than any direct competitor and hard to displace? "
+        "Think network effects, switching costs, proprietary IP, cost scale, brand dominance. "
+        "A fast-growing commodity producer or cyclical does NOT qualify.\n\n"
+        "Respond ONLY as JSON: {\"moat\": true/false, \"rationale\": \"one sentence max 20 words\"}"
+    )
+    raw = _gc_openai_chat(prompt, max_tokens=80)
+    if raw is None:
+        return {"moat_confirmed": None, "moat_rationale": "API unavailable", "moat_source": "fallback"}
+    try:
+        parsed = _json.loads(raw)
+        return {"moat_confirmed": bool(parsed.get("moat")),
+                "moat_rationale": str(parsed.get("rationale", "")).strip(),
+                "moat_source": "gpt-4o-mini"}
+    except Exception:
+        return {"moat_confirmed": None, "moat_rationale": f"parse error: {raw[:50]}", "moat_source": "fallback"}
+
+
+def _gc_catalyst_assessment(headline: str, company: str) -> dict:
+    """Ask OpenAI if a news headline is a massive company-thesis-changing catalyst."""
+    import json as _json
+    prompt = (
+        f"Company: {company}\nHeadline: \"{headline}\"\n\n"
+        "Is this a MASSIVE, company-thesis-changing catalyst? "
+        "Qualifying: FDA approval, >$500M government contract, geopolitical demand shock, "
+        "transformative M&A. Non-qualifying: analyst upgrades, minor product launches, "
+        "earnings beats (scored separately).\n\n"
+        "Respond ONLY as JSON: {\"massive\": true/false, \"rationale\": \"one sentence\"}"
+    )
+    raw = _gc_openai_chat(prompt, max_tokens=80)
+    if raw is None:
+        return {"confirmed": None, "rationale": "API unavailable"}
+    try:
+        parsed = _json.loads(raw)
+        return {"confirmed": bool(parsed.get("massive")),
+                "rationale": str(parsed.get("rationale", "")).strip()}
+    except Exception:
+        return {"confirmed": None, "rationale": f"parse error: {raw[:50]}"}
+
+
+def _gc_company_brief(ticker: str, name: str, sector: str, moat_rationale: str) -> str:
+    """Get a 2-sentence brief: what the company does + why the moat is real."""
+    prompt = (
+        f"Company: {name} ({ticker}), Sector: {sector}\n"
+        f"Moat assessment: {moat_rationale}\n\n"
+        "Write exactly 2 sentences: (1) what this company does, (2) why its competitive moat is real and durable. "
+        "Be specific and concise. No preamble."
+    )
+    raw = _gc_openai_chat(prompt, max_tokens=120)
+    return raw if raw else f"{name} operates in {sector}."
+
+
+def run_gc_ignition_scoring(
+    all_signals,
+    ohlcv: dict,
+    gc_state_path,
+    name_resolver=None,
+    sector_resolver=None,
+) -> None:
+    """
+    GC ignition scoring pass — runs after Star 1 (technical signals) are found.
+
+    For every ticker that fired a Star 1 signal, scores Star 2 and Star 3
+    using gc_state.json earnings/revenue data. Writes results back to
+    gc_state.json as ignition_signals[].
+
+    Star 2: BOTH EPS beat (>=2Q) AND revenue growth (>=2Q) OR massive catalyst (OpenAI).
+    Star 3: Star 2 + last-quarter revenue YoY >= 20% (quarterly source only) + moat (OpenAI).
+    """
+    import json as _json, datetime as _dt
+
+    gc_state_path = Path(gc_state_path)
+    if not gc_state_path.exists():
+        print("[gc-scoring] gc_state.json not found — skipping ignition scoring")
+        return
+
+    try:
+        gc_state = _json.loads(gc_state_path.read_text(encoding="utf-8"))
+    except Exception as e:
+        print(f"[gc-scoring] failed to load gc_state.json: {e}")
+        return
+
+    earnings_cache = gc_state.get("earnings_cache", {})
+    if not earnings_cache:
+        print("[gc-scoring] earnings_cache empty — skipping")
+        return
+
+    # Deduplicate tickers with Star 1 signals
+    star1_tickers = list({s.ticker for s in all_signals})
+    print(f"[gc-scoring] Star 1 tickers: {len(star1_tickers)}")
+
+    EPS_MIN = 2  # minimum consecutive quarters for beat streak
+
+    def _yoy_growth(data: dict):
+        """Latest quarterly YoY revenue growth. Blocks FY/TTM/info sources."""
+        rev = data.get("quarterly_revenue", [])
+        if not rev:
+            return None, "none"
+        past = [r for r in rev if r.get("date") and r["date"] <= _dt.date.today().isoformat()]
+        past_w_yoy = [r for r in past if r.get("revenue_yoy_growth") is not None
+                      and r.get("revenue_source", "quarterly") not in ("info_fallback", "annual_estimated")]
+        if not past_w_yoy:
+            return None, "none"
+        latest = sorted(past_w_yoy, key=lambda r: r["date"], reverse=True)[0]
+        return latest.get("revenue_yoy_growth"), latest.get("revenue_source", "quarterly")
+
+    def _eps_beat_streak(data: dict):
+        """Returns (streak: int, used_proxy: bool).
+        used_proxy=True means at least one quarter in the streak used YoY comparison
+        instead of a real consensus EPS estimate."""
+        dates = data.get("earnings_dates", [])
+        past = sorted([d for d in dates if d.get("eps_reported") is not None
+                       and (d.get("date") or "") <= _dt.date.today().isoformat()],
+                      key=lambda d: d["date"], reverse=True)
+        # Build prior-year EPS lookup for YoY proxy
+        eps_by_qtr = {}
+        for r in past:
+            d_ = (r.get("date") or "")[:7]
+            rep = r.get("eps_reported")
+            if d_ and rep is not None:
+                try: eps_by_qtr[d_] = float(rep)
+                except Exception: pass
+
+        streak = 0
+        used_proxy = False
+        for r in past:
+            s = r.get("eps_surprise_pct")
+            src = r.get("_eps_est_source", "")
+            if s is None:
+                try:
+                    e = float(r.get("eps_estimate") or 0)
+                    rep = float(r.get("eps_reported") or 0)
+                    if abs(e) > 0.001:
+                        s = (rep / e - 1.0) * 100
+                except Exception: pass
+            # YoY proxy: same quarter prior year
+            if s is None:
+                try:
+                    d_ = (r.get("date") or "")[:7]
+                    y, m = int(d_[:4]), int(d_[5:7])
+                    rep = float(r.get("eps_reported") or 0)
+                    for delta in [0, -1, 1, -2, 2]:
+                        nm = m + delta; ny = y - 1 + (nm-1)//12; nm = ((nm-1)%12)+1
+                        key = f"{ny:04d}-{nm:02d}"
+                        if key in eps_by_qtr and eps_by_qtr[key] > 0.001:
+                            s = (rep / eps_by_qtr[key] - 1.0) * 100
+                            used_proxy = True
+                            break
+                except Exception: pass
+            # Also flag if estimate came from proxy source
+            if src in ("yoy_proxy",) or r.get("_method") == "income_stmt_derived":
+                used_proxy = True
+            if s is not None and float(s) > 0: streak += 1
+            else: break
+        return streak, used_proxy
+
+    def _rev_beat_streak_for_data(data: dict):
+        """Returns (streak: int, used_proxy: bool).
+        used_proxy=True means at least one quarter used YoY fallback instead of
+        consensus revenue estimate."""
+        dates = data.get("earnings_dates", [])
+        past = sorted([d for d in dates if d.get("eps_reported") is not None
+                       and (d.get("date") or "") <= _dt.date.today().isoformat()],
+                      key=lambda d: d["date"], reverse=True)
+        # Build YYYY-MM -> yoy from quarterly_revenue
+        rev_yoy = {}
+        for qr in data.get("quarterly_revenue", []):
+            dt_ = (qr.get("date") or "")[:7]
+            g = qr.get("revenue_yoy_growth")
+            if dt_ and g is not None:
+                try: rev_yoy[dt_] = float(g)
+                except Exception: pass
+
+        def _rev_beat(r):
+            """Returns (beat: bool, is_proxy: bool)"""
+            try:
+                r_est = r.get("revenue_estimate"); r_rep = r.get("revenue_reported")
+                if r_est is not None and r_rep is not None and float(r_est) > 0:
+                    return float(r_rep) > float(r_est), False  # real consensus
+            except Exception: pass
+            # Fallback: YoY proxy from income statement
+            d_ = (r.get("date") or "")[:7]
+            if d_ in rev_yoy: return rev_yoy[d_] > 0, True
+            try:
+                y, m = int(d_[:4]), int(d_[5:7])
+                for delta in [-1, -2, 1, 2]:
+                    nm = m + delta; ny = y + (nm - 1) // 12; nm = ((nm - 1) % 12) + 1
+                    key = f"{ny:04d}-{nm:02d}"
+                    if key in rev_yoy: return rev_yoy[key] > 0, True
+            except Exception: pass
+            return False, True  # can't determine — conservative False, but mark as proxy
+
+        streak = 0
+        used_proxy = False
+        for r in past:
+            rev_beat, rev_proxy = _rev_beat(r)
+            if rev_proxy:
+                used_proxy = True
+            eps_streak_1, eps_proxy_1 = _eps_beat_streak({
+                "earnings_dates": [r],
+                "quarterly_revenue": data.get("quarterly_revenue", [])
+            })
+            eps_beat = eps_streak_1 > 0
+            if rev_beat and eps_beat: streak += 1
+            else: break
+        return streak, used_proxy
+
+    ignition_signals = []
+    star1_count = len(star1_tickers)
+    star2_count = 0
+    star3_count = 0
+
+    for ticker in star1_tickers:
+        data = earnings_cache.get(ticker)
+        if not data:
+            continue
+
+        eps_streak, eps_used_proxy = _eps_beat_streak(data)
+        rev_streak, rev_used_proxy = _rev_beat_streak_for_data(data)
+        yoy, rev_src = _yoy_growth(data)
+
+        # ── Star 2 ────────────────────────────────────────────────────────────
+        dual_beat = (eps_streak >= EPS_MIN and rev_streak >= EPS_MIN)
+        massive_catalyst = False
+        catalyst_rationale = ""
+
+        if not dual_beat:
+            # Check for massive catalyst
+            for event in data.get("catalyst_events", []):
+                if event.get("catalyst_tier") == 1:
+                    company_name = (name_resolver(ticker) if name_resolver else ticker)
+                    result = _gc_catalyst_assessment(event.get("headline", ""), company_name)
+                    if result.get("confirmed"):
+                        massive_catalyst = True
+                        catalyst_rationale = result.get("rationale", "")
+                        break
+
+        # Single-beat data-gap fallback: if we have NO revenue consensus data
+        # from any source (yfinance, investing.com, FMP, Finnhub) but EPS beat
+        # is confirmed >=2Q, allow proceeding. Star 3 moat+20% YoY is the real gate.
+        has_any_rev_consensus = any(
+            r.get("revenue_estimate") is not None
+            for r in data.get("earnings_dates", [])
+            if r.get("eps_reported") is not None
+        )
+        data_gap_single = (
+            not dual_beat and not massive_catalyst
+            and not has_any_rev_consensus
+            and eps_streak >= EPS_MIN
+        )
+        # Also allow revenue-only if strong (>= 2Q YoY growth) but EPS data weak
+        rev_only_fallback = (
+            not dual_beat and not massive_catalyst and not data_gap_single
+            and rev_streak >= EPS_MIN and eps_streak < EPS_MIN
+        )
+
+        is_star2 = dual_beat or massive_catalyst or data_gap_single or rev_only_fallback
+        if not is_star2:
+            continue
+
+        star2_count += 1
+        sector = sector_resolver(ticker) if sector_resolver else ""
+        name = name_resolver(ticker) if name_resolver else ticker
+
+        if dual_beat: star2_via = "dual_beat"
+        elif massive_catalyst: star2_via = "catalyst"
+        elif data_gap_single: star2_via = "data_gap_eps_only"
+        else: star2_via = "data_gap_rev_only"
+
+        signal_entry = {
+            "ticker": ticker,
+            "name": name,
+            "sector": sector,
+            "stars": 2,
+            "eps_beat_streak": eps_streak,
+            "revenue_beat_streak": rev_streak,
+            "eps_beat_proxy": eps_used_proxy,   # True = YoY proxy used, no real consensus EPS estimate
+            "rev_beat_proxy": rev_used_proxy,   # True = YoY proxy used, no real consensus rev estimate
+            "yoy_growth": yoy,
+            "revenue_source": rev_src,
+            "star2_via": star2_via,
+            "catalyst_rationale": catalyst_rationale,
+            "moat_confirmed": None,
+            "moat_rationale": "",
+            "moat_source": "",
+            "company_brief": "",
+        }
+
+        # ── Star 3 ────────────────────────────────────────────────────────────
+        if yoy is not None and yoy >= 20.0 and rev_src not in ("info_fallback", "annual_estimated", "none"):
+            info = data.get("info", {})
+            industry = str(info.get("industry", ""))
+            moat = _gc_moat_assessment(ticker, name, sector, industry, yoy, eps_streak, rev_streak)
+            signal_entry["moat_confirmed"] = moat["moat_confirmed"]
+            signal_entry["moat_rationale"] = moat["moat_rationale"]
+            signal_entry["moat_source"] = moat["moat_source"]
+
+            if moat.get("moat_confirmed"):
+                signal_entry["stars"] = 3
+                signal_entry["company_brief"] = _gc_company_brief(
+                    ticker, name, sector, moat["moat_rationale"])
+                star3_count += 1
+
+        ignition_signals.append(signal_entry)
+
+    print(f"[gc-scoring] Star 1: {star1_count} | Star 2: {star2_count} | Star 3: {star3_count}")
+
+    # Write ignition_signals back to gc_state.json
+    gc_state["ignition_signals"] = ignition_signals
+    gc_state["last_ignition_score"] = _dt.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    try:
+        gc_state_path.write_text(_json.dumps(gc_state, indent=2, default=str), encoding="utf-8")
+        print(f"[gc-scoring] wrote {len(ignition_signals)} ignition signals to gc_state.json")
+    except Exception as e:
+        print(f"[gc-scoring] failed to write gc_state.json: {e}")
+
+
 def build_gc_three_star_section_md(gc_state_path) -> str:
     """
     Section 7: Growth Compounders - Three-Star Signals.
@@ -6606,6 +6967,7 @@ def build_gc_three_star_section_md(gc_state_path) -> str:
     # Summary table
     lines.append("| Ticker | Name | Sector | Rev YoY | EPS Q | Rev Q | Via | Moat |")
     lines.append("| :--- | :--- | :--- | ---: | ---: | ---: | :--- | :--- |")
+    # Note: ~ after Q count = YoY proxy used (no consensus estimate); ⚠proxy = both proxied
     for s in three_star:
         t = s.get("ticker", "")
         edata = ec.get(t, {})
@@ -6614,11 +6976,17 @@ def build_gc_three_star_section_md(gc_state_path) -> str:
         sector = info.get("sector", "-")
         yoy    = s.get("yoy_growth")
         yoy_s  = f"{yoy:+.1f}%" if yoy is not None else "-"
-        eps_q  = s.get("eps_beat_streak", 0)
-        rev_q  = s.get("revenue_beat_streak", 0)
-        via    = s.get("star2_via", "-")
+        eps_q      = s.get("eps_beat_streak", 0)
+        rev_q      = s.get("revenue_beat_streak", 0)
+        via        = s.get("star2_via", "-")
+        eps_proxy  = s.get("eps_beat_proxy", False)
+        rev_proxy  = s.get("rev_beat_proxy", False)
+        proxy_flag = ""
+        if eps_proxy and rev_proxy: proxy_flag = " ⚠proxy"
+        elif eps_proxy:             proxy_flag = " ⚠eps~"
+        elif rev_proxy:             proxy_flag = " ⚠rev~"
         moat   = (s.get("moat_rationale") or "")[:60]
-        lines.append(f"| **{t}** | {name} | {sector} | {yoy_s} | {eps_q}Q | {rev_q}Q | {via} | {moat} |")
+        lines.append(f"| **{t}** | {name} | {sector} | {yoy_s} | {eps_q}Q{' ~' if eps_proxy else ''} | {rev_q}Q{' ~' if rev_proxy else ''} | {via}{proxy_flag} | {moat} |")
     lines.append("")
 
     # Per-ticker brief via OpenAI
@@ -6639,11 +7007,22 @@ def build_gc_three_star_section_md(gc_state_path) -> str:
 
         lines.append(f"### {name} ({t})\n")
         lines.append(f"**Sector:** {sector} | **Industry:** {industry}\n")
+        eps_proxy  = s.get("eps_beat_proxy", False)
+        rev_proxy  = s.get("rev_beat_proxy", False)
+        proxy_notes = []
+        if eps_proxy: proxy_notes.append("EPS beats based on YoY comparison (no consensus EPS estimate available)")
+        if rev_proxy: proxy_notes.append("Revenue beats based on YoY growth (no consensus revenue estimate available)")
+        proxy_caveat = ""
+        if proxy_notes:
+            proxy_caveat = "  \n> ⚠ **Data caveat:** " + " | ".join(proxy_notes)
+
         lines.append(
             f"**Performance:** Rev YoY {yoy:+.1f}% | "
-            f"EPS beat {eps_q}Q | Rev beat {rev_q}Q | "
+            f"EPS beat {eps_q}Q{'~' if eps_proxy else ''} | "
+            f"Rev beat {rev_q}Q{'~' if rev_proxy else ''} | "
             f"Star 2 via: {via}"
-            + (f" - {cat_r}" if cat_r else "") + "\n"
+            + (f" — {cat_r}" if cat_r else "")
+            + proxy_caveat + "\n"
         )
         lines.append(f"**Moat:** {moat}\n")
 
@@ -7205,31 +7584,75 @@ def main():
                     return streak
 
                 def _rev_beat_streak(d):
-                    """Consecutive quarters with BOTH EPS and revenue beat."""
+                    """Consecutive quarters with BOTH EPS and revenue beat.
+                    Revenue beat: consensus estimate if available, else YoY growth > 0
+                    from quarterly_revenue (income statement) as proxy."""
                     past = sorted([e for e in d.get("earnings_dates", []) if e.get("eps_reported") is not None],
                                   key=lambda e: e.get("date", ""), reverse=True)
+                    # Build YYYY-MM -> yoy lookup from income statement revenue
+                    rev_yoy = {}
+                    for qr in d.get("quarterly_revenue", []):
+                        dt_ = (qr.get("date") or "")[:7]
+                        g = qr.get("revenue_yoy_growth")
+                        if dt_ and g is not None:
+                            try: rev_yoy[dt_] = float(g)
+                            except Exception: pass
+                    def _rev_beat(e):
+                        try:
+                            r_est = e.get("revenue_estimate")
+                            r_rep = e.get("revenue_reported")
+                            if r_est is not None and r_rep is not None and float(r_est) > 0:
+                                return float(r_rep) > float(r_est)
+                        except Exception: pass
+                        # Proxy: YoY > 0 from income stmt
+                        d_ = (e.get("date") or "")[:7]
+                        if d_ in rev_yoy: return rev_yoy[d_] > 0
+                        try:
+                            y, m = int(d_[:4]), int(d_[5:7])
+                            for delta in [-1, -2, 1, 2]:
+                                nm = m + delta; ny = y + (nm - 1) // 12; nm = ((nm - 1) % 12) + 1
+                                key = f"{ny:04d}-{nm:02d}"
+                                if key in rev_yoy: return rev_yoy[key] > 0
+                        except Exception: pass
+                        return False
                     streak = 0
                     for e in past:
-                        r_est = e.get("revenue_estimate"); r_rep = e.get("revenue_reported")
-                        rev_beat = (r_est and r_rep and float(r_est) > 0 and float(r_rep) > float(r_est))
+                        rev_beat = _rev_beat(e)
                         s = e.get("eps_surprise_pct")
                         if s is None:
                             est = e.get("eps_estimate"); rep = e.get("eps_reported")
-                            if est and rep and abs(float(est)) > 0.001:
-                                s = (float(rep) / float(est) - 1.0) * 100
+                            try:
+                                if est and rep and abs(float(est)) > 0.001:
+                                    s = (float(rep) / float(est) - 1.0) * 100
+                            except Exception: pass
                         eps_beat = s is not None and float(s) > 0
                         if rev_beat and eps_beat: streak += 1
                         else: break
                     return streak
 
-                # Star 2 proxy: dual beat ≥2Q (OpenAI catalyst path counted separately below)
-                gc_star2 = sum(1 for d in ec.values() if _beat_streak(d) >= 2 and _rev_beat_streak(d) >= 2)
+                # Star 2: BOTH EPS beat AND revenue beat >= 2 consecutive quarters
+                # Note: revenue_beat_streak is 0 when yfinance lacks revenue estimates (common
+                # outside US/EU), so gc_star2_eps_only shows how many are undercounted.
+                gc_star2 = sum(1 for d in ec.values()
+                               if _beat_streak(d) >= 2 and _rev_beat_streak(d) >= 2)
+                gc_star2_eps_only = sum(1 for d in ec.values()
+                               if _beat_streak(d) >= 2 and _rev_beat_streak(d) < 2)
                 gc_catalyst = sum(1 for d in ec.values() if any(
                     e.get("ai_confirmed_massive") for e in d.get("catalyst_events", [])))
-                # Star 3 proxy: Star 2 + rev ≥20% (moat confirmed in scan mode via OpenAI)
-                gc_layer3 = sum(1 for d in ec.values() if (_yoy(d) or 0) >= 20.0)
+                # Star 3: Star 2 + last-Q rev >= 20% YoY (FY/TTM blocked) — moat via OpenAI in scan
+                def _rev_source(d):
+                    if d.get("quarterly_revenue"): return "quarterly"
+                    if d.get("_rev_fallback"): return d["_rev_fallback"]
+                    if d.get("info", {}).get("revenue_growth") is not None: return "info_fallback"
+                    return "none"
+                gc_layer3 = sum(1 for d in ec.values()
+                    if (_yoy(d) or 0) >= 20.0
+                    and _rev_source(d) not in ("info_fallback", "annual_estimated", "none"))
                 gc_confirmed = sum(1 for d in ec.values()
-                    if (_yoy(d) or 0) >= 20.0 and (_beat_streak(d) >= 2 and _rev_beat_streak(d) >= 2))
+                    if _beat_streak(d) >= 2
+                    and _rev_beat_streak(d) >= 2
+                    and (_yoy(d) or 0) >= 20.0
+                    and _rev_source(d) not in ("info_fallback", "annual_estimated", "none"))
                 gc_updated = gc_state.get("last_data_update", "unknown")[:10]
 
                 # World vs EM breakdown
@@ -7251,12 +7674,98 @@ def main():
                 if world_count or em_count:
                     md.append(f" (World: {world_count} + EM: {em_count})")
                 md.append(f" | rev data: **{gc_rev}** ({gc_rev*100//max(gc_total,1)}%) | EPS history: **{gc_eps}** ({gc_eps*100//max(gc_total,1)}%) | blind: **{gc_blind}** ({gc_blind*100//max(gc_total,1)}%)\n")
-                md.append(f"  - ★ Star 2 (dual EPS+Rev beat ≥2Q): **{gc_star2}**")
+                # EPS + Revenue data coverage — per source, symmetric
+                # Per-source counts for BOTH estimated and reported fields
+                # This answers: where did we get the estimate from, and did we even get it?
+                SRCS = ("yfinance","investing_com","fmp","finnhub","yoy_proxy","none")
+                cov = {f"eps_est_{s}": 0 for s in SRCS}
+                cov.update({f"eps_rep_{s}": 0 for s in SRCS})
+                cov.update({f"rev_est_{s}": 0 for s in SRCS})
+                cov.update({f"rev_rep_{s}": 0 for s in SRCS})
+
+                for d in ec.values():
+                    past_ed = [r for r in d.get("earnings_dates",[]) if r.get("eps_reported") is not None]
+                    if not past_ed: continue
+
+                    # EPS estimate source (dominant across quarters with estimates)
+                    eps_est_rows = [r for r in past_ed if r.get("eps_estimate") is not None]
+                    if eps_est_rows:
+                        srcs = [r.get("_eps_est_source","yfinance") for r in eps_est_rows]
+                        dom = max(set(srcs), key=srcs.count)
+                        cov[f"eps_est_{dom if dom in SRCS else 'yfinance'}"] += 1
+                    elif any(r.get("_eps_est_source") == "yoy_proxy" for r in past_ed):
+                        cov["eps_est_yoy_proxy"] += 1
+                    else:
+                        cov["eps_est_none"] += 1
+
+                    # EPS reported source (almost always yfinance or fmp)
+                    if past_ed:
+                        srcs = [r.get("_method","") for r in past_ed]
+                        dom_src = "fmp" if any("fmp" in s for s in srcs) else "yfinance"
+                        cov[f"eps_rep_{dom_src}"] += 1
+
+                    # Revenue estimate source
+                    rev_est_rows = [r for r in past_ed if r.get("revenue_estimate") is not None]
+                    if rev_est_rows:
+                        srcs = [r.get("_rev_est_source","yfinance") for r in rev_est_rows]
+                        dom = max(set(srcs), key=srcs.count)
+                        cov[f"rev_est_{dom if dom in SRCS else 'yfinance'}"] += 1
+                    elif d.get("quarterly_revenue"):
+                        cov["rev_est_yoy_proxy"] += 1
+                    else:
+                        cov["rev_est_none"] += 1
+
+                    # Revenue reported source
+                    rev_rep_rows = [r for r in past_ed if r.get("revenue_reported") is not None]
+                    if rev_rep_rows:
+                        srcs = [r.get("_rev_act_source","yfinance") for r in rev_rep_rows]
+                        dom = max(set(srcs), key=srcs.count)
+                        cov[f"rev_rep_{dom if dom in SRCS else 'yfinance'}"] += 1
+                    else:
+                        cov["rev_rep_none"] += 1
+
+                tot = max(gc_total, 1)
+                def _pct(n): return f"{n*100//tot}%"
+                def _fmt(n): return f"**{n}** ({_pct(n)})"
+
+                md.append(f"\n**EPS data coverage** (per ticker, dominant source):\n")
+                md.append(f"| | yfinance | investing.com | FMP | Finnhub | YoY proxy | none |\n")
+                md.append(f"| :--- | ---: | ---: | ---: | ---: | ---: | ---: |\n")
+                md.append(
+                    f"| Estimate | {_fmt(cov['eps_est_yfinance'])} | {_fmt(cov['eps_est_investing_com'])} | "
+                    f"{_fmt(cov['eps_est_fmp'])} | {_fmt(cov['eps_est_finnhub'])} | "
+                    f"{_fmt(cov['eps_est_yoy_proxy'])} | {_fmt(cov['eps_est_none'])} |\n"
+                )
+                md.append(
+                    f"| Reported | {_fmt(cov['eps_rep_yfinance'])} | {_fmt(cov['eps_rep_investing_com'])} | "
+                    f"{_fmt(cov['eps_rep_fmp'])} | {_fmt(cov['eps_rep_finnhub'])} | "
+                    f"- | {_fmt(cov['eps_rep_none'])} |\n"
+                )
+                md.append(f"\n**Revenue data coverage** (per ticker, dominant source):\n")
+                md.append(f"| | yfinance | investing.com | FMP | Finnhub | YoY proxy | none |\n")
+                md.append(f"| :--- | ---: | ---: | ---: | ---: | ---: | ---: |\n")
+                md.append(
+                    f"| Estimate | {_fmt(cov['rev_est_yfinance'])} | {_fmt(cov['rev_est_investing_com'])} | "
+                    f"{_fmt(cov['rev_est_fmp'])} | {_fmt(cov['rev_est_finnhub'])} | "
+                    f"{_fmt(cov['rev_est_yoy_proxy'])} | {_fmt(cov['rev_est_none'])} |\n"
+                )
+                md.append(
+                    f"| Reported | {_fmt(cov['rev_rep_yfinance'])} | {_fmt(cov['rev_rep_investing_com'])} | "
+                    f"{_fmt(cov['rev_rep_fmp'])} | {_fmt(cov['rev_rep_finnhub'])} | "
+                    f"- | {_fmt(cov['rev_rep_none'])} |\n"
+                )
+                md.append(
+                    f"  _~ = YoY proxy (no consensus estimate). "
+                    f"Cascade: yfinance → investing.com → FMP → Finnhub → YoY proxy._\n"
+                )
+                md.append(f"  - ★★ Star 2 (dual EPS **and** Rev beat ≥2Q): **{gc_star2}**"
+                          f"  (+{gc_star2_eps_only} data-gap single-beat fallback)")
                 if gc_catalyst > 0:
-                    md.append(f" | + **{gc_catalyst}** via AI-confirmed massive catalyst")
+                    md.append(f" | +**{gc_catalyst}** AI-confirmed catalysts (Star 2 via catalyst path)")
                 md.append(f"\n")
-                md.append(f"  - Star 3 proxy (last-Q rev>=20% YoY + moat, confirmed in scan): **{gc_confirmed}**\n")
-                md.append(f"  - Rev>=20% last-quarter YoY pool: **{gc_layer3}** tickers\n")
+                md.append(f"  - ★★★ Star 3 (Star 2 + last-Q rev ≥20% YoY): **{gc_confirmed}**"
+                          f"  — moat confirmed per ticker via OpenAI\n")
+                md.append(f"  - Last-Q rev ≥20% YoY pool (quarterly source only): **{gc_layer3}** tickers\n")
                 if gc_fmp > 0:
                     md.append(f"  - FMP fallback: **{gc_fmp}** tickers recovered via Financial Modeling Prep (yfinance had no data)\n")
                 else:
@@ -7827,15 +8336,36 @@ def main():
         country_resolver=country_for_ticker,
     ))
 
-    # Section 7: Growth Compounders — Three-Star Signals (temporary section)
+    # GC Ignition Scoring Pass — scores Star 2/3 for all Star 1 tickers,
+    # writes ignition_signals to gc_state.json so Section 7 can render.
+    try:
+        gc_state_path = DOCS_DIR / "gc_state.json"
+        if gc_state_path.exists():
+            run_gc_ignition_scoring(
+                all_signals=all_signals,
+                ohlcv=ohlcv,
+                gc_state_path=gc_state_path,
+                name_resolver=company_name_for_ticker,
+                sector_resolver=sector_resolver,
+            )
+    except Exception as _gc_err:
+        print(f"[gc-scoring] error: {_gc_err}")
+
+    # Section 7: Growth Compounders — Three-Star Signals
     try:
         gc_state_path = DOCS_DIR / "gc_state.json"
         if gc_state_path.exists():
             s7 = build_gc_three_star_section_md(gc_state_path)
             if s7:
                 md.append(s7)
-    except Exception:
-        pass
+            else:
+                # Always show section header so it's visible in the report
+                md.append("\n## 7) Growth Compounders — Three-Star Signals\n")
+                md.append("_No three-star signals today. Three-star requires: (1) technical ignition, ")
+                md.append("(2) dual EPS+Revenue beat ≥2Q or massive catalyst, ")
+                md.append("(3) revenue YoY ≥20% with a durable moat (AI-confirmed)._\n")
+    except Exception as _s7_err:
+        print(f"[section7] error: {_s7_err}")
 
     md_text = "\n".join(md).strip() + "\n"
     md_text = _dedupe_macro_cards(md_text)
