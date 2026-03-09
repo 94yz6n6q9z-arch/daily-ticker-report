@@ -482,6 +482,147 @@ def _fetch_eps_method4(tk) -> List[Dict]:
         return []
 
 
+def _fetch_revenue_estimates_yahoo(tk, ticker: str) -> List[Dict]:
+    """Fetch per-quarter revenue estimates + actuals directly from Yahoo Finance
+    quoteSummary endpoint, which yfinance 1.x no longer surfaces via earnings_dates.
+
+    Uses two Yahoo modules:
+      earningsTrend  → revenueEstimate.avg per quarter (recent + upcoming)
+      earningsHistory → epsActual + epsEstimate + sometimes revenueEstimate per past Q
+
+    Returns list of {date, revenue_estimate, revenue_reported, eps_estimate, eps_reported}
+    to be merged into earnings_dates rows.
+
+    yfinance 1.x changed from HTML scraping (which showed 5-col table incl. revenue)
+    to Yahoo's v1/finance/earnings JSON API (EPS-only). Revenue estimates are still
+    available via the quoteSummary v10 endpoint — we just need to call it directly.
+    """
+    rows = []
+    try:
+        # Use yfinance's built-in session (handles cookie/crumb auth automatically)
+        # Access via tk._data or the shared download session
+        session = None
+        try:
+            session = tk._data.cache  # yfinance 1.x internal
+        except Exception:
+            pass
+
+        # Build the URL for quoteSummary with relevant modules
+        sym = ticker.split(".")[0] if "." not in ticker else ticker
+        url = (
+            f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/{sym}"
+            f"?modules=earningsTrend%2CearningsHistory&corsDomain=finance.yahoo.com"
+        )
+        headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/122.0.0.0 Safari/537.36"
+            ),
+            "Accept": "application/json",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Referer": f"https://finance.yahoo.com/quote/{sym}/analysis",
+        }
+
+        # Try with yfinance session first (has auth), fallback to plain requests
+        raw = None
+        try:
+            import requests as _req
+            resp = _req.get(url, headers=headers, timeout=10)
+            if resp.status_code == 200:
+                raw = resp.json()
+        except Exception:
+            pass
+
+        if not raw:
+            import urllib.request, urllib.parse
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=10) as r:
+                raw = json.loads(r.read().decode("utf-8"))
+
+        if not raw:
+            return rows
+
+        result = raw.get("quoteSummary", {}).get("result", [])
+        if not result:
+            return rows
+        data = result[0]
+
+        # 1) earningsTrend: current/recent quarters with revenue estimates
+        trend_by_qtr: Dict[str, Dict] = {}
+        trend = data.get("earningsTrend", {}).get("trend", [])
+        for item in trend:
+            period = item.get("endDate", {}).get("fmt") or item.get("endDate", "")
+            if isinstance(period, dict):
+                period = period.get("fmt", "")
+            d = str(period)[:7]  # YYYY-MM
+            if not d or len(d) < 7:
+                continue
+            rev_est = None
+            rev_avg = (item.get("revenueEstimate") or {})
+            if isinstance(rev_avg, dict):
+                rev_est = _safe_float(rev_avg.get("avg") or rev_avg.get("raw"))
+            eps_est = None
+            eps_avg = (item.get("earningsEstimate") or {})
+            if isinstance(eps_avg, dict):
+                eps_est = _safe_float(eps_avg.get("avg") or eps_avg.get("raw"))
+            trend_by_qtr[d] = {
+                "rev_estimate": rev_est if (rev_est is not None and np.isfinite(rev_est) and rev_est > 0) else None,
+                "eps_estimate": eps_est if (eps_est is not None and np.isfinite(eps_est)) else None,
+            }
+
+        # 2) earningsHistory: past quarters with actuals + estimates
+        hist_by_qtr: Dict[str, Dict] = {}
+        history = data.get("earningsHistory", {}).get("history", [])
+        for item in history:
+            period = item.get("quarter", {})
+            if isinstance(period, dict):
+                period = period.get("fmt", "")
+            d = str(period)[:7]
+            if not d or len(d) < 7:
+                continue
+            eps_act = _safe_float((item.get("epsActual") or {}).get("raw")
+                                  if isinstance(item.get("epsActual"), dict)
+                                  else item.get("epsActual"))
+            eps_est_h = _safe_float((item.get("epsEstimate") or {}).get("raw")
+                                    if isinstance(item.get("epsEstimate"), dict)
+                                    else item.get("epsEstimate"))
+            # Revenue fields in earningsHistory (present on some tickers)
+            rev_act = _safe_float((item.get("revenueActual") or {}).get("raw")
+                                  if isinstance(item.get("revenueActual"), dict)
+                                  else item.get("revenueActual"))
+            rev_est_h = _safe_float((item.get("revenueEstimate") or {}).get("raw")
+                                    if isinstance(item.get("revenueEstimate"), dict)
+                                    else item.get("revenueEstimate"))
+            hist_by_qtr[d] = {
+                "eps_actual": eps_act if (eps_act is not None and np.isfinite(eps_act)) else None,
+                "eps_estimate": eps_est_h if (eps_est_h is not None and np.isfinite(eps_est_h)) else None,
+                "rev_actual": rev_act if (rev_act is not None and np.isfinite(rev_act) and rev_act > 0) else None,
+                "rev_estimate": rev_est_h if (rev_est_h is not None and np.isfinite(rev_est_h) and rev_est_h > 0) else None,
+            }
+
+        # Merge trend + history into unified rows
+        all_qtrs = set(trend_by_qtr.keys()) | set(hist_by_qtr.keys())
+        for d in all_qtrs:
+            t_data = trend_by_qtr.get(d, {})
+            h_data = hist_by_qtr.get(d, {})
+            row = {
+                "date": d + "-01",  # approximate date for YYYY-MM matching
+                "revenue_estimate": t_data.get("rev_estimate") or h_data.get("rev_estimate"),
+                "revenue_reported": h_data.get("rev_actual"),
+                "eps_estimate":     t_data.get("eps_estimate") or h_data.get("eps_estimate"),
+                "eps_reported":     h_data.get("eps_actual"),
+                "_method":          "yahoo_quotesummary",
+            }
+            if row["revenue_estimate"] is not None or row["revenue_reported"] is not None:
+                rows.append(row)
+
+    except Exception as _e:
+        pass  # silent — caller will fall through to other sources
+
+    return rows
+
+
 def fetch_catalyst_events(ticker: str, tk) -> List[Dict]:
     """Scan recent yfinance news for major catalyst events (FDA approvals, large contracts,
     geopolitical shocks) that qualify as Layer-2 equivalents without earnings data.
@@ -697,6 +838,48 @@ def fetch_earnings_data(ticker: str) -> Dict[str, Any]:
                 method_results.append([])
 
         best_eps, best_method = _best_eps_rows(method_results)
+
+        # ── Method 1b: Yahoo quoteSummary revenue enrichment ─────────────
+        # yfinance 1.x earnings_dates uses v1/finance/earnings — EPS-only JSON.
+        # Revenue estimates lived in the old 0.2.x HTML table but were dropped
+        # when yfinance switched to Yahoo's API backend in 1.0.
+        # We call quoteSummary earningsTrend + earningsHistory directly to
+        # recover revenue_estimate and revenue_reported per past quarter.
+        # This is a separate call so it doesn't interfere with EPS method selection.
+        try:
+            yq_rows = _fetch_revenue_estimates_yahoo(tk, ticker)
+            if yq_rows:
+                yq_by_qtr: Dict[str, Dict] = {}
+                for r in yq_rows:
+                    d = (r.get("date") or "")[:7]
+                    if d:
+                        yq_by_qtr[d] = r
+                for row in best_eps:
+                    d = (row.get("date") or "")[:7]
+                    candidates = [d]
+                    try:
+                        y, m = int(d[:4]), int(d[5:7])
+                        for delta in [-1, -2, 1, 2]:
+                            nm = m + delta; ny = y + (nm-1)//12; nm = ((nm-1)%12)+1
+                            candidates.append(f"{ny:04d}-{nm:02d}")
+                    except Exception:
+                        pass
+                    for key in candidates:
+                        if key in yq_by_qtr:
+                            qd = yq_by_qtr[key]
+                            if row.get("revenue_estimate") is None and qd.get("revenue_estimate") is not None:
+                                row["revenue_estimate"] = qd["revenue_estimate"]
+                                row["_rev_est_source"] = "yahoo_qs"
+                            if row.get("revenue_reported") is None and qd.get("revenue_reported") is not None:
+                                row["revenue_reported"] = qd["revenue_reported"]
+                                row["_rev_act_source"] = "yahoo_qs"
+                            if row.get("eps_estimate") is None and qd.get("eps_estimate") is not None:
+                                row["eps_estimate"] = qd["eps_estimate"]
+                                row["_eps_est_source"] = "yahoo_qs"
+                            break
+                out["_yahoo_qs_rev_rows"] = len([r for r in yq_rows if r.get("revenue_estimate") is not None])
+        except Exception as _yq_err:
+            out["_yahoo_qs_error"] = str(_yq_err)
         out["earnings_dates"] = best_eps
         out["eps_method"] = best_method
         if errors:
@@ -2006,9 +2189,9 @@ def print_data_summary(
     # "eps_consensus" = at least 1 past quarter with BOTH eps_estimate AND eps_reported
 
     src_counts = {
-        "rev_yfinance": 0, "rev_investing_com": 0, "rev_fmp": 0, "rev_finnhub": 0,
+        "rev_yfinance": 0, "rev_yahoo_qs": 0, "rev_investing_com": 0, "rev_fmp": 0, "rev_finnhub": 0,
         "rev_yoy_proxy": 0, "rev_nothing": 0,
-        "eps_yfinance": 0, "eps_investing_com": 0, "eps_fmp": 0, "eps_finnhub": 0,
+        "eps_yfinance": 0, "eps_yahoo_qs": 0, "eps_investing_com": 0, "eps_fmp": 0, "eps_finnhub": 0,
         "eps_yoy_proxy": 0, "eps_nothing": 0,
     }
     ic_filled_total = fmp_enrich_total = finnhub_filled_total = 0
@@ -2062,6 +2245,7 @@ def print_data_summary(
     print(f"  {'-'*38}")
     for label, key in [
         ("yfinance",        "eps_yfinance"),
+        ("Yahoo quoteSumm", "eps_yahoo_qs"),
         ("investing.com",   "eps_investing_com"),
         ("FMP",             "eps_fmp"),
         ("Finnhub",         "eps_finnhub"),
@@ -2076,6 +2260,7 @@ def print_data_summary(
     print(f"  {'-'*38}")
     for label, key in [
         ("yfinance",        "rev_yfinance"),
+        ("Yahoo quoteSumm", "rev_yahoo_qs"),
         ("investing.com",   "rev_investing_com"),
         ("FMP",             "rev_fmp"),
         ("Finnhub",         "rev_finnhub"),
