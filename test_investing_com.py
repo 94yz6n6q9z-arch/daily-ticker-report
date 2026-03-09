@@ -66,7 +66,13 @@ def load_tickers_from_state(state_file="gc_state.json", missed_only=False) -> Li
         print(f"ERROR: {state_file} not found. Run from repo root.")
         sys.exit(1)
     with open(state_file) as f:
-        state = json.load(f)
+        raw = json.load(f)
+
+    # Handle both flat {ticker: data} and nested {earnings_cache: {ticker: data}}
+    if "earnings_cache" in raw:
+        state = raw["earnings_cache"]
+    else:
+        state = raw
 
     tickers = []
     for ticker, data in state.items():
