@@ -1397,56 +1397,116 @@ def enrich_estimates_investing_com(
 
     # Known slug overrides for common tickers where the slug is non-obvious
     SLUG_OVERRIDES: Dict[str, str] = {
-        "AAPL": "apple-computer-inc",
-        "MSFT": "microsoft-corp",
-        "NVDA": "nvidia-corp",
+        # ── Mega-cap tech ──────────────────────────────────────────────────
+        "AAPL":  "apple-computer-inc",
+        "MSFT":  "microsoft-corp",
+        "NVDA":  "nvidia-corp",
         "GOOGL": "alphabet-inc-cl-a",
         "GOOG":  "alphabet-inc-cl-c",
         "META":  "facebook-inc",
         "AMZN":  "amazon-com-inc",
         "TSLA":  "tesla-motors",
         "AVGO":  "broadcom-ltd",
-        "COST":  "costco-wholesale",
-        "NFLX":  "netflix-inc",
+        # ── Nasdaq 100 — semiconductors ────────────────────────────────────
         "AMD":   "advanced-micro-devices",
         "QCOM":  "qualcomm-inc",
-        "INTU":  "intuit-inc",
         "AMAT":  "applied-materials",
-        "CSCO":  "cisco-sys-inc",
-        "AMGN":  "amgen-inc",
-        "TXN":   "texas-instruments",
-        "CMCSA": "comcast-corp-new",
-        "BKNG":  "priceline-com-inc",
         "MU":    "micron-technology",
-        "PANW":  "palo-alto-networks",
-        "GILD":  "gilead-sciences",
-        "SBUX":  "starbucks-corp",
-        "ISRG":  "intuitive-surgical-inc",
-        "REGN":  "regeneron-pharmaceuticals",
         "KLAC":  "kla-tencor-corp",
         "LRCX":  "lam-research",
+        "MRVL":  "marvell-technology",
+        "NXPI":  "nxp-semiconductors",
+        "MCHP":  "microchip-technology",
+        "ADI":   "analog-devices",
+        "ON":    "on-semiconductor",
+        "GFS":   "globalfoundries",
+        "SMCI":  "super-micro-computer",
+        # ── Software / cloud ───────────────────────────────────────────────
+        "INTU":  "intuit-inc",
+        "CSCO":  "cisco-sys-inc",
+        "PANW":  "palo-alto-networks",
         "SNPS":  "synopsys-inc",
         "CDNS":  "cadence-design-systems",
-        "MRVL":  "marvell-technology",
-        "PYPL":  "paypal-holdings",
         "WDAY":  "workday-inc",
         "CRWD":  "crowdstrike-holdings",
         "DDOG":  "datadog-inc",
-        "MELI":  "mercadolibre",
-        "NXPI":  "nxp-semiconductors",
-        "MCHP":  "microchip-technology",
         "FTNT":  "fortinet-inc",
-        "ADI":   "analog-devices",
+        "ZS":    "zscaler",
+        "TEAM":  "atlassian",
+        "ANSS":  "ansys-inc",
+        "MDB":   "mongodb",
+        "PYPL":  "paypal-holdings",
+        "TTD":   "the-trade-desk",
+        "ABNB":  "airbnb",
+        "DASH":  "doordash",
+        "COIN":  "coinbase-global",
+        "PLTR":  "palantir-technologies",
+        "APP":   "applovin",
+        "RBLX":  "roblox",
+        "ZM":    "zoom-video-communications",
+        "MTCH":  "match-group",
+        # ── Consumer / retail ──────────────────────────────────────────────
+        "COST":  "costco-wholesale",
+        "NFLX":  "netflix-inc",
+        "SBUX":  "starbucks-corp",
+        "ORLY":  "oreilly-automotive",
+        "ROST":  "ross-stores-inc",
+        "DLTR":  "dollar-tree-inc",
+        "KHC":   "kraft-heinz",
+        "MNST":  "monster-beverage",
+        "KDP":   "keurig-dr-pepper",
+        # ── Healthcare / biotech ───────────────────────────────────────────
+        "AMGN":  "amgen-inc",
+        "GILD":  "gilead-sciences",
+        "VRTX":  "vertex-pharmaceuticals",
+        "REGN":  "regeneron-pharmaceuticals",
+        "ISRG":  "intuitive-surgical-inc",
         "IDXX":  "idexx-laboratories",
         "BIIB":  "biogen-idec-inc",
         "ILMN":  "illumina-inc",
-        "PCAR":  "paccar-inc",
-        "FAST":  "fastenal-co",
-        "ROST":  "ross-stores-inc",
-        "ORLY":  "oreilly-automotive",
-        "PAYX":  "paychex-inc",
+        "MDLZ":  "mondelez-international",
+        "DXCM":  "dexcom",
+        "ALGN":  "align-technology",
+        "GEHC":  "ge-healthcare",
+        # ── Industrials / other ────────────────────────────────────────────
+        "HON":   "honeywell-intl",
+        "ADP":   "automatic-data-processing",
         "CTAS":  "cintas-corp",
+        "PAYX":  "paychex-inc",
+        "FAST":  "fastenal-co",
+        "PCAR":  "paccar-inc",
         "CPRT":  "copart-inc",
+        "ODFL":  "old-dominion-freight",
+        "VRSK":  "verisk-analytics",
+        "BKNG":  "priceline-com-inc",
+        "MAR":   "marriott-intl",
+        "CMCSA": "comcast-corp-new",
+        "CHTR":  "charter-communications",
+        "WBD":   "warner-bros-discovery",
+        "SIRI":  "sirius-xm-holdings",
+        "TTWO":  "take-two-interactive",
+        # ── Energy / materials ─────────────────────────────────────────────
+        "LIN":   "linde-plc",
+        "CEG":   "constellation-energy",
+        "XEL":   "xcel-energy",
+        "EXC":   "exelon-corp",
+        "ENPH":  "enphase-energy",
+        "FANG":  "diamondback-energy",
+        # ── Foreign / ADR ──────────────────────────────────────────────────
+        "ASML":  "asml-holding",
+        "AZN":   "astrazeneca",
+        "PEP":   "pepsico-inc",
+        "TXN":   "texas-instruments",
+        "MELI":  "mercadolibre",
+        "PDD":   "pinduoduo",
+        "NTES":  "netease",
+        "ROP":   "roper-technologies",
+        "CTSH":  "cognizant-technology-solutions",
+        "AXON":  "axon-enterprise",
+        "CEG":   "constellation-energy",
+        # ── EV / clean energy ──────────────────────────────────────────────
+        "RIVN":  "rivian-automotive",
+        "LCID":  "lucid-group",
     }
 
     if bare in SLUG_OVERRIDES:
@@ -1489,14 +1549,14 @@ def enrich_estimates_investing_com(
     ic_by_qtr: Dict[str, Dict] = {}
     soup = None
 
-    # Build slug candidates: discovered slug first, then ticker-derived guesses
+    import random
+
+    # Build slug candidates: known override first, then bare ticker lowercase
     slug_candidates = []
     if slug:
         slug_candidates.append(slug)
-    slug_candidates.extend([
-        bare.lower().replace("_", "-"),          # nvda
-        bare.lower(),                             # nvda (same, kept for safety)
-    ])
+    if bare.lower() not in slug_candidates:
+        slug_candidates.append(bare.lower())
 
     for s in slug_candidates:
         url = f"https://www.investing.com/equities/{s}-earnings"
@@ -1512,19 +1572,29 @@ def enrich_estimates_investing_com(
                     ),
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                     "Accept-Language": "en-US,en;q=0.9",
-                    "Referer": "https://www.investing.com/",
+                    "Referer": "https://www.investing.com/equities/",
+                    "Cache-Control": "no-cache",
                 },
-                timeout=20,
+                timeout=25,
                 allow_redirects=True,
             )
+            # 429 = rate limited — back off 10s and retry once
+            if resp.status_code == 429:
+                time.sleep(10.0 + random.uniform(0, 4))
+                resp = cffi_req.get(
+                    url, impersonate=impersonate,
+                    headers={"Accept": "text/html",
+                             "Referer": "https://www.investing.com/"},
+                    timeout=25, allow_redirects=True,
+                )
             if resp.status_code == 200 and len(resp.text) > 5000:
                 html = resp.text
-                # Check for earnings table markers
-                if any(m in html for m in ["earningsConsensus", "earningsCalendar",
-                                            "EPS Forecast", "Revenue Forecast",
-                                            "eps_est", "rev_est"]):
+                # 'Period End' is the most reliable table marker (confirmed from live page)
+                if "Period End" in html or "EPS Forecast" in html or "earningsCalendar" in html:
                     soup = BeautifulSoup(html, "lxml")
                     break
+            elif resp.status_code in (403, 429):
+                break   # Hard block — don't try more slugs
         except Exception:
             continue
 
