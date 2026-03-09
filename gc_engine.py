@@ -1010,27 +1010,26 @@ def fetch_earnings_data(ticker: str) -> Dict[str, Any]:
             import urllib.request as _ureq
             sym_fmp = out.get("fmp_symbol") or ticker.split(".")[0].upper()
             est_data = None
-            qs = urlencode({"symbol": sym_fmp, "period": "quarter", "limit": 16,
-                            "apikey": fmp_key_enrich})
-            # Try stable endpoint first, fall back to api/v3
-            for base_url in [f"{_FMP_BASE}/analyst-estimates",
-                              f"https://financialmodelingprep.com/api/v3/analyst-estimates"]:
-                try:
-                    with _ureq.urlopen(f"{base_url}?{qs}", timeout=8) as r:
-                        raw = json.loads(r.read().decode())
-                        if isinstance(raw, list) and raw:
-                            est_data = raw
-                            break
-                except Exception:
-                    continue
+            # /stable/earnings endpoint — available on Starter plan.
+            # Returns: epsEstimated, revenueEstimated, epsActual, revenueActual per quarter.
+            qs = urlencode({"symbol": sym_fmp, "limit": 16, "apikey": fmp_key_enrich})
+            try:
+                with _ureq.urlopen(f"{_FMP_BASE}/earnings?{qs}", timeout=8) as r:
+                    raw = json.loads(r.read().decode())
+                    if isinstance(raw, list) and raw:
+                        est_data = raw
+            except Exception:
+                pass
             if est_data:
                 fmp_est_by_qtr = {}
                 for q in est_data:
                     d = str(q.get("date", ""))[:7]
-                    eps_avg = _safe_float(q.get("estimatedEpsAvg") or q.get("epsAvg"))
-                    rev_avg = _safe_float(q.get("estimatedRevenueAvg") or q.get("revenueAvg"))
+                    # /stable/earnings field names
+                    eps_avg = _safe_float(q.get("epsEstimated") or q.get("estimatedEpsAvg"))
+                    rev_avg = _safe_float(q.get("revenueEstimated") or q.get("estimatedRevenueAvg"))
+                    rev_act = _safe_float(q.get("revenueActual"))
                     if d:
-                        fmp_est_by_qtr[d] = {"eps": eps_avg, "rev": rev_avg}
+                        fmp_est_by_qtr[d] = {"eps": eps_avg, "rev": rev_avg, "rev_act": rev_act}
                 rev_act_by_qtr = {(qr.get("date", ""))[:7]: qr["revenue"]
                                   for qr in out.get("quarterly_revenue", [])
                                   if qr.get("revenue") is not None}
@@ -1063,9 +1062,16 @@ def fetch_earnings_data(ticker: str) -> Dict[str, Any]:
                             row["revenue_estimate"] = q_est["rev"]
                             row["_rev_est_source"] = "fmp"
                             filled_fmp += 1
-                        if row.get("revenue_reported") is None and key in rev_act_by_qtr:
-                            row["revenue_reported"] = rev_act_by_qtr[key]
+                        # Use FMP revenue actual directly (more reliable than income stmt for beat/miss)
+                        if (row.get("revenue_reported") is None
+                                and q_est.get("rev_act") is not None
+                                and np.isfinite(q_est["rev_act"]) and q_est["rev_act"] > 0):
+                            row["revenue_reported"] = q_est["rev_act"]
                             row["_rev_act_source"] = "fmp"
+                            filled_fmp += 1
+                        elif row.get("revenue_reported") is None and key in rev_act_by_qtr:
+                            row["revenue_reported"] = rev_act_by_qtr[key]
+                            row["_rev_act_source"] = "fmp_income_stmt"
                         break
                 if filled_fmp:
                     out["_fmp_rev_estimates_filled"] = filled_fmp  # fixed key name (was _fmp_enrich_filled)
