@@ -1804,11 +1804,10 @@ def enrich_estimates_investing_com(
     elif bare in _slug_cache:
         slug = _slug_cache[bare]
     else:
-        # Not in slug table — IC won't work for this ticker, skip cleanly.
-        # investing.com slugs are not derivable from ticker symbols (companies
-        # rebrand but IC keeps old slugs). Dynamic search doesn't work because
-        # IC's search API returns articles not quotes.
-        return 0
+        # Not in slug table — try bare ticker lowercase as a best-effort guess.
+        # Many tickers match their slug exactly (e.g. JPM → jpm-earnings works).
+        # If the page 404s or has no earnings table it fails silently in step 2.
+        slug = bare.lower()
 
     # Save discovered slug to cache for reuse across the run
     if slug:
