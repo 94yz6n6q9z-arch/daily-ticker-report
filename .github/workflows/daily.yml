@@ -47,7 +47,7 @@ jobs:
           # gc_engine runs 23:00–02:00 CET, so report fires at 04:00 CET
           # giving a comfortable 2hr buffer after gc_engine finishes.
           start = time(4, 0)    # earliest allowed
-          end   = time(5, 15)   # wide window to tolerate scheduler drift
+          end   = time(6, 15)   # wide window to tolerate scheduler drift
 
           def in_window(t):
               return start <= t <= end
