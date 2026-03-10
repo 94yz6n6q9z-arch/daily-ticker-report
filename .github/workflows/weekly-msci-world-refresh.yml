@@ -126,6 +126,23 @@ jobs:
             --meta-malaysia docs/msci_malaysia_classification_meta.json \
             --min-rows-malaysia 30
 
+      - name: Run MSCI New Zealand refresh (ENZL → .NZ, 5 stocks)
+        # Small universe but all 5 are legitimate MSCI World constituents.
+        # No numeric-ticker issue; the .NZ suffix rule already existed, the
+        # source was simply never wired to a fetch target until v1.7.0.
+        continue-on-error: true
+        run: |
+          python tools/update_msci_world_classification.py \
+            --universe nzl \
+            --out-nzl config/msci_nzl_classification.csv \
+            --meta-nzl docs/msci_nzl_classification_meta.json \
+            --min-rows-nzl 4
+
+      # Qatar (13 stocks) and Kuwait (7 stocks) have no dedicated iShares ETF.
+      # They are injected as hardcoded MSCI_MANUAL_TICKERS into the EM CSV
+      # automatically when --universe em (or both/all) runs above.
+      # No separate workflow step needed.
+
       # ── Commit all generated CSVs in one push ─────────────────────────────────
       - name: Commit and push changes (if any)
         run: |
@@ -138,5 +155,5 @@ jobs:
             exit 0
           fi
 
-          git commit -m "Weekly MSCI World + EM + 6 country ETFs refresh [skip ci]"
+          git commit -m "Weekly MSCI World + EM + 9 country ETFs refresh [skip ci]"
           git push
