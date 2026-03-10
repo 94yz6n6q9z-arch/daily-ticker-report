@@ -1,0 +1,59 @@
+{
+  "generated_utc": "2026-03-10T13:17:20Z",
+  "universe": "China",
+  "source_fund": "MCHI",
+  "source_url": "https://www.ishares.com/us/products/239619/ishares-msci-china-etf/1467271812596.ajax?dataType=fund&fileName=MCHI_holdings&fileType=csv",
+  "source_as_of": null,
+  "row_count": 577,
+  "unique_tickers": 577,
+  "sector_counts": {
+    "Communication Services": 23,
+    "Consumer Discretionary": 58,
+    "Consumer Staples": 30,
+    "Energy": 18,
+    "Financials": 89,
+    "Health Care": 45,
+    "Industrials": 79,
+    "Information Technology": 127,
+    "Materials": 72,
+    "Real Estate": 11,
+    "Utilities": 25
+  },
+  "mapping_confidence_counts": {
+    "high": 577
+  },
+  "added_count": 577,
+  "removed_count": 0,
+  "added_sample": [
+    "000001.SZ",
+    "000002.SZ",
+    "000063.SZ",
+    "000066.SZ",
+    "000100.SZ",
+    "000157.SZ",
+    "000166.SZ",
+    "000301.SZ",
+    "000333.SZ",
+    "000338.SZ",
+    "000408.SZ",
+    "000425.SZ",
+    "000426.SZ",
+    "000538.SZ",
+    "000559.SZ",
+    "000564.SZ",
+    "000568.SZ",
+    "000596.SZ",
+    "000617.SZ",
+    "000625.SZ",
+    "000630.SZ",
+    "000651.SZ",
+    "000657.SZ",
+    "000661.SZ",
+    "000708.SZ"
+  ],
+  "removed_sample": [],
+  "notes": [
+    "Public-source proxy (iShares China ETF holdings), not a licensed direct MSCI constituent feed.",
+    "scan.py requires Ticker + Sector and uses Company/Country when present; extra columns are for audit/debug."
+  ]
+}

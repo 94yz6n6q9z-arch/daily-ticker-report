@@ -1,30 +1,21 @@
 {
-  "generated_utc": "2026-03-10T12:49:17Z",
+  "generated_utc": "2026-03-10T13:17:23Z",
   "universe": "Nzl",
-  "source_fund": "ENZL",
-  "source_url": "https://www.ishares.com/us/products/239688/ishares-msci-new-zealand-etf/1467271812596.ajax?dataType=fund&fileName=ENZL_holdings&fileType=csv",
+  "source_fund": "manual",
+  "source_url": "hardcoded:MSCI_MANUAL_TICKERS",
   "source_as_of": null,
-  "row_count": 81,
-  "unique_tickers": 81,
-  "sector_counts": {
-    "Communication Services": 4,
-    "Consumer Discretionary": 8,
-    "Consumer Staples": 9,
-    "Energy": 7,
-    "Financials": 15,
-    "Health Care": 6,
-    "Industrials": 6,
-    "Information Technology": 3,
-    "Materials": 7,
-    "Real Estate": 8,
-    "Utilities": 8
-  },
-  "mapping_confidence_counts": {
-    "high": 81
-  },
-  "added_count": 81,
-  "removed_count": 0,
+  "row_count": 5,
+  "unique_tickers": 5,
+  "added_count": 5,
+  "removed_count": 81,
   "added_sample": [
+    "AIA.NZ",
+    "CEN.NZ",
+    "FPH.NZ",
+    "MEL.NZ",
+    "SPK.NZ"
+  ],
+  "removed_sample": [
     "ADVANC.R",
     "AEONTS.R",
     "AMATA-R.BK",
@@ -50,10 +41,5 @@
     "CENTEL.R",
     "CHG-R.BK",
     "CK-R.BK"
-  ],
-  "removed_sample": [],
-  "notes": [
-    "Public-source proxy (iShares Nzl ETF holdings), not a licensed direct MSCI constituent feed.",
-    "scan.py requires Ticker + Sector and uses Company/Country when present; extra columns are for audit/debug."
   ]
 }
