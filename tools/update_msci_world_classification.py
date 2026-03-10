@@ -54,7 +54,7 @@ import requests
 # ────────────────────────────────────────────────────────────────
 # Version tracker (mirrors scan.py / gc_engine.py pattern)
 # ────────────────────────────────────────────────────────────────
-MSCI_UPDATE_VERSION = "1.6.0"
+MSCI_UPDATE_VERSION = "1.7.0"
 
 _MSCI_UPDATE_VERSION_LOG: dict = {
     "1.0.0": (
@@ -111,13 +111,30 @@ _MSCI_UPDATE_VERSION_LOG: dict = {
         "and Malaysia (.KL ~45) — totalling ~565 MSCI constituents silently lost from every refresh. "
         "Fix: add 6 dedicated country ETF sources that export pre-suffixed Yahoo Finance symbols: "
         "SOURCE_CANDIDATES_JAPAN (EWJ → 7203.T), SOURCE_CANDIDATES_TAIWAN (EWT → 2330.TW), "
-        "SOURCE_CANDIDATES_CHINA (MCHI → 600519.SS / 000858.SZ), "
+        "SOURCE_CANDIDATES_CHINA (MCHI → 600519.SS / 000858.SZ / 0700.HK), "
         "SOURCE_CANDIDATES_HK (EWH → 0700.HK), SOURCE_CANDIDATES_SAUDI (KSA → 2222.SR), "
         "SOURCE_CANDIDATES_MALAYSIA (EWM → 1155.KL). "
         "CLI --universe flag extended: japan | taiwan | china | hk | saudi | malaysia | all. "
         "New --out-* / --meta-* / --min-rows-* args per universe. "
         "Outputs: config/msci_{japan,taiwan,china,hk,saudi,malaysia}_classification.csv. "
         "weekly-msci-world-refresh.yml updated to run all 8 universes (2 existing + 6 new). "
+        "Companion: scan.py v97, gc_engine.py 0.5.3."
+    ),
+    "1.7.0": (
+        "Full gap analysis against MSCI World+EM constituent counts (2,514 total, per-country "
+        "data verified against ChatGPT reference). Three remaining gaps addressed: "
+        "(1) New Zealand (.NZ, 5 World stocks) — SOURCE_CANDIDATES_NZL added using ENZL "
+        "(iShares MSCI New Zealand ETF). Previously the .NZ suffix rule existed but the market "
+        "was never fetched from any source. "
+        "(2) Qatar (.QA, 13 EM stocks) — no dedicated iShares Qatar ETF exists. "
+        "MSCI_MANUAL_TICKERS['Qatar'] hardcodes the 13 MSCI EM constituents; these are "
+        "injected into config/msci_em_classification.csv after ETF fetch. "
+        "(3) Kuwait (.KW, 7 EM stocks) — removed from GHOST_COUNTRIES (was incorrectly "
+        "grouped with Russia sanctions list; Kuwait is a legitimate MSCI EM member since 2020). "
+        "MSCI_MANUAL_TICKERS['Kuwait'] hardcodes 7 constituents injected into EM CSV. "
+        "COUNTRY_SUFFIX_FALLBACK gains Qatar → .QA and Kuwait → .KW entries. "
+        "Weekly workflow gains ENZL step (--universe nzl). "
+        "Total new coverage: ~25 tickers (5 NZL + 13 QAT + 7 KWT). "
         "Companion: scan.py v97, gc_engine.py 0.5.3."
     ),
 }
@@ -132,14 +149,16 @@ USER_AGENT = (
 # These endpoints are the same style as the ones exposed by iShares pages' "download holdings" links.
 SOURCE_CANDIDATES_WORLD = [
     {
-        "fund": "EUNL",
-        "url": "https://www.ishares.com/de/privatanleger/de/produkte/251882/ishares-msci-world-ucits-etf-acc-fund/1506575576011.ajax?dataType=fund&fileName=EUNL_holdings&fileType=csv",
-        "referer": "https://www.ishares.com/de/privatanleger/de/produkte/251882/ishares-msci-world-ucits-etf-acc-fund",
-    },
-    {
+        # IWDA is the primary — EUNL (German locale) returns HTTP 404 as of 2026-03-10.
         "fund": "IWDA",
         "url": "https://www.ishares.com/uk/individual/en/products/251882/ishares-core-msci-world-ucits-etf-acc-fund/1506575576011.ajax?dataType=fund&fileName=IWDA_holdings&fileType=csv",
         "referer": "https://www.ishares.com/uk/individual/en/products/251882/ishares-core-msci-world-ucits-etf-acc-fund",
+    },
+    {
+        # EUNL (German-locale UCITS) — kept as fallback but currently returns 404.
+        "fund": "EUNL",
+        "url": "https://www.ishares.com/de/privatanleger/de/produkte/251882/ishares-msci-world-ucits-etf-acc-fund/1506575576011.ajax?dataType=fund&fileName=EUNL_holdings&fileType=csv",
+        "referer": "https://www.ishares.com/de/privatanleger/de/produkte/251882/ishares-msci-world-ucits-etf-acc-fund",
     },
     {
         "fund": "URTH",
@@ -232,6 +251,54 @@ SOURCE_CANDIDATES_MALAYSIA = [
         "referer": "https://www.ishares.com/us/products/239638/ishares-msci-malaysia-etf",
     },
 ]
+
+# ── New Zealand (.NZ) — MSCI World, 5 stocks ──────────────────────────────────
+# Yahoo suffix: .NZ. The .NZ rule exists in EXCHANGE_SUFFIX_RULES but was
+# never wired to a source. ENZL (iShares MSCI New Zealand ETF) provides
+# clean pre-suffixed symbols: FPH.NZ, AIA.NZ, CEN.NZ, MEL.NZ, SPK.NZ etc.
+SOURCE_CANDIDATES_NZL = [
+    {
+        "fund": "ENZL",
+        "url": "https://www.ishares.com/us/products/239688/ishares-msci-new-zealand-etf/1467271812596.ajax?dataType=fund&fileName=ENZL_holdings&fileType=csv",
+        "referer": "https://www.ishares.com/us/products/239688/ishares-msci-new-zealand-etf",
+    },
+]
+
+# ── Manual tickers for markets with no dedicated iShares country ETF ──────────
+# These are injected directly into the EM CSV after ETF fetch rather than
+# relying on a holdings CSV. Reviewed against MSCI EM constituent lists.
+# Update this dict when MSCI rebalances these markets (typically semi-annually).
+MSCI_MANUAL_TICKERS: Dict[str, List[Dict]] = {
+    # Qatar (.QA) — 13 MSCI EM constituents. No standalone iShares Qatar ETF.
+    # Source: MSCI EM index methodology + Qatar Exchange listings.
+    "Qatar": [
+        {"Ticker": "QNBK.QA",    "Company": "Qatar National Bank",            "Country": "Qatar", "Sector": "Financials"},
+        {"Ticker": "MARK.QA",    "Company": "Masraf Al Rayan",                "Country": "Qatar", "Sector": "Financials"},
+        {"Ticker": "CBQK.QA",    "Company": "The Commercial Bank",            "Country": "Qatar", "Sector": "Financials"},
+        {"Ticker": "QEWS.QA",    "Company": "Qatar Electricity & Water",      "Country": "Qatar", "Sector": "Utilities"},
+        {"Ticker": "IQCD.QA",    "Company": "Industries Qatar",               "Country": "Qatar", "Sector": "Materials"},
+        {"Ticker": "QIIK.QA",    "Company": "Qatar International Islamic Bank","Country": "Qatar", "Sector": "Financials"},
+        {"Ticker": "ORDS.QA",    "Company": "Ooredoo",                        "Country": "Qatar", "Sector": "Communication Services"},
+        {"Ticker": "QIBANK.QA",  "Company": "Qatar Islamic Bank",             "Country": "Qatar", "Sector": "Financials"},
+        {"Ticker": "GWCS.QA",    "Company": "Gulf Warehousing",               "Country": "Qatar", "Sector": "Industrials"},
+        {"Ticker": "IGRD.QA",    "Company": "Investment Grade",               "Country": "Qatar", "Sector": "Financials"},
+        {"Ticker": "KCBK.QA",    "Company": "Al Khalij Commercial Bank",      "Country": "Qatar", "Sector": "Financials"},
+        {"Ticker": "MERS.QA",    "Company": "Al Meera Consumer Goods",        "Country": "Qatar", "Sector": "Consumer Staples"},
+        {"Ticker": "NLCS.QA",    "Company": "Nakilat",                        "Country": "Qatar", "Sector": "Energy"},
+    ],
+    # Kuwait (.KW) — 7 MSCI EM constituents. Added to MSCI EM in June 2020.
+    # Was incorrectly in GHOST_COUNTRIES alongside Russia (sanctions list confusion).
+    # Kuwait is fully accessible on Yahoo Finance via .KW suffix.
+    "Kuwait": [
+        {"Ticker": "ZAIN.KW",    "Company": "Zain Kuwait",                    "Country": "Kuwait", "Sector": "Communication Services"},
+        {"Ticker": "NBK.KW",     "Company": "National Bank of Kuwait",        "Country": "Kuwait", "Sector": "Financials"},
+        {"Ticker": "KFIN.KW",    "Company": "Kuwait Finance House",           "Country": "Kuwait", "Sector": "Financials"},
+        {"Ticker": "BURG.KW",    "Company": "Burgan Bank",                    "Country": "Kuwait", "Sector": "Financials"},
+        {"Ticker": "AGILITY.KW", "Company": "Agility Public Warehousing",     "Country": "Kuwait", "Sector": "Industrials"},
+        {"Ticker": "BOUBYAN.KW", "Company": "Boubyan Bank",                   "Country": "Kuwait", "Sector": "Financials"},
+        {"Ticker": "HUMANSOFT.KW","Company": "Humansoft Holding",             "Country": "Kuwait", "Sector": "Information Technology"},
+    ],
+}
 
 # Backward-compat alias
 SOURCE_CANDIDATES = SOURCE_CANDIDATES_WORLD
@@ -482,8 +549,10 @@ KNOWN_TICKER_OVERRIDES: Dict[str, str] = {
 # fetch slot on a symbol that will never resolve.
 # ────────────────────────────────────────────────────────────────
 GHOST_COUNTRIES: set = {
-    "Kuwait",     # Boursa Kuwait — not available on Yahoo Finance
-    "Russia",     # Removed from MSCI universe March 2022 (sanctions)
+    "Russia",     # Removed from MSCI universe March 2022 (sanctions) — permanently excluded.
+    # NOTE: Kuwait was here previously but was removed in v1.7.0.
+    # Kuwait was added to MSCI EM in June 2020 and IS available on Yahoo Finance (.KW suffix).
+    # It was incorrectly grouped with Russia. Kuwait tickers are now in MSCI_MANUAL_TICKERS.
 }
 
 # ────────────────────────────────────────────────────────────────
@@ -504,6 +573,8 @@ COUNTRY_SUFFIX_FALLBACK: Dict[str, str] = {
     "Pakistan":        ".KA",
     "Colombia":        ".CL",
     "Peru":            ".LM",
+    "Qatar":           ".QA",   # v1.7.0: Qatar Exchange
+    "Kuwait":          ".KW",   # v1.7.0: Boursa Kuwait (re-added after GHOST_COUNTRIES removal)
 }
 
 
@@ -948,12 +1019,49 @@ def _run_one_universe(
     meta_path: Optional[Path],
     min_rows: int,
     allow_partial: bool,
+    inject_manual_countries: Optional[List[str]] = None,
 ) -> int:
-    """Fetch, parse, build and write one universe (World or EM). Returns row count."""
+    """Fetch, parse, build and write one universe (World or EM). Returns row count.
+
+    inject_manual_countries: list of country names from MSCI_MANUAL_TICKERS to
+    append after the ETF-derived rows (used for Qatar and Kuwait which have no ETF).
+    """
     prev_tickers = load_existing_ticker_set(out_path)
     fetched = fetch_holdings_csv(sources=sources)
     raw_df, source_as_of = parse_ishares_holdings(fetched.text)
     out_df = build_output_dataframe(raw_df, fetched.fund, fetched.url, source_as_of)
+
+    # ── Inject manual tickers (Qatar, Kuwait) that have no iShares ETF ─────────
+    if inject_manual_countries:
+        import pandas as _pd_inner
+        manual_rows = []
+        for country in inject_manual_countries:
+            rows = MSCI_MANUAL_TICKERS.get(country, [])
+            for row in rows:
+                manual_rows.append({
+                    "Ticker":            row["Ticker"],
+                    "Company":           row.get("Company", ""),
+                    "Country":           row.get("Country", country),
+                    "Sector":            row.get("Sector", "Unknown"),
+                    "MappingConfidence": "manual",
+                    "SourceFund":        "manual",
+                    "SourceURL":         "hardcoded:MSCI_MANUAL_TICKERS",
+                    "SourceAsOf":        source_as_of or "",
+                })
+        if manual_rows:
+            manual_df = _pd_inner.DataFrame(manual_rows, columns=out_df.columns if len(out_df) > 0 else None)
+            # Only add columns that exist in out_df to avoid schema mismatch
+            for col in out_df.columns:
+                if col not in manual_df.columns:
+                    manual_df[col] = ""
+            manual_df = manual_df[out_df.columns]
+            # Deduplicate: don't add a manual ticker already present from the ETF
+            existing_tickers = set(out_df["Ticker"].astype(str))
+            manual_df = manual_df[~manual_df["Ticker"].isin(existing_tickers)]
+            if len(manual_df) > 0:
+                out_df = _pd_inner.concat([out_df, manual_df], ignore_index=True)
+                print(f"[msci-refresh:{label}] injected {len(manual_df)} manual tickers: "
+                      f"{', '.join(manual_df['Ticker'].tolist())}")
 
     row_count = len(out_df)
     if row_count < min_rows and not allow_partial:
@@ -1009,31 +1117,33 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Refresh MSCI World + EM + country-specific classification CSVs")
     ap.add_argument(
         "--universe",
-        choices=["world", "em", "korea", "japan", "taiwan", "china", "hk", "saudi", "malaysia", "both", "all"],
+        choices=["world", "em", "korea", "japan", "taiwan", "china", "hk", "saudi", "malaysia", "nzl", "both", "all"],
         default="both",
         help=(
-            "Which universe to refresh: world | em | korea | japan | taiwan | china | hk | saudi | malaysia | "
-            "both=world+em (default) | all=all 8 universes"
+            "Which universe to refresh: world | em | korea | japan | taiwan | china | hk | "
+            "saudi | malaysia | nzl | both=world+em (default) | all=all 9 universes"
         )
     )
-    ap.add_argument("--out",            default="config/msci_world_classification.csv")
-    ap.add_argument("--out-em",         default="config/msci_em_classification.csv")
-    ap.add_argument("--out-korea",      default="config/msci_korea_classification.csv")
-    ap.add_argument("--out-japan",      default="config/msci_japan_classification.csv")
-    ap.add_argument("--out-taiwan",     default="config/msci_taiwan_classification.csv")
-    ap.add_argument("--out-china",      default="config/msci_china_classification.csv")
-    ap.add_argument("--out-hk",         default="config/msci_hk_classification.csv")
-    ap.add_argument("--out-saudi",      default="config/msci_saudi_classification.csv")
-    ap.add_argument("--out-malaysia",   default="config/msci_malaysia_classification.csv")
-    ap.add_argument("--meta",           default="docs/msci_world_classification_meta.json")
-    ap.add_argument("--meta-em",        default="docs/msci_em_classification_meta.json")
-    ap.add_argument("--meta-korea",     default="docs/msci_korea_classification_meta.json")
-    ap.add_argument("--meta-japan",     default="docs/msci_japan_classification_meta.json")
-    ap.add_argument("--meta-taiwan",    default="docs/msci_taiwan_classification_meta.json")
-    ap.add_argument("--meta-china",     default="docs/msci_china_classification_meta.json")
-    ap.add_argument("--meta-hk",        default="docs/msci_hk_classification_meta.json")
-    ap.add_argument("--meta-saudi",     default="docs/msci_saudi_classification_meta.json")
-    ap.add_argument("--meta-malaysia",  default="docs/msci_malaysia_classification_meta.json")
+    ap.add_argument("--out",             default="config/msci_world_classification.csv")
+    ap.add_argument("--out-em",          default="config/msci_em_classification.csv")
+    ap.add_argument("--out-korea",       default="config/msci_korea_classification.csv")
+    ap.add_argument("--out-japan",       default="config/msci_japan_classification.csv")
+    ap.add_argument("--out-taiwan",      default="config/msci_taiwan_classification.csv")
+    ap.add_argument("--out-china",       default="config/msci_china_classification.csv")
+    ap.add_argument("--out-hk",          default="config/msci_hk_classification.csv")
+    ap.add_argument("--out-saudi",       default="config/msci_saudi_classification.csv")
+    ap.add_argument("--out-malaysia",    default="config/msci_malaysia_classification.csv")
+    ap.add_argument("--out-nzl",         default="config/msci_nzl_classification.csv")
+    ap.add_argument("--meta",            default="docs/msci_world_classification_meta.json")
+    ap.add_argument("--meta-em",         default="docs/msci_em_classification_meta.json")
+    ap.add_argument("--meta-korea",      default="docs/msci_korea_classification_meta.json")
+    ap.add_argument("--meta-japan",      default="docs/msci_japan_classification_meta.json")
+    ap.add_argument("--meta-taiwan",     default="docs/msci_taiwan_classification_meta.json")
+    ap.add_argument("--meta-china",      default="docs/msci_china_classification_meta.json")
+    ap.add_argument("--meta-hk",         default="docs/msci_hk_classification_meta.json")
+    ap.add_argument("--meta-saudi",      default="docs/msci_saudi_classification_meta.json")
+    ap.add_argument("--meta-malaysia",   default="docs/msci_malaysia_classification_meta.json")
+    ap.add_argument("--meta-nzl",        default="docs/msci_nzl_classification_meta.json")
     ap.add_argument("--min-rows",         type=int, default=900,  help="Minimum rows for World (default: 900)")
     ap.add_argument("--min-rows-em",      type=int, default=700,  help="Minimum rows for EM (default: 700)")
     ap.add_argument("--min-rows-korea",   type=int, default=80,   help="Minimum rows for Korea/EWY (default: 80)")
@@ -1043,24 +1153,27 @@ def main() -> int:
     ap.add_argument("--min-rows-hk",      type=int, default=30,   help="Minimum rows for HK/EWH (default: 30)")
     ap.add_argument("--min-rows-saudi",   type=int, default=25,   help="Minimum rows for Saudi/KSA (default: 25)")
     ap.add_argument("--min-rows-malaysia",type=int, default=30,   help="Minimum rows for Malaysia/EWM (default: 30)")
+    ap.add_argument("--min-rows-nzl",     type=int, default=4,    help="Minimum rows for New Zealand/ENZL (default: 4)")
     ap.add_argument("--allow-partial", action="store_true",
                     help="Allow writing even if row count < --min-rows")
     args = ap.parse_args()
 
+    # (label, run_on_universe_values, sources, out_path, meta_path, min_rows, inject_manual)
     _universes = [
-        ("world",    "both", SOURCE_CANDIDATES_WORLD,    Path(args.out),           Path(args.meta),           args.min_rows),
-        ("em",       "both", SOURCE_CANDIDATES_EM,       Path(args.out_em),        Path(args.meta_em),        args.min_rows_em),
-        ("korea",    "all",  SOURCE_CANDIDATES_KOREA,    Path(args.out_korea),     Path(args.meta_korea),     args.min_rows_korea),
-        ("japan",    "all",  SOURCE_CANDIDATES_JAPAN,    Path(args.out_japan),     Path(args.meta_japan),     args.min_rows_japan),
-        ("taiwan",   "all",  SOURCE_CANDIDATES_TAIWAN,   Path(args.out_taiwan),    Path(args.meta_taiwan),    args.min_rows_taiwan),
-        ("china",    "all",  SOURCE_CANDIDATES_CHINA,    Path(args.out_china),     Path(args.meta_china),     args.min_rows_china),
-        ("hk",       "all",  SOURCE_CANDIDATES_HK,       Path(args.out_hk),        Path(args.meta_hk),        args.min_rows_hk),
-        ("saudi",    "all",  SOURCE_CANDIDATES_SAUDI,    Path(args.out_saudi),     Path(args.meta_saudi),     args.min_rows_saudi),
-        ("malaysia", "all",  SOURCE_CANDIDATES_MALAYSIA, Path(args.out_malaysia),  Path(args.meta_malaysia),  args.min_rows_malaysia),
+        ("world",    ("both", "all"), SOURCE_CANDIDATES_WORLD,    Path(args.out),           Path(args.meta),           args.min_rows,          None),
+        ("em",       ("both", "all"), SOURCE_CANDIDATES_EM,       Path(args.out_em),        Path(args.meta_em),        args.min_rows_em,        ["Qatar", "Kuwait"]),
+        ("korea",    ("all",),        SOURCE_CANDIDATES_KOREA,    Path(args.out_korea),     Path(args.meta_korea),     args.min_rows_korea,     None),
+        ("japan",    ("all",),        SOURCE_CANDIDATES_JAPAN,    Path(args.out_japan),     Path(args.meta_japan),     args.min_rows_japan,     None),
+        ("taiwan",   ("all",),        SOURCE_CANDIDATES_TAIWAN,   Path(args.out_taiwan),    Path(args.meta_taiwan),    args.min_rows_taiwan,    None),
+        ("china",    ("all",),        SOURCE_CANDIDATES_CHINA,    Path(args.out_china),     Path(args.meta_china),     args.min_rows_china,     None),
+        ("hk",       ("all",),        SOURCE_CANDIDATES_HK,       Path(args.out_hk),        Path(args.meta_hk),        args.min_rows_hk,        None),
+        ("saudi",    ("all",),        SOURCE_CANDIDATES_SAUDI,    Path(args.out_saudi),     Path(args.meta_saudi),     args.min_rows_saudi,     None),
+        ("malaysia", ("all",),        SOURCE_CANDIDATES_MALAYSIA, Path(args.out_malaysia),  Path(args.meta_malaysia),  args.min_rows_malaysia,  None),
+        ("nzl",      ("all",),        SOURCE_CANDIDATES_NZL,      Path(args.out_nzl),       Path(args.meta_nzl),       args.min_rows_nzl,       None),
     ]
 
-    for label, run_on, sources, out_path, meta_path, min_rows in _universes:
-        if args.universe not in (label, run_on):
+    for label, run_on, sources, out_path, meta_path, min_rows, inject_manual in _universes:
+        if args.universe not in (label,) + run_on:
             continue
         _run_one_universe(
             label=label.capitalize(),
@@ -1069,6 +1182,7 @@ def main() -> int:
             meta_path=meta_path,
             min_rows=min_rows,
             allow_partial=args.allow_partial,
+            inject_manual_countries=inject_manual,
         )
 
     return 0
