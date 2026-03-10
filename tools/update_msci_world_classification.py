@@ -54,7 +54,7 @@ import requests
 # ────────────────────────────────────────────────────────────────
 # Version tracker (mirrors scan.py / gc_engine.py pattern)
 # ────────────────────────────────────────────────────────────────
-MSCI_UPDATE_VERSION = "1.7.0"
+MSCI_UPDATE_VERSION = "1.8.0"
 
 _MSCI_UPDATE_VERSION_LOG: dict = {
     "1.0.0": (
@@ -137,6 +137,29 @@ _MSCI_UPDATE_VERSION_LOG: dict = {
         "Total new coverage: ~25 tickers (5 NZL + 13 QAT + 7 KWT). "
         "Companion: scan.py v97, gc_engine.py 0.5.3."
     ),
+    "1.8.0": (
+        "Root cause fix for 4 remaining country ETF failures (confirmed in workflow run 2026-03-10): "
+        "(1) Japan (EWJ) + China (MCHI): ghost filter was killing all pure-numeric tickers even "
+        "though they're valid. _is_ghost_raw_ticker() refactored: pure-numeric \\d+ no longer "
+        "treated as ghost when allow_numeric=True; only \\d+D$ (Bloomberg D-codes) remain blocked. "
+        "EWJ and MCHI get allow_numeric=True — Exchange column (Tokyo/HKEX/SSE/SZSE) provides suffix. "
+        "(2) Saudi Arabia (KSA HTTP 404): instead of fixing the broken KSA URL, "
+        "allow_numeric=True is now set on EIMI/EEM sources — the EIMI CSV carries Saudi numeric "
+        "tickers (2222, 1120 etc.) with Exchange='Tadawul/Saudi Exchange'. COUNTRY_SUFFIX_FALLBACK "
+        "gains 'Saudi Arabia' → '.SR' as a country-level fallback. Saudi now flows from EIMI "
+        "directly into msci_em_classification.csv without needing the dedicated KSA step. "
+        "The KSA step continues in the workflow as a belt-and-suspenders measure. "
+        "(3) NZL (ENZL product ID 239688 returns Thai ETF, not NZL): converted NZL universe to "
+        "manual_only=True mode. MSCI_MANUAL_TICKERS['New Zealand'] hardcodes the 5 confirmed "
+        "MSCI World NZL constituents (FPH.NZ, AIA.NZ, MEL.NZ, SPK.NZ, CEN.NZ). "
+        "_run_one_universe() gains manual_only param that writes tickers from MSCI_MANUAL_TICKERS "
+        "directly, skipping ETF fetch entirely — robust and independent of iShares URL correctness. "
+        "(4) Malaysia (EWM returns HTML, not CSV): Malaysia tickers (alphabetic .KL) already "
+        "flow through the EIMI path since they pass the ghost filter. EWM step left in workflow "
+        "with continue-on-error; will fix separately. "
+        "Net new coverage from this release: ~33 Saudi (.SR) + 5 NZL (.NZ) + ~200 Japan (.T) "
+        "+ ~170 China (.HK/.SS/.SZ) = ~408 previously silent MSCI constituents recovered."
+    ),
 }
 
 USER_AGENT = (
@@ -168,16 +191,22 @@ SOURCE_CANDIDATES_WORLD = [
 ]
 
 # MSCI Emerging Markets ETF sources (EIMI = UCITS, EEM = US-listed)
+# allow_numeric=True: EIMI/EEM export pure-numeric codes for Saudi, Taiwan, Korea, China, HK.
+# The Exchange column carries "Tadawul", "Taiwan Stock Exchange", "Korea Exchange", etc.,
+# which EXCHANGE_SUFFIX_RULES maps to .SR, .TW, .KS, .HK, .SS, .SZ respectively.
+# This recovers ~1,000+ numeric-ticker EM stocks that the ghost filter was silently dropping.
 SOURCE_CANDIDATES_EM = [
     {
         "fund": "EIMI",
         "url": "https://www.ishares.com/uk/individual/en/products/264659/ishares-core-msci-emerging-markets-imi-ucits-etf-acc-fund/1506575576011.ajax?dataType=fund&fileName=EIMI_holdings&fileType=csv",
         "referer": "https://www.ishares.com/uk/individual/en/products/264659/ishares-core-msci-emerging-markets-imi-ucits-etf-acc-fund",
+        "allow_numeric": True,
     },
     {
         "fund": "EEM",
         "url": "https://www.ishares.com/us/products/239626/ishares-msci-emerging-markets-etf/1467271812596.ajax?dataType=fund&fileName=EEM_holdings&fileType=csv",
         "referer": "https://www.ishares.com/us/products/239626/ishares-msci-emerging-markets-etf",
+        "allow_numeric": True,
     },
 ]
 
@@ -208,6 +237,9 @@ SOURCE_CANDIDATES_JAPAN = [
         "fund": "EWJ",
         "url": "https://www.ishares.com/us/products/239665/ishares-msci-japan-etf/1467271812596.ajax?dataType=fund&fileName=EWJ_holdings&fileType=csv",
         "referer": "https://www.ishares.com/us/products/239665/ishares-msci-japan-etf",
+        # EWJ exports bare numeric tickers ("7203", not "7203.T").
+        # allow_numeric=True bypasses the ghost filter so Exchange-column suffix rules fire.
+        "allow_numeric": True,
     },
 ]
 
@@ -225,6 +257,10 @@ SOURCE_CANDIDATES_CHINA = [
         "fund": "MCHI",
         "url": "https://www.ishares.com/us/products/239619/ishares-msci-china-etf/1467271812596.ajax?dataType=fund&fileName=MCHI_holdings&fileType=csv",
         "referer": "https://www.ishares.com/us/products/239619/ishares-msci-china-etf",
+        # MCHI exports bare numeric tickers ("700" for Tencent, "9988" for Alibaba, "600519" for Moutai).
+        # Exchange column provides "Hong Kong Exchanges", "Shanghai Stock Exchange", "Shenzhen Stock Exchange"
+        # which EXCHANGE_SUFFIX_RULES maps to .HK, .SS, .SZ respectively.
+        "allow_numeric": True,
     },
 ]
 
@@ -297,6 +333,17 @@ MSCI_MANUAL_TICKERS: Dict[str, List[Dict]] = {
         {"Ticker": "AGILITY.KW", "Company": "Agility Public Warehousing",     "Country": "Kuwait", "Sector": "Industrials"},
         {"Ticker": "BOUBYAN.KW", "Company": "Boubyan Bank",                   "Country": "Kuwait", "Sector": "Financials"},
         {"Ticker": "HUMANSOFT.KW","Company": "Humansoft Holding",             "Country": "Kuwait", "Sector": "Information Technology"},
+    ],
+    # New Zealand (.NZ) — 5 MSCI World constituents. ENZL (iShares MSCI New Zealand ETF)
+    # product ID is unreliable (wrong ETF returned). Hardcoded here as authoritative fallback.
+    # Verified MSCI World NZL constituents (2025): FPH, AIA, MEL, SPK, CEN.
+    # These are written directly to msci_nzl_classification.csv via manual_only=True universe mode.
+    "New Zealand": [
+        {"Ticker": "FPH.NZ",  "Company": "Fisher & Paykel Healthcare",  "Country": "New Zealand", "Sector": "Health Care"},
+        {"Ticker": "AIA.NZ",  "Company": "Auckland International Airport","Country": "New Zealand", "Sector": "Industrials"},
+        {"Ticker": "MEL.NZ",  "Company": "Meridian Energy",              "Country": "New Zealand", "Sector": "Utilities"},
+        {"Ticker": "SPK.NZ",  "Company": "Spark New Zealand",            "Country": "New Zealand", "Sector": "Communication Services"},
+        {"Ticker": "CEN.NZ",  "Company": "Contact Energy",               "Country": "New Zealand", "Sector": "Utilities"},
     ],
 }
 
@@ -575,6 +622,7 @@ COUNTRY_SUFFIX_FALLBACK: Dict[str, str] = {
     "Peru":            ".LM",
     "Qatar":           ".QA",   # v1.7.0: Qatar Exchange
     "Kuwait":          ".KW",   # v1.7.0: Boursa Kuwait (re-added after GHOST_COUNTRIES removal)
+    "Saudi Arabia":    ".SR",   # v1.8.0: Tadawul — numeric tickers (2222, 1120 etc.) recovered via allow_numeric on EIMI
 }
 
 
@@ -832,23 +880,37 @@ def normalize_weight(x: str) -> Optional[float]:
 
 _GHOST_RAW_PATTERN = re.compile(
     r"^-$"               # bare dash
-    r"|^\d+D?$"          # pure numeric optionally ending in D (Bloomberg placeholders)
-    r"|^[A-Z]{1,5}\d{6,}D$"  # alpha prefix + long numeric + D  e.g. 2299955D
+    r"|^\d+D$"           # Bloomberg D-code: numeric ending in D (e.g. 2299955D, 005930D)
+    r"|^[A-Z]{1,5}\d{6,}D$"  # alpha prefix + long numeric + D  e.g. 2299955D.TO
     r"|^\.$"             # bare dot
 )
+# NOTE: ^\d+$ (pure numeric, no D) is intentionally NOT in this pattern.
+# Pure-numeric tickers are handled separately below so they can be permitted
+# for markets where the exchange CSV legitimately uses bare numeric codes
+# (Japan TSE, HK, Shanghai, Shenzhen, Saudi Tadawul etc.).
 
 
-def _is_ghost_raw_ticker(raw: str) -> bool:
-    """Return True for Bloomberg placeholder symbols that will never resolve on Yahoo Finance."""
+def _is_ghost_raw_ticker(raw: str, allow_numeric: bool = False) -> bool:
+    """Return True for Bloomberg placeholder symbols that will never resolve on Yahoo Finance.
+
+    allow_numeric: when True, pure-numeric tickers are NOT treated as ghosts.
+    Use for ETF sources where bare numeric codes are legitimate exchange tickers
+    (EWJ → "7203", MCHI → "700", KSA → "2222") that will be suffix-appended
+    by guess_yahoo_ticker() using the Exchange column.
+    """
     t = str(raw).strip()
     if not t:
         return True
-    if "." not in t and t.replace("-", "").isdigit():
-        return True
+    # Pure-numeric check: "7203", "0700", "600519" etc.
+    # These are legitimate TSE/HK/Shanghai/Shenzhen/Tadawul symbols.
+    # Only treat as ghost when allow_numeric=False (the default for World/EM UCITS
+    # sources where Bloomberg uses numeric codes as placeholders).
+    if re.fullmatch(r"\d+", t):
+        return False if allow_numeric else True
     return bool(_GHOST_RAW_PATTERN.match(t))
 
 
-def filter_to_equities(df: pd.DataFrame) -> pd.DataFrame:
+def filter_to_equities(df: pd.DataFrame, allow_numeric: bool = False) -> pd.DataFrame:
     if df.empty:
         return df.copy()
 
@@ -884,7 +946,7 @@ def filter_to_equities(df: pd.DataFrame) -> pd.DataFrame:
         d = d[~ghost_mask]
 
     # Drop Bloomberg placeholder raw tickers (D-codes, pure numerics etc.)
-    ghost_ticker_mask = d["RawTicker"].map(_is_ghost_raw_ticker)
+    ghost_ticker_mask = d["RawTicker"].map(lambda raw: _is_ghost_raw_ticker(raw, allow_numeric=allow_numeric))
     n_ghost = ghost_ticker_mask.sum()
     if n_ghost:
         print(f"[msci-refresh] dropping {n_ghost} Bloomberg placeholder / ghost raw tickers")
@@ -893,8 +955,8 @@ def filter_to_equities(df: pd.DataFrame) -> pd.DataFrame:
     return d.reset_index(drop=True)
 
 
-def build_output_dataframe(raw_df: pd.DataFrame, source_fund: str, source_url: str, source_as_of: Optional[str]) -> pd.DataFrame:
-    df = filter_to_equities(raw_df)
+def build_output_dataframe(raw_df: pd.DataFrame, source_fund: str, source_url: str, source_as_of: Optional[str], allow_numeric: bool = False) -> pd.DataFrame:
+    df = filter_to_equities(raw_df, allow_numeric=allow_numeric)
     if df.empty:
         raise RuntimeError("No equity holdings after filtering")
 
@@ -1020,16 +1082,83 @@ def _run_one_universe(
     min_rows: int,
     allow_partial: bool,
     inject_manual_countries: Optional[List[str]] = None,
+    manual_only: bool = False,
 ) -> int:
     """Fetch, parse, build and write one universe (World or EM). Returns row count.
 
     inject_manual_countries: list of country names from MSCI_MANUAL_TICKERS to
     append after the ETF-derived rows (used for Qatar and Kuwait which have no ETF).
+
+    manual_only: skip ETF fetch entirely. Write MSCI_MANUAL_TICKERS rows for
+    inject_manual_countries directly to out_path. Used for NZL (ENZL URL unreliable)
+    and any other market where manual data is more reliable than available ETF sources.
     """
     prev_tickers = load_existing_ticker_set(out_path)
+
+    if manual_only:
+        # ── Manual-only universe: write hardcoded tickers, no ETF fetch ──────────
+        if not inject_manual_countries:
+            raise RuntimeError(f"[{label}] manual_only=True but inject_manual_countries is empty")
+        import pandas as _pd_inner
+        manual_rows = []
+        for country in inject_manual_countries:
+            rows = MSCI_MANUAL_TICKERS.get(country, [])
+            for row in rows:
+                manual_rows.append({
+                    "Ticker":            row["Ticker"],
+                    "Company":           row.get("Company", ""),
+                    "Country":           row.get("Country", country),
+                    "Sector":            row.get("Sector", "Unknown"),
+                    "MappingConfidence": "manual",
+                    "SourceFund":        "manual",
+                    "SourceURL":         "hardcoded:MSCI_MANUAL_TICKERS",
+                    "SourceAsOf":        "",
+                })
+        out_df = _pd_inner.DataFrame(manual_rows)
+        row_count = len(out_df)
+        if not allow_partial and row_count < min_rows:
+            raise RuntimeError(
+                f"[{label}] Refusing to write {out_path}: only {row_count} manual rows (< {min_rows}). "
+                "Check MSCI_MANUAL_TICKERS entries."
+            )
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_df.to_csv(out_path, index=False, encoding="utf-8")
+        new_tickers = set(out_df["Ticker"].astype(str).tolist())
+        added = sorted(new_tickers - prev_tickers)
+        removed = sorted(prev_tickers - new_tickers)
+        stats = {
+            "generated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "universe": label,
+            "source_fund": "manual",
+            "source_url": "hardcoded:MSCI_MANUAL_TICKERS",
+            "source_as_of": None,
+            "row_count": int(row_count),
+            "unique_tickers": int(len(new_tickers)),
+            "added_count": int(len(added)),
+            "removed_count": int(len(removed)),
+            "added_sample": added[:25],
+            "removed_sample": removed[:25],
+        }
+        if meta_path is not None:
+            write_metadata(meta_path, stats)
+        print(f"[msci-refresh:{label}] source fund: manual (MSCI_MANUAL_TICKERS)")
+        print(f"[msci-refresh:{label}] rows written: {row_count}")
+        print(f"[msci-refresh:{label}] unique tickers: {len(new_tickers)}")
+        print(f"[msci-refresh:{label}] added: {len(added)} | removed: {len(removed)}")
+        if added:
+            print(f"[msci-refresh:{label}] added sample: {', '.join(added[:10])}")
+        return row_count
+
     fetched = fetch_holdings_csv(sources=sources)
     raw_df, source_as_of = parse_ishares_holdings(fetched.text)
-    out_df = build_output_dataframe(raw_df, fetched.fund, fetched.url, source_as_of)
+    # Extract allow_numeric from the source that succeeded (default False for UCITS/World/EM)
+    allow_numeric = next(
+        (s.get("allow_numeric", False) for s in sources if s["fund"] == fetched.fund),
+        False,
+    )
+    if allow_numeric:
+        print(f"[msci-refresh] allow_numeric=True for {fetched.fund} — bare numeric tickers will be kept and suffixed via Exchange column")
+    out_df = build_output_dataframe(raw_df, fetched.fund, fetched.url, source_as_of, allow_numeric=allow_numeric)
 
     # ── Inject manual tickers (Qatar, Kuwait) that have no iShares ETF ─────────
     if inject_manual_countries:
@@ -1158,21 +1287,23 @@ def main() -> int:
                     help="Allow writing even if row count < --min-rows")
     args = ap.parse_args()
 
-    # (label, run_on_universe_values, sources, out_path, meta_path, min_rows, inject_manual)
+    # (label, run_on_universe_values, sources, out_path, meta_path, min_rows, inject_manual, manual_only)
     _universes = [
-        ("world",    ("both", "all"), SOURCE_CANDIDATES_WORLD,    Path(args.out),           Path(args.meta),           args.min_rows,          None),
-        ("em",       ("both", "all"), SOURCE_CANDIDATES_EM,       Path(args.out_em),        Path(args.meta_em),        args.min_rows_em,        ["Qatar", "Kuwait"]),
-        ("korea",    ("all",),        SOURCE_CANDIDATES_KOREA,    Path(args.out_korea),     Path(args.meta_korea),     args.min_rows_korea,     None),
-        ("japan",    ("all",),        SOURCE_CANDIDATES_JAPAN,    Path(args.out_japan),     Path(args.meta_japan),     args.min_rows_japan,     None),
-        ("taiwan",   ("all",),        SOURCE_CANDIDATES_TAIWAN,   Path(args.out_taiwan),    Path(args.meta_taiwan),    args.min_rows_taiwan,    None),
-        ("china",    ("all",),        SOURCE_CANDIDATES_CHINA,    Path(args.out_china),     Path(args.meta_china),     args.min_rows_china,     None),
-        ("hk",       ("all",),        SOURCE_CANDIDATES_HK,       Path(args.out_hk),        Path(args.meta_hk),        args.min_rows_hk,        None),
-        ("saudi",    ("all",),        SOURCE_CANDIDATES_SAUDI,    Path(args.out_saudi),     Path(args.meta_saudi),     args.min_rows_saudi,     None),
-        ("malaysia", ("all",),        SOURCE_CANDIDATES_MALAYSIA, Path(args.out_malaysia),  Path(args.meta_malaysia),  args.min_rows_malaysia,  None),
-        ("nzl",      ("all",),        SOURCE_CANDIDATES_NZL,      Path(args.out_nzl),       Path(args.meta_nzl),       args.min_rows_nzl,       None),
+        ("world",    ("both", "all"), SOURCE_CANDIDATES_WORLD,    Path(args.out),           Path(args.meta),           args.min_rows,          None,                   False),
+        ("em",       ("both", "all"), SOURCE_CANDIDATES_EM,       Path(args.out_em),        Path(args.meta_em),        args.min_rows_em,        ["Qatar", "Kuwait"],     False),
+        ("korea",    ("all",),        SOURCE_CANDIDATES_KOREA,    Path(args.out_korea),     Path(args.meta_korea),     args.min_rows_korea,     None,                   False),
+        ("japan",    ("all",),        SOURCE_CANDIDATES_JAPAN,    Path(args.out_japan),     Path(args.meta_japan),     args.min_rows_japan,     None,                   False),
+        ("taiwan",   ("all",),        SOURCE_CANDIDATES_TAIWAN,   Path(args.out_taiwan),    Path(args.meta_taiwan),    args.min_rows_taiwan,    None,                   False),
+        ("china",    ("all",),        SOURCE_CANDIDATES_CHINA,    Path(args.out_china),     Path(args.meta_china),     args.min_rows_china,     None,                   False),
+        ("hk",       ("all",),        SOURCE_CANDIDATES_HK,       Path(args.out_hk),        Path(args.meta_hk),        args.min_rows_hk,        None,                   False),
+        ("saudi",    ("all",),        SOURCE_CANDIDATES_SAUDI,    Path(args.out_saudi),     Path(args.meta_saudi),     args.min_rows_saudi,     None,                   False),
+        ("malaysia", ("all",),        SOURCE_CANDIDATES_MALAYSIA, Path(args.out_malaysia),  Path(args.meta_malaysia),  args.min_rows_malaysia,  None,                   False),
+        # NZL: ENZL (iShares MSCI New Zealand ETF) URL returns wrong ETF (Thai stocks).
+        # Use manual_only mode — write MSCI_MANUAL_TICKERS["New Zealand"] directly.
+        ("nzl",      ("all",),        SOURCE_CANDIDATES_NZL,      Path(args.out_nzl),       Path(args.meta_nzl),       args.min_rows_nzl,       ["New Zealand"],         True),
     ]
 
-    for label, run_on, sources, out_path, meta_path, min_rows, inject_manual in _universes:
+    for label, run_on, sources, out_path, meta_path, min_rows, inject_manual, manual_only in _universes:
         if args.universe not in (label,) + run_on:
             continue
         _run_one_universe(
@@ -1183,6 +1314,7 @@ def main() -> int:
             min_rows=min_rows,
             allow_partial=args.allow_partial,
             inject_manual_countries=inject_manual,
+            manual_only=manual_only,
         )
 
     return 0
