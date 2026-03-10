@@ -2738,20 +2738,6 @@ def compute_eps_analytics(earnings_data: Dict[str, Any]) -> Dict[str, Any]:
         "miss"  if _latest_eps_result is False   else
         "unknown"
     )
-    # Revenue result for most recent quarter (only meaningful when real estimate exists)
-    _r0_rev_est = _safe_float(_r0.get("revenue_estimate"))
-    _r0_rev_rep = _safe_float(_r0.get("revenue_reported"))
-    if np.isfinite(_r0_rev_est) and np.isfinite(_r0_rev_rep) and _r0_rev_est > 0:
-        _latest_rev_result_raw = _revenue_beat_for_row(_r0) if _r0 else None
-        out["latest_rev_result"] = (
-            "beat"  if _latest_rev_result_raw is True   else
-            "match" if _latest_rev_result_raw == "match" else
-            "miss"  if _latest_rev_result_raw is False   else
-            "unknown"
-        )
-    else:
-        out["latest_rev_result"] = "no_estimate"
-
     # Revenue + EPS dual-beat streak: consecutive quarters where BOTH
     # EPS AND revenue beat.
     #
@@ -2791,6 +2777,21 @@ def compute_eps_analytics(earnings_data: Dict[str, Any]) -> Dict[str, Any]:
                 return "match"
             return ratio > 0           # True = beat, False = miss
         return None  # no consensus estimate — undeterminable
+
+    # Revenue result for most recent quarter (only meaningful when real estimate exists)
+    # NOTE: must be placed after _revenue_beat_for_row is defined above.
+    _r0_rev_est = _safe_float(_r0.get("revenue_estimate"))
+    _r0_rev_rep = _safe_float(_r0.get("revenue_reported"))
+    if np.isfinite(_r0_rev_est) and np.isfinite(_r0_rev_rep) and _r0_rev_est > 0:
+        _latest_rev_result_raw = _revenue_beat_for_row(_r0) if _r0 else None
+        out["latest_rev_result"] = (
+            "beat"  if _latest_rev_result_raw is True   else
+            "match" if _latest_rev_result_raw == "match" else
+            "miss"  if _latest_rev_result_raw is False   else
+            "unknown"
+        )
+    else:
+        out["latest_rev_result"] = "no_estimate"
 
     rev_beat_streak = 0
     for r in past_sorted:
