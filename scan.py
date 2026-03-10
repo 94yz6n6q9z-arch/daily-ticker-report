@@ -65,7 +65,20 @@ import yfinance as yf
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-SCAN_VERSION: str = "v97"
+
+from universe import (
+    load_universe,
+    is_ghost_ticker,
+    KNOWN_DEAD_TICKERS,
+    CONFIG_DIR,
+    DOCS_DIR,
+    GC_STATE_PATH,
+    MSCI_CSV,
+    MSCI_EM_CSV,
+    MSCI_KR_CSV,
+)
+
+SCAN_VERSION: str = "v98"
 # ----------------------------
 # Public asset URLs (email-safe) + cache busting
 # ----------------------------
@@ -284,8 +297,7 @@ for _cat, _ticks in WATCHLIST_GROUPS.items():
 # Paths
 # ----------------------------
 BASE_DIR = Path(__file__).resolve().parent
-CONFIG_DIR = BASE_DIR / "config"
-DOCS_DIR = BASE_DIR / "docs"
+# CONFIG_DIR, DOCS_DIR, GC_STATE_PATH imported from universe.py
 IMG_DIR = DOCS_DIR / "img"
 DOCS_DIR.mkdir(parents=True, exist_ok=True)
 IMG_DIR.mkdir(parents=True, exist_ok=True)
@@ -298,8 +310,9 @@ EMAIL_TXT_PATH = DOCS_DIR / "email.txt"
 CUSTOM_TICKERS_PATH = CONFIG_DIR / "tickers_custom.txt"
 SP500_LOCAL = CONFIG_DIR / "universe_sp500.txt"
 NDX_LOCAL = CONFIG_DIR / "universe_nasdaq100.txt"
-MSCI_WORLD_CLASSIFICATION_CSV = CONFIG_DIR / "msci_world_classification.csv"
-MSCI_EM_CLASSIFICATION_CSV = CONFIG_DIR / "msci_em_classification.csv"
+# MSCI CSV paths imported from universe.py (MSCI_CSV, MSCI_EM_CSV, MSCI_KR_CSV)
+MSCI_WORLD_CLASSIFICATION_CSV = MSCI_CSV      # alias for backward compat
+MSCI_EM_CLASSIFICATION_CSV = MSCI_EM_CSV      # alias for backward compat
 # ----------------------------
 # Config knobs
 # ----------------------------
@@ -602,32 +615,8 @@ def _clean_ticker(t: str) -> str:
         return t.replace(".", "-")
     return t
 
-# ── Ghost ticker guard (v92) ──────────────────────────────────────────────────
-# Bloomberg/iShares EM CSV exports contain placeholder symbols that will never
-# resolve on Yahoo Finance.  Filter these from the universe *before* any network
-# call so we don't waste fetch slots and blow the GitHub Actions time budget.
-_GHOST_RE = re.compile(
-    r"^-$"               # bare dash
-    r"|^\d+D?$"          # pure numeric, optionally ending in D  (e.g. 6488, 3227, 2622484D)
-    r"|^[A-Z]{1,5}\d{6,}D$"  # alpha prefix + long numeric + D (e.g. ABMB2655115D)
-    r"|^\.$"             # bare dot
-)
-
-def _is_ghost_ticker(ticker: str) -> bool:
-    """Return True for any symbol that will never resolve on Yahoo Finance.
-
-    Catches: bare numerics (raw Japanese/Indian codes without a .T/.NS suffix),
-    Bloomberg placeholders (*D), the bare-dash null row, and multi-dot malforms.
-    Mirrors the is_ghost_ticker() logic in gc_engine.py so both files stay in sync.
-    """
-    t = str(ticker).strip()
-    if not t:
-        return True
-    if "." not in t and t.replace("-", "").isdigit():
-        return True        # pure numeric without a suffix → never valid on Yahoo
-    if t.count(".") > 1:   # multi-dot = malformed (e.g. BAJAJ.AUTO.NS)
-        return True
-    return bool(_GHOST_RE.match(t))
+# ── Ghost ticker guard ────────────────────────────────────────────────────────
+# is_ghost_ticker() imported from universe.py — single definition, no duplication.
 
 def get_sp500_tickers() -> List[str]:
     local = read_lines(SP500_LOCAL)
@@ -7086,26 +7075,18 @@ def main():
         base_universe = custom
     if args.max_tickers and args.max_tickers > 0:
         base_universe = base_universe[:args.max_tickers]
-    # Optional MSCI World expansion for CONFIRMED technical signals (4B only), driven by local classification CSV.
-    msci_df = load_msci_world_classification(MSCI_WORLD_CLASSIFICATION_CSV)
-    msci_tickers = [] if msci_df is None or msci_df.empty else [str(x).strip() for x in msci_df["Ticker"].astype(str).tolist()]
 
-    # MSCI EM expansion — load and merge if CSV exists
-    msci_em_df = load_msci_world_classification(MSCI_EM_CLASSIFICATION_CSV)
-    if msci_em_df is not None and not msci_em_df.empty:
-        em_tickers = [str(x).strip() for x in msci_em_df["Ticker"].astype(str).tolist()]
-        print(f"[msci] loaded {len(em_tickers)} MSCI EM tickers from {MSCI_EM_CLASSIFICATION_CSV}")
-        # Merge EM into main msci_df for sector/company/country resolution
-        msci_df = pd.concat([msci_df, msci_em_df], ignore_index=True).drop_duplicates(subset=["Ticker"], keep="first")
-        msci_tickers = list(dict.fromkeys(msci_tickers + em_tickers))  # preserve order, deduplicate
-    else:
-        print(f"[msci] MSCI EM CSV not found at {MSCI_EM_CLASSIFICATION_CSV} — run update_msci_world_classification.py --universe em to generate")
-
-    msci_tickers = sorted({t for t in msci_tickers if t and t not in set(base_universe) and not _is_ghost_ticker(t)})
+    # Load full MSCI universe (all 9 country CSVs, deduplicated, ghost-filtered)
+    # via universe.py — single source of truth shared with gc_engine.
+    msci_df = load_universe()
+    msci_tickers = sorted({
+        t for t in msci_df["Ticker"].astype(str).tolist()
+        if t and t not in set(base_universe)
+    })
     if msci_tickers:
-        print(f"[msci] loaded {len(msci_tickers)} non-watchlist/non-base tickers from MSCI World + EM")
+        print(f"[msci] loaded {len(msci_tickers)} non-base tickers from MSCI universe")
     else:
-        print(f"[msci] no extra tickers loaded from MSCI World + EM (4B remains base universe only)")
+        print(f"[msci] no extra tickers loaded from MSCI universe (4B remains base universe only)")
     tech_scan_universe = sorted(set(base_universe + msci_tickers))
     sector_resolver = build_sector_resolver(msci_df)
     company_name_for_ticker, country_for_ticker = build_company_country_resolvers(msci_df)
@@ -7656,19 +7637,15 @@ def main():
                     and _rev_source(d) not in ("info_fallback", "annual_estimated", "none"))
                 gc_updated = gc_state.get("last_data_update", "unknown")[:10]
 
-                # World vs EM + Korea breakdown
-                world_csv = CONFIG_DIR / "msci_world_classification.csv"
-                em_csv = CONFIG_DIR / "msci_em_classification.csv"
-                korea_csv = CONFIG_DIR / "msci_korea_classification.csv"
+                # World vs EM + Korea breakdown — use imported path constants from universe.py
                 world_count = em_count = korea_count = 0
                 try:
-                    import pandas as _pd
-                    if world_csv.exists():
-                        world_count = len(_pd.read_csv(world_csv, dtype=str))
-                    if em_csv.exists():
-                        em_count = len(_pd.read_csv(em_csv, dtype=str))
-                    if korea_csv.exists():
-                        korea_count = len(_pd.read_csv(korea_csv, dtype=str))
+                    if MSCI_CSV.exists():
+                        world_count = len(pd.read_csv(MSCI_CSV, dtype=str))
+                    if MSCI_EM_CSV.exists():
+                        em_count = len(pd.read_csv(MSCI_EM_CSV, dtype=str))
+                    if MSCI_KR_CSV.exists():
+                        korea_count = len(pd.read_csv(MSCI_KR_CSV, dtype=str))
                 except Exception: pass
 
                 gc_fmp = sum(1 for d in ec.values() if d.get("data_source") == "fmp_fallback")
