@@ -28,9 +28,9 @@ VERSION HISTORY
        Companion: gc_engine.py 0.5.5, scan.py v98.
 """
 
-UNIVERSE_VERSION = "1.0.0"
-
 from __future__ import annotations
+
+UNIVERSE_VERSION = "1.0.0"
 
 import os
 import re
