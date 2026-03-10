@@ -37,7 +37,7 @@ import yfinance as yf
 # ────────────────────────────────────────────────────────────────
 # Configuration
 # ────────────────────────────────────────────────────────────────
-GC_VERSION = "0.5.2"
+GC_VERSION = "0.5.3"
 
 # Version history (mirrors the changelog pattern in scan.py)
 _GC_VERSION_LOG: dict = {
@@ -89,6 +89,11 @@ _GC_VERSION_LOG: dict = {
         "Yahoo quoteSummary revenue: documented as structurally returning 0 — "
         "earningsHistory has no revenue fields; earningsTrend is forward-only."
     ),
+    "0.5.1": (
+        "FMP endpoint updated to /stable/earnings (Starter plan compatible). "
+        "Fixed UnboundLocalError in compute_eps_analytics (_revenue_beat_for_row "
+        "called before definition). Both fixes applied 2026-03-10."
+    ),
     "0.5.2": (
         "Fix 1 — Revenue linkage (step 5d): universal quarterly_revenue → earnings_dates "
         "revenue_reported linkage. Recovers revenue_reported for ~1,233 tickers that had "
@@ -103,10 +108,16 @@ _GC_VERSION_LOG: dict = {
         "/stable/earnings which fills eps_estimate + revenue_estimate + revenue_reported for "
         "non-US tickers fetched via the FMP fallback path."
     ),
-    "0.5.1": (
-        "FMP endpoint updated to /stable/earnings (Starter plan compatible). "
-        "Fixed UnboundLocalError in compute_eps_analytics (_revenue_beat_for_row "
-        "called before definition). Both fixes applied 2026-03-10."
+    "0.5.3": (
+        "Email coverage tables fix: print_data_summary() and _build_coverage_html() both "
+        "rewritten to emit proper HTML <table> blocks. Root cause: md.append(f'| row |\\n') "
+        "with trailing \\n, combined with '\\n'.join(md), created double newlines between table "
+        "rows — the markdown `tables` extension treats any blank line as a paragraph break, "
+        "rendering raw pipe characters instead of HTML tables in the email. "
+        "Both functions now emit <table>/<tr>/<th>/<td> directly. "
+        "Per-country coverage table expanded: adds EPS-est-only / Rev-est-only / No-est columns "
+        "so blind spots are visible per market. Estimate gap table added showing top offending "
+        "countries. Companion version: scan.py v97, update_msci_world_classification.py 1.6.0."
     ),
 }
 
