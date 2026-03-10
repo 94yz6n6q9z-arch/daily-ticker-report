@@ -41,7 +41,8 @@ NEW (this update):
 - v93: Add DUMMY to _GHOST_RE. GC diagnostic: add revenue_beat_streak counter, fix star counts in engine health panel to show Star 2/3 separately.
 - v94: Section 7 Growth Compounders Three-Star Signals. build_gc_three_star_section_md() reads ignition_signals from gc_state.json, renders summary table + OpenAI per-ticker brief (what company does + moat explanation). GC diagnostic shows Star 2 dual-beat vs Star 3 moat-confirmed counts.
 - v95: Fix Star 2/3 broken counts. Revenue beat cascade: yfinance → investing.com scrape → FMP analyst-estimates → Finnhub → YoY proxy. Star 2 data-gap fallback: allow single beat (EPS or Rev) when all sources exhausted. Diagnostic shows per-source coverage counts.
-- v96: Add FINNHUB_API_KEY env note. investing.com layer added between yfinance and FMP. (1) revenue_beat_streak now falls back to quarterly_revenue YoY>0 when yfinance lacks consensus revenue estimates — fixes NVDA/LLY always showing 0. (2) Add run_gc_ignition_scoring() called from main() after Star 1 — scores Star 2/3 for all Star 1 tickers, writes ignition_signals to gc_state.json. Section 7 now always rendered (shows placeholder when no 3-star signals). (3) Turkish .IS tickers normalised from TICKER-E.IS to TICKER.IS at load time in both scan.py and gc_engine.py."""
+- v96: Add FINNHUB_API_KEY env note. investing.com layer added between yfinance and FMP. (1) revenue_beat_streak now falls back to quarterly_revenue YoY>0 when yfinance lacks consensus revenue estimates — fixes NVDA/LLY always showing 0. (2) Add run_gc_ignition_scoring() called from main() after Star 1 — scores Star 2/3 for all Star 1 tickers, writes ignition_signals to gc_state.json. Section 7 now always rendered (shows placeholder when no 3-star signals). (3) Turkish .IS tickers normalised from TICKER-E.IS to TICKER.IS at load time in both scan.py and gc_engine.py.
+- v97: Fix GC coverage tables broken in email (pipe-table rows had trailing \\n inside md.append() — "\n".join(md) then added a second newline between every row, which the markdown `tables` extension treats as paragraph breaks, rendering raw | text | instead of HTML tables). Fix: stripped trailing \\n from all table-row md.append() calls. Added full per-country coverage table (all ~40 markets, not just totals) with columns: N | EPS rep | EPS est | Rev rep | Rev est | All-4 | EPS est only | Rev est only | No est. Added estimate gap analysis table (no-est / eps-only / rev-only with top offending countries). Added Korea CSV (config/msci_korea_classification.csv) to the World/EM/Korea universe count line in engine health. Companion updates: gc_engine.py 0.5.3 (same HTML table fixes in _build_coverage_html and print_data_summary), update_msci_world_classification.py 1.6.0 (adds 6 new country ETFs: EWJ Japan, EWT Taiwan, MCHI China, EWH Hong Kong, KSA Saudi Arabia, EWM Malaysia — all produce clean Yahoo Finance numeric suffixes that the EM/World UCITS exports lose to the ghost-ticker filter)."""
 from __future__ import annotations
 import argparse
 import datetime as dt
@@ -64,7 +65,7 @@ import yfinance as yf
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-SCAN_VERSION: str = "v94"
+SCAN_VERSION: str = "v97"
 # ----------------------------
 # Public asset URLs (email-safe) + cache busting
 # ----------------------------
@@ -7655,24 +7656,30 @@ def main():
                     and _rev_source(d) not in ("info_fallback", "annual_estimated", "none"))
                 gc_updated = gc_state.get("last_data_update", "unknown")[:10]
 
-                # World vs EM breakdown
+                # World vs EM + Korea breakdown
                 world_csv = CONFIG_DIR / "msci_world_classification.csv"
                 em_csv = CONFIG_DIR / "msci_em_classification.csv"
-                world_count = 0
-                em_count = 0
+                korea_csv = CONFIG_DIR / "msci_korea_classification.csv"
+                world_count = em_count = korea_count = 0
                 try:
                     import pandas as _pd
                     if world_csv.exists():
                         world_count = len(_pd.read_csv(world_csv, dtype=str))
                     if em_csv.exists():
                         em_count = len(_pd.read_csv(em_csv, dtype=str))
+                    if korea_csv.exists():
+                        korea_count = len(_pd.read_csv(korea_csv, dtype=str))
                 except Exception: pass
 
                 gc_fmp = sum(1 for d in ec.values() if d.get("data_source") == "fmp_fallback")
 
                 md.append(f"- **GC Data Layer** (as of {gc_updated}): universe **{gc_total}** tickers")
-                if world_count or em_count:
-                    md.append(f" (World: {world_count} + EM: {em_count})")
+                if world_count or em_count or korea_count:
+                    parts = []
+                    if world_count: parts.append(f"World: {world_count}")
+                    if em_count:    parts.append(f"EM: {em_count}")
+                    if korea_count: parts.append(f"Korea: {korea_count}")
+                    md.append(f" ({' + '.join(parts)})")
                 md.append(f" | rev data: **{gc_rev}** ({gc_rev*100//max(gc_total,1)}%) | EPS history: **{gc_eps}** ({gc_eps*100//max(gc_total,1)}%) | blind: **{gc_blind}** ({gc_blind*100//max(gc_total,1)}%)\n")
                 # EPS + Revenue data coverage — per source, symmetric
                 # Per-source counts for BOTH estimated and reported fields
@@ -7728,35 +7735,106 @@ def main():
                 def _pct(n): return f"{n*100//tot}%"
                 def _fmt(n): return f"**{n}** ({_pct(n)})"
 
+                # ── IMPORTANT: do NOT add \n inside md.append() for table rows.
+                # "\n".join(md) already adds newlines between items. Adding \n inside
+                # creates double-newlines which break the markdown `tables` extension,
+                # causing pipe characters to render as raw text in the email.
                 md.append(f"\n**EPS data coverage** (per ticker, dominant source):\n")
-                md.append(f"| | yfinance | investing.com | FMP | Finnhub | YoY proxy | none |\n")
-                md.append(f"| :--- | ---: | ---: | ---: | ---: | ---: | ---: |\n")
+                md.append(f"| | yfinance | investing.com | FMP | Finnhub | YoY proxy | none |")
+                md.append(f"| :--- | ---: | ---: | ---: | ---: | ---: | ---: |")
                 md.append(
                     f"| Estimate | {_fmt(cov['eps_est_yfinance'])} | {_fmt(cov['eps_est_investing_com'])} | "
                     f"{_fmt(cov['eps_est_fmp'])} | {_fmt(cov['eps_est_finnhub'])} | "
-                    f"{_fmt(cov['eps_est_yoy_proxy'])} | {_fmt(cov['eps_est_none'])} |\n"
+                    f"{_fmt(cov['eps_est_yoy_proxy'])} | {_fmt(cov['eps_est_none'])} |"
                 )
                 md.append(
                     f"| Reported | {_fmt(cov['eps_rep_yfinance'])} | {_fmt(cov['eps_rep_investing_com'])} | "
                     f"{_fmt(cov['eps_rep_fmp'])} | {_fmt(cov['eps_rep_finnhub'])} | "
-                    f"- | {_fmt(cov['eps_rep_none'])} |\n"
+                    f"– | {_fmt(cov['eps_rep_none'])} |"
                 )
                 md.append(f"\n**Revenue data coverage** (per ticker, dominant source):\n")
-                md.append(f"| | yfinance | investing.com | FMP | Finnhub | YoY proxy | none |\n")
-                md.append(f"| :--- | ---: | ---: | ---: | ---: | ---: | ---: |\n")
+                md.append(f"| | yfinance | investing.com | FMP | Finnhub | YoY proxy | none |")
+                md.append(f"| :--- | ---: | ---: | ---: | ---: | ---: | ---: |")
                 md.append(
                     f"| Estimate | {_fmt(cov['rev_est_yfinance'])} | {_fmt(cov['rev_est_investing_com'])} | "
                     f"{_fmt(cov['rev_est_fmp'])} | {_fmt(cov['rev_est_finnhub'])} | "
-                    f"{_fmt(cov['rev_est_yoy_proxy'])} | {_fmt(cov['rev_est_none'])} |\n"
+                    f"{_fmt(cov['rev_est_yoy_proxy'])} | {_fmt(cov['rev_est_none'])} |"
                 )
                 md.append(
                     f"| Reported | {_fmt(cov['rev_rep_yfinance'])} | {_fmt(cov['rev_rep_investing_com'])} | "
                     f"{_fmt(cov['rev_rep_fmp'])} | {_fmt(cov['rev_rep_finnhub'])} | "
-                    f"- | {_fmt(cov['rev_rep_none'])} |\n"
+                    f"– | {_fmt(cov['rev_rep_none'])} |"
                 )
+
+                # ── Per-country estimate coverage (full breakdown, all markets) ──
+                # Answers: which countries have EPS-only, Rev-only, or no estimates at all?
+                from collections import defaultdict as _dd2
+                _EXCH_FLAGS = {
+                    "US": "🇺🇸 US",        "TO": "🇨🇦 Canada",     "L":  "🇬🇧 UK",
+                    "DE": "🇩🇪 Germany",    "PA": "🇫🇷 France",      "AS": "🇳🇱 Netherlands",
+                    "MI": "🇮🇹 Italy",      "MC": "🇪🇸 Spain",       "SW": "🇨🇭 Switzerland",
+                    "ST": "🇸🇪 Sweden",     "OL": "🇳🇴 Norway",      "HE": "🇫🇮 Finland",
+                    "CO": "🇩🇰 Denmark",    "AT": "🇬🇷 Greece",      "VI": "🇦🇹 Austria",
+                    "IR": "🇮🇪 Ireland",    "LS": "🇵🇹 Portugal",    "WA": "🇵🇱 Poland",
+                    "BD": "🇭🇺 Hungary",    "PR": "🇨🇿 Czech Rep.",   "T":  "🇯🇵 Japan",
+                    "HK": "🇭🇰 Hong Kong",  "KS": "🇰🇷 S. Korea",    "TW": "🇹🇼 Taiwan",
+                    "SI": "🇸🇬 Singapore",  "AX": "🇦🇺 Australia",   "NS": "🇮🇳 India",
+                    "SA": "🇧🇷 Brazil/SA",  "JO": "🇿🇦 S. Africa",   "MX": "🇲🇽 Mexico",
+                    "JK": "🇮🇩 Indonesia",  "BK": "🇹🇭 Thailand",    "KL": "🇲🇾 Malaysia",
+                    "IS": "🇹🇷 Turkey",     "TA": "🇮🇱 Israel",      "AD": "🇦🇪 UAE-AD",
+                    "DU": "🇦🇪 UAE-DU",     "SN": "🇨🇱 Chile",       "BR": "🇧🇪 Belgium",
+                }
+                _ct: dict = _dd2(lambda: {"n":0,"er":0,"ee":0,"rr":0,"re":0,"a4":0,"blind":0,"eps_o":0,"rev_o":0})
+                for ticker, d in ec.items():
+                    exch = ticker.split(".")[-1] if "." in ticker else "US"
+                    c = _EXCH_FLAGS.get(exch, f".{exch}")
+                    past = [r for r in d.get("earnings_dates",[]) if r.get("eps_reported") is not None]
+                    er = len(past) > 0
+                    ee = any(r.get("eps_estimate") is not None for r in past)
+                    rr = any(r.get("revenue_reported") is not None for r in past)
+                    re = any(r.get("revenue_estimate") is not None for r in past)
+                    _ct[c]["n"] += 1
+                    if er: _ct[c]["er"] += 1
+                    if ee: _ct[c]["ee"] += 1
+                    if rr: _ct[c]["rr"] += 1
+                    if re: _ct[c]["re"] += 1
+                    if er and ee and rr and re: _ct[c]["a4"] += 1
+                    if er and not ee and not re: _ct[c]["blind"] += 1
+                    if er and ee and not re: _ct[c]["eps_o"] += 1
+                    if er and re and not ee: _ct[c]["rev_o"] += 1
+
+                md.append(f"\n**Per-country estimate coverage** (N = tickers | EPS est only = has EPS est but no Rev est | No est = both missing):\n")
+                md.append(f"| Country | N | EPS rep | EPS est | Rev rep | Rev est | All-4 | EPS est only | Rev est only | No est ⚠ |")
+                md.append(f"| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
+                _ctot2 = {"n":0,"er":0,"ee":0,"rr":0,"re":0,"a4":0,"blind":0,"eps_o":0,"rev_o":0}
+                for c, d in sorted(_ct.items(), key=lambda x: -x[1]["n"]):
+                    cn = d["n"]
+                    if cn < 1: continue
+                    def _cp(v): return f"**{v}** ({v*100//cn}%)"
+                    blind_cell = f"**{d['blind']}** ⚠" if d["blind"] > 5 else str(d["blind"])
+                    md.append(
+                        f"| {c} | {cn} | {_cp(d['er'])} | {_cp(d['ee'])} | {_cp(d['rr'])} | {_cp(d['re'])} "
+                        f"| {d['a4']} | {d['eps_o'] or '–'} | {d['rev_o'] or '–'} | {blind_cell} |"
+                    )
+                    for k in _ctot2: _ctot2[k] += d[k]
+                tn2 = max(_ctot2["n"], 1)
                 md.append(
-                    f"  _~ = YoY proxy (no consensus estimate). "
-                    f"Cascade: yfinance → investing.com → FMP → Finnhub → YoY proxy._\n"
+                    f"| **TOTAL** | **{_ctot2['n']}** | **{_ctot2['er']}** ({_ctot2['er']*100//tn2}%) "
+                    f"| **{_ctot2['ee']}** ({_ctot2['ee']*100//tn2}%) "
+                    f"| **{_ctot2['rr']}** ({_ctot2['rr']*100//tn2}%) "
+                    f"| **{_ctot2['re']}** ({_ctot2['re']*100//tn2}%) "
+                    f"| **{_ctot2['a4']}** | {_ctot2['eps_o']} | {_ctot2['rev_o']} | **{_ctot2['blind']}** ⚠ |"
+                )
+                md.append(f"\n**Estimate coverage gaps** (tickers with EPS reported):\n")
+                md.append(f"| Gap type | Count | Action |")
+                md.append(f"| :--- | ---: | :--- |")
+                md.append(f"| No estimates at all (EPS + Rev missing) | **{_ctot2['blind']}** | IC / FMP non-US expansion — top: India ({_ct.get('🇮🇳 India',{}).get('blind',0)}), Brazil/SA ({_ct.get('🇧🇷 Brazil/SA',{}).get('blind',0)}), Turkey ({_ct.get('🇹🇷 Turkey',{}).get('blind',0)}), Indonesia ({_ct.get('🇮🇩 Indonesia',{}).get('blind',0)}), Thailand ({_ct.get('🇹🇭 Thailand',{}).get('blind',0)}) |")
+                md.append(f"| EPS estimate only (Rev est missing) | {_ctot2['eps_o']} | FMP /stable/earnings; IC for UK/EU |")
+                md.append(f"| Rev estimate only (EPS est missing) | {_ctot2['rev_o']} | Check FMP symbol mapping |")
+
+                md.append(
+                    f"\n_Cascade: yfinance → investing.com → FMP → Finnhub. "
+                    f"Without consensus estimate, revenue beat/miss cannot be computed._\n"
                 )
                 md.append(f"  - ★★ Star 2 (dual EPS **and** Rev beat ≥2Q): **{gc_star2}**"
                           f"  (+{gc_star2_eps_only} data-gap single-beat fallback)")
@@ -7770,19 +7848,6 @@ def main():
                     md.append(f"  - FMP fallback: **{gc_fmp}** tickers recovered via Financial Modeling Prep (yfinance had no data)\n")
                 else:
                     md.append(f"  - Data source: yfinance only (FMP_API_KEY not set or not needed)\n")
-
-                # Coverage gaps by exchange (blind ≥ 10 tickers)
-                blind_by_ex = {}
-                for ticker, d in ec.items():
-                    if (len(d.get("quarterly_revenue", [])) < 4
-                            and not any(e.get("eps_reported") for e in d.get("earnings_dates", []))
-                            and not d.get("info", {}).get("revenue_growth")):
-                        ex = ticker.split(".")[-1] if "." in ticker else "US"
-                        blind_by_ex[ex] = blind_by_ex.get(ex, 0) + 1
-                significant_gaps = [(ex, n) for ex, n in sorted(blind_by_ex.items(), key=lambda x: -x[1]) if n >= 5]
-                if significant_gaps:
-                    gap_str = ", ".join(f".{ex}: {n}" for ex, n in significant_gaps[:8])
-                    md.append(f"  - Coverage gaps (blind ≥5 tickers by exchange): {gap_str}\n")
         except Exception:
             pass
         md.append("\n")
