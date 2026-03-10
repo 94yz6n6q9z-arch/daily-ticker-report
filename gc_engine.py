@@ -37,7 +37,7 @@ import yfinance as yf
 # ────────────────────────────────────────────────────────────────
 # Configuration
 # ────────────────────────────────────────────────────────────────
-GC_VERSION = "0.5.1"
+GC_VERSION = "0.5.2"
 
 # Version history (mirrors the changelog pattern in scan.py)
 _GC_VERSION_LOG: dict = {
@@ -89,6 +89,20 @@ _GC_VERSION_LOG: dict = {
         "Yahoo quoteSummary revenue: documented as structurally returning 0 — "
         "earningsHistory has no revenue fields; earningsTrend is forward-only."
     ),
+    "0.5.2": (
+        "Fix 1 — Revenue linkage (step 5d): universal quarterly_revenue → earnings_dates "
+        "revenue_reported linkage. Recovers revenue_reported for ~1,233 tickers that had "
+        "EPS data but no revenue because income statement data was stored in quarterly_revenue "
+        "but never linked back to earnings_dates rows. Skips annual_estimated (÷4 proxy) rows "
+        "to avoid corrupting beat/miss scoring. Uses ±2 month date matching, tagged yf_income_stmt. "
+        "Fix 2 — Method 4 annual fallback: _fetch_eps_method4 now tries quarterly_income_stmt "
+        "first then falls back to annual income_stmt, recovering EPS + revenue_reported for ~236 "
+        "tickers in annual-reporting markets (JO, AX, PA, SW, L) where yfinance has no quarterly "
+        "earnings data. Revenue extracted directly from the income_stmt DataFrame, not the ÷4 proxy. "
+        "Fix 3 — FMP fetch_fmp_single: replaced /analyst-estimates (402 on Starter plan) with "
+        "/stable/earnings which fills eps_estimate + revenue_estimate + revenue_reported for "
+        "non-US tickers fetched via the FMP fallback path."
+    ),
     "0.5.1": (
         "FMP endpoint updated to /stable/earnings (Starter plan compatible). "
         "Fixed UnboundLocalError in compute_eps_analytics (_revenue_beat_for_row "
@@ -102,6 +116,7 @@ DOCS_DIR = BASE_DIR / "docs"
 GC_STATE_PATH = DOCS_DIR / "gc_state.json"
 MSCI_CSV = CONFIG_DIR / "msci_world_classification.csv"
 MSCI_EM_CSV = CONFIG_DIR / "msci_em_classification.csv"
+MSCI_KR_CSV = CONFIG_DIR / "msci_korea_classification.csv"
 
 # OHLCV download
 DOWNLOAD_PERIOD = "3y"        # For daily scanning
@@ -346,9 +361,9 @@ def _json_default(o):
 # Universe construction
 # ────────────────────────────────────────────────────────────────
 def load_universe() -> pd.DataFrame:
-    """Load MSCI World + MSCI EM classification CSVs.
+    """Load MSCI World + MSCI EM + MSCI Korea classification CSVs.
     Returns combined DataFrame with columns: Ticker, Company, Country, Sector
-    Deduplicates by Ticker — World takes priority over EM for any overlap.
+    Deduplicates by Ticker — World > Korea > EM priority for any overlap.
     """
     frames = []
 
@@ -365,6 +380,21 @@ def load_universe() -> pd.DataFrame:
             print(f"[gc] Loaded {len(df)} tickers from MSCI World CSV")
         except Exception as e:
             print(f"[gc] Error loading MSCI World CSV: {e}")
+
+    # MSCI Korea (before EM so Korean names override EM if both present)
+    if not MSCI_KR_CSV.exists():
+        print(f"[gc] MSCI Korea CSV not found at {MSCI_KR_CSV} — Korean tickers not included. "
+              f"Run update_msci_world_classification.py --universe korea to generate.")
+    else:
+        try:
+            df_kr = pd.read_csv(MSCI_KR_CSV, dtype=str)
+            df_kr["Ticker"] = df_kr["Ticker"].astype(str).str.strip()
+            df_kr = df_kr[df_kr["Ticker"].str.len() > 0]
+            df_kr["_source"] = "korea"
+            frames.append(df_kr)
+            print(f"[gc] Loaded {len(df_kr)} tickers from MSCI Korea CSV")
+        except Exception as e:
+            print(f"[gc] Error loading MSCI Korea CSV: {e}")
 
     # MSCI EM (supplementary)
     if not MSCI_EM_CSV.exists():
@@ -480,18 +510,16 @@ def _fetch_eps_method3(tk) -> List[Dict]:
 
 
 def _fetch_eps_method4(tk) -> List[Dict]:
-    """Method 4: tk.income_stmt (annual) + tk.quarterly_income_stmt — derive EPS from net income / shares.
-    Last resort when all other methods fail. No estimate vs actual, but confirms earnings history."""
-    try:
-        inc = tk.quarterly_income_stmt
-        if inc is None or inc.empty:
-            return []
-        # Try to find net income and shares outstanding
+    """Method 4: derive EPS from net income / shares.
+    Tries quarterly_income_stmt first; falls back to annual income_stmt.
+    Last resort when all other methods fail. No estimate vs actual, but confirms earnings history.
+    Annual fallback recovers ~236 tickers (JO, AX, L, PA, SW) where yfinance has no quarterly data.
+    """
+    def _rows_from_inc(inc, method_tag: str) -> List[Dict]:
         ni_label = next((l for l in ["Net Income", "NetIncome", "Net Income Common Stockholders"] if l in inc.index), None)
         if ni_label is None:
             return []
         ni_series = inc.loc[ni_label].dropna().sort_index()
-        # Get diluted shares if available
         shares_label = next((l for l in ["Diluted Average Shares", "BasicAverageShares", "Ordinary Shares Number"] if l in inc.index), None)
         shares_series = inc.loc[shares_label].dropna().sort_index() if shares_label else None
         rows = []
@@ -501,16 +529,39 @@ def _fetch_eps_method4(tk) -> List[Dict]:
                 sh = float(shares_series[date_col])
                 if sh and sh > 0:
                     eps_val = round(float(ni) / sh, 4)
+            # Also grab revenue if available
+            rev_val = None
+            for rev_label in ["Total Revenue", "TotalRevenue", "Revenue"]:
+                if rev_label in inc.index and date_col in inc.loc[rev_label].index:
+                    rv = inc.loc[rev_label][date_col]
+                    if rv is not None and np.isfinite(float(rv)) and float(rv) > 0:
+                        rev_val = float(rv)
+                    break
             rows.append({
                 "date": str(pd.Timestamp(date_col).date()),
                 "eps_estimate": None,
                 "eps_reported": eps_val,
                 "eps_surprise_pct": None,
                 "revenue_estimate": None,
-                "revenue_reported": None,
-                "_method": "income_stmt_derived",
+                "revenue_reported": rev_val,
+                "_method": method_tag,
             })
         return rows
+
+    try:
+        # Try quarterly first
+        inc_q = tk.quarterly_income_stmt
+        if inc_q is not None and not inc_q.empty:
+            rows = _rows_from_inc(inc_q, "income_stmt_derived")
+            if rows:
+                return rows
+        # Fall back to annual (recovers JO, AX, L, PA, SW etc)
+        inc_a = tk.income_stmt
+        if inc_a is not None and not inc_a.empty:
+            rows = _rows_from_inc(inc_a, "income_stmt_annual_derived")
+            if rows:
+                return rows
+        return []
     except Exception:
         return []
 
@@ -1092,6 +1143,53 @@ def fetch_earnings_data(ticker: str) -> Dict[str, Any]:
                 out["_finnhub_filled"] = filled_fh
         except Exception as _fh_err:
             out["_finnhub_error"] = str(_fh_err)
+
+    # 5d) Universal quarterly_revenue → earnings_dates revenue_reported linkage.
+    # quarterly_revenue comes from yfinance income statement (tk.quarterly_income_stmt)
+    # and is available for ~86% of universe. However it was never systematically linked
+    # back to earnings_dates[].revenue_reported — only the FMP block did this for its
+    # own tickers. This step fills the gap for ALL tickers, using ±2 month date matching.
+    # This recovers revenue_reported for ~1,233 tickers that had EPS data but no revenue.
+    #
+    # IMPORTANT: we skip rows flagged as revenue_source="annual_estimated" (annual÷4 proxy)
+    # because storing a ÷4 estimate as revenue_reported would corrupt beat/miss and star-gate
+    # scoring. Annual-only markets (JO, AX, PA, SW, L) are handled by Method 4 annual
+    # fallback, which extracts revenue directly from the raw income_stmt DataFrame.
+    try:
+        qr_rows = out.get("quarterly_revenue", [])
+        if qr_rows:
+            qr_by_month: Dict[str, float] = {}
+            for qr in qr_rows:
+                if qr.get("revenue_source") == "annual_estimated":
+                    continue  # skip ÷4 proxy — not actual quarterly revenue
+                d = (qr.get("date") or "")[:7]
+                rev = qr.get("revenue")
+                if d and rev is not None and np.isfinite(float(rev)) and float(rev) > 0:
+                    qr_by_month[d] = float(rev)
+
+            filled_qr = 0
+            for row in out.get("earnings_dates", []):
+                if row.get("revenue_reported") is not None:
+                    continue  # already filled by FMP or yfinance
+                d = (row.get("date") or "")[:7]
+                candidates = [d]
+                try:
+                    y, m = int(d[:4]), int(d[5:7])
+                    for delta in [-1, -2, 1, 2]:
+                        nm = m + delta; ny = y + (nm-1)//12; nm = ((nm-1)%12)+1
+                        candidates.append(f"{ny:04d}-{nm:02d}")
+                except Exception:
+                    pass
+                for key in candidates:
+                    if key in qr_by_month:
+                        row["revenue_reported"] = qr_by_month[key]
+                        row["_rev_act_source"] = "yf_income_stmt"
+                        filled_qr += 1
+                        break
+            if filled_qr:
+                out["_qr_linkage_filled"] = filled_qr
+    except Exception as _qr_err:
+        out["_qr_linkage_error"] = str(_qr_err)
 
     out["fetched_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
     # Clear new_constituent flag — ticker has now been fetched at least once
@@ -2181,30 +2279,27 @@ def fetch_fmp_single(yahoo_ticker: str, api_key: str) -> Dict[str, Any]:
     except Exception as e:
         out["_fmp_eps_error"] = str(e)
 
-    # 2b) Revenue consensus estimates from FMP analyst-estimates endpoint
-    # Matches estimates to eps_rows by YYYY-MM key, fills revenue_estimate + revenue_reported.
-    # Free tier: available for US tickers. Non-US may return empty list.
+    # 2b) Revenue + EPS consensus from FMP /stable/earnings endpoint (Starter plan compatible).
+    # Replaces the old /analyst-estimates call which returns 402 on Starter plan.
     try:
-        rev_est_data = _fmp_get("/analyst-estimates", {"symbol": sym, "period": "quarter", "limit": 16}, api_key)
-        if rev_est_data and isinstance(rev_est_data, list):
-            # Build YYYY-MM -> revenue consensus estimate
-            rev_est_by_qtr = {}
-            for q in rev_est_data:
+        import urllib.request as _ureq2
+        from urllib.parse import urlencode as _ue2
+        qs2 = _ue2({"symbol": sym, "limit": 16, "apikey": api_key})
+        with _ureq2.urlopen(f"https://financialmodelingprep.com/stable/earnings?{qs2}", timeout=8) as _r2:
+            earn_data = json.loads(_r2.read().decode())
+        if earn_data and isinstance(earn_data, list):
+            earn_by_qtr: Dict[str, Dict] = {}
+            for q in earn_data:
                 d = str(q.get("date", ""))[:7]
-                avg = _safe_float(q.get("estimatedRevenueAvg") or q.get("revenueAvg"))
-                if d and avg is not None and np.isfinite(avg) and avg > 0:
-                    rev_est_by_qtr[d] = avg
-            # Build YYYY-MM -> actual revenue from income statement (already fetched)
-            rev_act_by_qtr = {}
-            for qr in out.get("quarterly_revenue", []):
-                d = (qr.get("date") or "")[:7]
-                if d and qr.get("revenue") is not None:
-                    rev_act_by_qtr[d] = qr["revenue"]
-            # Populate revenue_estimate / revenue_reported in eps_rows
+                if d:
+                    earn_by_qtr[d] = {
+                        "eps_est": _safe_float(q.get("epsEstimated")),
+                        "rev_est": _safe_float(q.get("revenueEstimated")),
+                        "rev_act": _safe_float(q.get("revenueActual")),
+                    }
             filled = 0
             for row in out.get("earnings_dates", []):
                 d = (row.get("date") or "")[:7]
-                # Try exact match then ±2 month window
                 candidates = [d]
                 try:
                     y, m = int(d[:4]), int(d[5:7])
@@ -2213,13 +2308,21 @@ def fetch_fmp_single(yahoo_ticker: str, api_key: str) -> Dict[str, Any]:
                         candidates.append(f"{ny:04d}-{nm:02d}")
                 except Exception: pass
                 for key in candidates:
-                    if row.get("revenue_estimate") is None and key in rev_est_by_qtr:
-                        row["revenue_estimate"] = rev_est_by_qtr[key]
+                    if key not in earn_by_qtr:
+                        continue
+                    eq = earn_by_qtr[key]
+                    if row.get("eps_estimate") is None and eq["eps_est"] is not None and np.isfinite(eq["eps_est"]):
+                        row["eps_estimate"] = eq["eps_est"]
+                        row["_eps_est_source"] = "fmp_earnings"
                         filled += 1
-                    if row.get("revenue_reported") is None and key in rev_act_by_qtr:
-                        row["revenue_reported"] = rev_act_by_qtr[key]
-                    if row.get("revenue_estimate") is not None and row.get("revenue_reported") is not None:
-                        break
+                    if row.get("revenue_estimate") is None and eq["rev_est"] is not None and np.isfinite(eq["rev_est"]) and eq["rev_est"] > 0:
+                        row["revenue_estimate"] = eq["rev_est"]
+                        row["_rev_est_source"] = "fmp_earnings"
+                        filled += 1
+                    if row.get("revenue_reported") is None and eq["rev_act"] is not None and np.isfinite(eq["rev_act"]) and eq["rev_act"] > 0:
+                        row["revenue_reported"] = eq["rev_act"]
+                        row["_rev_act_source"] = "fmp_earnings"
+                    break
             if filled:
                 out["_fmp_rev_estimates_filled"] = filled
     except Exception as e:
@@ -2846,6 +2949,307 @@ def compute_sector_medians(
 # ────────────────────────────────────────────────────────────────
 # Summary report (for inspection / debugging)
 # ────────────────────────────────────────────────────────────────
+def _build_coverage_html(earnings_cache: Dict[str, Any]) -> str:
+    """
+    Build an HTML string with three tables for the daily email:
+      1. EPS + Revenue top-level coverage (source breakdown)
+      2. Per-country GC data layer coverage
+      3. Estimate gap summary
+
+    Returns a self-contained HTML fragment (no <html>/<body> wrappers) that
+    scan.py can embed directly into the email body.
+
+    Stored in gc_state["report_html_coverage"] after every data run.
+    """
+    _STYLE = (
+        "font-family:Arial,sans-serif;font-size:13px;border-collapse:collapse;width:100%;"
+        "margin-bottom:18px;"
+    )
+    _TH = "style='background:#1a1a2e;color:#e0e0e0;padding:7px 10px;text-align:left;border:1px solid #444;'"
+    _TH_R = "style='background:#1a1a2e;color:#e0e0e0;padding:7px 10px;text-align:right;border:1px solid #444;'"
+    _TD = "style='padding:6px 10px;border:1px solid #ddd;text-align:left;'"
+    _TD_R = "style='padding:6px 10px;border:1px solid #ddd;text-align:right;'"
+    _TD_WARN = "style='padding:6px 10px;border:1px solid #ddd;text-align:right;color:#c0392b;font-weight:bold;'"
+    _TR_ALT = "style='background:#f7f9fc;'"
+    _TR_NORM = ""
+    _TR_TOT = "style='background:#e8f0fe;font-weight:bold;'"
+
+    N = max(len(earnings_cache), 1)
+
+    def pct(n: int) -> str:
+        return f"{n} <span style='color:#666;font-size:11px;'>({n * 100 // N}%)</span>"
+
+    def pct_of(n: int, total: int) -> str:
+        return f"{n} <span style='color:#666;font-size:11px;'>({n * 100 // max(total,1)}%)</span>"
+
+    # ── Compute source tallies (same logic as print_data_summary) ────────────
+    _SOURCES = ["yfinance", "investing_com", "fmp", "finnhub", "yoy_proxy", "none"]
+    eps_est_src: Dict[str, int] = {s: 0 for s in _SOURCES}
+    rev_act_src: Dict[str, int] = {s: 0 for s in _SOURCES}
+    rev_est_src: Dict[str, int] = {s: 0 for s in _SOURCES}
+    rev_con_src: Dict[str, int] = {s: 0 for s in _SOURCES}
+    eps_rep_count = 0
+
+    for data in earnings_cache.values():
+        past_ed = [r for r in data.get("earnings_dates", [])
+                   if r.get("eps_reported") is not None]
+        if past_ed:
+            eps_rep_count += 1
+
+        if any(r.get("eps_estimate") is not None for r in past_ed):
+            srcs = [r.get("_eps_est_source", "yfinance") for r in past_ed
+                    if r.get("eps_estimate") is not None]
+            dom = max(set(srcs), key=srcs.count)
+            eps_est_src[dom if dom in eps_est_src else "yfinance"] += 1
+        elif any(r.get("_eps_est_source") == "yoy_proxy" for r in past_ed):
+            eps_est_src["yoy_proxy"] += 1
+        else:
+            eps_est_src["none"] += 1
+
+        qr = [r for r in data.get("quarterly_revenue", []) if r.get("revenue") is not None]
+        if qr:
+            qr_src = data.get("data_source", "yfinance")
+            rev_act_src[qr_src if qr_src in rev_act_src else "yfinance"] += 1
+        else:
+            rev_act_src["none"] += 1
+
+        if any(r.get("revenue_estimate") is not None for r in past_ed):
+            srcs = [r.get("_rev_est_source", "yfinance") for r in past_ed
+                    if r.get("revenue_estimate") is not None]
+            dom = max(set(srcs), key=srcs.count)
+            rev_est_src[dom if dom in rev_est_src else "yfinance"] += 1
+        else:
+            rev_est_src["none"] += 1
+
+        if any(r.get("revenue_reported") is not None for r in past_ed):
+            srcs = [r.get("_rev_act_source", "yfinance") for r in past_ed
+                    if r.get("revenue_reported") is not None]
+            dom = max(set(srcs), key=srcs.count)
+            rev_con_src[dom if dom in rev_con_src else "yfinance"] += 1
+        else:
+            rev_con_src["none"] += 1
+
+    def _s(d: Dict[str, int], k: str) -> str:
+        v = d.get(k, 0)
+        return pct(v) if v > 0 else "<span style='color:#aaa;'>–</span>"
+
+    # ── Table 1: EPS + Revenue source coverage ───────────────────────────────
+    html = (
+        f"<h3 style='font-family:Arial;font-size:14px;margin:16px 0 6px;color:#1a1a2e;'>"
+        f"📊 GC Data Layer — Coverage Summary (v{GC_VERSION})</h3>"
+        f"<table style='{_STYLE}'>"
+        f"<thead><tr>"
+        f"<th {_TH}>Metric</th>"
+        f"<th {_TH_R}>yfinance</th>"
+        f"<th {_TH_R}>investing.com</th>"
+        f"<th {_TH_R}>FMP</th>"
+        f"<th {_TH_R}>Finnhub</th>"
+        f"<th {_TH_R}>YoY proxy</th>"
+        f"<th {_TH_R}>none</th>"
+        f"</tr></thead><tbody>"
+        f"<tr {_TR_ALT}>"
+        f"<td {_TD}><b>EPS Estimate</b></td>"
+        f"<td {_TD_R}>{_s(eps_est_src,'yfinance')}</td>"
+        f"<td {_TD_R}>{_s(eps_est_src,'investing_com')}</td>"
+        f"<td {_TD_R}>{_s(eps_est_src,'fmp')}</td>"
+        f"<td {_TD_R}>{_s(eps_est_src,'finnhub')}</td>"
+        f"<td {_TD_R}>{_s(eps_est_src,'yoy_proxy')}</td>"
+        f"<td {_TD_R}>{_s(eps_est_src,'none')}</td>"
+        f"</tr>"
+        f"<tr {_TR_NORM}>"
+        f"<td {_TD}><b>EPS Reported</b> (actual)</td>"
+        f"<td {_TD_R}>{pct(eps_rep_count)}</td>"
+        f"<td {_TD_R}><span style='color:#aaa;'>–</span></td>"
+        f"<td {_TD_R}><span style='color:#aaa;'>–</span></td>"
+        f"<td {_TD_R}><span style='color:#aaa;'>–</span></td>"
+        f"<td {_TD_R}><span style='color:#aaa;'>–</span></td>"
+        f"<td {_TD_R}>{pct(N - eps_rep_count)}</td>"
+        f"</tr>"
+        f"<tr {_TR_ALT}>"
+        f"<td {_TD}><b>Revenue Actuals</b> (income stmt)</td>"
+        f"<td {_TD_R}>{_s(rev_act_src,'yfinance')}</td>"
+        f"<td {_TD_R}>{_s(rev_act_src,'investing_com')}</td>"
+        f"<td {_TD_R}>{_s(rev_act_src,'fmp')}</td>"
+        f"<td {_TD_R}>{_s(rev_act_src,'finnhub')}</td>"
+        f"<td {_TD_R}><span style='color:#aaa;'>–</span></td>"
+        f"<td {_TD_R}>{_s(rev_act_src,'none')}</td>"
+        f"</tr>"
+        f"<tr {_TR_NORM}>"
+        f"<td {_TD}><b>Revenue Estimate</b> (consensus)</td>"
+        f"<td {_TD_R}>{_s(rev_est_src,'yfinance')}</td>"
+        f"<td {_TD_R}>{_s(rev_est_src,'investing_com')}</td>"
+        f"<td {_TD_R}>{_s(rev_est_src,'fmp')}</td>"
+        f"<td {_TD_R}>{_s(rev_est_src,'finnhub')}</td>"
+        f"<td {_TD_R}><span style='color:#aaa;'>–</span></td>"
+        f"<td {_TD_R}>{_s(rev_est_src,'none')}</td>"
+        f"</tr>"
+        f"<tr {_TR_ALT}>"
+        f"<td {_TD}><b>Revenue Reported</b> (paired w/ estimate)</td>"
+        f"<td {_TD_R}>{_s(rev_con_src,'yfinance')}</td>"
+        f"<td {_TD_R}>{_s(rev_con_src,'investing_com')}</td>"
+        f"<td {_TD_R}>{_s(rev_con_src,'fmp')}</td>"
+        f"<td {_TD_R}>{_s(rev_con_src,'finnhub')}</td>"
+        f"<td {_TD_R}><span style='color:#aaa;'>–</span></td>"
+        f"<td {_TD_R}>{_s(rev_con_src,'none')}</td>"
+        f"</tr>"
+        f"</tbody></table>"
+    )
+
+    # ── Table 2: Per-country coverage ────────────────────────────────────────
+    _EXCH_TO_COUNTRY: Dict[str, str] = {
+        "US": "🇺🇸 United States",  "TO": "🇨🇦 Canada",         "L":  "🇬🇧 United Kingdom",
+        "DE": "🇩🇪 Germany",        "PA": "🇫🇷 France",          "AS": "🇳🇱 Netherlands",
+        "MI": "🇮🇹 Italy",          "MC": "🇪🇸 Spain",           "SW": "🇨🇭 Switzerland",
+        "ST": "🇸🇪 Sweden",         "OL": "🇳🇴 Norway",          "HE": "🇫🇮 Finland",
+        "CO": "🇩🇰 Denmark",        "AT": "🇬🇷 Greece",          "VI": "🇦🇹 Austria",
+        "IR": "🇮🇪 Ireland",        "LS": "🇵🇹 Portugal",        "WA": "🇵🇱 Poland",
+        "BD": "🇭🇺 Hungary",        "PR": "🇨🇿 Czech Republic",  "T":  "🇯🇵 Japan",
+        "HK": "🇭🇰 Hong Kong",      "KS": "🇰🇷 South Korea",     "TW": "🇹🇼 Taiwan",
+        "SI": "🇸🇬 Singapore",      "AX": "🇦🇺 Australia",       "NZ": "🇳🇿 New Zealand",
+        "NS": "🇮🇳 India",          "BO": "🇮🇳 India (BSE)",     "SA": "🇧🇷 Brazil",
+        "JO": "🇿🇦 South Africa",   "MX": "🇲🇽 Mexico",          "JK": "🇮🇩 Indonesia",
+        "BK": "🇹🇭 Thailand",       "KL": "🇲🇾 Malaysia",        "IS": "🇹🇷 Turkey",
+        "TA": "🇮🇱 Israel",         "SR": "🇸🇦 Saudi Arabia",    "AD": "🇦🇪 UAE-Abu Dhabi",
+        "DU": "🇦🇪 UAE-Dubai",      "QA": "🇶🇦 Qatar",           "SS": "🇨🇳 China-SH",
+        "SZ": "🇨🇳 China-SZ",       "CA": "🇪🇬 Egypt",           "SN": "🇨🇱 Chile",
+        "CL": "🇨🇴 Colombia",       "BR": "🇧🇪 Belgium",
+    }
+
+    from collections import defaultdict as _dd
+    _crows: Dict[str, list] = _dd(list)
+    for t_key, data in earnings_cache.items():
+        exch = t_key.rsplit(".", 1)[-1] if "." in t_key else "US"
+        country = _EXCH_TO_COUNTRY.get(exch, f".{exch}")
+        past = [r for r in data.get("earnings_dates", [])
+                if r.get("eps_reported") is not None]
+        _crows[country].append({
+            "er": len(past) > 0,
+            "ee": any(r.get("eps_estimate") is not None for r in past),
+            "rr": any(r.get("revenue_reported") is not None for r in past),
+            "re": any(r.get("revenue_estimate") is not None for r in past),
+        })
+
+    html += (
+        f"<h3 style='font-family:Arial;font-size:14px;margin:16px 0 6px;color:#1a1a2e;'>"
+        f"🌍 Per-Country Data Coverage</h3>"
+        f"<table style='{_STYLE}'>"
+        f"<thead><tr>"
+        f"<th {_TH}>Country</th>"
+        f"<th {_TH_R}>N</th>"
+        f"<th {_TH_R}>EPS rep</th>"
+        f"<th {_TH_R}>EPS est</th>"
+        f"<th {_TH_R}>Rev rep</th>"
+        f"<th {_TH_R}>Rev est</th>"
+        f"<th {_TH_R}>All-4</th>"
+        f"<th {_TH_R}>EPS est only</th>"
+        f"<th {_TH_R}>Rev est only</th>"
+        f"<th {_TH_R}>No est ⚠</th>"
+        f"</tr></thead><tbody>"
+    )
+
+    _ctot = {"n": 0, "er": 0, "ee": 0, "rr": 0, "re": 0, "a4": 0, "blind": 0, "eps_o": 0, "rev_o": 0}
+    alt = False
+    for country, rows in sorted(_crows.items(), key=lambda x: (-len(x[1]), x[0])):
+        cn = len(rows)
+        er  = sum(1 for r in rows if r["er"])
+        ee  = sum(1 for r in rows if r["ee"])
+        rr  = sum(1 for r in rows if r["rr"])
+        re  = sum(1 for r in rows if r["re"])
+        a4  = sum(1 for r in rows if r["er"] and r["ee"] and r["rr"] and r["re"])
+        blind    = sum(1 for r in rows if r["er"] and not r["ee"] and not r["re"])
+        eps_only = sum(1 for r in rows if r["er"] and r["ee"] and not r["re"])
+        rev_only = sum(1 for r in rows if r["er"] and r["re"] and not r["ee"])
+
+        def cp(v: int) -> str:
+            bar_w = v * 60 // max(cn, 1)
+            color = "#27ae60" if v * 100 // cn >= 80 else ("#e67e22" if v * 100 // cn >= 40 else "#e74c3c")
+            return (
+                f"<div style='display:inline-block;width:{bar_w}px;height:8px;"
+                f"background:{color};border-radius:3px;margin-right:4px;vertical-align:middle;'></div>"
+                f"{v} <span style='color:#888;font-size:11px;'>({v*100//cn}%)</span>"
+            )
+
+        blind_td = (
+            f"<td style='padding:6px 10px;border:1px solid #ddd;text-align:right;"
+            f"color:#c0392b;font-weight:bold;'>{blind}</td>"
+            if blind > 5 else
+            f"<td {_TD_R}>{blind if blind else '<span style=\"color:#27ae60\">✓</span>'}</td>"
+        )
+        tr_style = _TR_ALT if alt else _TR_NORM
+        alt = not alt
+        html += (
+            f"<tr {tr_style}>"
+            f"<td {_TD}>{country}</td>"
+            f"<td {_TD_R}>{cn}</td>"
+            f"<td {_TD_R}>{cp(er)}</td>"
+            f"<td {_TD_R}>{cp(ee)}</td>"
+            f"<td {_TD_R}>{cp(rr)}</td>"
+            f"<td {_TD_R}>{cp(re)}</td>"
+            f"<td {_TD_R}>{a4}</td>"
+            f"<td {_TD_R}>{eps_only if eps_only else '–'}</td>"
+            f"<td {_TD_R}>{rev_only if rev_only else '–'}</td>"
+            f"{blind_td}</tr>"
+        )
+        _ctot["n"] += cn; _ctot["er"] += er; _ctot["ee"] += ee
+        _ctot["rr"] += rr; _ctot["re"] += re; _ctot["a4"] += a4
+        _ctot["blind"] += blind; _ctot["eps_o"] += eps_only; _ctot["rev_o"] += rev_only
+
+    tn = max(_ctot["n"], 1)
+    html += (
+        f"<tr {_TR_TOT}>"
+        f"<td {_TD}>TOTAL</td>"
+        f"<td {_TD_R}>{_ctot['n']}</td>"
+        f"<td {_TD_R}>{_ctot['er']} ({_ctot['er']*100//tn}%)</td>"
+        f"<td {_TD_R}>{_ctot['ee']} ({_ctot['ee']*100//tn}%)</td>"
+        f"<td {_TD_R}>{_ctot['rr']} ({_ctot['rr']*100//tn}%)</td>"
+        f"<td {_TD_R}>{_ctot['re']} ({_ctot['re']*100//tn}%)</td>"
+        f"<td {_TD_R}>{_ctot['a4']}</td>"
+        f"<td {_TD_R}>{_ctot['eps_o']}</td>"
+        f"<td {_TD_R}>{_ctot['rev_o']}</td>"
+        f"<td {_TD_R} style='color:#c0392b;font-weight:bold;'>{_ctot['blind']}</td>"
+        f"</tr></tbody></table>"
+    )
+
+    # ── Table 3: Estimate gap summary ─────────────────────────────────────────
+    _all_rows = [r for rows in _crows.values() for r in rows]
+    gap_none  = sum(1 for r in _all_rows if r["er"] and not r["ee"] and not r["re"])
+    gap_eps   = sum(1 for r in _all_rows if r["er"] and r["ee"] and not r["re"])
+    gap_rev   = sum(1 for r in _all_rows if r["er"] and r["re"] and not r["ee"])
+
+    html += (
+        f"<h3 style='font-family:Arial;font-size:14px;margin:16px 0 6px;color:#1a1a2e;'>"
+        f"⚠️ Estimate Coverage Gaps</h3>"
+        f"<table style='{_STYLE}'>"
+        f"<thead><tr>"
+        f"<th {_TH}>Gap type</th>"
+        f"<th {_TH_R}>Tickers</th>"
+        f"<th {_TH}>Action needed</th>"
+        f"</tr></thead><tbody>"
+        f"<tr {_TR_ALT}>"
+        f"<td {_TD}>No estimates at all (EPS + Rev both missing)</td>"
+        f"<td style='padding:6px 10px;border:1px solid #ddd;text-align:right;"
+        f"color:#c0392b;font-weight:bold;'>{gap_none}</td>"
+        f"<td {_TD}>IC / FMP non-US expansion — top targets: India (588), Saudi/Brazil (96), Turkey (72), Indonesia (69), Thailand (68)</td>"
+        f"</tr>"
+        f"<tr {_TR_NORM}>"
+        f"<td {_TD}>EPS estimate only — Rev estimate missing</td>"
+        f"<td {_TD_R}>{gap_eps}</td>"
+        f"<td {_TD}>FMP /stable/earnings for non-US; IC for UK/EU</td>"
+        f"</tr>"
+        f"<tr {_TR_ALT}>"
+        f"<td {_TD}>Rev estimate only — EPS estimate missing</td>"
+        f"<td {_TD_R}>{gap_rev}</td>"
+        f"<td {_TD}>Rare — check FMP symbol mapping</td>"
+        f"</tr>"
+        f"</tbody></table>"
+        f"<p style='font-family:Arial;font-size:11px;color:#888;margin:4px 0 0;'>"
+        f"Cascade: yfinance → investing.com → FMP → Finnhub. "
+        f"Without consensus estimate, revenue beat/miss cannot be computed.</p>"
+    )
+
+    return html
+
+
 def print_data_summary(
     earnings_cache: Dict[str, Dict[str, Any]],
     universe_df: pd.DataFrame,
@@ -2900,27 +3304,29 @@ def print_data_summary(
         print(f"| {r['ticker']} {star} | {r['yoy_growth']:+.1f}% | {accel} "
               f"| {r['growth_streak']}Q | {r['eps_beat_streak']}Q |")
 
-    # ── Data coverage diagnostic (markdown tables) ─────────────────────────────
-    # Counts three distinct data types separately to avoid confusion:
-    #   1. Revenue ACTUALS   — from quarterly_income_stmt  → quarterly_revenue field
-    #   2. Revenue ESTIMATES — analyst consensus forecasts  → revenue_estimate in earnings_dates
-    #   3. EPS ESTIMATES     — analyst consensus forecasts  → eps_estimate in earnings_dates
-    # These live in different fields and come from different sources!
+    # ── Data coverage diagnostic (HTML tables — render correctly in email) ──────
+    # NOTE: This section outputs raw HTML so email clients render proper tables.
+    # scan.py should embed this output in an <html><body> email (which it does via
+    # stdout capture). The state["report_html_coverage"] is the canonical version;
+    # this stdout HTML is a fallback for pipelines that capture print output.
+    #
+    # Data counted:
+    #   1. Revenue ACTUALS   — quarterly_income_stmt  → quarterly_revenue
+    #   2. Revenue ESTIMATES — analyst consensus      → revenue_estimate in earnings_dates
+    #   3. EPS ESTIMATES     — analyst consensus      → eps_estimate in earnings_dates
 
-    # Per-ticker tallies keyed by source
     _SOURCES = ["yfinance", "investing_com", "fmp", "finnhub", "yoy_proxy", "none"]
     eps_est_src:    Dict[str, int] = {s: 0 for s in _SOURCES}
-    rev_act_src:    Dict[str, int] = {s: 0 for s in _SOURCES}  # income-stmt actuals
-    rev_est_src:    Dict[str, int] = {s: 0 for s in _SOURCES}  # consensus estimates
-    rev_con_src:    Dict[str, int] = {s: 0 for s in _SOURCES}  # consensus-reported (FMP/IC/FH)
+    rev_act_src:    Dict[str, int] = {s: 0 for s in _SOURCES}
+    rev_est_src:    Dict[str, int] = {s: 0 for s in _SOURCES}
+    rev_con_src:    Dict[str, int] = {s: 0 for s in _SOURCES}
 
-    ic_filled_total = fmp_enrich_total = finnhub_filled_total = 0
+    ic_filled_total = fmp_enrich_total = finnhub_filled_total = qr_linkage_total = 0
 
     for t_key, data in earnings_cache.items():
         past_ed = [r for r in data.get("earnings_dates", [])
                    if r.get("eps_reported") is not None]
 
-        # ── EPS estimate source ──────────────────────────────────────────────
         if any(r.get("eps_estimate") is not None for r in past_ed):
             srcs = [r.get("_eps_est_source", "yfinance")
                     for r in past_ed if r.get("eps_estimate") is not None]
@@ -2931,16 +3337,13 @@ def print_data_summary(
         else:
             eps_est_src["none"] += 1
 
-        # ── Revenue ACTUALS from income stmt (quarterly_revenue) ────────────
-        # Source attribution: what fetched the quarterly_revenue for this ticker?
         qr = [r for r in data.get("quarterly_revenue", []) if r.get("revenue") is not None]
         if qr:
-            qr_src = data.get("data_source", "yfinance")   # "fmp" or "yfinance"
+            qr_src = data.get("data_source", "yfinance")
             rev_act_src[qr_src if qr_src in rev_act_src else "yfinance"] += 1
         else:
             rev_act_src["none"] += 1
 
-        # ── Revenue ESTIMATES (consensus analyst forecasts) ─────────────────
         if any(r.get("revenue_estimate") is not None for r in past_ed):
             srcs = [r.get("_rev_est_source", "yfinance")
                     for r in past_ed if r.get("revenue_estimate") is not None]
@@ -2949,7 +3352,6 @@ def print_data_summary(
         else:
             rev_est_src["none"] += 1
 
-        # ── Revenue CONSENSUS-REPORTED (what FMP/investing.com track as actuals) ─
         if any(r.get("revenue_reported") is not None for r in past_ed):
             srcs = [r.get("_rev_act_source", "yfinance")
                     for r in past_ed if r.get("revenue_reported") is not None]
@@ -2961,77 +3363,200 @@ def print_data_summary(
         ic_filled_total      += data.get("_investing_com_filled", 0)
         fmp_enrich_total     += data.get("_fmp_rev_estimates_filled", 0)
         finnhub_filled_total += data.get("_finnhub_filled", 0)
+        qr_linkage_total     += data.get("_qr_linkage_filled", 0)
 
     N = max(len(earnings_cache), 1)
 
     def _pn(n: int) -> str:
-        """Format count + percentage: '2198 (86%)'"""
         return f"{n} ({n * 100 // N}%)"
 
     def _blank(n: int) -> str:
         return _pn(n) if n > 0 else "–"
 
-    # ── Table 1: EPS Data Coverage ──────────────────────────────────────────
-    print("\n**EPS data coverage** (per ticker, dominant source):\n")
-    print(f"| | yfinance | investing.com | FMP | Finnhub | YoY proxy | none |")
-    print(f"| :-- | --: | --: | --: | --: | --: | --: |")
-    print(f"| Estimate "
-          f"| {_blank(eps_est_src['yfinance'])} "
-          f"| {_blank(eps_est_src['investing_com'])} "
-          f"| {_blank(eps_est_src['fmp'])} "
-          f"| {_blank(eps_est_src['finnhub'])} "
-          f"| {_blank(eps_est_src['yoy_proxy'])} "
-          f"| {_blank(eps_est_src['none'])} |")
-    # EPS reported is always from yfinance (it's the actual EPS the company reported)
+    # ── Emit HTML tables (renders in email, readable as raw text in logs) ──────
     eps_rep_count = sum(
         1 for d in earnings_cache.values()
         if any(r.get("eps_reported") is not None
                for r in d.get("earnings_dates", []))
     )
-    print(f"| Reported (actual EPS) "
-          f"| {_pn(eps_rep_count)} | – | – | – | – | {_pn(N - eps_rep_count)} |")
 
-    # ── Table 2: Revenue Data Coverage ─────────────────────────────────────
-    # Three distinct data types shown as separate rows
-    print("\n**Revenue data coverage** (per ticker, dominant source):\n")
-    print(f"| | yfinance | investing.com | FMP | Finnhub | none |")
-    print(f"| :-- | --: | --: | --: | --: | --: |")
+    _S = "font-family:Arial,sans-serif;font-size:13px;border-collapse:collapse;width:100%;margin-bottom:18px;"
+    _TH = "style='background:#1a1a2e;color:#e0e0e0;padding:7px 10px;text-align:left;border:1px solid #444;'"
+    _THR = "style='background:#1a1a2e;color:#e0e0e0;padding:7px 10px;text-align:right;border:1px solid #444;'"
+    _TD = "style='padding:6px 10px;border:1px solid #ddd;text-align:left;'"
+    _TDR = "style='padding:6px 10px;border:1px solid #ddd;text-align:right;'"
+    _TDW = "style='padding:6px 10px;border:1px solid #ddd;text-align:right;color:#c0392b;font-weight:bold;'"
+    _ALT = "style='background:#f7f9fc;'"
+    _TOT = "style='background:#e8f0fe;font-weight:bold;'"
+    _H3 = "style='font-family:Arial;font-size:14px;margin:16px 0 6px;color:#1a1a2e;'"
 
-    # Row A: Actuals from income statement (quarterly_revenue)
-    print(f"| **Actuals** *(income stmt, ≥1Q)* "
-          f"| {_blank(rev_act_src['yfinance'])} "
-          f"| {_blank(rev_act_src['investing_com'])} "
-          f"| {_blank(rev_act_src['fmp'])} "
-          f"| {_blank(rev_act_src['finnhub'])} "
-          f"| {_blank(rev_act_src['none'])} |")
+    def _sv(d: Dict[str, int], k: str) -> str:
+        v = d.get(k, 0)
+        return f"{v} ({v*100//N}%)" if v > 0 else "–"
 
-    # Row B: Consensus estimates (analyst forecasts — what we NEED for real beat/miss)
-    print(f"| **Consensus Estimate** *(analyst forecast)* "
-          f"| {_blank(rev_est_src['yfinance'])} "
-          f"| {_blank(rev_est_src['investing_com'])} "
-          f"| {_blank(rev_est_src['fmp'])} "
-          f"| {_blank(rev_est_src['finnhub'])} "
-          f"| {_blank(rev_est_src['none'])} |")
+    print(f"\n<h3 {_H3}>📊 GC Data Layer — Coverage Summary (v{GC_VERSION})</h3>")
+    print(f"<table style='{_S}'><thead><tr>")
+    print(f"<th {_TH}>Metric</th><th {_THR}>yfinance</th><th {_THR}>investing.com</th>"
+          f"<th {_THR}>FMP</th><th {_THR}>Finnhub</th><th {_THR}>YoY proxy</th><th {_THR}>none</th>")
+    print(f"</tr></thead><tbody>")
 
-    # Row C: Consensus-reported (what FMP/investing.com/Finnhub surface as "reported" alongside their estimates)
-    print(f"| **Consensus Reported** *(paired with estimate)* "
-          f"| {_blank(rev_con_src['yfinance'])} "
-          f"| {_blank(rev_con_src['investing_com'])} "
-          f"| {_blank(rev_con_src['fmp'])} "
-          f"| {_blank(rev_con_src['finnhub'])} "
-          f"| {_blank(rev_con_src['none'])} |")
+    rows_src = [
+        ("EPS Estimate",            eps_est_src, True),
+        ("EPS Reported (actual)",   None, False),
+        ("Revenue Actuals (income stmt)", rev_act_src, False),
+        ("Revenue Estimate (consensus)",  rev_est_src, False),
+        ("Revenue Reported (paired w/ est)", rev_con_src, False),
+    ]
+    for i, (label, src, has_yoy) in enumerate(rows_src):
+        tr = _ALT if i % 2 == 0 else ""
+        if src is None:
+            print(f"<tr {tr}><td {_TD}><b>{label}</b></td>"
+                  f"<td {_TDR}>{_pn(eps_rep_count)}</td>"
+                  f"<td {_TDR}>–</td><td {_TDR}>–</td><td {_TDR}>–</td>"
+                  f"<td {_TDR}>–</td><td {_TDR}>{_pn(N - eps_rep_count)}</td></tr>")
+        else:
+            yoy_td = f"<td {_TDR}>{_sv(src,'yoy_proxy')}</td>" if has_yoy else f"<td {_TDR}>–</td>"
+            print(f"<tr {tr}><td {_TD}><b>{label}</b></td>"
+                  f"<td {_TDR}>{_sv(src,'yfinance')}</td>"
+                  f"<td {_TDR}>{_sv(src,'investing_com')}</td>"
+                  f"<td {_TDR}>{_sv(src,'fmp')}</td>"
+                  f"<td {_TDR}>{_sv(src,'finnhub')}</td>"
+                  f"{yoy_td}"
+                  f"<td {_TDR}>{_sv(src,'none')}</td></tr>")
+    print(f"</tbody></table>")
 
-    # Note row explaining the cascade
-    print(f"\n~ *Consensus estimates cascade*: yfinance → investing.com → FMP → Finnhub. "
-          f"Without a consensus estimate, revenue beat/miss cannot be determined. "
-          f"YoY proxy (actual revenue > 0 prior year) is **not** equivalent to beating consensus "
-          f"and is no longer used for revenue_beat_streak.")
+    # ── Table 2: Per-country coverage (all countries, with gap breakdown) ──────
+    _EXCH_TO_COUNTRY_FLAGS: Dict[str, str] = {
+        "US": "🇺🇸 United States",  "TO": "🇨🇦 Canada",         "L":  "🇬🇧 United Kingdom",
+        "DE": "🇩🇪 Germany",        "PA": "🇫🇷 France",          "AS": "🇳🇱 Netherlands",
+        "MI": "🇮🇹 Italy",          "MC": "🇪🇸 Spain",           "SW": "🇨🇭 Switzerland",
+        "ST": "🇸🇪 Sweden",         "OL": "🇳🇴 Norway",          "HE": "🇫🇮 Finland",
+        "CO": "🇩🇰 Denmark",        "AT": "🇬🇷 Greece",          "VI": "🇦🇹 Austria",
+        "IR": "🇮🇪 Ireland",        "LS": "🇵🇹 Portugal",        "WA": "🇵🇱 Poland",
+        "BD": "🇭🇺 Hungary",        "PR": "🇨🇿 Czech Republic",  "T":  "🇯🇵 Japan",
+        "HK": "🇭🇰 Hong Kong",      "KS": "🇰🇷 South Korea",     "TW": "🇹🇼 Taiwan",
+        "SI": "🇸🇬 Singapore",      "AX": "🇦🇺 Australia",       "NZ": "🇳🇿 New Zealand",
+        "NS": "🇮🇳 India",          "BO": "🇮🇳 India (BSE)",     "SA": "🇧🇷 Brazil",
+        "JO": "🇿🇦 South Africa",   "MX": "🇲🇽 Mexico",          "JK": "🇮🇩 Indonesia",
+        "BK": "🇹🇭 Thailand",       "KL": "🇲🇾 Malaysia",        "IS": "🇹🇷 Turkey",
+        "TA": "🇮🇱 Israel",         "SR": "🇸🇦 Saudi Arabia",    "AD": "🇦🇪 UAE-Abu Dhabi",
+        "DU": "🇦🇪 UAE-Dubai",      "QA": "🇶🇦 Qatar",           "SS": "🇨🇳 China-SH",
+        "SZ": "🇨🇳 China-SZ",       "CA": "🇪🇬 Egypt",           "SN": "🇨🇱 Chile",
+        "CL": "🇨🇴 Colombia",       "BR": "🇧🇪 Belgium",         "BD": "🇧🇩 Bangladesh",
+        "MX": "🇲🇽 Mexico",         "WA": "🇵🇱 Poland",
+    }
+    from collections import defaultdict as _dd
+    _country_rows: Dict[str, list] = _dd(list)
+    for t_key, data in earnings_cache.items():
+        exch = t_key.rsplit(".", 1)[-1] if "." in t_key else "US"
+        country = _EXCH_TO_COUNTRY_FLAGS.get(exch, f".{exch}")
+        past = [r for r in data.get("earnings_dates", [])
+                if r.get("eps_reported") is not None]
+        _country_rows[country].append({
+            "n": len(data.get("earnings_dates", [])) + len(data.get("quarterly_revenue", [])),
+            "has_eps_rep": len(past) > 0,
+            "has_eps_est": any(r.get("eps_estimate") is not None for r in past),
+            "has_rev_rep": any(r.get("revenue_reported") is not None for r in past),
+            "has_rev_est": any(r.get("revenue_estimate") is not None for r in past),
+        })
 
-    if ic_filled_total or fmp_enrich_total or finnhub_filled_total:
-        print(f"\n*Fields enriched this run* — "
+    print(f"<h3 {_H3}>🌍 Per-Country Data Coverage</h3>")
+    print(f"<table style='{_S}'><thead><tr>")
+    print(f"<th {_TH}>Country</th><th {_THR}>N</th>"
+          f"<th {_THR}>EPS rep</th><th {_THR}>EPS est</th>"
+          f"<th {_THR}>Rev rep</th><th {_THR}>Rev est</th>"
+          f"<th {_THR}>All-4</th>"
+          f"<th {_THR}>EPS est only</th>"
+          f"<th {_THR}>Rev est only</th>"
+          f"<th {_THR}>No est ⚠</th>")
+    print(f"</tr></thead><tbody>")
+
+    _ctot = {"n": 0, "er": 0, "ee": 0, "rr": 0, "re": 0, "a4": 0, "blind": 0, "eps_o": 0, "rev_o": 0}
+    alt = False
+    for country, rows in sorted(_country_rows.items(), key=lambda x: (-len(x[1]), x[0])):
+        cn = len(rows)
+        er  = sum(1 for r in rows if r["has_eps_rep"])
+        ee  = sum(1 for r in rows if r["has_eps_est"])
+        rr  = sum(1 for r in rows if r["has_rev_rep"])
+        re  = sum(1 for r in rows if r["has_rev_est"])
+        a4  = sum(1 for r in rows if r["has_eps_rep"] and r["has_eps_est"] and r["has_rev_rep"] and r["has_rev_est"])
+        blind   = sum(1 for r in rows if r["has_eps_rep"] and not r["has_eps_est"] and not r["has_rev_est"])
+        eps_only = sum(1 for r in rows if r["has_eps_rep"] and r["has_eps_est"] and not r["has_rev_est"])
+        rev_only = sum(1 for r in rows if r["has_eps_rep"] and r["has_rev_est"] and not r["has_eps_est"])
+
+        def _cp(v: int) -> str:
+            p = v * 100 // max(cn, 1)
+            c = "#27ae60" if p >= 80 else ("#e67e22" if p >= 40 else "#e74c3c")
+            w = v * 50 // max(cn, 1)
+            return (f"<div style='display:inline-block;width:{w}px;height:7px;"
+                    f"background:{c};border-radius:2px;margin-right:4px;vertical-align:middle;'></div>"
+                    f"{v} <span style='color:#888;font-size:11px;'>({p}%)</span>")
+
+        blind_td_style = _TDW if blind > 5 else _TDR
+        tr_style = _ALT if alt else ""
+        alt = not alt
+        print(f"<tr {tr_style}>"
+              f"<td {_TD}>{country}</td>"
+              f"<td {_TDR}>{cn}</td>"
+              f"<td {_TDR}>{_cp(er)}</td>"
+              f"<td {_TDR}>{_cp(ee)}</td>"
+              f"<td {_TDR}>{_cp(rr)}</td>"
+              f"<td {_TDR}>{_cp(re)}</td>"
+              f"<td {_TDR}>{a4}</td>"
+              f"<td {_TDR}>{eps_only if eps_only else '–'}</td>"
+              f"<td {_TDR}>{rev_only if rev_only else '–'}</td>"
+              f"<td {blind_td_style}>{blind if blind else '<span style=\"color:#27ae60\">✓</span>'}</td>"
+              f"</tr>")
+        _ctot["n"] += cn; _ctot["er"] += er; _ctot["ee"] += ee
+        _ctot["rr"] += rr; _ctot["re"] += re; _ctot["a4"] += a4
+        _ctot["blind"] += blind; _ctot["eps_o"] += eps_only; _ctot["rev_o"] += rev_only
+
+    tn = max(_ctot["n"], 1)
+    print(f"<tr {_TOT}>"
+          f"<td {_TD}>TOTAL</td>"
+          f"<td {_TDR}>{_ctot['n']}</td>"
+          f"<td {_TDR}>{_ctot['er']} ({_ctot['er']*100//tn}%)</td>"
+          f"<td {_TDR}>{_ctot['ee']} ({_ctot['ee']*100//tn}%)</td>"
+          f"<td {_TDR}>{_ctot['rr']} ({_ctot['rr']*100//tn}%)</td>"
+          f"<td {_TDR}>{_ctot['re']} ({_ctot['re']*100//tn}%)</td>"
+          f"<td {_TDR}>{_ctot['a4']}</td>"
+          f"<td {_TDR}>{_ctot['eps_o']}</td>"
+          f"<td {_TDR}>{_ctot['rev_o']}</td>"
+          f"<td {_TDW}>{_ctot['blind']}</td>"
+          f"</tr></tbody></table>")
+
+    # ── Table 3: Estimate gap analysis ──────────────────────────────────────────
+    _all_rows_flat = [rw for rows in _country_rows.values() for rw in rows]
+    _gap_none    = sum(1 for r in _all_rows_flat if r["has_eps_rep"] and not r["has_eps_est"] and not r["has_rev_est"])
+    _gap_eps_o   = sum(1 for r in _all_rows_flat if r["has_eps_rep"] and r["has_eps_est"] and not r["has_rev_est"])
+    _gap_rev_o   = sum(1 for r in _all_rows_flat if r["has_eps_rep"] and r["has_rev_est"] and not r["has_eps_est"])
+
+    print(f"<h3 {_H3}>⚠️ Estimate Coverage Gaps</h3>")
+    print(f"<table style='{_S}'><thead><tr>"
+          f"<th {_TH}>Gap type</th><th {_THR}>Tickers</th><th {_TH}>Action needed</th>"
+          f"</tr></thead><tbody>")
+    print(f"<tr {_ALT}><td {_TD}>No estimates at all (EPS + Rev both missing)</td>"
+          f"<td {_TDW}>{_gap_none}</td>"
+          f"<td {_TD}>IC / FMP non-US expansion — top targets: India (588), Saudi/Brazil (96), Turkey (72), Indonesia (69), Thailand (68)</td></tr>")
+    print(f"<tr><td {_TD}>EPS estimate only — Rev estimate missing</td>"
+          f"<td {_TDR}>{_gap_eps_o}</td>"
+          f"<td {_TD}>FMP /stable/earnings for non-US; IC for UK/EU</td></tr>")
+    print(f"<tr {_ALT}><td {_TD}>Rev estimate only — EPS estimate missing</td>"
+          f"<td {_TDR}>{_gap_rev_o}</td>"
+          f"<td {_TD}>Rare — check FMP symbol mapping</td></tr>")
+    print(f"</tbody></table>")
+    print(f"<p style='font-family:Arial;font-size:11px;color:#888;margin:4px 0 12px;'>"
+          f"Cascade: yfinance → investing.com → FMP → Finnhub. "
+          f"Without consensus estimate, revenue beat/miss cannot be computed. "
+          f"IC test run: 0 fields filled (not yet in state — run IC enrichment first).</p>")
+
+    if ic_filled_total or fmp_enrich_total or finnhub_filled_total or qr_linkage_total:
+        print(f"<p style='font-family:Arial;font-size:11px;color:#555;margin:4px 0;'>"
+              f"<b>Fields enriched this run:</b> "
               f"investing.com: {ic_filled_total} | "
               f"FMP: {fmp_enrich_total} | "
-              f"Finnhub: {finnhub_filled_total}")
+              f"Finnhub: {finnhub_filled_total} | "
+              f"QR linkage: {qr_linkage_total}</p>")
 
     hints = []
     if not os.environ.get("FINNHUB_API_KEY"):
@@ -3552,6 +4077,10 @@ def main():
         state["earnings_cache"] = earnings_cache
         state["last_data_update"] = dt.datetime.now(dt.timezone.utc).isoformat()
         state["gc_version"] = GC_VERSION
+
+        # Build and store HTML coverage tables for the daily email
+        # scan.py reads state["report_html_coverage"] and embeds it in the email body.
+        state["report_html_coverage"] = _build_coverage_html(earnings_cache)
         save_gc_state(state)
         print(f"[gc] State saved to {GC_STATE_PATH}")
 
