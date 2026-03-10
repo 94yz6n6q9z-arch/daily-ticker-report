@@ -1,0 +1,61 @@
+{
+  "generated_utc": "2026-03-10T12:16:33Z",
+  "universe": "Hk",
+  "source_fund": "EWH",
+  "source_url": "https://www.ishares.com/us/products/239623/ishares-msci-hong-kong-etf/1467271812596.ajax?dataType=fund&fileName=EWH_holdings&fileType=csv",
+  "source_as_of": null,
+  "row_count": 490,
+  "unique_tickers": 490,
+  "sector_counts": {
+    "Communication Services": 27,
+    "Consumer Discretionary": 43,
+    "Consumer Staples": 41,
+    "Energy": 13,
+    "Financials": 106,
+    "Health Care": 46,
+    "Industrials": 103,
+    "Information Technology": 25,
+    "Materials": 36,
+    "Real Estate": 20,
+    "Utilities": 30
+  },
+  "mapping_confidence_counts": {
+    "high": 361,
+    "low": 10,
+    "med": 119
+  },
+  "added_count": 490,
+  "removed_count": 0,
+  "added_sample": [
+    "1299.HK",
+    "285A.T",
+    "9CI.SI",
+    "A17U.SI",
+    "A5G.IR",
+    "AAF.L",
+    "AAL.L",
+    "ABBN.SW",
+    "ABF.L",
+    "ABI.BR",
+    "ABN.AS",
+    "AC.PA",
+    "ACA.PA",
+    "ACS.MC",
+    "AD.AS",
+    "ADDT-B.ST",
+    "ADM.L",
+    "ADP.PA",
+    "ADS.DE",
+    "ADYEN.AS",
+    "AENA.MC",
+    "AER",
+    "AGN.AS",
+    "AGS.BR",
+    "AI.PA"
+  ],
+  "removed_sample": [],
+  "notes": [
+    "Public-source proxy (iShares Hk ETF holdings), not a licensed direct MSCI constituent feed.",
+    "scan.py requires Ticker + Sector and uses Company/Country when present; extra columns are for audit/debug."
+  ]
+}

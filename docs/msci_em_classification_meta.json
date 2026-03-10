@@ -1,6 +1,6 @@
 {
-  "generated_utc": "2026-03-10T11:47:48Z",
-  "universe": "EM",
+  "generated_utc": "2026-03-10T12:16:27Z",
+  "universe": "Em",
   "source_fund": "EIMI",
   "source_url": "https://www.ishares.com/uk/individual/en/products/264659/ishares-core-msci-emerging-markets-imi-ucits-etf-acc-fund/1506575576011.ajax?dataType=fund&fileName=EIMI_holdings&fileType=csv",
   "source_as_of": null,
@@ -29,7 +29,7 @@
   "added_sample": [],
   "removed_sample": [],
   "notes": [
-    "Public-source proxy (iShares EM ETF holdings), not a licensed direct MSCI constituent feed.",
+    "Public-source proxy (iShares Em ETF holdings), not a licensed direct MSCI constituent feed.",
     "scan.py requires Ticker + Sector and uses Company/Country when present; extra columns are for audit/debug."
   ]
 }
