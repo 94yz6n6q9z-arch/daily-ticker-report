@@ -1,4 +1,33 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Growth Compounder Engine (gc_engine.py)
+=======================================
+Standalone module for detecting multi-year growth compounders.
+Designed to run independently during development/backtesting,
+then merge into scan.py Section 7 once polished.
 
+Step 1: Data Layer
+- Download earnings dates, quarterly revenue, EPS surprise for universe
+- Compute YoY revenue growth, acceleration, sector medians
+- Cache in gc_state.json
+
+Usage:
+    python gc_engine.py --mode data       # Download + cache earnings data
+    python gc_engine.py --mode scan       # Run ignition detection (Step 2+)
+    python gc_engine.py --mode backtest   # Run 20-year backtest (Step 6)
+"""
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import hashlib
+import json
+import math
+import os
+import time
+import traceback
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
