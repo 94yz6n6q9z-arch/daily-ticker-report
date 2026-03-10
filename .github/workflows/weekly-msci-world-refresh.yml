@@ -44,9 +44,26 @@ jobs:
           test -f tools/update_msci_world_classification.py
           echo "Found tools/update_msci_world_classification.py"
 
-      - name: Run weekly MSCI World refresh
+      - name: Run weekly MSCI World + EM refresh
         run: |
-          python tools/update_msci_world_classification.py             --out config/msci_world_classification.csv             --meta docs/msci_world_classification_meta.json
+          python tools/update_msci_world_classification.py \
+            --universe both \
+            --out config/msci_world_classification.csv \
+            --out-em config/msci_em_classification.csv \
+            --meta docs/msci_world_classification_meta.json \
+            --meta-em docs/msci_em_classification_meta.json
+
+      - name: Run weekly MSCI Korea refresh (EWY)
+        # Korea runs as a separate step so a failure here does not block World/EM.
+        # EWY gives clean .KS Yahoo Finance symbols (000660.KS, 005930.KS etc.)
+        # that the EM fund (EEM/EIMI) produces incorrectly due to iShares
+        # numeric-ticker formatting quirks for Korean stocks.
+        run: |
+          python tools/update_msci_world_classification.py \
+            --universe korea \
+            --out-korea config/msci_korea_classification.csv \
+            --meta-korea docs/msci_korea_classification_meta.json \
+            --min-rows-korea 80
 
       - name: Commit and push changes (if any)
         run: |
@@ -59,5 +76,5 @@ jobs:
             exit 0
           fi
 
-          git commit -m "Weekly MSCI World refresh [skip ci]"
+          git commit -m "Weekly MSCI World + EM + Korea refresh [skip ci]"
           git push
