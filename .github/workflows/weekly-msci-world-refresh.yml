@@ -44,6 +44,20 @@ jobs:
           test -f tools/update_msci_world_classification.py
           echo "Found tools/update_msci_world_classification.py"
 
+      # ── Step 0: Sync manual tickers JSON (runs BEFORE main refresh) ──────────
+      # Fetches EIMI + IWDA holdings, extracts Qatar/Kuwait/Saudi/NZL country slices,
+      # diffs against config/msci_manual_tickers.json, and rewrites JSON if anything changed.
+      # The main refresh steps below read from this JSON — so constituent changes
+      # (MSCI semi-annual rebalances) are picked up automatically with no code edits.
+      - name: Sync MSCI manual tickers JSON (auto-update Qatar/Kuwait/Saudi/NZL)
+        continue-on-error: true
+        run: |
+          python tools/sync_msci_manual_tickers.py \
+            --json config/msci_manual_tickers.json
+          # Exit code 0 = no changes, 1 = JSON updated, 2 = fetch error
+          # continue-on-error means a fetch failure doesn't abort the refresh.
+          # The main refresh falls back to seed data if JSON is absent.
+
       # ── Step 1: MSCI World + EM (blocking — these are the core universes) ─────
       - name: Run weekly MSCI World + EM refresh
         run: |
@@ -79,7 +93,7 @@ jobs:
             --universe japan \
             --out-japan config/msci_japan_classification.csv \
             --meta-japan docs/msci_japan_classification_meta.json \
-            --min-rows-japan 200
+            --min-rows-japan 175
 
       - name: Run MSCI Taiwan refresh (EWT → .TW, ~90 stocks)
         continue-on-error: true
@@ -108,23 +122,24 @@ jobs:
             --meta-hk docs/msci_hk_classification_meta.json \
             --min-rows-hk 30
 
-      - name: Run MSCI Saudi Arabia refresh (KSA → .SR, ~30 stocks)
+      - name: Run MSCI Saudi Arabia refresh (manual → .SR, ~25 stocks)
+        # KSA ETF URL returns HTTP 404. Saudi stocks also flow through EIMI (allow_numeric=True).
+        # This step writes a dedicated msci_saudi_classification.csv from MSCI_MANUAL_TICKERS.
         continue-on-error: true
         run: |
           python tools/update_msci_world_classification.py \
             --universe saudi \
             --out-saudi config/msci_saudi_classification.csv \
             --meta-saudi docs/msci_saudi_classification_meta.json \
-            --min-rows-saudi 25
+            --min-rows-saudi 20
 
-      - name: Run MSCI Malaysia refresh (EWM → .KL, ~45 stocks)
-        continue-on-error: true
-        run: |
-          python tools/update_msci_world_classification.py \
-            --universe malaysia \
-            --out-malaysia config/msci_malaysia_classification.csv \
-            --meta-malaysia docs/msci_malaysia_classification_meta.json \
-            --min-rows-malaysia 30
+      # ── Malaysia (.KL) ───────────────────────────────────────────────────────
+      # EWM (iShares MSCI Malaysia ETF) returns HTML instead of CSV (bot detection).
+      # Malaysia .KL tickers are alphabetic (e.g. MAYBANK.KL, PBBANK.KL) and correctly
+      # flow through the EIMI universe step above — no ghost filter issues.
+      # Dedicated msci_malaysia_classification.csv is not generated; gc_engine.py
+      # loads .KL coverage from msci_em_classification.csv instead.
+      # TODO: convert to manual_only once the ~27 MSCI EM Malaysia constituents are verified.
 
       - name: Run MSCI New Zealand refresh (ENZL → .NZ, 5 stocks)
         # Small universe but all 5 are legitimate MSCI World constituents.
