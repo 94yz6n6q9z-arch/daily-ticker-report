@@ -54,7 +54,7 @@ import requests
 # ────────────────────────────────────────────────────────────────
 # Version tracker (mirrors scan.py / gc_engine.py pattern)
 # ────────────────────────────────────────────────────────────────
-MSCI_UPDATE_VERSION = "1.5.0"
+MSCI_UPDATE_VERSION = "1.6.0"
 
 _MSCI_UPDATE_VERSION_LOG: dict = {
     "1.0.0": (
@@ -102,6 +102,23 @@ _MSCI_UPDATE_VERSION_LOG: dict = {
         "due to malformed .KS tickers in those holdings files. EWY gives clean Yahoo Finance "
         "symbols for all ~90 Korean constituents (000660.KS, 005930.KS etc.). "
         "Weekly workflow updated to run all three universes."
+    ),
+    "1.6.0": (
+        "Root cause analysis confirmed: 7 markets use pure-numeric exchange tickers (no alpha prefix). "
+        "The _is_ghost_raw_ticker() filter correctly rejects Bloomberg placeholder codes, but "
+        "also drops all legitimate numeric-only tickers from Japan (.T ~230), Taiwan (.TW ~90), "
+        "China-SH (.SS ~30), China-SZ (.SZ ~30), Hong Kong (.HK ~110), Saudi Arabia (.SR ~30), "
+        "and Malaysia (.KL ~45) — totalling ~565 MSCI constituents silently lost from every refresh. "
+        "Fix: add 6 dedicated country ETF sources that export pre-suffixed Yahoo Finance symbols: "
+        "SOURCE_CANDIDATES_JAPAN (EWJ → 7203.T), SOURCE_CANDIDATES_TAIWAN (EWT → 2330.TW), "
+        "SOURCE_CANDIDATES_CHINA (MCHI → 600519.SS / 000858.SZ), "
+        "SOURCE_CANDIDATES_HK (EWH → 0700.HK), SOURCE_CANDIDATES_SAUDI (KSA → 2222.SR), "
+        "SOURCE_CANDIDATES_MALAYSIA (EWM → 1155.KL). "
+        "CLI --universe flag extended: japan | taiwan | china | hk | saudi | malaysia | all. "
+        "New --out-* / --meta-* / --min-rows-* args per universe. "
+        "Outputs: config/msci_{japan,taiwan,china,hk,saudi,malaysia}_classification.csv. "
+        "weekly-msci-world-refresh.yml updated to run all 8 universes (2 existing + 6 new). "
+        "Companion: scan.py v97, gc_engine.py 0.5.3."
     ),
 }
 
@@ -154,6 +171,65 @@ SOURCE_CANDIDATES_KOREA = [
         "fund": "EWY",
         "url": "https://www.ishares.com/us/products/239660/ishares-msci-south-korea-etf/1467271812596.ajax?dataType=fund&fileName=EWY_holdings&fileType=csv",
         "referer": "https://www.ishares.com/us/products/239660/ishares-msci-south-korea-etf",
+    },
+]
+
+# ── v1.6.0: Country-specific ETFs for markets with numeric-only ticker codes ──
+# These 6 markets all use purely numeric tickers on their home exchanges
+# (e.g. Japan: 7203, Korea: 005930, Taiwan: 2330). The EM/World UCITS exports
+# (EIMI, EEM, IWDA) export the raw numeric codes WITHOUT exchange suffixes.
+# _is_ghost_raw_ticker() correctly rejects pure-numeric Bloomberg placeholder
+# codes — but this also silently drops ALL legitimate numeric-market tickers.
+# Dedicated country ETFs (US-listed iShares) export pre-suffixed Yahoo Finance
+# symbols (7203.T, 2330.TW, 0700.HK etc.) so the ghost filter passes them through.
+# Estimated tickers recovered: Japan ~230, Taiwan ~90, HK ~110, China ~60, Saudi ~30, Malaysia ~45.
+
+SOURCE_CANDIDATES_JAPAN = [
+    {
+        "fund": "EWJ",
+        "url": "https://www.ishares.com/us/products/239665/ishares-msci-japan-etf/1467271812596.ajax?dataType=fund&fileName=EWJ_holdings&fileType=csv",
+        "referer": "https://www.ishares.com/us/products/239665/ishares-msci-japan-etf",
+    },
+]
+
+SOURCE_CANDIDATES_TAIWAN = [
+    {
+        "fund": "EWT",
+        "url": "https://www.ishares.com/us/products/239724/ishares-msci-taiwan-etf/1467271812596.ajax?dataType=fund&fileName=EWT_holdings&fileType=csv",
+        "referer": "https://www.ishares.com/us/products/239724/ishares-msci-taiwan-etf",
+    },
+]
+
+# MCHI covers both Shanghai (.SS) and Shenzhen (.SZ) Chinese A/H shares in MSCI
+SOURCE_CANDIDATES_CHINA = [
+    {
+        "fund": "MCHI",
+        "url": "https://www.ishares.com/us/products/239619/ishares-msci-china-etf/1467271812596.ajax?dataType=fund&fileName=MCHI_holdings&fileType=csv",
+        "referer": "https://www.ishares.com/us/products/239619/ishares-msci-china-etf",
+    },
+]
+
+SOURCE_CANDIDATES_HK = [
+    {
+        "fund": "EWH",
+        "url": "https://www.ishares.com/us/products/239623/ishares-msci-hong-kong-etf/1467271812596.ajax?dataType=fund&fileName=EWH_holdings&fileType=csv",
+        "referer": "https://www.ishares.com/us/products/239623/ishares-msci-hong-kong-etf",
+    },
+]
+
+SOURCE_CANDIDATES_SAUDI = [
+    {
+        "fund": "KSA",
+        "url": "https://www.ishares.com/us/products/34394471/ishares-msci-saudi-arabia-etf/1467271812596.ajax?dataType=fund&fileName=KSA_holdings&fileType=csv",
+        "referer": "https://www.ishares.com/us/products/34394471/ishares-msci-saudi-arabia-etf",
+    },
+]
+
+SOURCE_CANDIDATES_MALAYSIA = [
+    {
+        "fund": "EWM",
+        "url": "https://www.ishares.com/us/products/239638/ishares-msci-malaysia-etf/1467271812596.ajax?dataType=fund&fileName=EWM_holdings&fileType=csv",
+        "referer": "https://www.ishares.com/us/products/239638/ishares-msci-malaysia-etf",
     },
 ]
 
@@ -930,63 +1006,68 @@ def _run_one_universe(
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Refresh MSCI World + EM + Korea proxy constituent classification CSVs")
+    ap = argparse.ArgumentParser(description="Refresh MSCI World + EM + country-specific classification CSVs")
     ap.add_argument(
-        "--universe", choices=["world", "em", "korea", "both", "all"], default="both",
+        "--universe",
+        choices=["world", "em", "korea", "japan", "taiwan", "china", "hk", "saudi", "malaysia", "both", "all"],
+        default="both",
         help=(
-            "Which universe to refresh: world=MSCI World only, em=MSCI EM only, "
-            "korea=MSCI Korea (EWY) only, both=world+em (default), all=world+em+korea"
+            "Which universe to refresh: world | em | korea | japan | taiwan | china | hk | saudi | malaysia | "
+            "both=world+em (default) | all=all 8 universes"
         )
     )
-    ap.add_argument("--out", default="config/msci_world_classification.csv",
-                    help="Output CSV path for MSCI World (default: config/msci_world_classification.csv)")
-    ap.add_argument("--out-em", default="config/msci_em_classification.csv",
-                    help="Output CSV path for MSCI EM (default: config/msci_em_classification.csv)")
-    ap.add_argument("--out-korea", default="config/msci_korea_classification.csv",
-                    help="Output CSV path for MSCI Korea (default: config/msci_korea_classification.csv)")
-    ap.add_argument("--meta", default="docs/msci_world_classification_meta.json",
-                    help="Metadata JSON path for MSCI World")
-    ap.add_argument("--meta-em", default="docs/msci_em_classification_meta.json",
-                    help="Metadata JSON path for MSCI EM")
-    ap.add_argument("--meta-korea", default="docs/msci_korea_classification_meta.json",
-                    help="Metadata JSON path for MSCI Korea")
-    ap.add_argument("--min-rows", type=int, default=900,
-                    help="Fail-safe minimum row count for World (default: 900)")
-    ap.add_argument("--min-rows-em", type=int, default=700,
-                    help="Fail-safe minimum row count for EM (default: 700)")
-    ap.add_argument("--min-rows-korea", type=int, default=80,
-                    help="Fail-safe minimum row count for Korea (default: 80; EWY holds ~90-100 stocks)")
+    ap.add_argument("--out",            default="config/msci_world_classification.csv")
+    ap.add_argument("--out-em",         default="config/msci_em_classification.csv")
+    ap.add_argument("--out-korea",      default="config/msci_korea_classification.csv")
+    ap.add_argument("--out-japan",      default="config/msci_japan_classification.csv")
+    ap.add_argument("--out-taiwan",     default="config/msci_taiwan_classification.csv")
+    ap.add_argument("--out-china",      default="config/msci_china_classification.csv")
+    ap.add_argument("--out-hk",         default="config/msci_hk_classification.csv")
+    ap.add_argument("--out-saudi",      default="config/msci_saudi_classification.csv")
+    ap.add_argument("--out-malaysia",   default="config/msci_malaysia_classification.csv")
+    ap.add_argument("--meta",           default="docs/msci_world_classification_meta.json")
+    ap.add_argument("--meta-em",        default="docs/msci_em_classification_meta.json")
+    ap.add_argument("--meta-korea",     default="docs/msci_korea_classification_meta.json")
+    ap.add_argument("--meta-japan",     default="docs/msci_japan_classification_meta.json")
+    ap.add_argument("--meta-taiwan",    default="docs/msci_taiwan_classification_meta.json")
+    ap.add_argument("--meta-china",     default="docs/msci_china_classification_meta.json")
+    ap.add_argument("--meta-hk",        default="docs/msci_hk_classification_meta.json")
+    ap.add_argument("--meta-saudi",     default="docs/msci_saudi_classification_meta.json")
+    ap.add_argument("--meta-malaysia",  default="docs/msci_malaysia_classification_meta.json")
+    ap.add_argument("--min-rows",         type=int, default=900,  help="Minimum rows for World (default: 900)")
+    ap.add_argument("--min-rows-em",      type=int, default=700,  help="Minimum rows for EM (default: 700)")
+    ap.add_argument("--min-rows-korea",   type=int, default=80,   help="Minimum rows for Korea/EWY (default: 80)")
+    ap.add_argument("--min-rows-japan",   type=int, default=200,  help="Minimum rows for Japan/EWJ (default: 200)")
+    ap.add_argument("--min-rows-taiwan",  type=int, default=70,   help="Minimum rows for Taiwan/EWT (default: 70)")
+    ap.add_argument("--min-rows-china",   type=int, default=50,   help="Minimum rows for China/MCHI (default: 50)")
+    ap.add_argument("--min-rows-hk",      type=int, default=30,   help="Minimum rows for HK/EWH (default: 30)")
+    ap.add_argument("--min-rows-saudi",   type=int, default=25,   help="Minimum rows for Saudi/KSA (default: 25)")
+    ap.add_argument("--min-rows-malaysia",type=int, default=30,   help="Minimum rows for Malaysia/EWM (default: 30)")
     ap.add_argument("--allow-partial", action="store_true",
                     help="Allow writing even if row count < --min-rows")
     args = ap.parse_args()
 
-    if args.universe in ("world", "both", "all"):
-        _run_one_universe(
-            label="World",
-            sources=SOURCE_CANDIDATES_WORLD,
-            out_path=Path(args.out),
-            meta_path=Path(args.meta) if args.meta else None,
-            min_rows=args.min_rows,
-            allow_partial=args.allow_partial,
-        )
+    _universes = [
+        ("world",    "both", SOURCE_CANDIDATES_WORLD,    Path(args.out),           Path(args.meta),           args.min_rows),
+        ("em",       "both", SOURCE_CANDIDATES_EM,       Path(args.out_em),        Path(args.meta_em),        args.min_rows_em),
+        ("korea",    "all",  SOURCE_CANDIDATES_KOREA,    Path(args.out_korea),     Path(args.meta_korea),     args.min_rows_korea),
+        ("japan",    "all",  SOURCE_CANDIDATES_JAPAN,    Path(args.out_japan),     Path(args.meta_japan),     args.min_rows_japan),
+        ("taiwan",   "all",  SOURCE_CANDIDATES_TAIWAN,   Path(args.out_taiwan),    Path(args.meta_taiwan),    args.min_rows_taiwan),
+        ("china",    "all",  SOURCE_CANDIDATES_CHINA,    Path(args.out_china),     Path(args.meta_china),     args.min_rows_china),
+        ("hk",       "all",  SOURCE_CANDIDATES_HK,       Path(args.out_hk),        Path(args.meta_hk),        args.min_rows_hk),
+        ("saudi",    "all",  SOURCE_CANDIDATES_SAUDI,    Path(args.out_saudi),     Path(args.meta_saudi),     args.min_rows_saudi),
+        ("malaysia", "all",  SOURCE_CANDIDATES_MALAYSIA, Path(args.out_malaysia),  Path(args.meta_malaysia),  args.min_rows_malaysia),
+    ]
 
-    if args.universe in ("em", "both", "all"):
+    for label, run_on, sources, out_path, meta_path, min_rows in _universes:
+        if args.universe not in (label, run_on):
+            continue
         _run_one_universe(
-            label="EM",
-            sources=SOURCE_CANDIDATES_EM,
-            out_path=Path(args.out_em),
-            meta_path=Path(args.meta_em) if args.meta_em else None,
-            min_rows=args.min_rows_em,
-            allow_partial=args.allow_partial,
-        )
-
-    if args.universe in ("korea", "all"):
-        _run_one_universe(
-            label="Korea",
-            sources=SOURCE_CANDIDATES_KOREA,
-            out_path=Path(args.out_korea),
-            meta_path=Path(args.meta_korea) if args.meta_korea else None,
-            min_rows=args.min_rows_korea,
+            label=label.capitalize(),
+            sources=sources,
+            out_path=out_path,
+            meta_path=meta_path,
+            min_rows=min_rows,
             allow_partial=args.allow_partial,
         )
 
