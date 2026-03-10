@@ -44,6 +44,7 @@ jobs:
           test -f tools/update_msci_world_classification.py
           echo "Found tools/update_msci_world_classification.py"
 
+      # ── Step 1: MSCI World + EM (blocking — these are the core universes) ─────
       - name: Run weekly MSCI World + EM refresh
         run: |
           python tools/update_msci_world_classification.py \
@@ -53,11 +54,17 @@ jobs:
             --meta docs/msci_world_classification_meta.json \
             --meta-em docs/msci_em_classification_meta.json
 
-      - name: Run weekly MSCI Korea refresh (EWY)
-        # Korea runs as a separate step so a failure here does not block World/EM.
-        # EWY gives clean .KS Yahoo Finance symbols (000660.KS, 005930.KS etc.)
-        # that the EM fund (EEM/EIMI) produces incorrectly due to iShares
-        # numeric-ticker formatting quirks for Korean stocks.
+      # ── Steps 2–8: Country-specific ETFs for numeric-ticker markets ───────────
+      # These markets use pure-numeric ticker codes (e.g. Japan: 7203, Taiwan: 2330).
+      # The UCITS EM/World funds (EEM/EIMI) export bare numbers without exchange
+      # suffixes — they are rejected by _is_ghost_raw_ticker() and lost silently.
+      # Dedicated US-listed iShares country ETFs export pre-suffixed Yahoo Finance
+      # symbols (7203.T, 2330.TW, 0700.HK etc.) which resolve correctly.
+      # Each step is non-blocking (continue-on-error: true) so a single ETF
+      # download failure does not abort the entire refresh.
+
+      - name: Run MSCI Korea refresh (EWY → .KS, ~90 stocks)
+        continue-on-error: true
         run: |
           python tools/update_msci_world_classification.py \
             --universe korea \
@@ -65,6 +72,61 @@ jobs:
             --meta-korea docs/msci_korea_classification_meta.json \
             --min-rows-korea 80
 
+      - name: Run MSCI Japan refresh (EWJ → .T, ~230 stocks)
+        continue-on-error: true
+        run: |
+          python tools/update_msci_world_classification.py \
+            --universe japan \
+            --out-japan config/msci_japan_classification.csv \
+            --meta-japan docs/msci_japan_classification_meta.json \
+            --min-rows-japan 200
+
+      - name: Run MSCI Taiwan refresh (EWT → .TW, ~90 stocks)
+        continue-on-error: true
+        run: |
+          python tools/update_msci_world_classification.py \
+            --universe taiwan \
+            --out-taiwan config/msci_taiwan_classification.csv \
+            --meta-taiwan docs/msci_taiwan_classification_meta.json \
+            --min-rows-taiwan 70
+
+      - name: Run MSCI China refresh (MCHI → .SS/.SZ, ~60 stocks)
+        continue-on-error: true
+        run: |
+          python tools/update_msci_world_classification.py \
+            --universe china \
+            --out-china config/msci_china_classification.csv \
+            --meta-china docs/msci_china_classification_meta.json \
+            --min-rows-china 50
+
+      - name: Run MSCI Hong Kong refresh (EWH → .HK, ~110 stocks)
+        continue-on-error: true
+        run: |
+          python tools/update_msci_world_classification.py \
+            --universe hk \
+            --out-hk config/msci_hk_classification.csv \
+            --meta-hk docs/msci_hk_classification_meta.json \
+            --min-rows-hk 30
+
+      - name: Run MSCI Saudi Arabia refresh (KSA → .SR, ~30 stocks)
+        continue-on-error: true
+        run: |
+          python tools/update_msci_world_classification.py \
+            --universe saudi \
+            --out-saudi config/msci_saudi_classification.csv \
+            --meta-saudi docs/msci_saudi_classification_meta.json \
+            --min-rows-saudi 25
+
+      - name: Run MSCI Malaysia refresh (EWM → .KL, ~45 stocks)
+        continue-on-error: true
+        run: |
+          python tools/update_msci_world_classification.py \
+            --universe malaysia \
+            --out-malaysia config/msci_malaysia_classification.csv \
+            --meta-malaysia docs/msci_malaysia_classification_meta.json \
+            --min-rows-malaysia 30
+
+      # ── Commit all generated CSVs in one push ─────────────────────────────────
       - name: Commit and push changes (if any)
         run: |
           git config user.name "github-actions[bot]"
@@ -76,5 +138,5 @@ jobs:
             exit 0
           fi
 
-          git commit -m "Weekly MSCI World + EM + Korea refresh [skip ci]"
+          git commit -m "Weekly MSCI World + EM + 6 country ETFs refresh [skip ci]"
           git push
