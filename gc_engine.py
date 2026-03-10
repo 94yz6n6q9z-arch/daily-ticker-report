@@ -1,33 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Growth Compounder Engine (gc_engine.py)
-=======================================
-Standalone module for detecting multi-year growth compounders.
-Designed to run independently during development/backtesting,
-then merge into scan.py Section 7 once polished.
 
-Step 1: Data Layer
-- Download earnings dates, quarterly revenue, EPS surprise for universe
-- Compute YoY revenue growth, acceleration, sector medians
-- Cache in gc_state.json
-
-Usage:
-    python gc_engine.py --mode data       # Download + cache earnings data
-    python gc_engine.py --mode scan       # Run ignition detection (Step 2+)
-    python gc_engine.py --mode backtest   # Run 20-year backtest (Step 6)
-"""
-from __future__ import annotations
-
-import argparse
-import datetime as dt
-import hashlib
-import json
-import math
-import os
-import time
-import traceback
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -37,7 +8,7 @@ import yfinance as yf
 # ────────────────────────────────────────────────────────────────
 # Configuration
 # ────────────────────────────────────────────────────────────────
-GC_VERSION = "0.5.0"
+GC_VERSION = "0.5.1"
 
 # Version history (mirrors the changelog pattern in scan.py)
 _GC_VERSION_LOG: dict = {
@@ -61,6 +32,16 @@ _GC_VERSION_LOG: dict = {
         "GC_VERSION constant now follows scan.py version-log pattern so both files track "
         "changes identically. No logic changes — version bump is documentation only."
     ),
+    "0.4.0": (
+        "Layer star-gate redesign. Star 1: technical ignition (unchanged). "
+        "Star 2: BOTH eps_beat_streak>=2 AND revenue_beat_streak>=2 (YoY proxy when estimates unavailable) OR a massive catalyst "
+        "confirmed by OpenAI (not just keyword match). Star 3: Star 2 + rev>=20% YoY + "
+        "OpenAI moat confirmation. compute_eps_analytics() gains revenue_beat_streak. "
+        "_openai_catalyst_is_massive() added: sends headline to gpt-4o-mini to judge whether "
+        "it is a genuinely company-thesis-changing event. _openai_moat_assessment() added: "
+        "sends company profile to gpt-4o-mini to confirm durable moat. Both fall back "
+        "gracefully when OPENAI_API_KEY is absent. Star counts logged in data summary."
+    ),
     "0.5.0": (
         "Performance + correctness pass. "
         "Method 2 (tk.quarterly_earnings / tk.earnings) removed — deprecated in yfinance 1.2, "
@@ -79,15 +60,10 @@ _GC_VERSION_LOG: dict = {
         "Yahoo quoteSummary revenue: documented as structurally returning 0 — "
         "earningsHistory has no revenue fields; earningsTrend is forward-only."
     ),
-    "0.4.0": (
-        "Layer star-gate redesign. Star 1: technical ignition (unchanged). "
-        "Star 2: BOTH eps_beat_streak>=2 AND revenue_beat_streak>=2 (YoY proxy when estimates unavailable) OR a massive catalyst "
-        "confirmed by OpenAI (not just keyword match). Star 3: Star 2 + rev>=20% YoY + "
-        "OpenAI moat confirmation. compute_eps_analytics() gains revenue_beat_streak. "
-        "_openai_catalyst_is_massive() added: sends headline to gpt-4o-mini to judge whether "
-        "it is a genuinely company-thesis-changing event. _openai_moat_assessment() added: "
-        "sends company profile to gpt-4o-mini to confirm durable moat. Both fall back "
-        "gracefully when OPENAI_API_KEY is absent. Star counts logged in data summary."
+    "0.5.1": (
+        "FMP endpoint updated to /stable/earnings (Starter plan compatible). "
+        "Fixed UnboundLocalError in compute_eps_analytics (_revenue_beat_for_row "
+        "called before definition). Both fixes applied 2026-03-10."
     ),
 }
 
