@@ -3048,11 +3048,12 @@ def _build_coverage_html(earnings_cache: Dict[str, Any]) -> str:
                 f"{v} <span style='color:#888;font-size:11px;'>({v*100//cn}%)</span>"
             )
 
+        _blind_val = blind if blind else '<span style="color:#27ae60">✓</span>'
         blind_td = (
             f"<td style='padding:6px 10px;border:1px solid #ddd;text-align:right;"
             f"color:#c0392b;font-weight:bold;'>{blind}</td>"
             if blind > 5 else
-            f"<td {_TD_R}>{blind if blind else '<span style=\"color:#27ae60\">✓</span>'}</td>"
+            f"<td {_TD_R}>{_blind_val}</td>"
         )
         tr_style = _TR_ALT if alt else _TR_NORM
         alt = not alt
