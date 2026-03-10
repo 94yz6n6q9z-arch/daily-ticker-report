@@ -54,7 +54,7 @@ import requests
 # ────────────────────────────────────────────────────────────────
 # Version tracker (mirrors scan.py / gc_engine.py pattern)
 # ────────────────────────────────────────────────────────────────
-MSCI_UPDATE_VERSION = "1.4.0"
+MSCI_UPDATE_VERSION = "1.5.0"
 
 _MSCI_UPDATE_VERSION_LOG: dict = {
     "1.0.0": (
@@ -90,6 +90,18 @@ _MSCI_UPDATE_VERSION_LOG: dict = {
         "consumer disc/discr/cons discr, consumer stap/cons staples, hlth care/health, "
         "info technology/info tech/it/technology, real est, financial, industrial, "
         "material, utility. Recovers all 121 previously lost constituents."
+    ),
+    "1.5.0": (
+        "MSCI South Korea (EWY) universe added as a dedicated third universe. "
+        "SOURCE_CANDIDATES_KOREA: iShares MSCI South Korea ETF (EWY). "
+        "CLI: --universe flag extended to accept 'korea' and 'all' (world + em + korea). "
+        "--out-korea and --meta-korea CLI args added. "
+        "--min-rows-korea default 80 (EWY holds ~90-100 stocks). "
+        "Output: config/msci_korea_classification.csv + docs/msci_korea_classification_meta.json. "
+        "Korea was previously captured by the EM universe (EEM/EIMI) but at poor coverage "
+        "due to malformed .KS tickers in those holdings files. EWY gives clean Yahoo Finance "
+        "symbols for all ~90 Korean constituents (000660.KS, 005930.KS etc.). "
+        "Weekly workflow updated to run all three universes."
     ),
 }
 
@@ -130,6 +142,18 @@ SOURCE_CANDIDATES_EM = [
         "fund": "EEM",
         "url": "https://www.ishares.com/us/products/239626/ishares-msci-emerging-markets-etf/1467271812596.ajax?dataType=fund&fileName=EEM_holdings&fileType=csv",
         "referer": "https://www.ishares.com/us/products/239626/ishares-msci-emerging-markets-etf",
+    },
+]
+
+# MSCI South Korea ETF source (EWY = US-listed iShares MSCI South Korea ETF)
+# Korea is technically part of MSCI EM, but EEM/EIMI holdings files produce
+# malformed .KS ticker symbols for Korean stocks. EWY gives clean symbols
+# (e.g. 000660.KS, 005930.KS) that yfinance resolves correctly.
+SOURCE_CANDIDATES_KOREA = [
+    {
+        "fund": "EWY",
+        "url": "https://www.ishares.com/us/products/239660/ishares-msci-south-korea-etf/1467271812596.ajax?dataType=fund&fileName=EWY_holdings&fileType=csv",
+        "referer": "https://www.ishares.com/us/products/239660/ishares-msci-south-korea-etf",
     },
 ]
 
@@ -906,28 +930,37 @@ def _run_one_universe(
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Refresh MSCI World + EM proxy constituent classification CSVs")
+    ap = argparse.ArgumentParser(description="Refresh MSCI World + EM + Korea proxy constituent classification CSVs")
     ap.add_argument(
-        "--universe", choices=["world", "em", "both"], default="both",
-        help="Which universe to refresh: world=MSCI World only, em=MSCI EM only, both=both (default)"
+        "--universe", choices=["world", "em", "korea", "both", "all"], default="both",
+        help=(
+            "Which universe to refresh: world=MSCI World only, em=MSCI EM only, "
+            "korea=MSCI Korea (EWY) only, both=world+em (default), all=world+em+korea"
+        )
     )
     ap.add_argument("--out", default="config/msci_world_classification.csv",
                     help="Output CSV path for MSCI World (default: config/msci_world_classification.csv)")
     ap.add_argument("--out-em", default="config/msci_em_classification.csv",
                     help="Output CSV path for MSCI EM (default: config/msci_em_classification.csv)")
+    ap.add_argument("--out-korea", default="config/msci_korea_classification.csv",
+                    help="Output CSV path for MSCI Korea (default: config/msci_korea_classification.csv)")
     ap.add_argument("--meta", default="docs/msci_world_classification_meta.json",
                     help="Metadata JSON path for MSCI World")
     ap.add_argument("--meta-em", default="docs/msci_em_classification_meta.json",
                     help="Metadata JSON path for MSCI EM")
+    ap.add_argument("--meta-korea", default="docs/msci_korea_classification_meta.json",
+                    help="Metadata JSON path for MSCI Korea")
     ap.add_argument("--min-rows", type=int, default=900,
                     help="Fail-safe minimum row count for World (default: 900)")
     ap.add_argument("--min-rows-em", type=int, default=700,
                     help="Fail-safe minimum row count for EM (default: 700)")
+    ap.add_argument("--min-rows-korea", type=int, default=80,
+                    help="Fail-safe minimum row count for Korea (default: 80; EWY holds ~90-100 stocks)")
     ap.add_argument("--allow-partial", action="store_true",
                     help="Allow writing even if row count < --min-rows")
     args = ap.parse_args()
 
-    if args.universe in ("world", "both"):
+    if args.universe in ("world", "both", "all"):
         _run_one_universe(
             label="World",
             sources=SOURCE_CANDIDATES_WORLD,
@@ -937,13 +970,23 @@ def main() -> int:
             allow_partial=args.allow_partial,
         )
 
-    if args.universe in ("em", "both"):
+    if args.universe in ("em", "both", "all"):
         _run_one_universe(
             label="EM",
             sources=SOURCE_CANDIDATES_EM,
             out_path=Path(args.out_em),
             meta_path=Path(args.meta_em) if args.meta_em else None,
             min_rows=args.min_rows_em,
+            allow_partial=args.allow_partial,
+        )
+
+    if args.universe in ("korea", "all"):
+        _run_one_universe(
+            label="Korea",
+            sources=SOURCE_CANDIDATES_KOREA,
+            out_path=Path(args.out_korea),
+            meta_path=Path(args.meta_korea) if args.meta_korea else None,
+            min_rows=args.min_rows_korea,
             allow_partial=args.allow_partial,
         )
 
