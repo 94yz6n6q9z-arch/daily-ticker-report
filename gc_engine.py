@@ -3373,6 +3373,7 @@ def print_data_summary(
                     f"{v} <span style='color:#888;font-size:11px;'>({p}%)</span>")
 
         blind_td_style = _TDW if blind > 5 else _TDR
+        _blind_cell = blind if blind else '<span style="color:#27ae60">✓</span>'
         tr_style = _ALT if alt else ""
         alt = not alt
         print(f"<tr {tr_style}>"
@@ -3385,7 +3386,7 @@ def print_data_summary(
               f"<td {_TDR}>{a4}</td>"
               f"<td {_TDR}>{eps_only if eps_only else '–'}</td>"
               f"<td {_TDR}>{rev_only if rev_only else '–'}</td>"
-              f"<td {blind_td_style}>{blind if blind else '<span style=\"color:#27ae60\">✓</span>'}</td>"
+              f"<td {blind_td_style}>{_blind_cell}</td>"
               f"</tr>")
         _ctot["n"] += cn; _ctot["er"] += er; _ctot["ee"] += ee
         _ctot["rr"] += rr; _ctot["re"] += re; _ctot["a4"] += a4
