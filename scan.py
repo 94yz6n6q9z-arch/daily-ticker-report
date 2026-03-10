@@ -34,7 +34,7 @@ NEW (this update):
 - v86: Fix MSCI mapping script: reorder exchange suffix rules so Euronext/Nordic match before US catch-all. Adds NORDIC to Stockholm regex. Fixes 114 tickers across France, Sweden, Belgium, Finland, Portugal.
 - v87: Fix yfinance rate-limiting: add 1.5s sleep between chunk downloads, 0.3s between individual retries, and a full second retry pass for still-missing tickers. Closes ~330 ticker coverage gap (Canada, UK, Australia, Germany, etc.).
 - v88: Rewrite yf_download_chunk — group tickers by exchange suffix before chunking. Mixed-exchange bulk downloads cause Yahoo to silently drop non-US tickers. Each exchange group (.L, .TO, .DE, etc.) now downloads in its own homogeneous chunks. Removes all sleep/throttling (was counterproductive). Per-exchange progress logging.
-- v89: ROOT CAUSE FIX — _clean_ticker regex [A-Z]+\.[A-Z]+ was converting exchange suffixes (.L, .DE, .TO, .AX, etc.) to hyphens (BP.L→BP-L). This destroyed ~400 international tickers. Now checks against known exchange suffixes before converting. Also: yfinance Ticker fallback for after-hours movers, diagnostic logging for yahoo_quote endpoint.
+- v89: ROOT CAUSE FIX — _clean_ticker regex [A-Z]+[.][A-Z]+ was converting exchange suffixes (.L, .DE, .TO, .AX, etc.) to hyphens (BP.L→BP-L). This destroyed ~400 international tickers. Now checks against known exchange suffixes before converting. Also: yfinance Ticker fallback for after-hours movers, diagnostic logging for yahoo_quote endpoint.
 - v90: Fix Nordic share classes in MSCI script: "VOLV B"→"VOLV-B.ST" not "VOLVB.ST" (31 Swedish + 7 Danish tickers). Rewrite after-hours movers: primary source now yfinance Ticker.info (authenticated) instead of deprecated v7/finance/quote endpoint (was returning 403). Fixes AVGO and other after-hours missing movers.
 - v91: Expand universe to MSCI World + MSCI EM (~2,641 tickers, ~1,400 net new). Add MSCI_EM_CLASSIFICATION_CSV path constant. Universe builder merges EM CSV if present, gracefully skips if not yet generated. Sector/company/country resolvers now cover EM tickers. update_msci_world_classification.py gains --universe world|em|both, SOURCE_CANDIDATES_EM (EIMI + EEM), 30+ new EM exchange suffix rules (.KS .TW .NS .BO .SA .JO .MX .SS .SZ .JK .BK .KL .SR .IS .WA etc.), and KNOWN_TICKER_OVERRIDES applied post-guessing. gc_engine.py: MSCI_EM_CSV path, load_universe() merges both CSVs, TICKER_OVERRIDES auto-corrects 7 bad mappings, compute_revenue_analytics() falls back to info.revenue_growth for markets with no quarterly data (recovers ~348 tickers: Japan, UK, Australia, France, Switzerland). gc-data.yml: refreshes both World + EM CSVs before data layer, adds lxml to install step, commits all 5 generated files.
 - v92: Fix job timeout caused by bare EM numeric tickers (e.g. 6488, 3227 — missing .T/.NS/.BO suffix) flooding yfinance with 404 requests. Add _is_ghost_ticker() guard in universe builder: filters Bloomberg placeholders (pure numeric, *D suffix, bare dash, multi-dot) before they enter tech_scan_universe. Expand _clean_ticker _EXCHANGE_SUFFIXES to cover all EM markets (.TW .SS .SZ .JO .MX .JK .BK .KL .SR .AD .DU .WA .AT .CA .PS .QA .KQ etc.) so no EM suffix is ever mangled to a hyphen. Rename user-facing "MSCI World" labels to "MSCI World + EM" in Section 4C header and engine-health log. update_msci_world_classification.py and gc_engine.py gain version-tracker constants + changelog log (matching scan.py pattern).
@@ -611,7 +611,7 @@ def _clean_ticker(t: str) -> str:
         if len(parts) == 2 and parts[1].upper() in _EXCHANGE_SUFFIXES:
             return t  # exchange suffix — do NOT convert
     # Safe to convert: share class like BRK.B, BF.A, MOG.B
-    if re.fullmatch(r"[A-Z]+\.[A-Z]+", t):
+    if re.fullmatch(r"[A-Z]+[.][A-Z]+", t):
         return t.replace(".", "-")
     return t
 
@@ -3011,86 +3011,7 @@ def _swing_points_ohlc(
                 if prominence >= float(prominence_atr_mult * atr_i):
                     lows.append(i)
     return highs, lows
-def _diagnose_swing_high(
-    df: pd.DataFrame,
-    ts: str,
-    window: int = 3,
-    prominence_atr_mult: float = 0.5,
-) -> Dict[str, Any]:
-    """Explain deterministically why a given bar *is / is not* a swing-high pivot under _swing_points_ohlc()."""
-    out: Dict[str, Any] = {"ts_req": ts, "ok": False}
-    try:
-        dd = df.tail(LOOKBACK_DAYS).dropna(subset=["High", "Low", "Close"]).copy()
-        dd = _latest_completed_close_df(dd)
-        if dd.empty:
-            out["reason"] = "empty_df_after_dropna"
-            return out
-        t_req = pd.to_datetime(ts, errors="coerce")
-        if pd.isna(t_req):
-            out["reason"] = "bad_ts"
-            return out
-        # Find exact match; else choose nearest index (deterministic).
-        if isinstance(dd.index, pd.DatetimeIndex):
-            try:
-                i = int(dd.index.get_loc(t_req))
-                t_hit = dd.index[i]
-            except Exception:
-                # nearest
-                diffs = np.abs((dd.index - t_req).astype("timedelta64[s]").astype(np.int64))
-                i = int(np.nanargmin(diffs))
-                t_hit = dd.index[i]
-                out["nearest"] = True
-        else:
-            out["reason"] = "non_datetime_index"
-            return out
-        out["ts_hit"] = str(t_hit)
-        out["i"] = int(i)
-        if i < window or i >= len(dd) - window:
-            out["reason"] = "too_close_to_edges_for_window"
-            return out
-        hi = dd["High"].astype(float).values
-        lo = dd["Low"].astype(float).values
-        hwin = hi[i - window : i + window + 1]
-        lwin = lo[i - window : i + window + 1]
-        out["hwin_max"] = float(np.max(hwin))
-        out["hwin_max_count"] = int(np.sum(hwin == hi[i]))
-        out["hi_i"] = float(hi[i])
-        out["lo_i"] = float(lo[i])
-        out["close_i"] = float(dd["Close"].iloc[i])
-        # ATR at i (mirror logic in _swing_points_ohlc)
-        atr_s = atr(dd, ATR_N)
-        atr_v = pd.to_numeric(atr_s, errors="coerce").values if atr_s is not None else np.full(len(dd), np.nan)
-        atr_i = atr_v[i] if i < len(atr_v) and np.isfinite(atr_v[i]) else np.nan
-        if not np.isfinite(atr_i):
-            lo_i = max(0, i - 20)
-            med = np.nanmedian(atr_v[lo_i : i + 1])
-            atr_i = med if np.isfinite(med) else np.nan
-        if not np.isfinite(atr_i):
-            atr_i = max(float(np.nanmedian((hwin - lwin))), 1e-6)
-        out["atr_i"] = float(atr_i)
-        is_local_max = bool(hi[i] == np.max(hwin))
-        is_unique = bool(np.sum(hwin == hi[i]) == 1)
-        prominence = float(hi[i] - np.min(lwin))
-        thresh = float(prominence_atr_mult * atr_i)
-        out["is_local_max"] = is_local_max
-        out["is_unique_max"] = is_unique
-        out["prominence"] = float(prominence)
-        out["prom_thresh"] = float(thresh)
-        out["prom_ok"] = bool(prominence >= thresh)
-        out["ok"] = bool(is_local_max and is_unique and prominence >= thresh)
-        if not out["ok"]:
-            reasons = []
-            if not is_local_max:
-                reasons.append("not_local_max_in_window")
-            if is_local_max and (not is_unique):
-                reasons.append("ties_for_local_max")
-            if prominence < thresh:
-                reasons.append("prominence_below_threshold")
-            out["reason"] = ",".join(reasons) if reasons else "unknown"
-        return out
-    except Exception as e:
-        out["reason"] = f"exception:{type(e).__name__}"
-        return out
+
 def _line_fit(x: np.ndarray, y: np.ndarray) -> Tuple[float, float]:
     if len(x) < 2:
         return (0.0, float(y[-1]) if len(y) else 0.0)
