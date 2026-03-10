@@ -54,7 +54,7 @@ import requests
 # ────────────────────────────────────────────────────────────────
 # Version tracker (mirrors scan.py / gc_engine.py pattern)
 # ────────────────────────────────────────────────────────────────
-MSCI_UPDATE_VERSION = "1.8.0"
+MSCI_UPDATE_VERSION = "1.9.0"
 
 _MSCI_UPDATE_VERSION_LOG: dict = {
     "1.0.0": (
@@ -137,6 +137,22 @@ _MSCI_UPDATE_VERSION_LOG: dict = {
         "Total new coverage: ~25 tickers (5 NZL + 13 QAT + 7 KWT). "
         "Companion: scan.py v97, gc_engine.py 0.5.3."
     ),
+    "1.9.0": (
+        "Three post-run fixes (confirmed failures 2026-03-10 second run): "
+        "(1) Japan: EWJ produces 179 equity rows after non-equity filtering. "
+        "min_rows_japan default lowered 200 → 175; workflow arg changed to match. "
+        "msci_japan_classification.csv now writes successfully. "
+        "(2) Saudi Arabia: KSA product ID 34394471 returns HTTP 404. "
+        "Converted saudi universe to manual_only=True. "
+        "MSCI_MANUAL_TICKERS['Saudi Arabia'] hardcodes 25 confirmed MSCI EM .SR constituents "
+        "(Aramco, Al Rajhi, SNB, SABIC, STC, Riyad Bank, Maaden, etc.). "
+        "Saudi stocks continue flowing through EIMI (allow_numeric=True) into msci_em_classification.csv "
+        "as belt-and-suspenders; dedicated msci_saudi_classification.csv is now reliably written. "
+        "(3) Malaysia: EWM always returns HTML (bot detection), not CSV. .KL tickers "
+        "flow correctly through EIMI (alphabetic tickers, no ghost filter issue). "
+        "EWM workflow step removed; .KL coverage comes from msci_em_classification.csv. "
+        "TODO: convert malaysia universe to manual_only once ~27 MSCI EM .KL constituents verified."
+    ),
     "1.8.0": (
         "Root cause fix for 4 remaining country ETF failures (confirmed in workflow run 2026-03-10): "
         "(1) Japan (EWJ) + China (MCHI): ghost filter was killing all pure-numeric tickers even "
@@ -148,17 +164,12 @@ _MSCI_UPDATE_VERSION_LOG: dict = {
         "tickers (2222, 1120 etc.) with Exchange='Tadawul/Saudi Exchange'. COUNTRY_SUFFIX_FALLBACK "
         "gains 'Saudi Arabia' → '.SR' as a country-level fallback. Saudi now flows from EIMI "
         "directly into msci_em_classification.csv without needing the dedicated KSA step. "
-        "The KSA step continues in the workflow as a belt-and-suspenders measure. "
         "(3) NZL (ENZL product ID 239688 returns Thai ETF, not NZL): converted NZL universe to "
         "manual_only=True mode. MSCI_MANUAL_TICKERS['New Zealand'] hardcodes the 5 confirmed "
         "MSCI World NZL constituents (FPH.NZ, AIA.NZ, MEL.NZ, SPK.NZ, CEN.NZ). "
         "_run_one_universe() gains manual_only param that writes tickers from MSCI_MANUAL_TICKERS "
-        "directly, skipping ETF fetch entirely — robust and independent of iShares URL correctness. "
-        "(4) Malaysia (EWM returns HTML, not CSV): Malaysia tickers (alphabetic .KL) already "
-        "flow through the EIMI path since they pass the ghost filter. EWM step left in workflow "
-        "with continue-on-error; will fix separately. "
-        "Net new coverage from this release: ~33 Saudi (.SR) + 5 NZL (.NZ) + ~200 Japan (.T) "
-        "+ ~170 China (.HK/.SS/.SZ) = ~408 previously silent MSCI constituents recovered."
+        "directly, skipping ETF fetch entirely. "
+        "(4) Malaysia (EWM returns HTML, not CSV): EWM step left in workflow with continue-on-error."
     ),
 }
 
@@ -300,52 +311,116 @@ SOURCE_CANDIDATES_NZL = [
     },
 ]
 
-# ── Manual tickers for markets with no dedicated iShares country ETF ──────────
-# These are injected directly into the EM CSV after ETF fetch rather than
-# relying on a holdings CSV. Reviewed against MSCI EM constituent lists.
-# Update this dict when MSCI rebalances these markets (typically semi-annually).
-MSCI_MANUAL_TICKERS: Dict[str, List[Dict]] = {
-    # Qatar (.QA) — 13 MSCI EM constituents. No standalone iShares Qatar ETF.
-    # Source: MSCI EM index methodology + Qatar Exchange listings.
+# ── Manual tickers: loaded from JSON (auto-synced weekly) ──────────────────────
+# The authoritative data lives in config/msci_manual_tickers.json, which is
+# updated automatically every week by tools/sync_msci_manual_tickers.py.
+# This replaces the old hardcoded dict so constituent changes (MSCI semi-annual
+# rebalances) are picked up automatically without any manual code edits.
+#
+# The _MANUAL_TICKERS_FALLBACK below is the bootstrap/seed data used only when
+# the JSON file does not yet exist (e.g. first run on a fresh checkout).
+# Once the sync script has run once the JSON file takes over permanently.
+
+_MANUAL_TICKERS_FALLBACK: Dict[str, List[Dict]] = {
+    # Qatar (.QA) — last verified 2026-03-10
     "Qatar": [
-        {"Ticker": "QNBK.QA",    "Company": "Qatar National Bank",            "Country": "Qatar", "Sector": "Financials"},
-        {"Ticker": "MARK.QA",    "Company": "Masraf Al Rayan",                "Country": "Qatar", "Sector": "Financials"},
-        {"Ticker": "CBQK.QA",    "Company": "The Commercial Bank",            "Country": "Qatar", "Sector": "Financials"},
-        {"Ticker": "QEWS.QA",    "Company": "Qatar Electricity & Water",      "Country": "Qatar", "Sector": "Utilities"},
-        {"Ticker": "IQCD.QA",    "Company": "Industries Qatar",               "Country": "Qatar", "Sector": "Materials"},
-        {"Ticker": "QIIK.QA",    "Company": "Qatar International Islamic Bank","Country": "Qatar", "Sector": "Financials"},
-        {"Ticker": "ORDS.QA",    "Company": "Ooredoo",                        "Country": "Qatar", "Sector": "Communication Services"},
-        {"Ticker": "QIBANK.QA",  "Company": "Qatar Islamic Bank",             "Country": "Qatar", "Sector": "Financials"},
-        {"Ticker": "GWCS.QA",    "Company": "Gulf Warehousing",               "Country": "Qatar", "Sector": "Industrials"},
-        {"Ticker": "IGRD.QA",    "Company": "Investment Grade",               "Country": "Qatar", "Sector": "Financials"},
-        {"Ticker": "KCBK.QA",    "Company": "Al Khalij Commercial Bank",      "Country": "Qatar", "Sector": "Financials"},
-        {"Ticker": "MERS.QA",    "Company": "Al Meera Consumer Goods",        "Country": "Qatar", "Sector": "Consumer Staples"},
-        {"Ticker": "NLCS.QA",    "Company": "Nakilat",                        "Country": "Qatar", "Sector": "Energy"},
+        {"Ticker": "QNBK.QA",   "Company": "Qatar National Bank",             "Country": "Qatar", "Sector": "Financials"},
+        {"Ticker": "MARK.QA",   "Company": "Masraf Al Rayan",                 "Country": "Qatar", "Sector": "Financials"},
+        {"Ticker": "CBQK.QA",   "Company": "The Commercial Bank",             "Country": "Qatar", "Sector": "Financials"},
+        {"Ticker": "QEWS.QA",   "Company": "Qatar Electricity & Water",       "Country": "Qatar", "Sector": "Utilities"},
+        {"Ticker": "IQCD.QA",   "Company": "Industries Qatar",                "Country": "Qatar", "Sector": "Materials"},
+        {"Ticker": "QIIK.QA",   "Company": "Qatar International Islamic Bank","Country": "Qatar", "Sector": "Financials"},
+        {"Ticker": "ORDS.QA",   "Company": "Ooredoo",                         "Country": "Qatar", "Sector": "Communication Services"},
+        {"Ticker": "QIBANK.QA", "Company": "Qatar Islamic Bank",              "Country": "Qatar", "Sector": "Financials"},
+        {"Ticker": "GWCS.QA",   "Company": "Gulf Warehousing",                "Country": "Qatar", "Sector": "Industrials"},
+        {"Ticker": "IGRD.QA",   "Company": "Investment Grade",                "Country": "Qatar", "Sector": "Financials"},
+        {"Ticker": "KCBK.QA",   "Company": "Al Khalij Commercial Bank",       "Country": "Qatar", "Sector": "Financials"},
+        {"Ticker": "MERS.QA",   "Company": "Al Meera Consumer Goods",         "Country": "Qatar", "Sector": "Consumer Staples"},
+        {"Ticker": "NLCS.QA",   "Company": "Nakilat",                         "Country": "Qatar", "Sector": "Energy"},
     ],
-    # Kuwait (.KW) — 7 MSCI EM constituents. Added to MSCI EM in June 2020.
-    # Was incorrectly in GHOST_COUNTRIES alongside Russia (sanctions list confusion).
-    # Kuwait is fully accessible on Yahoo Finance via .KW suffix.
+    # Kuwait (.KW) — last verified 2026-03-10
     "Kuwait": [
-        {"Ticker": "ZAIN.KW",    "Company": "Zain Kuwait",                    "Country": "Kuwait", "Sector": "Communication Services"},
-        {"Ticker": "NBK.KW",     "Company": "National Bank of Kuwait",        "Country": "Kuwait", "Sector": "Financials"},
-        {"Ticker": "KFIN.KW",    "Company": "Kuwait Finance House",           "Country": "Kuwait", "Sector": "Financials"},
-        {"Ticker": "BURG.KW",    "Company": "Burgan Bank",                    "Country": "Kuwait", "Sector": "Financials"},
-        {"Ticker": "AGILITY.KW", "Company": "Agility Public Warehousing",     "Country": "Kuwait", "Sector": "Industrials"},
-        {"Ticker": "BOUBYAN.KW", "Company": "Boubyan Bank",                   "Country": "Kuwait", "Sector": "Financials"},
-        {"Ticker": "HUMANSOFT.KW","Company": "Humansoft Holding",             "Country": "Kuwait", "Sector": "Information Technology"},
+        {"Ticker": "ZAIN.KW",     "Company": "Zain Kuwait",               "Country": "Kuwait", "Sector": "Communication Services"},
+        {"Ticker": "NBK.KW",      "Company": "National Bank of Kuwait",   "Country": "Kuwait", "Sector": "Financials"},
+        {"Ticker": "KFIN.KW",     "Company": "Kuwait Finance House",      "Country": "Kuwait", "Sector": "Financials"},
+        {"Ticker": "BURG.KW",     "Company": "Burgan Bank",               "Country": "Kuwait", "Sector": "Financials"},
+        {"Ticker": "AGILITY.KW",  "Company": "Agility Public Warehousing","Country": "Kuwait", "Sector": "Industrials"},
+        {"Ticker": "BOUBYAN.KW",  "Company": "Boubyan Bank",              "Country": "Kuwait", "Sector": "Financials"},
+        {"Ticker": "HUMANSOFT.KW","Company": "Humansoft Holding",         "Country": "Kuwait", "Sector": "Information Technology"},
     ],
-    # New Zealand (.NZ) — 5 MSCI World constituents. ENZL (iShares MSCI New Zealand ETF)
-    # product ID is unreliable (wrong ETF returned). Hardcoded here as authoritative fallback.
-    # Verified MSCI World NZL constituents (2025): FPH, AIA, MEL, SPK, CEN.
-    # These are written directly to msci_nzl_classification.csv via manual_only=True universe mode.
+    # Saudi Arabia (.SR) — last verified 2026-03-10
+    "Saudi Arabia": [
+        {"Ticker": "2222.SR", "Company": "Saudi Aramco",               "Country": "Saudi Arabia", "Sector": "Energy"},
+        {"Ticker": "1120.SR", "Company": "Al Rajhi Banking Group",     "Country": "Saudi Arabia", "Sector": "Financials"},
+        {"Ticker": "7020.SR", "Company": "Saudi National Bank",        "Country": "Saudi Arabia", "Sector": "Financials"},
+        {"Ticker": "2010.SR", "Company": "SABIC",                      "Country": "Saudi Arabia", "Sector": "Materials"},
+        {"Ticker": "4030.SR", "Company": "Saudi Telecom Company",      "Country": "Saudi Arabia", "Sector": "Communication Services"},
+        {"Ticker": "1060.SR", "Company": "Riyad Bank",                 "Country": "Saudi Arabia", "Sector": "Financials"},
+        {"Ticker": "1211.SR", "Company": "Ma'aden",                    "Country": "Saudi Arabia", "Sector": "Materials"},
+        {"Ticker": "1050.SR", "Company": "Banque Saudi Fransi",        "Country": "Saudi Arabia", "Sector": "Financials"},
+        {"Ticker": "1080.SR", "Company": "Arab National Bank",         "Country": "Saudi Arabia", "Sector": "Financials"},
+        {"Ticker": "2350.SR", "Company": "Saudi Kayan Petrochemical",  "Country": "Saudi Arabia", "Sector": "Materials"},
+        {"Ticker": "2380.SR", "Company": "Petrochem",                  "Country": "Saudi Arabia", "Sector": "Materials"},
+        {"Ticker": "4280.SR", "Company": "Jarir Marketing",            "Country": "Saudi Arabia", "Sector": "Consumer Discretionary"},
+        {"Ticker": "1140.SR", "Company": "Al Bilad Bank",              "Country": "Saudi Arabia", "Sector": "Financials"},
+        {"Ticker": "2030.SR", "Company": "SIIG",                       "Country": "Saudi Arabia", "Sector": "Materials"},
+        {"Ticker": "4008.SR", "Company": "Elm",                        "Country": "Saudi Arabia", "Sector": "Information Technology"},
+        {"Ticker": "8010.SR", "Company": "Saudi Re",                   "Country": "Saudi Arabia", "Sector": "Financials"},
+        {"Ticker": "2082.SR", "Company": "Gulf International Services","Country": "Saudi Arabia", "Sector": "Industrials"},
+        {"Ticker": "4020.SR", "Company": "Zain KSA",                   "Country": "Saudi Arabia", "Sector": "Communication Services"},
+        {"Ticker": "2090.SR", "Company": "NADEC",                      "Country": "Saudi Arabia", "Sector": "Consumer Staples"},
+        {"Ticker": "4200.SR", "Company": "Dar Al Arkan",               "Country": "Saudi Arabia", "Sector": "Real Estate"},
+        {"Ticker": "4005.SR", "Company": "Alinma Bank",                "Country": "Saudi Arabia", "Sector": "Financials"},
+        {"Ticker": "1180.SR", "Company": "Al Rajhi Takaful",           "Country": "Saudi Arabia", "Sector": "Financials"},
+        {"Ticker": "2150.SR", "Company": "YANSAB",                     "Country": "Saudi Arabia", "Sector": "Materials"},
+        {"Ticker": "2170.SR", "Company": "Rabigh Refining",            "Country": "Saudi Arabia", "Sector": "Energy"},
+    ],
+    # New Zealand (.NZ) — last verified 2026-03-10
     "New Zealand": [
-        {"Ticker": "FPH.NZ",  "Company": "Fisher & Paykel Healthcare",  "Country": "New Zealand", "Sector": "Health Care"},
-        {"Ticker": "AIA.NZ",  "Company": "Auckland International Airport","Country": "New Zealand", "Sector": "Industrials"},
-        {"Ticker": "MEL.NZ",  "Company": "Meridian Energy",              "Country": "New Zealand", "Sector": "Utilities"},
-        {"Ticker": "SPK.NZ",  "Company": "Spark New Zealand",            "Country": "New Zealand", "Sector": "Communication Services"},
-        {"Ticker": "CEN.NZ",  "Company": "Contact Energy",               "Country": "New Zealand", "Sector": "Utilities"},
+        {"Ticker": "FPH.NZ", "Company": "Fisher & Paykel Healthcare",    "Country": "New Zealand", "Sector": "Health Care"},
+        {"Ticker": "AIA.NZ", "Company": "Auckland International Airport","Country": "New Zealand", "Sector": "Industrials"},
+        {"Ticker": "MEL.NZ", "Company": "Meridian Energy",               "Country": "New Zealand", "Sector": "Utilities"},
+        {"Ticker": "SPK.NZ", "Company": "Spark New Zealand",             "Country": "New Zealand", "Sector": "Communication Services"},
+        {"Ticker": "CEN.NZ", "Company": "Contact Energy",                "Country": "New Zealand", "Sector": "Utilities"},
     ],
 }
+
+
+def _load_msci_manual_tickers() -> Dict[str, List[Dict]]:
+    """Load MSCI_MANUAL_TICKERS from JSON file if it exists, otherwise use fallback.
+
+    JSON is written by tools/sync_msci_manual_tickers.py which runs before this
+    script in the weekly workflow. On a fresh repo clone the JSON may not exist
+    yet — fallback ensures the first run still works correctly.
+    """
+    json_path = Path(__file__).resolve().parent.parent / "config" / "msci_manual_tickers.json"
+    if json_path.exists():
+        try:
+            data = json.loads(json_path.read_text(encoding="utf-8"))
+            countries = data.get("countries", {})
+            result: Dict[str, List[Dict]] = {}
+            for country, entry in countries.items():
+                tickers = entry.get("tickers", [])
+                if tickers:
+                    result[country] = tickers
+            if result:
+                print(f"[msci-refresh] loaded manual tickers from {json_path.name} "
+                      f"({sum(len(v) for v in result.values())} tickers across {len(result)} markets)")
+                return result
+        except Exception as e:
+            print(f"[msci-refresh] WARNING: could not load {json_path}: {e} — using fallback", file=sys.stderr)
+    else:
+        print(f"[msci-refresh] {json_path.name} not found — using seed fallback data "
+              f"(run sync_msci_manual_tickers.py to generate it)")
+    return _MANUAL_TICKERS_FALLBACK
+
+
+# MSCI_MANUAL_TICKERS is loaded at module import time.
+# sync_msci_manual_tickers.py runs before this script in the weekly workflow,
+# so the JSON is always fresh when the country ETF steps execute.
+MSCI_MANUAL_TICKERS: Dict[str, List[Dict]] = _load_msci_manual_tickers()
+
+
 
 # Backward-compat alias
 SOURCE_CANDIDATES = SOURCE_CANDIDATES_WORLD
@@ -1276,11 +1351,11 @@ def main() -> int:
     ap.add_argument("--min-rows",         type=int, default=900,  help="Minimum rows for World (default: 900)")
     ap.add_argument("--min-rows-em",      type=int, default=700,  help="Minimum rows for EM (default: 700)")
     ap.add_argument("--min-rows-korea",   type=int, default=80,   help="Minimum rows for Korea/EWY (default: 80)")
-    ap.add_argument("--min-rows-japan",   type=int, default=200,  help="Minimum rows for Japan/EWJ (default: 200)")
+    ap.add_argument("--min-rows-japan",   type=int, default=175,  help="Minimum rows for Japan/EWJ (default: 175)")
     ap.add_argument("--min-rows-taiwan",  type=int, default=70,   help="Minimum rows for Taiwan/EWT (default: 70)")
     ap.add_argument("--min-rows-china",   type=int, default=50,   help="Minimum rows for China/MCHI (default: 50)")
     ap.add_argument("--min-rows-hk",      type=int, default=30,   help="Minimum rows for HK/EWH (default: 30)")
-    ap.add_argument("--min-rows-saudi",   type=int, default=25,   help="Minimum rows for Saudi/KSA (default: 25)")
+    ap.add_argument("--min-rows-saudi",   type=int, default=20,   help="Minimum rows for Saudi (default: 20)")
     ap.add_argument("--min-rows-malaysia",type=int, default=30,   help="Minimum rows for Malaysia/EWM (default: 30)")
     ap.add_argument("--min-rows-nzl",     type=int, default=4,    help="Minimum rows for New Zealand/ENZL (default: 4)")
     ap.add_argument("--allow-partial", action="store_true",
@@ -1296,7 +1371,9 @@ def main() -> int:
         ("taiwan",   ("all",),        SOURCE_CANDIDATES_TAIWAN,   Path(args.out_taiwan),    Path(args.meta_taiwan),    args.min_rows_taiwan,    None,                   False),
         ("china",    ("all",),        SOURCE_CANDIDATES_CHINA,    Path(args.out_china),     Path(args.meta_china),     args.min_rows_china,     None,                   False),
         ("hk",       ("all",),        SOURCE_CANDIDATES_HK,       Path(args.out_hk),        Path(args.meta_hk),        args.min_rows_hk,        None,                   False),
-        ("saudi",    ("all",),        SOURCE_CANDIDATES_SAUDI,    Path(args.out_saudi),     Path(args.meta_saudi),     args.min_rows_saudi,     None,                   False),
+        # Saudi: KSA ETF URL returns HTTP 404. Saudi .SR tickers also flow through EIMI
+        # (allow_numeric=True). This manual_only step writes a dedicated msci_saudi_classification.csv.
+        ("saudi",    ("all",),        SOURCE_CANDIDATES_SAUDI,    Path(args.out_saudi),     Path(args.meta_saudi),     args.min_rows_saudi,     ["Saudi Arabia"],        True),
         ("malaysia", ("all",),        SOURCE_CANDIDATES_MALAYSIA, Path(args.out_malaysia),  Path(args.meta_malaysia),  args.min_rows_malaysia,  None,                   False),
         # NZL: ENZL (iShares MSCI New Zealand ETF) URL returns wrong ETF (Thai stocks).
         # Use manual_only mode — write MSCI_MANUAL_TICKERS["New Zealand"] directly.
