@@ -1,13 +1,17 @@
 {
-  "generated_utc": "2026-03-10T13:42:45Z",
+  "generated_utc": "2026-03-10T13:52:22Z",
   "universe": "Nzl",
   "source_fund": "manual",
   "source_url": "hardcoded:MSCI_MANUAL_TICKERS",
   "source_as_of": null,
   "row_count": 5,
   "unique_tickers": 5,
-  "added_count": 0,
-  "removed_count": 0,
-  "added_sample": [],
-  "removed_sample": []
+  "added_count": 1,
+  "removed_count": 1,
+  "added_sample": [
+    "IFT.NZ"
+  ],
+  "removed_sample": [
+    "SPK.NZ"
+  ]
 }

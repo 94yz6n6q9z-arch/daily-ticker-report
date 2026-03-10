@@ -3122,9 +3122,3 @@ YTLPOWR.KL,YTL POWER INTERNATIONAL,Malaysia,Utilities,YTLPOWR,Bursa Malaysia,,0.
 UPRO,YUNIPRO,Russian Federation,Utilities,UPRO,Standard-Classica-Forts,,0.0,EIMI,https://www.ishares.com/uk/individual/en/products/264659/ishares-core-msci-emerging-markets-imi-ucits-etf-acc-fund/1506575576011.ajax?dataType=fund&fileName=EIMI_holdings&fileType=csv,,low
 600023.SS,ZHEJIANG ZHENENG ELECTRIC POWER LT,China,Utilities,600023,Shanghai Stock Exchange,,0.0,EIMI,https://www.ishares.com/uk/individual/en/products/264659/ishares-core-msci-emerging-markets-imi-ucits-etf-acc-fund/1506575576011.ajax?dataType=fund&fileName=EIMI_holdings&fileType=csv,,high
 3633.HK,ZHONGYU ENERGY HOLDINGS LTD,China,Utilities,3633,Hong Kong Exchanges And Clearing Ltd,,0.0,EIMI,https://www.ishares.com/uk/individual/en/products/264659/ishares-core-msci-emerging-markets-imi-ucits-etf-acc-fund/1506575576011.ajax?dataType=fund&fileName=EIMI_holdings&fileType=csv,,high
-QIBANK.QA,Qatar Islamic Bank,Qatar,Financials,,,,,manual,hardcoded:MSCI_MANUAL_TICKERS,,manual
-GWCS.QA,Gulf Warehousing,Qatar,Industrials,,,,,manual,hardcoded:MSCI_MANUAL_TICKERS,,manual
-KCBK.QA,Al Khalij Commercial Bank,Qatar,Financials,,,,,manual,hardcoded:MSCI_MANUAL_TICKERS,,manual
-NLCS.QA,Nakilat,Qatar,Energy,,,,,manual,hardcoded:MSCI_MANUAL_TICKERS,,manual
-KFIN.KW,Kuwait Finance House,Kuwait,Financials,,,,,manual,hardcoded:MSCI_MANUAL_TICKERS,,manual
-AGILITY.KW,Agility Public Warehousing,Kuwait,Industrials,,,,,manual,hardcoded:MSCI_MANUAL_TICKERS,,manual

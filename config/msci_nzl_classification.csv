@@ -1,6 +1,6 @@
 Ticker,Company,Country,Sector,MappingConfidence,SourceFund,SourceURL,SourceAsOf
-FPH.NZ,Fisher & Paykel Healthcare,New Zealand,Health Care,manual,manual,hardcoded:MSCI_MANUAL_TICKERS,
-AIA.NZ,Auckland International Airport,New Zealand,Industrials,manual,manual,hardcoded:MSCI_MANUAL_TICKERS,
-MEL.NZ,Meridian Energy,New Zealand,Utilities,manual,manual,hardcoded:MSCI_MANUAL_TICKERS,
-SPK.NZ,Spark New Zealand,New Zealand,Communication Services,manual,manual,hardcoded:MSCI_MANUAL_TICKERS,
-CEN.NZ,Contact Energy,New Zealand,Utilities,manual,manual,hardcoded:MSCI_MANUAL_TICKERS,
+FPH.NZ,FISHER AND PAYKEL HEALTHCARE CORPO,New Zealand,Health Care,manual,manual,hardcoded:MSCI_MANUAL_TICKERS,
+AIA.NZ,AUCKLAND INTERNATIONAL AIRPORT LTD,New Zealand,Industrials,manual,manual,hardcoded:MSCI_MANUAL_TICKERS,
+IFT.NZ,INFRATIL LTD,New Zealand,Financials,manual,manual,hardcoded:MSCI_MANUAL_TICKERS,
+CEN.NZ,CONTACT ENERGY LTD,New Zealand,Utilities,manual,manual,hardcoded:MSCI_MANUAL_TICKERS,
+MEL.NZ,MERIDIAN ENERGY LTD,New Zealand,Utilities,manual,manual,hardcoded:MSCI_MANUAL_TICKERS,
