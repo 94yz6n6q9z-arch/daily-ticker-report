@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
-import hashlib
 import json
 import math
 import os
@@ -240,7 +239,10 @@ _GC_VERSION_LOG: dict = {
         "Inner per-ticker sleeps (between EPS methods) unchanged to respect per-ticker rate "
         "limits. Outer loop sleeps removed (parallelism makes them redundant). "
         "Expected runtime: full run 2.5hr → ~40min; daily cached run ~15min. "
-        "GC_FETCH_WORKERS env var overrides worker count (set to 1 to restore serial mode)."
+        "GC_FETCH_WORKERS env var overrides worker count (set to 1 to restore serial mode). "
+        "Removed batch_day scheduling entirely: all tickers (US + RoW) now fetch every "
+        "weekday. With parallel fetch completing in ~40min, the weekly batch rotation is "
+        "no longer needed. assign_batch_day() removed. hashlib import removed."
     ),
     "0.6.7": (
         "Fix _fetch_revenue_estimates_yahoo: remove handle_404=True from get_raw_json call. "
@@ -288,16 +290,13 @@ EARNINGS_CACHE_TTL_HOURS = 20  # Re-download once per day
 EPS_BEAT_STREAK_MIN = 2
 
 # ────────────────────────────────────────────────────────────────
-# Batch scheduling
-# US tickers: fetched every weekday (Mon–Fri)
-# RoW tickers: assigned a stable day-of-week (0–6) via ticker hash
-#              so each ticker is refreshed once per week, any day
+# Fetch scheduling
+# All tickers (US + RoW) are fetched every weekday (Mon–Fri).
+# Removed batch_day logic (v0.6.8): with parallel fetch (~40min full run)
+# batching is no longer necessary to stay within the 4hr window.
 # Earnings trigger: any ticker with earnings_date within 1 day is
-#                   force-fetched regardless of batch assignment
+#                   always fetched regardless of weekend/weekday.
 # ────────────────────────────────────────────────────────────────
-def assign_batch_day(ticker: str) -> int:
-    """Stable day-of-week (0=Mon … 6=Sun) for RoW tickers, based on hash."""
-    return int(hashlib.md5(ticker.encode()).hexdigest(), 16) % 7
 
 
 def _has_earnings_today(cached: Dict[str, Any], today: dt.date) -> bool:
@@ -316,12 +315,11 @@ def _should_fetch_today(ticker: str, cached: Dict[str, Any], now: dt.datetime, f
     """Decide whether this ticker should be fetched in today's run.
 
     Rules (in priority order):
-      1. force=True              → always fetch
-      2. inactive constituent    → never fetch (left MSCI universe)
-      3. new_constituent         → always fetch immediately (just joined MSCI)
-      4. earnings trigger        → fetch if earnings ±1 day
-      5. US ticker               → fetch on weekdays only
-      6. RoW ticker              → fetch on assigned batch day (any day of week)
+      1. force=True           → always fetch
+      2. inactive constituent → never fetch (left MSCI universe)
+      3. new_constituent      → always fetch immediately (just joined MSCI)
+      4. earnings trigger     → fetch if earnings ±1 day (any day of week)
+      5. all others           → fetch on weekdays (Mon–Fri) only
     """
     if force:
         return True
@@ -329,14 +327,9 @@ def _should_fetch_today(ticker: str, cached: Dict[str, Any], now: dt.datetime, f
         return False
     if cached.get("new_constituent"):
         return True
-    today = now.date()
-    if _has_earnings_today(cached, today):
+    if _has_earnings_today(cached, now.date()):
         return True
-    exch = ticker.rsplit(".", 1)[-1] if "." in ticker else "US"
-    if exch == "US":
-        return now.weekday() < 5   # Mon–Fri
-    batch_day = cached.get("batch_day", assign_batch_day(ticker))
-    return now.weekday() == batch_day
+    return now.weekday() < 5  # Mon–Fri for everything
 
 
 # ────────────────────────────────────────────────────────────────
@@ -2525,11 +2518,6 @@ def fetch_earnings_universe(
 
         if t in cache:
             cached = cache[t]
-            # Assign batch_day on first encounter (persisted in cache going forward)
-            if "batch_day" not in cached:
-                exch = t.rsplit(".", 1)[-1] if "." in t else "US"
-                if exch != "US":
-                    cached["batch_day"] = assign_batch_day(t)
             # Was previously rate-limited with no data? Always re-fetch.
             was_rate_limited = (
                 "_info_error" in cached
@@ -2765,6 +2753,7 @@ def fetch_earnings_universe(
                   f"(suffixes: {sorted({t.rsplit('.',1)[-1] for t in rev_missing})})")
             rev_enriched = 0
             fmp_date_miss = 0  # tickers where FMP returned data but date-match failed (issue #6)
+            for i, t in enumerate(rev_missing):
                 if i > 0 and i % 50 == 0:
                     print(f"[gc-data] EU/DM rev-missing: {i}/{len(rev_missing)}")
                     time.sleep(1.0)
