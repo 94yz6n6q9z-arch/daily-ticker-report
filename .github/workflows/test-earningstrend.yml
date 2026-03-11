@@ -1,0 +1,36 @@
+name: test-earningstrend
+
+on:
+  workflow_dispatch:   # manual trigger only — run this before deploying the fix
+
+jobs:
+  test-earningstrend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15          # hard ceiling; should finish in ~8 min
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install yfinance pandas requests
+
+      - name: Run earningsTrend auth strategy test
+        run: |
+          python tools/test_earningstrend.py
+        # exit code 1 = all strategies failed on broken countries
+        # exit code 0 = at least one strategy works
+
+      - name: Upload test results
+        if: always()          # upload even if test fails
+        uses: actions/upload-artifact@v4
+        with:
+          name: earningstrend-test-results
+          path: earningstrend_test_results.json
+          retention-days: 7
