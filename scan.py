@@ -44,7 +44,8 @@ NEW (this update):
 - v96: Add FINNHUB_API_KEY env note. investing.com layer added between yfinance and FMP. (1) revenue_beat_streak now falls back to quarterly_revenue YoY>0 when yfinance lacks consensus revenue estimates — fixes NVDA/LLY always showing 0. (2) Add run_gc_ignition_scoring() called from main() after Star 1 — scores Star 2/3 for all Star 1 tickers, writes ignition_signals to gc_state.json. Section 7 now always rendered (shows placeholder when no 3-star signals). (3) Turkish .IS tickers normalised from TICKER-E.IS to TICKER.IS at load time in both scan.py and gc_engine.py.
 - v97: Fix GC coverage tables broken in email (pipe-table rows had trailing \\n inside md.append() — "\n".join(md) then added a second newline between every row, which the markdown `tables` extension treats as paragraph breaks, rendering raw | text | instead of HTML tables). Fix: stripped trailing \\n from all table-row md.append() calls. Added full per-country coverage table (all ~40 markets, not just totals) with columns: N | EPS rep | EPS est | Rev rep | Rev est | All-4 | EPS est only | Rev est only | No est. Added estimate gap analysis table (no-est / eps-only / rev-only with top offending countries). Added Korea CSV (config/msci_korea_classification.csv) to the World/EM/Korea universe count line in engine health. Companion updates: gc_engine.py 0.5.3 (same HTML table fixes in _build_coverage_html and print_data_summary), update_msci_world_classification.py 1.6.0 (adds 6 new country ETFs: EWJ Japan, EWT Taiwan, MCHI China, EWH Hong Kong, KSA Saudi Arabia, EWM Malaysia — all produce clean Yahoo Finance numeric suffixes that the EM/World UCITS exports lose to the ghost-ticker filter).
 - v98: Companion to gc_engine.py 0.6.2–0.6.3. Added ADR_MAP + get_fmp_symbol() to universe.py (25 APAC numeric→US ADR mappings: 2330.TW→TSM, 7203.T→TM etc.). FMP alpha-batch expanded from EU-only to all alpha-suffix exchanges globally (FMP_ALPHA_BATCH_SUFFIXES: +India, Brazil, Mexico, Turkey, Indonesia, S.Africa, Chile, Qatar, Kuwait, Singapore). Adds ~900 more tickers to the FMP revenue-missing batch. All exchange classification constants (DEAD_MARKET_SUFFIXES, EU_SUFFIXES, MIN_MCAP_US_EU, MIN_MCAP_OTHER, mcap_threshold, FMP_ALPHA_BATCH_SUFFIXES, ADR_MAP, get_fmp_symbol) now imported exclusively from universe.py — scan.py no longer defines any exchange logic itself.
-- v99: Data source breakdown table rewritten — correct attribution for all 4 fields. Corrected wrong claim that APAC numeric markets (KS/TW/T/SS/SZ) have no EPS estimates from yfinance: earnings_dates HTML provides analyst consensus for ALL global markets. Revenue estimate is the only field where APAC numeric = 0%. Table now 5 columns (yf earn_dates | yf income_stmt | yf fwd_est | FMP | missing), dropping the defunct yf_quoteSummary and Finnhub columns. Added fwd_covered counter in table footer (earningsTrend tickers with forward_estimates, v0.6.5+). New diagnostic table: Forward revenue estimate coverage — per market, for every ticker with a yfinance EPS estimate, shows whether forward rev estimate came from yf earningsTrend (free), FMP only (paid), or is absent. This makes FMP residual value visible per run. Companion: gc_engine.py 0.6.5–0.6.6 (earningsTrend auth fix, Phase A linkage, _is_forward tagging, ±2 month tolerance, auto-inactive for persistent zero-data tickers). universe.py 1.2.0: load_universe() now filters DEAD_MARKET_SUFFIXES and KNOWN_DEAD_TICKERS at source; .DU added to DEAD_MARKET_SUFFIXES (95% dead confirmed). Effect: ~145 fewer tickers enter pipeline; active count projects below 5,000."""
+- v99: Data source breakdown table rewritten — correct attribution for all 4 fields. Corrected wrong claim that APAC numeric markets (KS/TW/T/SS/SZ) have no EPS estimates from yfinance: earnings_dates HTML provides analyst consensus for ALL global markets. Revenue estimate is the only field where APAC numeric = 0%. Table now 5 columns (yf earn_dates | yf income_stmt | yf fwd_est | FMP | missing), dropping the defunct yf_quoteSummary and Finnhub columns. Added fwd_covered counter in table footer (earningsTrend tickers with forward_estimates, v0.6.5+). New diagnostic table: Forward revenue estimate coverage — per market, for every ticker with a yfinance EPS estimate, shows whether forward rev estimate came from yf earningsTrend (free), FMP only (paid), or is absent. This makes FMP residual value visible per run. Companion: gc_engine.py 0.6.5–0.6.6 (earningsTrend auth fix, Phase A linkage, _is_forward tagging, ±2 month tolerance, auto-inactive for persistent zero-data tickers). universe.py 1.2.0: load_universe() now filters DEAD_MARKET_SUFFIXES and KNOWN_DEAD_TICKERS at source; .DU added to DEAD_MARKET_SUFFIXES (95% dead confirmed). Effect: ~145 fewer tickers enter pipeline; active count projects below 5,000.
+- v100: Option A universe filter. OHLCV download list now built from gc_state.json active set rather than raw load_universe() output. Tickers gc_engine has marked inactive or below_min_mcap are excluded from the yf_download_chunk call — eliminates OHLCV fetches for dead markets, below-mcap stocks, and persistent zero-data tickers. New MSCI constituents not yet seen by gc_engine pass through unfiltered for their first run (one free pass), then gc_engine trims them on the next cycle. gc_state absent (first run) falls back to full MSCI universe. Establishes explicit run-order dependency: gc_engine (mode=data) must complete and write gc_state.json BEFORE scan.py runs. Companion: universe.py 1.2.0, gc_engine.py 0.6.6."""
 from __future__ import annotations
 import argparse
 import datetime as dt
@@ -87,7 +88,7 @@ from universe import (
     FMP_ALPHA_BATCH_SUFFIXES,
 )
 
-SCAN_VERSION: str = "v99"
+SCAN_VERSION: str = "v100"
 # ----------------------------
 # Public asset URLs (email-safe) + cache busting
 # ----------------------------
@@ -7008,15 +7009,51 @@ def main():
 
     # Load full MSCI universe (all 9 country CSVs, deduplicated, ghost-filtered)
     # via universe.py — single source of truth shared with gc_engine.
-    msci_df = load_universe()
-    msci_tickers = sorted({
-        t for t in msci_df["Ticker"].astype(str).tolist()
-        if t and t not in set(base_universe)
-    })
-    if msci_tickers:
-        print(f"[msci] loaded {len(msci_tickers)} non-base tickers from MSCI universe")
+    msci_df = load_universe()   # already filters DEAD_MARKET_SUFFIXES + KNOWN_DEAD (v1.2.0)
+    msci_all = set(msci_df["Ticker"].astype(str).tolist())
+
+    # ── Option A: filter MSCI universe against gc_state.json active set ────────
+    # gc_engine runs first and establishes which tickers are active (not inactive,
+    # not below_min_mcap). scan.py uses that vetted set as its OHLCV download list.
+    # This means: gc_engine MUST run before scan.py on each daily cycle.
+    # New MSCI constituents not yet in gc_state pass through unfiltered — they get
+    # one free fetch pass, then gc_engine trims them on the next run if below mcap.
+    _gc_state_path = DOCS_DIR / "gc_state.json"
+    _gc_active: set = set()
+    _gc_inactive: set = set()
+    if _gc_state_path.exists():
+        try:
+            import json as _gcj
+            _gc_cache = _gcj.loads(_gc_state_path.read_text(encoding="utf-8")).get("earnings_cache", {})
+            for _t, _v in _gc_cache.items():
+                if _v.get("inactive") or _v.get("below_min_mcap"):
+                    _gc_inactive.add(_t)
+                else:
+                    _gc_active.add(_t)
+            print(f"[msci] gc_state loaded: {len(_gc_active)} active, {len(_gc_inactive)} inactive/below_mcap")
+        except Exception as _e:
+            print(f"[msci] gc_state load failed ({_e}) — using full MSCI universe as fallback")
+
+    if _gc_active:
+        # Use gc_state active set intersected with MSCI universe.
+        # Always include base_universe tickers (watchlist/SPX/NDX) regardless of gc_state.
+        # New MSCI tickers not yet seen by gc_engine are included for their first pass.
+        _new_msci = msci_all - _gc_active - _gc_inactive   # not yet in gc_state at all
+        msci_tickers = sorted(
+            (msci_all & _gc_active) | _new_msci - set(base_universe)
+        )
+        _filtered = len(msci_all - _gc_active - _new_msci - set(base_universe))
+        if _filtered:
+            print(f"[msci] filtered {_filtered} inactive/below_mcap tickers from OHLCV download")
     else:
-        print(f"[msci] no extra tickers loaded from MSCI universe (4B remains base universe only)")
+        # gc_state absent or empty (first run) — use full MSCI universe
+        msci_tickers = sorted(msci_all - set(base_universe))
+
+    if msci_tickers:
+        print(f"[msci] {len(msci_tickers)} MSCI tickers for OHLCV download")
+    else:
+        print(f"[msci] no MSCI tickers loaded (base universe only)")
+
     tech_scan_universe = sorted(set(base_universe + msci_tickers))
     sector_resolver = build_sector_resolver(msci_df)
     company_name_for_ticker, country_for_ticker = build_company_country_resolvers(msci_df)
