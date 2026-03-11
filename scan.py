@@ -76,6 +76,13 @@ from universe import (
     MSCI_CSV,
     MSCI_EM_CSV,
     MSCI_KR_CSV,
+    # Exchange classification
+    DEAD_MARKET_SUFFIXES,
+    EU_SUFFIXES,
+    MIN_MCAP_US_EU,
+    MIN_MCAP_OTHER,
+    mcap_threshold,
+    FMP_ALPHA_BATCH_SUFFIXES,
 )
 
 SCAN_VERSION: str = "v98"
@@ -7449,6 +7456,9 @@ def main():
                 import json as _json
                 gc_state = _json.loads(gc_state_path.read_text(encoding="utf-8"))
                 ec = gc_state.get("earnings_cache", {})
+                # Filter to active tickers only (exclude inactive/below_min_mcap)
+                ec = {k: v for k, v in ec.items()
+                      if not v.get("inactive") and not v.get("below_min_mcap")}
                 gc_total = len(ec)
                 gc_rev = sum(1 for d in ec.values() if len(d.get("quarterly_revenue", [])) >= 4)
                 gc_eps = sum(1 for d in ec.values() if any(e.get("eps_reported") for e in d.get("earnings_dates", [])))
