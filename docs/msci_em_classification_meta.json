@@ -1,18 +1,18 @@
 {
-  "generated_utc": "2026-03-11T08:23:00Z",
+  "generated_utc": "2026-03-11T20:02:38Z",
   "universe": "Em",
   "source_fund": "EIMI",
   "source_url": "https://www.ishares.com/uk/individual/en/products/264659/ishares-core-msci-emerging-markets-imi-ucits-etf-acc-fund/1506575576011.ajax?dataType=fund&fileName=EIMI_holdings&fileType=csv",
   "source_as_of": null,
-  "row_count": 3122,
-  "unique_tickers": 3122,
+  "row_count": 3123,
+  "unique_tickers": 3123,
   "sector_counts": {
     "Communication Services": 133,
     "Consumer Discretionary": 354,
     "Consumer Staples": 226,
     "Energy": 97,
     "Financials": 443,
-    "Health Care": 269,
+    "Health Care": 270,
     "Industrials": 504,
     "Information Technology": 439,
     "Materials": 374,
@@ -20,13 +20,15 @@
     "Utilities": 135
   },
   "mapping_confidence_counts": {
-    "high": 2706,
+    "high": 2707,
     "low": 106,
     "med": 310
   },
-  "added_count": 0,
+  "added_count": 1,
   "removed_count": 0,
-  "added_sample": [],
+  "added_sample": [
+    "SUNMED.KL"
+  ],
   "removed_sample": [],
   "notes": [
     "Public-source proxy (iShares Em ETF holdings), not a licensed direct MSCI constituent feed.",
