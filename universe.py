@@ -214,6 +214,76 @@ FMP_ALPHA_BATCH_SUFFIXES: frozenset = frozenset({
 })
 
 
+# ── ADR / cross-listing map for numeric-suffix tickers ───────────────────────
+# Maps local numeric Yahoo ticker → US-listed symbol that FMP tracks for
+# analyst consensus (revenue + EPS estimates).
+#
+# Only include tickers where the US listing has REAL analyst coverage:
+#   - NYSE/NASDAQ direct listings (BABA, TSM) → best quality
+#   - Liquid NYSE ADRs (TM, SONY, NTDOY) → good quality
+#   - OTC ADRs (TCEHY, SFTBY) → present but fewer analysts
+# Do NOT add illiquid OTC stubs (HXSCL for SK Hynix, SSNLF for Samsung)
+# — FMP will have no or stale data for those.
+#
+# MAINTENANCE: Add entries when a major APAC company lists a US ADR.
+# Remove entries if the US listing is delisted or becomes illiquid.
+# Check FMP symbol validity: https://financialmodelingprep.com/financial-statements/{symbol}
+ADR_MAP: dict = {
+    # ── Taiwan ─────────────────────────────────────────────────────────────
+    "2330.TW": "TSM",    # TSMC → NYSE (~$600B, heavily covered by US analysts)
+    "2303.TW": "UMC",    # United Micro Electronics → NYSE ADR
+    "3711.TW": "ASX",    # ASE Technology → NYSE ADR
+    "2454.TW": "MDTKF",  # MediaTek → OTC (limited coverage, skip if FMP misses)
+    # ── Japan ──────────────────────────────────────────────────────────────
+    "7203.T":  "TM",     # Toyota → NYSE ADR (liquid, good coverage)
+    "6758.T":  "SONY",   # Sony → NYSE ADR
+    "7974.T":  "NTDOY",  # Nintendo → OTC ADR
+    "9432.T":  "NTTYY",  # NTT → OTC ADR
+    "9984.T":  "SFTBY",  # SoftBank Group → OTC ADR
+    "9433.T":  "KDDIY",  # KDDI → OTC ADR
+    "4519.T":  "CHGCY",  # Chugai Pharma → OTC ADR
+    "6954.T":  "FANUY",  # Fanuc → OTC ADR
+    "8001.T":  "ITOCY",  # Itochu → OTC ADR
+    "6367.T":  "DAIIF",  # Daikin → OTC (limited, try)
+    "4063.T":  "SHECY",  # Shin-Etsu Chemical → OTC ADR
+    "6501.T":  "HTHIY",  # Hitachi → OTC ADR
+    "8035.T":  "TOELY",  # Tokyo Electron → OTC ADR
+    "6857.T":  "AVANF",  # Advantest → OTC
+    # ── Hong Kong ──────────────────────────────────────────────────────────
+    "0700.HK": "TCEHY",  # Tencent → OTC ADR
+    "9988.HK": "BABA",   # Alibaba → NYSE listed directly
+    "9618.HK": "JD",     # JD.com → NASDAQ listed directly
+    "9999.HK": "NTES",   # NetEase → NASDAQ listed directly
+    "3690.HK": "MPNGF",  # Meituan → OTC (limited)
+    "2382.HK": "SMPRY",  # Sunny Optical → OTC (try)
+    # ── Korea ──────────────────────────────────────────────────────────────
+    # Samsung (005930.KS) and SK Hynix (000660.KS) have only illiquid OTC stubs
+    # — intentionally excluded. No quality US analyst consensus exists.
+    # ── China A-shares ─────────────────────────────────────────────────────
+    # A-shares (.SS/.SZ) generally have no US ADR; omitted.
+    # Exceptions handled via HK dual-listings if applicable.
+}
+
+
+def get_fmp_symbol(ticker: str) -> str:
+    """Return the best FMP symbol to use for analyst estimates.
+
+    Logic:
+      1. If ticker is in ADR_MAP, return the US ADR symbol — FMP has
+         full US analyst consensus (rev estimate, EPS estimate) for it.
+      2. Otherwise strip the exchange suffix for the /stable/earnings
+         endpoint (which is US-centric and only matches bare symbols).
+
+    Note: for fetch_fmp_single() which uses /income-statement/{symbol},
+    the suffixed form (_yahoo_to_fmp) is more correct for non-US tickers.
+    Use this function only for the /stable/earnings consensus path.
+    """
+    if ticker in ADR_MAP:
+        return ADR_MAP[ticker]
+    return ticker.split(".")[0].upper()
+
+
+
 # ── Universe loader ───────────────────────────────────────────────────────────
 
 def load_universe() -> pd.DataFrame:
