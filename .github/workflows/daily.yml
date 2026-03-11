@@ -9,6 +9,11 @@ on:
 permissions:
   contents: write
 
+# Opt into Node.js 24 now — actions/checkout, setup-python, and upload-artifact
+# will be forced onto it by GitHub on June 2, 2026 anyway.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 concurrency:
   group: daily-report
   cancel-in-progress: false
@@ -93,6 +98,31 @@ jobs:
         if: ${{ steps.gate.outputs.run != 'true' }}
         run: |
           echo "Skipping: ${{ steps.gate.outputs.reason }}"
+
+      - name: Check gc_state.json freshness (must be written by gc-data within 10 hours)
+        if: ${{ steps.gate.outputs.run == 'true' }}
+        run: |
+          python - <<'PY'
+          import json, sys
+          from pathlib import Path
+          from datetime import datetime, timezone, timedelta
+
+          p = Path("docs/gc_state.json")
+          if not p.exists():
+              print("WARNING: docs/gc_state.json not found — scan will run without GC data.")
+              sys.exit(0)  # non-fatal: scan.py handles missing gc_state gracefully
+
+          mtime = datetime.fromtimestamp(p.stat().st_mtime, tz=timezone.utc)
+          age = datetime.now(timezone.utc) - mtime
+          print(f"gc_state.json age: {age}")
+
+          if age > timedelta(hours=10):
+              print(f"WARNING: gc_state.json is {age} old (expected <10h). "
+                    "gc-data workflow may not have run yet or failed. "
+                    "Scan will use stale GC data. Check gc-data workflow status.")
+          else:
+              print(f"gc_state.json is fresh ({age} old). OK.")
+          PY
 
       - name: Set up Python
         if: ${{ steps.gate.outputs.run == 'true' }}
