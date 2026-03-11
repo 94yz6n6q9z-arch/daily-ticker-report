@@ -50,12 +50,14 @@ from universe import (
     MIN_MCAP_OTHER,
     mcap_threshold,
     FMP_ALPHA_BATCH_SUFFIXES,
+    ADR_MAP,
+    get_fmp_symbol,
 )
 
 # ────────────────────────────────────────────────────────────────
 # Configuration
 # ────────────────────────────────────────────────────────────────
-GC_VERSION = "0.6.2"
+GC_VERSION = "0.6.3"
 
 # Version history (mirrors the changelog pattern in scan.py)
 _GC_VERSION_LOG: dict = {
@@ -182,6 +184,19 @@ _GC_VERSION_LOG: dict = {
         "APAC local-only markets excluded (numeric tickers like 2330.TW→2330 won't match in FMP). "
         "Note for scan.py: coverage table still shows all gc_state entries including "
         "below_min_mcap ones — scan.py needs updating to filter these for accurate count display."
+    ),
+    "0.6.3": (
+        "ADR map for numeric APAC tickers. "
+        "Added ADR_MAP dict + get_fmp_symbol() in universe.py. "
+        "ADR_MAP has 25 entries: 2330.TW→TSM, 7203.T→TM, 6758.T→SONY, "
+        "0700.HK→TCEHY, 9988.HK→BABA, 9618.HK→JD, 9999.HK→NTES, "
+        "8035.T→TOELY, 6857.T→AVANF, 9984.T→SFTBY, 9432.T→NTTYY, "
+        "7974.T→NTDOY, 9433.T→KDDIY, 4519.T→CHGCY, 6954.T→FANUY, "
+        "8001.T→ITOCY, 4063.T→SHECY, 6501.T→HTHIY, 6367.T→DAIIF, "
+        "2303.TW→UMC, 3711.TW→ASX, 2382.HK→SMPRY, 3690.HK→MPNGF. "
+        "5b FMP block now calls get_fmp_symbol(ticker) instead of bare split. "
+        "Samsung (005930.KS) + SK Hynix (000660.KS) intentionally excluded: "
+        "no liquid US ADR — OTC stubs have no meaningful analyst coverage."
     ),
 }
 
@@ -996,7 +1011,9 @@ def fetch_earnings_data(ticker: str) -> Dict[str, Any]:
         try:
             from urllib.parse import urlencode
             import urllib.request as _ureq
-            sym_fmp = ticker.split(".")[0].upper()  # bare symbol: /stable/earnings is US-centric
+            # get_fmp_symbol: ADR_MAP lookup first (2330.TW→TSM, 7203.T→TM etc.),
+            # then bare symbol fallback for /stable/earnings US-centric endpoint.
+            sym_fmp = get_fmp_symbol(ticker)
             est_data = None
             # /stable/earnings endpoint — available on Starter plan.
             # Returns: epsEstimated, revenueEstimated, epsActual, revenueActual per quarter.
