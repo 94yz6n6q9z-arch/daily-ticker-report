@@ -43,12 +43,19 @@ from universe import (
     CONFIG_DIR,
     DOCS_DIR,
     GC_STATE_PATH,
+    # Exchange & market classification
+    DEAD_MARKET_SUFFIXES,
+    EU_SUFFIXES,
+    MIN_MCAP_US_EU,
+    MIN_MCAP_OTHER,
+    mcap_threshold,
+    FMP_ALPHA_BATCH_SUFFIXES,
 )
 
 # ────────────────────────────────────────────────────────────────
 # Configuration
 # ────────────────────────────────────────────────────────────────
-GC_VERSION = "0.6.0"
+GC_VERSION = "0.6.2"
 
 # Version history (mirrors the changelog pattern in scan.py)
 _GC_VERSION_LOG: dict = {
@@ -148,27 +155,33 @@ _GC_VERSION_LOG: dict = {
     ),
     "0.6.0": (
         "FMP global expansion + universe size management. "
-        "Fix 1 — FMP enrichment sym bug: fetch_earnings_data() 5b block used "
-        "ticker.split('.')[0].upper() which stripped exchange suffixes (2330.TW → 2330), "
-        "causing FMP to silently return no data for all non-US tickers. "
-        "Fixed to use _yahoo_to_fmp(ticker) which correctly maps suffixes per _FMP_SUFFIX_MAP. "
-        "This unblocks revenue estimates from FMP for TSMC, SK Hynix, ASML, SAP, "
-        "Tokyo Electron, and all other non-US tickers where yfinance returns no rev estimates. "
-        "Fix 2 — FMP batch coverage: FMP enrichment in fetch_earnings_data() now runs for ALL "
-        "tickers with missing estimates, not just yf_failed batch. Non-US tickers that return "
-        "partial yfinance data (eps actuals but no rev estimates) were previously never enriched. "
-        "Fix 3 — Dead-market skip: exchanges KL (Malaysia), PS (Philippines), AD (UAE Abu Dhabi) "
+        "Fix 1 — FMP enrichment sym (partially reverted in 0.6.1): see 0.6.1 notes. "
+        "Fix 2 — Dead-market skip: exchanges KL (Malaysia), PS (Philippines), AD (UAE Abu Dhabi) "
         "confirmed to return 0 data. Added DEAD_MARKET_SUFFIXES constant; tickers on these "
         "exchanges are skipped before any API call, same as KNOWN_DEAD_TICKERS. "
-        "Fix 4 — Market-cap floor filter: universe trimmed from ~6,200 to ~4,200 tickers. "
+        "Fix 3 — Market-cap floor filter: universe trimmed from ~6,200 to ~4,200 active tickers. "
         "US + EU (MIN_MCAP_US_EU = $2B): suffixes US, L, DE, PA, AS, MI, MC, ST, OL, HE, CO, "
         "LS, BR, AT, IR, SW, WA. All other markets (MIN_MCAP_OTHER = $5B): EM, APAC, MENA. "
-        "Filter uses cached info.market_cap; tickers with no cached data are always fetched "
-        "once to establish market cap then filtered on subsequent runs. "
-        "Fix 5 — investing.com disabled: confirmed 0 hits in production (GitHub Actions IPs "
-        "are blocked). Removed the enrich_estimates_investing_com() call from the hot path "
-        "to eliminate per-ticker timeout overhead. Function retained for local dev use. "
-        "Estimated run time reduction: ~6,200 → ~4,200 tickers = ~32% faster."
+        "Filter uses cached info.market_cap; new tickers fetched once then filtered next run. "
+        "Fix 4 — investing.com disabled: confirmed 0 hits in production (GitHub Actions IPs "
+        "blocked). Call removed from hot path; function retained for local dev use."
+    ),
+    "0.6.2": (
+        "Architecture: exchange classification constants moved to universe.py. FMP sym fix correction + alpha-batch expansion. "
+        "Architecture (v0.6.2): DEAD_MARKET_SUFFIXES, EU_SUFFIXES, MIN_MCAP_US_EU, MIN_MCAP_OTHER, mcap_threshold(), FMP_ALPHA_BATCH_SUFFIXES moved from gc_engine.py to universe.py. Both gc_engine and scan.py now import from universe.py — single source of truth for all exchange classification. _EU_DM_BATCH_SUFFIXES (narrow EU-only list) replaced by FMP_ALPHA_BATCH_SUFFIXES (all alpha-bare-symbol exchanges globally: +India, Brazil, Mexico, Turkey, Indonesia, South Africa, Chile, Qatar, Kuwait, Singapore, adding ~900 more tickers to the FMP rev-missing batch). "        "Fix 1 — 5b sym revert: v0.6.0 changed sym_fmp to _yahoo_to_fmp(ticker) which was wrong "
+        "for the /stable/earnings endpoint. That endpoint is US-centric and only matches bare "
+        "symbols — passing ASML.AS or SAP.DE returns empty results silently. Reverted to "
+        "ticker.split('.')[0].upper() (bare symbol) for the 5b block specifically. "
+        "UK tickers work because _yahoo_to_fmp(.L) already strips .L (same result). "
+        "EU large caps with US cross-listings now recover: ASML.AS→ASML (NASDAQ), SAP.DE→SAP (NYSE). "
+        "Fix 2 — EU/DM rev-missing FMP batch: new post-yfinance pass for EU + DM tickers "
+        "(.L, .DE, .PA, .AS, .SW, .MI, .MC, .ST, .OL, .HE, .CO, .WA, .TO, .AX) that have EPS "
+        "estimates but no revenue estimates. Uses fetch_fmp_single() with bare symbol — runs "
+        "~387 tickers through /income-statement + /earnings-surprises + /stable/earnings. "
+        "Recovers revenue estimates for ASML, SAP, LVMH, Schneider, Adidas, Allianz, etc. "
+        "APAC local-only markets excluded (numeric tickers like 2330.TW→2330 won't match in FMP). "
+        "Note for scan.py: coverage table still shows all gc_state entries including "
+        "below_min_mcap ones — scan.py needs updating to filter these for accurate count display."
     ),
 }
 
@@ -249,43 +262,10 @@ def _should_fetch_today(ticker: str, cached: Dict[str, Any], now: dt.datetime, f
 
 
 # ────────────────────────────────────────────────────────────────
-# ── Universe size management ─────────────────────────────────────────────────
-# Dead-market suffixes: yfinance returns 0 usable data for these exchanges.
-# Skipped entirely (same treatment as KNOWN_DEAD_TICKERS) to save API calls.
-DEAD_MARKET_SUFFIXES: set = {"KL", "PS", "AD"}   # Malaysia, Philippines, UAE Abu Dhabi
-
-# Market-cap floor by exchange group.
-# US + EU developed markets: $2B minimum (liquid, investable small-mid caps OK)
-# All other markets (EM, APAC, MENA): $5B minimum (less liquid, need higher floor)
-_EU_SUFFIXES: set = {
-    "L",   # London
-    "DE",  # XETRA Frankfurt
-    "PA",  # Euronext Paris
-    "AS",  # Euronext Amsterdam
-    "MI",  # Borsa Italiana
-    "MC",  # Madrid
-    "ST",  # Stockholm
-    "OL",  # Oslo
-    "HE",  # Helsinki
-    "CO",  # Copenhagen
-    "LS",  # Lisbon
-    "BR",  # Brussels
-    "AT",  # Athens
-    "IR",  # Dublin
-    "SW",  # SIX Swiss Exchange
-    "WA",  # Warsaw
-}
-MIN_MCAP_US_EU: int = 2_000_000_000   # $2B — US (no suffix) + all EU/CH/UK
-MIN_MCAP_OTHER: int = 5_000_000_000   # $5B — EM, APAC, MENA, LatAm
-
-
-def _mcap_threshold(ticker: str) -> int:
-    """Return the market-cap floor in USD for a given ticker's exchange."""
-    suffix = ticker.rsplit(".", 1)[-1] if "." in ticker else "US"
-    if suffix == "US" or suffix in _EU_SUFFIXES:
-        return MIN_MCAP_US_EU
-    return MIN_MCAP_OTHER
-
+# ── Exchange classification ──────────────────────────────────────────────
+# DEAD_MARKET_SUFFIXES, EU_SUFFIXES, MIN_MCAP_US_EU, MIN_MCAP_OTHER,
+# mcap_threshold(), FMP_ALPHA_BATCH_SUFFIXES — all imported from universe.py.
+# Do NOT redefine here. universe.py is the single source of truth.
 
 # ── FMP target exchanges ──────────────────────────────────────────────────────
 # FMP target exchanges — yfinance structurally weak here.
@@ -1004,18 +984,19 @@ def fetch_earnings_data(ticker: str) -> Dict[str, Any]:
     #     except Exception as _ic_err:
     #         out["_investing_com_error"] = str(_ic_err)
 
-    # 5b) FMP analyst-estimates — fills both EPS (estimatedEpsAvg) and revenue (estimatedRevenueAvg).
-    # Two URL patterns tried: 'stable' endpoint first (newer), then 'api/v3' (classic).
-    # Covers US + global tickers — _yahoo_to_fmp() handles suffix remapping per _FMP_SUFFIX_MAP
-    # (e.g. 2330.TW → 2330.TW, ASML.AS → ASML.AS, AZN.L → AZN).
-    # Bug fix v0.6.0: previously used ticker.split(".")[0].upper() which stripped all suffixes,
-    # causing FMP to silently return no data for non-US tickers.
+    # 5b) FMP analyst-estimates via /stable/earnings endpoint.
+    # This endpoint is US-centric: only bare symbols work (no exchange suffix).
+    # Strategy: always strip to bare symbol. Correctly handles:
+    #   US tickers (NVDA→NVDA), UK (.L already stripped by _yahoo_to_fmp: AZN.L→AZN),
+    #   EU large caps with US cross-listings (ASML.AS→ASML on NASDAQ, SAP.DE→SAP on NYSE).
+    # v0.6.1: reverted the v0.6.0 sym_fmp change — _yahoo_to_fmp keeps suffixes like .AS/.DE
+    # which /stable/earnings silently ignores, returning nothing. Bare symbol is correct here.
     fmp_key_enrich = os.environ.get("FMP_API_KEY", "").strip()
     if fmp_key_enrich and _missing_estimates_count() > 0 and out.get("earnings_dates"):
         try:
             from urllib.parse import urlencode
             import urllib.request as _ureq
-            sym_fmp = _yahoo_to_fmp(ticker)   # v0.6.0: was ticker.split(".")[0].upper() — wrong for non-US
+            sym_fmp = ticker.split(".")[0].upper()  # bare symbol: /stable/earnings is US-centric
             est_data = None
             # /stable/earnings endpoint — available on Starter plan.
             # Returns: epsEstimated, revenueEstimated, epsActual, revenueActual per quarter.
@@ -2375,10 +2356,10 @@ def fetch_earnings_universe(
             except (TypeError, ValueError):
                 cached_mc = 0.0
             import math as _math
-            if cached_mc > 0 and not _math.isnan(cached_mc) and cached_mc < _mcap_threshold(t):
+            if cached_mc > 0 and not _math.isnan(cached_mc) and cached_mc < mcap_threshold(t):
                 # Below floor — mark and skip, don't waste an API call
                 cache[t]["below_min_mcap"] = True
-                cache[t]["mcap_threshold"] = _mcap_threshold(t)
+                cache[t]["mcap_threshold"] = mcap_threshold(t)
                 results[t] = cache[t]
                 mcap_skipped += 1
                 continue
@@ -2566,6 +2547,88 @@ def fetch_earnings_universe(
         else:
             print(f"[gc-data] {len(yf_failed)} tickers still empty after yfinance retries. "
                   f"Set FMP_API_KEY env var to activate FMP fallback.")
+
+    # ── EU/DM rev-missing FMP batch (v0.6.1) ─────────────────────
+    # Targets non-US developed-market tickers that have EPS estimates from yfinance
+    # but no revenue estimates (yfinance never returns rev estimates globally).
+    # These tickers pass yfinance fine so they never enter yf_failed — this is a
+    # dedicated pass using fetch_fmp_single() with BARE SYMBOL (strip exchange suffix).
+    # Bare symbol works because many large EU/DM companies have US cross-listings that
+    # FMP tracks (ASML.AS→ASML on NASDAQ, SAP.DE→SAP on NYSE, MC.PA→MC nowhere but
+    # FMP may still carry global income-statement data under the local ticker base).
+    # Exchanges included: major EU + Canada + Australia (high FMP coverage probability).
+    # APAC local-only markets excluded (2330.TW→2330 = no FMP match expected).
+    # FMP_ALPHA_BATCH_SUFFIXES imported from universe.py
+    # Covers all exchanges with alpha bare symbols that FMP can match
+    fmp_key_rev = os.environ.get("FMP_API_KEY", "").strip()
+    if fmp_key_rev:
+        rev_missing: List[str] = []
+        for t, v in results.items():
+            if v.get("inactive") or v.get("below_min_mcap"):
+                continue
+            suffix = t.rsplit(".", 1)[-1] if "." in t else "US"
+            if suffix not in FMP_ALPHA_BATCH_SUFFIXES:
+                continue
+            ed = v.get("earnings_dates", [])
+            has_eps_est = any(e.get("eps_estimate") is not None for e in ed)
+            has_rev_est = any(e.get("revenue_estimate") is not None for e in ed)
+            if has_eps_est and not has_rev_est:
+                rev_missing.append(t)
+
+        if rev_missing:
+            print(f"[gc-data] FMP alpha-batch (rev-missing): {len(rev_missing)} tickers "
+                  f"(suffixes: {sorted({t.rsplit('.',1)[-1] for t in rev_missing})})")
+            rev_enriched = 0
+            for i, t in enumerate(rev_missing):
+                if i > 0 and i % 50 == 0:
+                    print(f"[gc-data] EU/DM rev-missing: {i}/{len(rev_missing)}")
+                    time.sleep(1.0)
+                try:
+                    # Use bare symbol — /stable/earnings and FMP income-statement are
+                    # US-centric; bare symbol matches the US cross-listing where it exists.
+                    bare = t.split(".")[0].upper()
+                    fdata = fetch_fmp_single(bare, fmp_key_rev)
+                    if fdata and fdata.get("earnings_dates"):
+                        existing = results.get(t, {})
+                        ed_existing = existing.get("earnings_dates", [])
+                        ed_fmp = fdata.get("earnings_dates", [])
+                        # Only merge revenue estimates — preserve existing EPS and actuals
+                        fmp_by_date: dict = {}
+                        for row in ed_fmp:
+                            d = (row.get("date") or "")[:7]
+                            if d:
+                                fmp_by_date[d] = row
+                        filled = 0
+                        for row in ed_existing:
+                            d = (row.get("date") or "")[:7]
+                            frow = fmp_by_date.get(d)
+                            if not frow:
+                                # Try ±1 month
+                                try:
+                                    y, m = int(d[:4]), int(d[5:7])
+                                    for delta in [-1, 1, -2, 2]:
+                                        nm = m + delta; ny = y + (nm-1)//12; nm = ((nm-1)%12)+1
+                                        frow = fmp_by_date.get(f"{ny:04d}-{nm:02d}")
+                                        if frow:
+                                            break
+                                except Exception:
+                                    pass
+                            if frow:
+                                if row.get("revenue_estimate") is None and frow.get("revenue_estimate") is not None:
+                                    row["revenue_estimate"] = frow["revenue_estimate"]
+                                    row["_rev_est_source"] = "fmp_eu_batch"
+                                    filled += 1
+                                if row.get("revenue_reported") is None and frow.get("revenue_reported") is not None:
+                                    row["revenue_reported"] = frow["revenue_reported"]
+                                    row["_rev_act_source"] = "fmp_eu_batch"
+                        if filled:
+                            existing["_fmp_eu_batch_filled"] = filled
+                            results[t] = existing
+                            rev_enriched += 1
+                except Exception as _eu_fmp_e:
+                    pass
+                time.sleep(0.22)
+            print(f"[gc-data] EU/DM rev-missing: enriched {rev_enriched}/{len(rev_missing)} tickers with FMP rev estimates")
 
     # ── Tag data gaps ─────────────────────────────────────────────
     # data_gap_alert = True means this ticker has NO usable earnings data.
