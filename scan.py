@@ -7589,90 +7589,91 @@ def main():
                     if korea_count: parts.append(f"Korea: {korea_count}")
                     md.append(f" ({' + '.join(parts)})")
                 md.append(f" | rev data: **{gc_rev}** ({gc_rev*100//max(gc_total,1)}%) | EPS history: **{gc_eps}** ({gc_eps*100//max(gc_total,1)}%) | blind: **{gc_blind}** ({gc_blind*100//max(gc_total,1)}%)\n")
-                # EPS + Revenue data coverage — per source, symmetric
-                # Per-source counts for BOTH estimated and reported fields
-                # This answers: where did we get the estimate from, and did we even get it?
-                SRCS = ("yfinance","investing_com","fmp","finnhub","yoy_proxy","none")
-                cov = {f"eps_est_{s}": 0 for s in SRCS}
-                cov.update({f"eps_rep_{s}": 0 for s in SRCS})
-                cov.update({f"rev_est_{s}": 0 for s in SRCS})
-                cov.update({f"rev_rep_{s}": 0 for s in SRCS})
+                # ── Data source breakdown for all 4 fields ────────────────────────
+                # Counts per-ticker dominant source. Buckets:
+                #   yf_ed    = yfinance earnings_dates HTML table (Method 1/3)
+                #   yf_inc   = yfinance income_stmt derived (Method 4 / 5d linkage)
+                #   yf_qs    = yfinance quoteSummary earningsTrend/earningsHistory
+                #   fmp      = FMP /stable/earnings or alpha-batch fetch_fmp_single
+                #   finnhub  = Finnhub (future)
+                #   none     = missing / not available
+                _SRC_BUCKETS = ("yf_ed", "yf_inc", "yf_qs", "fmp", "finnhub", "none")
+                cov4 = {f"{field}_{s}": 0
+                        for field in ("eps_rep","eps_est","rev_rep","rev_est")
+                        for s in _SRC_BUCKETS}
+
+                def _bucket_eps_rep(r_list):
+                    methods = [r.get("_method","") for r in r_list]
+                    dom = max(set(methods), key=methods.count) if methods else ""
+                    if "fmp" in dom: return "fmp"
+                    if "income_stmt" in dom: return "yf_inc"
+                    if dom in ("earnings_dates","get_earnings_dates"): return "yf_ed"
+                    if "quotesummary" in dom.lower(): return "yf_qs"
+                    return "yf_ed"  # default: was from earnings_dates
+
+                def _bucket_src(src_tag, is_rep=False):
+                    if src_tag is None: return "yf_ed" if is_rep else "none"
+                    s = src_tag.lower()
+                    if "fmp" in s: return "fmp"
+                    if "finnhub" in s: return "finnhub"
+                    if s in ("yf_income_stmt","income_stmt","yf_inc"): return "yf_inc"
+                    if s in ("yahoo_qs","yahoo_quotesummary"): return "yf_qs"
+                    if s in ("yfinance","earnings_dates","get_earnings_dates"): return "yf_ed"
+                    return "yf_ed"  # untagged rows came from earnings_dates
 
                 for d in ec.values():
                     past_ed = [r for r in d.get("earnings_dates",[]) if r.get("eps_reported") is not None]
                     if not past_ed: continue
 
-                    # EPS estimate source (dominant across quarters with estimates)
-                    eps_est_rows = [r for r in past_ed if r.get("eps_estimate") is not None]
-                    if eps_est_rows:
-                        srcs = [r.get("_eps_est_source","yfinance") for r in eps_est_rows]
-                        dom = max(set(srcs), key=srcs.count)
-                        cov[f"eps_est_{dom if dom in SRCS else 'yfinance'}"] += 1
-                    elif any(r.get("_eps_est_source") == "yoy_proxy" for r in past_ed):
-                        cov["eps_est_yoy_proxy"] += 1
-                    else:
-                        cov["eps_est_none"] += 1
+                    # EPS reported
+                    cov4[f"eps_rep_{_bucket_eps_rep(past_ed)}"] += 1
 
-                    # EPS reported source (almost always yfinance or fmp)
-                    if past_ed:
-                        srcs = [r.get("_method","") for r in past_ed]
-                        dom_src = "fmp" if any("fmp" in s for s in srcs) else "yfinance"
-                        cov[f"eps_rep_{dom_src}"] += 1
-
-                    # Revenue estimate source
-                    rev_est_rows = [r for r in past_ed if r.get("revenue_estimate") is not None]
-                    if rev_est_rows:
-                        srcs = [r.get("_rev_est_source","yfinance") for r in rev_est_rows]
+                    # EPS estimate
+                    ee = [r for r in past_ed if r.get("eps_estimate") is not None]
+                    if ee:
+                        srcs = [r.get("_eps_est_source") for r in ee]
                         dom = max(set(srcs), key=srcs.count)
-                        cov[f"rev_est_{dom if dom in SRCS else 'yfinance'}"] += 1
-                    elif d.get("quarterly_revenue"):
-                        cov["rev_est_yoy_proxy"] += 1
+                        cov4[f"eps_est_{_bucket_src(dom)}"] += 1
                     else:
-                        cov["rev_est_none"] += 1
+                        cov4["eps_est_none"] += 1
 
-                    # Revenue reported source
-                    rev_rep_rows = [r for r in past_ed if r.get("revenue_reported") is not None]
-                    if rev_rep_rows:
-                        srcs = [r.get("_rev_act_source","yfinance") for r in rev_rep_rows]
+                    # Revenue reported
+                    rr = [r for r in past_ed if r.get("revenue_reported") is not None]
+                    if rr:
+                        srcs = [r.get("_rev_act_source") for r in rr]
                         dom = max(set(srcs), key=srcs.count)
-                        cov[f"rev_rep_{dom if dom in SRCS else 'yfinance'}"] += 1
+                        cov4[f"rev_rep_{_bucket_src(dom, is_rep=True)}"] += 1
                     else:
-                        cov["rev_rep_none"] += 1
+                        cov4["rev_rep_none"] += 1
+
+                    # Revenue estimate
+                    re_ = [r for r in past_ed if r.get("revenue_estimate") is not None]
+                    if re_:
+                        srcs = [r.get("_rev_est_source") for r in re_]
+                        dom = max(set(srcs), key=srcs.count)
+                        cov4[f"rev_est_{_bucket_src(dom)}"] += 1
+                    else:
+                        cov4["rev_est_none"] += 1
 
                 tot = max(gc_total, 1)
                 def _pct(n): return f"{n*100//tot}%"
                 def _fmt(n): return f"**{n}** ({_pct(n)})"
+                def _fmt4(field): return " | ".join(
+                    _fmt(cov4[f"{field}_{s}"]) for s in _SRC_BUCKETS
+                )
 
                 # ── IMPORTANT: do NOT add \n inside md.append() for table rows.
                 # "\n".join(md) already adds newlines between items. Adding \n inside
                 # creates double-newlines which break the markdown `tables` extension,
                 # causing pipe characters to render as raw text in the email.
-                md.append(f"\n**EPS data coverage** (per ticker, dominant source):\n")
-                md.append(f"| | yfinance | investing.com | FMP | Finnhub | YoY proxy | none |")
+                md.append(f"\n**Data source breakdown** (per ticker, dominant source across past quarters):\n")
+                md.append(f"| Field | yf earnings_dates | yf income_stmt | yf quoteSummary | FMP | Finnhub | none |")
                 md.append(f"| :--- | ---: | ---: | ---: | ---: | ---: | ---: |")
-                md.append(
-                    f"| Estimate | {_fmt(cov['eps_est_yfinance'])} | {_fmt(cov['eps_est_investing_com'])} | "
-                    f"{_fmt(cov['eps_est_fmp'])} | {_fmt(cov['eps_est_finnhub'])} | "
-                    f"{_fmt(cov['eps_est_yoy_proxy'])} | {_fmt(cov['eps_est_none'])} |"
-                )
-                md.append(
-                    f"| Reported | {_fmt(cov['eps_rep_yfinance'])} | {_fmt(cov['eps_rep_investing_com'])} | "
-                    f"{_fmt(cov['eps_rep_fmp'])} | {_fmt(cov['eps_rep_finnhub'])} | "
-                    f"– | {_fmt(cov['eps_rep_none'])} |"
-                )
-                md.append(f"\n**Revenue data coverage** (per ticker, dominant source):\n")
-                md.append(f"| | yfinance | investing.com | FMP | Finnhub | YoY proxy | none |")
-                md.append(f"| :--- | ---: | ---: | ---: | ---: | ---: | ---: |")
-                md.append(
-                    f"| Estimate | {_fmt(cov['rev_est_yfinance'])} | {_fmt(cov['rev_est_investing_com'])} | "
-                    f"{_fmt(cov['rev_est_fmp'])} | {_fmt(cov['rev_est_finnhub'])} | "
-                    f"{_fmt(cov['rev_est_yoy_proxy'])} | {_fmt(cov['rev_est_none'])} |"
-                )
-                md.append(
-                    f"| Reported | {_fmt(cov['rev_rep_yfinance'])} | {_fmt(cov['rev_rep_investing_com'])} | "
-                    f"{_fmt(cov['rev_rep_fmp'])} | {_fmt(cov['rev_rep_finnhub'])} | "
-                    f"– | {_fmt(cov['rev_rep_none'])} |"
-                )
+                md.append(f"| EPS reported | {_fmt4('eps_rep')} |")
+                md.append(f"| EPS estimate | {_fmt4('eps_est')} |")
+                md.append(f"| Rev reported | {_fmt4('rev_rep')} |")
+                md.append(f"| Rev estimate | {_fmt4('rev_est')} |")
+                md.append(f"\n_Sources: yf earnings_dates=HTML table (M1/M3), yf income_stmt=quarterly income stmt (M4/5d), yf quoteSummary=earningsTrend API, FMP=/stable/earnings+alpha-batch_\n")
 
                 # ── Per-country estimate coverage (full breakdown, all markets) ──
                 # Answers: which countries have EPS-only, Rev-only, or no estimates at all?
