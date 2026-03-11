@@ -57,7 +57,7 @@ from universe import (
 # ────────────────────────────────────────────────────────────────
 # Configuration
 # ────────────────────────────────────────────────────────────────
-GC_VERSION = "0.6.6"
+GC_VERSION = "0.6.7"
 
 # Version history (mirrors the changelog pattern in scan.py)
 _GC_VERSION_LOG: dict = {
@@ -221,6 +221,15 @@ _GC_VERSION_LOG: dict = {
         "past earnings_dates rows — upcoming quarter dates never match past rows). "
         "forward_estimates is the seed for estimates snapshot repository: each daily "
         "run captures current consensus; over time becomes historical estimate data."
+    ),
+    "0.6.7": (
+        "Fix _fetch_revenue_estimates_yahoo: remove handle_404=True from get_raw_json call. "
+        "In yfinance 1.2.0 that kwarg does not exist — throws TypeError silently caught by "
+        "except Exception, returning [] for every ticker. Root cause of 0% earningsTrend "
+        "coverage for all non-US markets (India, Korea, Taiwan, Japan, HK). Confirmed by "
+        "test_earningstrend.py: Strategy A (no handle_404) hits 100% for all broken country "
+        "groups; 28/29 tickers pass. Single 404 failure (LVMH.PA genuinely absent on Yahoo) "
+        "is correctly handled by the existing except block."
     ),
     "0.6.6": (
         "Fix _fetch_revenue_estimates_yahoo: three bugs. "
@@ -565,9 +574,12 @@ def _fetch_revenue_estimates_yahoo(tk, ticker: str) -> List[Dict]:
             f"?modules=earningsTrend%2CearningsHistory&corsDomain=finance.yahoo.com"
         )
         raw = None
-        # Primary: use yfinance internal authenticated session
+        # Primary: use yfinance internal authenticated session.
+        # NOTE: do NOT pass handle_404=True — that kwarg does not exist in yfinance 1.2.0
+        # and throws TypeError which is silently swallowed, returning [] for every ticker.
+        # 404s (ticker genuinely missing from Yahoo) are handled by the except below.
         try:
-            raw = tk._data.get_raw_json(url, handle_404=True)
+            raw = tk._data.get_raw_json(url)
         except Exception:
             pass
         # Fallback: try via requests using yfinance cookie session if available
