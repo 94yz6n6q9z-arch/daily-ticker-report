@@ -2709,15 +2709,37 @@ def fetch_earnings_universe(
                 time.sleep(0.22)
             print(f"[gc-data] EU/DM rev-missing: enriched {rev_enriched}/{len(rev_missing)} tickers with FMP rev estimates")
 
-    # ── Tag data gaps ─────────────────────────────────────────────
+    # ── Tag data gaps + auto-inactive for persistent zero-data tickers ──────
     # data_gap_alert = True means this ticker has NO usable earnings data.
     # Used by scan mode to flag when a technical signal cannot be confirmed
     # with Star 2/3 due to missing data (different from a genuine miss).
+    #
+    # Auto-inactive: if a ticker has returned zero data on 3+ consecutive daily runs,
+    # it is very likely a ghost (unsupported exchange suffix, delisted, no Yahoo support).
+    # Mark inactive so it is excluded from active counts and not fetched again.
+    # Threshold = 3 runs to avoid false-positives from temporary yfinance failures.
+    auto_inactived = 0
     for t, v in results.items():
+        if v.get("inactive") or v.get("below_min_mcap"):
+            continue
         has_rev = len(v.get("quarterly_revenue", [])) >= 4
         has_eps = any(e.get("eps_reported") is not None for e in v.get("earnings_dates", []))
         has_info = bool(v.get("info", {}).get("revenue_growth"))
-        v["data_gap_alert"] = not (has_rev or has_eps or has_info)
+        gap = not (has_rev or has_eps or has_info)
+        v["data_gap_alert"] = gap
+        if gap:
+            # Increment persistent gap counter in cache
+            prev_gaps = (cache.get(t) or {}).get("_no_data_runs", 0)
+            v["_no_data_runs"] = prev_gaps + 1
+            if v["_no_data_runs"] >= 3:
+                v["inactive"] = True
+                v["inactive_since"] = now.isoformat()
+                v["inactive_reason"] = "persistent_no_data_3_runs"
+                auto_inactived += 1
+        else:
+            v.pop("_no_data_runs", None)  # reset counter on any successful data fetch
+    if auto_inactived:
+        print(f"[gc-data] auto-inactived {auto_inactived} persistent zero-data tickers")
 
     # ── Summary ───────────────────────────────────────────────────
     active_results = {k: v for k, v in results.items()
