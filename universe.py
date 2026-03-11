@@ -26,11 +26,16 @@ VERSION HISTORY
        Replaces duplicated _is_ghost_ticker() in scan.py.
        Both gc_engine.py and scan.py now import from here.
        Companion: gc_engine.py 0.5.5, scan.py v98.
+1.2.0  load_universe() now filters DEAD_MARKET_SUFFIXES and KNOWN_DEAD_TICKERS
+       at source — tickers on dead exchanges (KL/PS/AD/DU) and known-dead symbols
+       never enter gc_engine or scan.py at all. Added DU (UAE Dubai, 95% dead)
+       to DEAD_MARKET_SUFFIXES. Effect: ~145 fewer tickers enter the pipeline,
+       preventing dead tickers from inflating the active count in gc_state.
 """
 
 from __future__ import annotations
 
-UNIVERSE_VERSION = "1.1.0"
+UNIVERSE_VERSION = "1.2.0"
 
 import os
 import re
@@ -142,7 +147,7 @@ DEAD_MARKET_SUFFIXES: set = {
     "KL",   # Malaysia — Bursa Malaysia, yfinance quoteSummary 404s universally
     "PS",   # Philippines — Philippine SE, same
     "AD",   # UAE Abu Dhabi — ADX, same
-    # "DU" — UAE Dubai is ~96% dead but not 100%; left out for now
+    "DU",   # UAE Dubai — DFM, 95% dead (20/21 tickers have zero data, confirmed in gc_state)
 }
 
 # EU + CH + UK exchange suffixes for market-cap floor purposes.
@@ -356,5 +361,28 @@ def load_universe() -> pd.DataFrame:
     if dropped:
         print(f"[universe] Dropped {dropped} ghost/placeholder tickers")
 
-    print(f"[universe] Total: {len(combined)} unique tickers")
+    # Dead-market suffix filter — remove exchanges where yfinance returns 0 usable data.
+    # These are defined in DEAD_MARKET_SUFFIXES (KL, PS, AD, DU).
+    # Filtering here means gc_engine and scan.py never see these tickers at all —
+    # they cannot drift into the "active" count via stale cache entries.
+    before = len(combined)
+    combined = combined[~combined["Ticker"].apply(
+        lambda t: (t.rsplit(".", 1)[-1] if "." in t else "US") in DEAD_MARKET_SUFFIXES
+    )]
+    dead_sfx_dropped = before - len(combined)
+    if dead_sfx_dropped:
+        print(f"[universe] Dropped {dead_sfx_dropped} tickers on dead-market exchanges "
+              f"({', '.join(sorted(DEAD_MARKET_SUFFIXES))})")
+
+    # Known-dead ticker filter — permanently invalid symbols (sanctioned, no Yahoo support).
+    # Defined in KNOWN_DEAD_TICKERS. Filtering here avoids wasting gc_engine API calls.
+    before = len(combined)
+    combined = combined[~combined["Ticker"].isin(KNOWN_DEAD_TICKERS)]
+    known_dead_dropped = before - len(combined)
+    if known_dead_dropped:
+        print(f"[universe] Dropped {known_dead_dropped} known-dead tickers "
+              f"(sanctioned / no Yahoo Finance support)")
+
+    print(f"[universe] Total: {len(combined)} unique tickers "
+          f"(after ghost={dropped}, dead_suffix={dead_sfx_dropped}, known_dead={known_dead_dropped})")
     return combined.reset_index(drop=True)
