@@ -17,7 +17,11 @@ NOT responsible for:
   - Chart pattern detection (→ scan.py)
 
 Consumers:
-  from universe import load_universe, is_ghost_ticker, KNOWN_DEAD_TICKERS
+  from universe import (
+      load_universe, is_ghost_ticker, KNOWN_DEAD_TICKERS, TICKER_OVERRIDES,
+      DEAD_MARKET_SUFFIXES, EU_SUFFIXES, MIN_MCAP_US_EU, MIN_MCAP_OTHER,
+      mcap_threshold, FMP_ALPHA_BATCH_SUFFIXES, ADR_MAP, get_fmp_symbol,
+  )
 
 VERSION HISTORY
 ───────────────
@@ -26,11 +30,20 @@ VERSION HISTORY
        Replaces duplicated _is_ghost_ticker() in scan.py.
        Both gc_engine.py and scan.py now import from here.
        Companion: gc_engine.py 0.5.5, scan.py v98.
+1.1.0  Exchange + market classification added (previously defined in gc_engine.py).
+       DEAD_MARKET_SUFFIXES (KL, PS, AD), EU_SUFFIXES (17 exchanges), MIN_MCAP_US_EU ($2B),
+       MIN_MCAP_OTHER ($5B), mcap_threshold() moved here from gc_engine.py 0.6.0–0.6.2.
+       FMP_ALPHA_BATCH_SUFFIXES added (all alpha-suffix exchanges globally: EU + Canada +
+       Australia + India + Brazil + Mexico + Turkey + Indonesia + S.Africa + Chile + Qatar +
+       Kuwait + Singapore). ADR_MAP (25 entries) + get_fmp_symbol() added: maps numeric APAC
+       Yahoo tickers to US ADR symbols for FMP analyst consensus (2330.TW→TSM, 7203.T→TM etc.).
+       Companion: gc_engine.py 0.6.2–0.6.3, scan.py v98.
 1.2.0  load_universe() now filters DEAD_MARKET_SUFFIXES and KNOWN_DEAD_TICKERS
        at source — tickers on dead exchanges (KL/PS/AD/DU) and known-dead symbols
        never enter gc_engine or scan.py at all. Added DU (UAE Dubai, 95% dead)
-       to DEAD_MARKET_SUFFIXES. Effect: ~145 fewer tickers enter the pipeline,
+       to DEAD_MARKET_SUFFIXES. Effect: ~145 fewer tickers enter pipeline,
        preventing dead tickers from inflating the active count in gc_state.
+       Companion: gc_engine.py 0.6.6, scan.py v99.
 """
 
 from __future__ import annotations
