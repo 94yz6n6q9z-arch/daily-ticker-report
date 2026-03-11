@@ -30,7 +30,7 @@ VERSION HISTORY
 
 from __future__ import annotations
 
-UNIVERSE_VERSION = "1.0.0"
+UNIVERSE_VERSION = "1.1.0"
 
 import os
 import re
@@ -129,6 +129,89 @@ def is_ghost_ticker(ticker: str) -> bool:
     if t.count(".") > 1:
         return True   # multi-dot = malformed (e.g. BAJAJ.AUTO.NS)
     return bool(_GHOST_PATTERN.match(t))
+
+
+# ── Exchange & market classification ─────────────────────────────────────────
+# All facts about "which exchange belongs to which tier" live here.
+# gc_engine.py and scan.py import from this module — they never define their own.
+
+# Dead-market suffixes: yfinance returns 0 usable data for these exchanges.
+# Skipped entirely (same treatment as KNOWN_DEAD_TICKERS) to save API calls.
+# Confirmed via gc_state.json: 0% EPS/Revenue coverage across all tickers.
+DEAD_MARKET_SUFFIXES: set = {
+    "KL",   # Malaysia — Bursa Malaysia, yfinance quoteSummary 404s universally
+    "PS",   # Philippines — Philippine SE, same
+    "AD",   # UAE Abu Dhabi — ADX, same
+    # "DU" — UAE Dubai is ~96% dead but not 100%; left out for now
+}
+
+# EU + CH + UK exchange suffixes for market-cap floor purposes.
+# These are developed-market, reasonably liquid exchanges where $2B is the right floor.
+EU_SUFFIXES: frozenset = frozenset({
+    "L",   # London Stock Exchange
+    "DE",  # XETRA Frankfurt
+    "PA",  # Euronext Paris
+    "AS",  # Euronext Amsterdam
+    "MI",  # Borsa Italiana
+    "MC",  # Madrid (BME)
+    "ST",  # Stockholm (Nasdaq Nordic)
+    "OL",  # Oslo Børs
+    "HE",  # Helsinki (Nasdaq Nordic)
+    "CO",  # Copenhagen (Nasdaq Nordic)
+    "LS",  # Lisbon (Euronext)
+    "BR",  # Brussels (Euronext)
+    "AT",  # Athens (ATHEX)
+    "IR",  # Dublin (Euronext)
+    "SW",  # SIX Swiss Exchange
+    "WA",  # Warsaw (GPW)
+    "VI",  # Vienna (Wiener Börse)
+})
+
+# Market-cap floors. Applied in gc_engine per-ticker before fetching.
+# US (no suffix) + EU: $2B — developed markets, reasonable small/mid cap liquidity.
+# All other markets (EM, APAC, MENA, LatAm): $5B — less liquid, higher noise floor.
+MIN_MCAP_US_EU: int = 2_000_000_000   # $2B
+MIN_MCAP_OTHER: int = 5_000_000_000   # $5B
+
+
+def mcap_threshold(ticker: str) -> int:
+    """Return the minimum market-cap (USD) for the given ticker's exchange.
+
+    US tickers (no suffix) and all EU_SUFFIXES exchanges → $2B.
+    Everything else → $5B.
+    """
+    suffix = ticker.rsplit(".", 1)[-1] if "." in ticker else "US"
+    if suffix == "US" or suffix in EU_SUFFIXES:
+        return MIN_MCAP_US_EU
+    return MIN_MCAP_OTHER
+
+
+# FMP alpha-batch suffixes: exchanges where tickers have ALPHA bare symbols
+# (e.g. RELIANCE.NS → RELIANCE, SAP.DE → SAP, VALE3.SA → VALE3).
+# FMP can match these via /stable/earnings + /income-statement using the bare symbol.
+# Excludes numeric-only exchanges (.T, .TW, .KS, .SS, .SZ, .HK, .SR) where bare
+# symbols are numbers (2330, 6857, 000660) that FMP will not find.
+FMP_ALPHA_BATCH_SUFFIXES: frozenset = frozenset({
+    # EU / CH / UK
+    "L",   "DE",  "PA",  "AS",  "SW",  "MI",  "MC",
+    "ST",  "OL",  "HE",  "CO",  "WA",  "AT",  "VI",
+    # North America (non-US)
+    "TO",  # Toronto TSX
+    # Asia-Pacific alpha
+    "AX",  # ASX Australia
+    "NS",  # NSE India
+    "SI",  # SGX Singapore
+    # EM alpha
+    "SA",  # B3 Brazil (tickers like VALE3, PETR4 — alpha with digits, not pure numeric)
+    "JK",  # Jakarta IDX
+    "MX",  # BMV Mexico
+    "IS",  # Borsa Istanbul
+    "SN",  # Santiago Chile
+    "JO",  # JSE South Africa
+    "QA",  # Qatar Exchange
+    "KW",  # Kuwait SE
+    # Note: .BO (BSE India) uses same alpha symbols as .NS — add if BSE tickers are in universe
+})
 
 
 # ── Universe loader ───────────────────────────────────────────────────────────
