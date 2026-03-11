@@ -27,6 +27,8 @@ import math
 import os
 import time
 import traceback
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -57,7 +59,7 @@ from universe import (
 # ────────────────────────────────────────────────────────────────
 # Configuration
 # ────────────────────────────────────────────────────────────────
-GC_VERSION = "0.6.7"
+GC_VERSION = "0.6.8"
 
 # Version history (mirrors the changelog pattern in scan.py)
 _GC_VERSION_LOG: dict = {
@@ -221,6 +223,24 @@ _GC_VERSION_LOG: dict = {
         "past earnings_dates rows — upcoming quarter dates never match past rows). "
         "forward_estimates is the seed for estimates snapshot repository: each daily "
         "run captures current consensus; over time becomes historical estimate data."
+    ),
+    "0.6.8": (
+        "Five fixes + parallel fetch speedup. "
+        "(Issue #4/#5) has_eps summary counter fixed: now counts tickers with at least one "
+        "eps_reported row (was counting any earnings_dates row including forward-only). "
+        "(Issue #6) FMP EU/DM rev-missing batch now logs date-match failures per run — "
+        "shows how many tickers had FMP data but no matching earnings_dates row to write to. "
+        "(Issue #8) earningsHistory EPS estimates now merged into past earnings_dates rows: "
+        "for each past row where eps_reported exists but eps_estimate is None, the "
+        "earningsHistory consensus estimate (±2 month tolerance) is backfilled. "
+        "Tagged _eps_est_source='yahoo_earnings_history'. Recovers non-US EPS estimate "
+        "coverage significantly (India/Korea/Taiwan/Japan had 0% EPS estimate on past rows). "
+        "(Issue #10) fetch_earnings_universe now uses ThreadPoolExecutor(max_workers=4) for "
+        "the first yfinance pass — I/O-bound network calls run in parallel, ~4x faster. "
+        "Inner per-ticker sleeps (between EPS methods) unchanged to respect per-ticker rate "
+        "limits. Outer loop sleeps removed (parallelism makes them redundant). "
+        "Expected runtime: full run 2.5hr → ~40min; daily cached run ~15min. "
+        "GC_FETCH_WORKERS env var overrides worker count (set to 1 to restore serial mode)."
     ),
     "0.6.7": (
         "Fix _fetch_revenue_estimates_yahoo: remove handle_404=True from get_raw_json call. "
@@ -1002,6 +1022,54 @@ def fetch_earnings_data(ticker: str) -> Dict[str, Any]:
                             break
         except Exception as _yq_err:
             out["_yahoo_qs_error"] = str(_yq_err)
+
+        # ── Block 2d: earningsHistory EPS → backfill past earnings_dates ─────
+        # earningsHistory returns past 4 quarters with eps_estimate (analyst
+        # consensus before release) and eps_reported (actual). These are now
+        # available from _fetch_revenue_estimates_yahoo as _is_forward=False rows.
+        # We merge their eps_estimate into past best_eps rows where it is missing.
+        # This recovers non-US EPS estimate coverage: India/Korea/Taiwan/Japan had
+        # 0% eps_estimate on past rows because earningsHistory was never used here.
+        # Tagged _eps_est_source='yahoo_earnings_history' for attribution.
+        try:
+            if yq_rows:
+                past_hist = [
+                    r for r in yq_rows
+                    if not r.get("_is_forward") and r.get("eps_estimate") is not None
+                ]
+                if past_hist:
+                    hist_by_qtr: Dict[str, Dict] = {}
+                    for r in past_hist:
+                        d = (r.get("date") or "")[:7]
+                        if d:
+                            hist_by_qtr[d] = r
+                    merged_hist = 0
+                    for row in best_eps:
+                        if row.get("eps_reported") is None:
+                            continue  # forward row — handled in Block 2c
+                        if row.get("eps_estimate") is not None:
+                            continue  # already have an estimate from earlier source
+                        d = (row.get("date") or "")[:7]
+                        cands = [d]
+                        try:
+                            _yh, _mh = int(d[:4]), int(d[5:7])
+                            for _dh in [-1, 1, -2, 2]:
+                                _nmh = _mh + _dh
+                                _nyh = _yh + (_nmh - 1) // 12
+                                _nmh = ((_nmh - 1) % 12) + 1
+                                cands.append(f"{_nyh:04d}-{_nmh:02d}")
+                        except Exception:
+                            pass
+                        for _key_h in cands:
+                            if _key_h in hist_by_qtr:
+                                row["eps_estimate"] = hist_by_qtr[_key_h]["eps_estimate"]
+                                row["_eps_est_source"] = "yahoo_earnings_history"
+                                merged_hist += 1
+                                break
+                    if merged_hist:
+                        out["_earnings_history_eps_merged"] = merged_hist
+        except Exception:
+            pass  # non-fatal
         out["earnings_dates"] = best_eps
         out["eps_method"] = best_method
 
@@ -2553,57 +2621,83 @@ def fetch_earnings_universe(
         if ex not in seen_exch:
             ordered_fetch.extend(by_exchange[ex])
 
-    # ── First pass: yfinance ──────────────────────────────────────
-    yf_failed: List[str] = []   # completely empty after all 4 methods
+    # ── First pass: yfinance (parallel) ──────────────────────────
+    # I/O-bound network calls — run in parallel with ThreadPoolExecutor.
+    # max_workers=4 is conservative; stays well within Yahoo's ~2000 req/hr limit.
+    # Inner per-ticker sleeps (between EPS method retries) remain in fetch_earnings_data
+    # so each ticker still throttles its own requests appropriately.
+    # Outer loop sleeps removed — parallelism makes them redundant.
+    # Override with GC_FETCH_WORKERS env var (set to 1 to restore serial mode).
+    _max_workers = max(1, int(os.environ.get("GC_FETCH_WORKERS", "4")))
+    yf_failed: List[str] = []
+    _yf_lock = threading.Lock()   # protects yf_failed appends
+    _prog_count = [0]             # mutable counter for progress reporting
+    _prog_lock = threading.Lock()
 
-    for i, t in enumerate(ordered_fetch):
-        if i > 0 and i % 100 == 0:
-            print(f"[gc-data] progress: {i}/{len(ordered_fetch)} fetched")
-            time.sleep(0.75)   # Hard pause every 100 — resets Yahoo rate-limit window
+    def _fetch_one(t: str) -> tuple:
         try:
             data = fetch_earnings_data(t)
-            results[t] = data
-            # Auto-inactive: zombie detected — persist to cache so future runs skip it
-            if data.get("inactive"):
-                cache[t] = {
-                    **data,
-                    "inactive_since": now.isoformat(),
-                }
-                continue
-            has_past_eps = any(e.get("eps_reported") is not None for e in data.get("earnings_dates", []))
+            has_past_eps = any(
+                e.get("eps_reported") is not None for e in data.get("earnings_dates", [])
+            )
             has_rev = len(data.get("quarterly_revenue", [])) >= 4
             has_info = data.get("info", {}).get("revenue_growth") is not None
-            if not has_past_eps and not has_rev and not has_info and "error" not in data:
-                yf_failed.append(t)
+            failed = (
+                not data.get("inactive")
+                and not has_past_eps and not has_rev and not has_info
+                and "error" not in data
+            )
+            return t, data, failed
         except Exception as e:
-            results[t] = {"ticker": t, "error": str(e), "fetched_at": now.isoformat()}
-            yf_failed.append(t)
-        ex = _exch(t)
-        pause = 0.22 if ex == "US" else 0.11
-        if i % 5 == 4:
-            time.sleep(pause)
+            return t, {"ticker": t, "error": str(e), "fetched_at": now.isoformat()}, True
 
-    # ── yfinance retry pass (5-second cooldown) ───────────────────
-    # Second attempt before involving FMP — covers transient throttle hits
+    print(f"[gc-data] first pass: {len(ordered_fetch)} tickers, {_max_workers} workers")
+    with ThreadPoolExecutor(max_workers=_max_workers) as _pool:
+        _futures = {_pool.submit(_fetch_one, t): t for t in ordered_fetch}
+        for _fut in as_completed(_futures):
+            t, data, is_failed = _fut.result()
+            results[t] = data
+            if data.get("inactive"):
+                cache[t] = {**data, "inactive_since": now.isoformat()}
+            elif is_failed:
+                with _yf_lock:
+                    yf_failed.append(t)
+            with _prog_lock:
+                _prog_count[0] += 1
+                if _prog_count[0] % 200 == 0:
+                    print(f"[gc-data] progress: {_prog_count[0]}/{len(ordered_fetch)} fetched")
+
+    # ── yfinance retry pass (parallel, 2-second cooldown) ────────
+    # Second attempt before involving FMP — covers transient throttle hits.
+    # Use fewer workers on retry to be gentler on Yahoo after recent requests.
     if yf_failed:
         print(f"[gc-data] yfinance retry: {len(yf_failed)} tickers empty on first pass")
-        time.sleep(3.5)
+        time.sleep(2.0)
         still_failed: List[str] = []
-        for i, t in enumerate(yf_failed):
-            if i > 0 and i % 30 == 0:
-                time.sleep(1.5)
+        _retry_lock = threading.Lock()
+
+        def _retry_one(t: str) -> tuple:
             try:
                 data = fetch_earnings_data(t)
-                results[t] = data
-                has_past_eps = any(e.get("eps_reported") is not None for e in data.get("earnings_dates", []))
+                has_past_eps = any(
+                    e.get("eps_reported") is not None for e in data.get("earnings_dates", [])
+                )
                 has_rev = len(data.get("quarterly_revenue", [])) >= 4
                 has_info = data.get("info", {}).get("revenue_growth") is not None
-                if not has_past_eps and not has_rev and not has_info and "error" not in data:
-                    still_failed.append(t)
+                failed = not has_past_eps and not has_rev and not has_info and "error" not in data
+                return t, data, failed
             except Exception as e:
-                results[t] = {"ticker": t, "error": str(e), "fetched_at": now.isoformat()}
-                still_failed.append(t)
-            time.sleep(0.30)
+                return t, {"ticker": t, "error": str(e), "fetched_at": now.isoformat()}, True
+
+        _retry_workers = max(1, _max_workers // 2)  # half workers on retry
+        with ThreadPoolExecutor(max_workers=_retry_workers) as _rpool:
+            _rfutures = {_rpool.submit(_retry_one, t): t for t in yf_failed}
+            for _rfut in as_completed(_rfutures):
+                t, data, is_failed = _rfut.result()
+                results[t] = data
+                if is_failed:
+                    with _retry_lock:
+                        still_failed.append(t)
         yf_failed = still_failed
 
     # ── FMP fallback (if API key present) ────────────────────────
@@ -2670,7 +2764,7 @@ def fetch_earnings_universe(
             print(f"[gc-data] FMP alpha-batch (rev-missing): {len(rev_missing)} tickers "
                   f"(suffixes: {sorted({t.rsplit('.',1)[-1] for t in rev_missing})})")
             rev_enriched = 0
-            for i, t in enumerate(rev_missing):
+            fmp_date_miss = 0  # tickers where FMP returned data but date-match failed (issue #6)
                 if i > 0 and i % 50 == 0:
                     print(f"[gc-data] EU/DM rev-missing: {i}/{len(rev_missing)}")
                     time.sleep(1.0)
@@ -2716,10 +2810,15 @@ def fetch_earnings_universe(
                             existing["_fmp_eu_batch_filled"] = filled
                             results[t] = existing
                             rev_enriched += 1
+                        else:
+                            fmp_date_miss += 1  # FMP had data but no matching earnings_dates row
                 except Exception as _eu_fmp_e:
                     pass
                 time.sleep(0.22)
             print(f"[gc-data] EU/DM rev-missing: enriched {rev_enriched}/{len(rev_missing)} tickers with FMP rev estimates")
+            if fmp_date_miss:
+                print(f"[gc-data] EU/DM rev-missing: {fmp_date_miss} tickers had FMP data but no "
+                      f"matching earnings_dates row (date mismatch — phantom coverage in counters)")
 
     # ── Tag data gaps + auto-inactive for persistent zero-data tickers ──────
     # data_gap_alert = True means this ticker has NO usable earnings data.
@@ -3429,7 +3528,13 @@ def print_data_summary(
     """Print a summary of the earnings data quality and top growth stocks."""
     total = len(earnings_cache)
     has_rev = sum(1 for v in earnings_cache.values() if len(v.get("quarterly_revenue", [])) >= 4)
-    has_eps = sum(1 for v in earnings_cache.values() if len(v.get("earnings_dates", [])) >= 1)
+    # Count only tickers with at least one PAST eps_reported row (not forward-only rows).
+    # Previously counted len(earnings_dates) >= 1 which included forward estimates with
+    # eps_reported=None — that overcounted by ~968 tickers (issue #4).
+    has_eps = sum(
+        1 for v in earnings_cache.values()
+        if any(r.get("eps_reported") is not None for r in v.get("earnings_dates", []))
+    )
     has_error = sum(1 for v in earnings_cache.values() if "error" in v)
 
     print(f"\n{'=' * 60}")
