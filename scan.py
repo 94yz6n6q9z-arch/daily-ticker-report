@@ -7590,70 +7590,76 @@ def main():
                     md.append(f" ({' + '.join(parts)})")
                 md.append(f" | rev data: **{gc_rev}** ({gc_rev*100//max(gc_total,1)}%) | EPS history: **{gc_eps}** ({gc_eps*100//max(gc_total,1)}%) | blind: **{gc_blind}** ({gc_blind*100//max(gc_total,1)}%)\n")
                 # ── Data source breakdown for all 4 fields ────────────────────────
-                # Counts per-ticker dominant source. Buckets:
-                #   yf_ed    = yfinance earnings_dates HTML table (Method 1/3)
-                #   yf_inc   = yfinance income_stmt derived (Method 4 / 5d linkage)
-                #   yf_qs    = yfinance quoteSummary earningsTrend/earningsHistory
-                #   fmp      = FMP /stable/earnings or alpha-batch fetch_fmp_single
-                #   finnhub  = Finnhub (future)
-                #   none     = missing / not available
-                _SRC_BUCKETS = ("yf_ed", "yf_inc", "yf_qs", "fmp", "finnhub", "none")
+                # Columns:
+                #   yf_ed  = yfinance earnings_dates HTML (M1/M3) — EPS reported + EPS estimate
+                #            Works for ALL markets: US, EU, India, APAC numeric (KS/TW/T/SS/SZ etc.)
+                #            yfinance scrapes Yahoo Finance Analysis page which has global analyst coverage
+                #   yf_inc = yfinance quarterly_income_stmt (M4 + Phase A linkage)
+                #            Revenue reported actuals for all markets with income statement data
+                #   yf_fwd = yfinance quoteSummary earningsTrend — forward revenue estimates
+                #            Same analyst coverage as yf_ed; fixed in v0.6.5 (crumb auth)
+                #   fmp    = FMP /stable/earnings + alpha-batch
+                #            Revenue estimate for US (primary); genuine gap-filler for others
+                #   none   = genuinely missing (dead markets, no analyst coverage)
+                _SRC_BUCKETS = ("yf_ed", "yf_inc", "yf_fwd", "fmp", "none")
                 cov4 = {f"{field}_{s}": 0
                         for field in ("eps_rep","eps_est","rev_rep","rev_est")
                         for s in _SRC_BUCKETS}
 
-                def _bucket_eps_rep(r_list):
+                def _bucket_method(r_list):
+                    """Map _method tag to source bucket for EPS reported."""
                     methods = [r.get("_method","") for r in r_list]
                     dom = max(set(methods), key=methods.count) if methods else ""
-                    if "fmp" in dom: return "fmp"
                     if "income_stmt" in dom: return "yf_inc"
-                    if dom in ("earnings_dates","get_earnings_dates"): return "yf_ed"
-                    if "quotesummary" in dom.lower(): return "yf_qs"
-                    return "yf_ed"  # default: was from earnings_dates
+                    return "yf_ed"  # earnings_dates, get_earnings_dates
 
-                def _bucket_src(src_tag, is_rep=False):
-                    if src_tag is None: return "yf_ed" if is_rep else "none"
+                def _bucket_src_tag(src_tag):
+                    """Map _*_source tag to source bucket."""
+                    if not src_tag: return "yf_ed"  # untagged = from earnings_dates HTML
                     s = src_tag.lower()
                     if "fmp" in s: return "fmp"
-                    if "finnhub" in s: return "finnhub"
-                    if s in ("yf_income_stmt","income_stmt","yf_inc"): return "yf_inc"
-                    if s in ("yahoo_qs","yahoo_quotesummary"): return "yf_qs"
-                    if s in ("yfinance","earnings_dates","get_earnings_dates"): return "yf_ed"
-                    return "yf_ed"  # untagged rows came from earnings_dates
+                    if s in ("yf_income_stmt", "yf_inc"): return "yf_inc"
+                    if s in ("yahoo_qs", "yf_fwd"): return "yf_fwd"
+                    return "yf_ed"  # "yfinance" tag = earnings_dates HTML
 
                 for d in ec.values():
                     past_ed = [r for r in d.get("earnings_dates",[]) if r.get("eps_reported") is not None]
                     if not past_ed: continue
 
-                    # EPS reported
-                    cov4[f"eps_rep_{_bucket_eps_rep(past_ed)}"] += 1
+                    # EPS reported — from earnings_dates HTML (82%) or income_stmt derived (17%)
+                    cov4[f"eps_rep_{_bucket_method(past_ed)}"] += 1
 
-                    # EPS estimate
+                    # EPS estimate — yfinance earnings_dates HTML for ALL global markets (82%)
+                    # Korea/Taiwan/Japan/India all have analyst consensus on Yahoo Finance
                     ee = [r for r in past_ed if r.get("eps_estimate") is not None]
                     if ee:
-                        srcs = [r.get("_eps_est_source") for r in ee]
+                        srcs = [r.get("_eps_est_source","yfinance") for r in ee]
                         dom = max(set(srcs), key=srcs.count)
-                        cov4[f"eps_est_{_bucket_src(dom)}"] += 1
+                        cov4[f"eps_est_{_bucket_src_tag(dom)}"] += 1
                     else:
                         cov4["eps_est_none"] += 1
 
-                    # Revenue reported
+                    # Revenue reported — income_stmt linkage (Phase A, free, ~85% post v0.6.5)
                     rr = [r for r in past_ed if r.get("revenue_reported") is not None]
                     if rr:
-                        srcs = [r.get("_rev_act_source") for r in rr]
+                        srcs = [r.get("_rev_act_source","yfinance") for r in rr]
                         dom = max(set(srcs), key=srcs.count)
-                        cov4[f"rev_rep_{_bucket_src(dom, is_rep=True)}"] += 1
+                        cov4[f"rev_rep_{_bucket_src_tag(dom)}"] += 1
                     else:
                         cov4["rev_rep_none"] += 1
 
-                    # Revenue estimate
-                    re_ = [r for r in past_ed if r.get("revenue_estimate") is not None]
+                    # Revenue estimate — FMP currently (32%); earningsTrend (v0.6.5) adds ~50%
+                    re_ = [r for r in d.get("earnings_dates",[]) if r.get("revenue_estimate") is not None]
                     if re_:
-                        srcs = [r.get("_rev_est_source") for r in re_]
+                        srcs = [r.get("_rev_est_source","yfinance") for r in re_]
                         dom = max(set(srcs), key=srcs.count)
-                        cov4[f"rev_est_{_bucket_src(dom)}"] += 1
+                        cov4[f"rev_est_{_bucket_src_tag(dom)}"] += 1
                     else:
                         cov4["rev_est_none"] += 1
+
+                # Also count forward_estimates coverage (earningsTrend, v0.6.5+)
+                fwd_covered = sum(1 for d in ec.values()
+                                  if d.get("forward_estimates") and not d.get("inactive") and not d.get("below_min_mcap"))
 
                 tot = max(gc_total, 1)
                 def _pct(n): return f"{n*100//tot}%"
@@ -7666,14 +7672,74 @@ def main():
                 # "\n".join(md) already adds newlines between items. Adding \n inside
                 # creates double-newlines which break the markdown `tables` extension,
                 # causing pipe characters to render as raw text in the email.
-                md.append(f"\n**Data source breakdown** (per ticker, dominant source across past quarters):\n")
-                md.append(f"| Field | yf earnings_dates | yf income_stmt | yf quoteSummary | FMP | Finnhub | none |")
-                md.append(f"| :--- | ---: | ---: | ---: | ---: | ---: | ---: |")
+                md.append(f"\n**Data source breakdown** (per ticker with EPS history, dominant source):\n")
+                md.append(f"| Field | yf earn_dates | yf income_stmt | yf fwd_est | FMP | missing |")
+                md.append(f"| :--- | ---: | ---: | ---: | ---: | ---: |")
                 md.append(f"| EPS reported | {_fmt4('eps_rep')} |")
                 md.append(f"| EPS estimate | {_fmt4('eps_est')} |")
                 md.append(f"| Rev reported | {_fmt4('rev_rep')} |")
                 md.append(f"| Rev estimate | {_fmt4('rev_est')} |")
-                md.append(f"\n_Sources: yf earnings_dates=HTML table (M1/M3), yf income_stmt=quarterly income stmt (M4/5d), yf quoteSummary=earningsTrend API, FMP=/stable/earnings+alpha-batch_\n")
+                _fwd_note = f" · fwd_est covered: **{fwd_covered}** tickers" if fwd_covered else " · fwd_est: pending (earningsTrend v0.6.5)"
+                md.append(f"\n_yf earn_dates=HTML table all markets · yf income_stmt=quarterly financials · yf fwd_est=earningsTrend API · FMP=paid gap-filler{_fwd_note}_\n")
+
+                # ── Forward revenue estimate diagnostic ──────────────────────────────
+                # For every ticker with a yfinance EPS estimate, show whether we have
+                # a forward revenue estimate from yfinance (earningsTrend) or FMP,
+                # or neither. This tells us the true residual value of FMP subscription.
+                # Post v0.6.5: earningsTrend should cover same universe as EPS estimates.
+                # Grouped by market suffix so gaps are actionable.
+                _fwd_diag: dict = {}  # suffix → {n, has_yf_fwd, has_fmp_only, has_none}
+                for _t, _d in ec.items():
+                    if _d.get("inactive") or _d.get("below_min_mcap"):
+                        continue
+                    _ed = _d.get("earnings_dates", [])
+                    # Only analyse tickers where yfinance gave us EPS estimates
+                    if not any(_r.get("eps_estimate") and
+                               (_r.get("_eps_est_source","yfinance") not in ("fmp","finnhub"))
+                               for _r in _ed):
+                        continue
+                    _sfx = _t.rsplit(".",1)[-1] if "." in _t else "US"
+                    if _sfx not in _fwd_diag:
+                        _fwd_diag[_sfx] = {"n":0,"yf_fwd":0,"fmp_only":0,"none":0}
+                    _fwd_diag[_sfx]["n"] += 1
+                    # Check revenue estimate source
+                    _rev_ests = [_r.get("_rev_est_source") for _r in _ed if _r.get("revenue_estimate")]
+                    _has_yf_fwd = any(_s in ("yahoo_qs","yf_fwd") for _s in _rev_ests) or bool(_d.get("forward_estimates"))
+                    _has_fmp    = any("fmp" in str(_s or "") for _s in _rev_ests)
+                    if _has_yf_fwd:
+                        _fwd_diag[_sfx]["yf_fwd"] += 1
+                    elif _has_fmp:
+                        _fwd_diag[_sfx]["fmp_only"] += 1
+                    else:
+                        _fwd_diag[_sfx]["none"] += 1
+
+                # Sort by N descending, only show markets with ≥5 tickers
+                _diag_rows = sorted(
+                    [(s, d) for s, d in _fwd_diag.items() if d["n"] >= 5],
+                    key=lambda x: -x[1]["n"]
+                )
+                _diag_flags = {
+                    "US":"🇺🇸","TO":"🇨🇦","L":"🇬🇧","DE":"🇩🇪","PA":"🇫🇷","NS":"🇮🇳",
+                    "TW":"🇹🇼","KS":"🇰🇷","T":"🇯🇵","HK":"🇭🇰","SS":"🇨🇳","SZ":"🇨🇳",
+                    "SA":"🇧🇷","AX":"🇦🇺","ST":"🇸🇪","MX":"🇲🇽","IS":"🇹🇷","JK":"🇮🇩",
+                    "SR":"🇸🇦","KW":"🇰🇼","SW":"🇨🇭","WA":"🇵🇱","MI":"🇮🇹","MC":"🇪🇸",
+                }
+
+                if _diag_rows:
+                    _yf_tot  = sum(d["yf_fwd"]   for _, d in _diag_rows)
+                    _fmp_tot = sum(d["fmp_only"]  for _, d in _diag_rows)
+                    _non_tot = sum(d["none"]       for _, d in _diag_rows)
+                    _all_tot = sum(d["n"]          for _, d in _diag_rows)
+                    md.append(f"\n**Forward revenue estimate coverage** (tickers where yfinance provides EPS estimate):\n")
+                    md.append(f"| Market | N | yf earningsTrend | FMP only | no rev est |")
+                    md.append(f"| :--- | ---: | ---: | ---: | ---: |")
+                    for _sfx, _dd in _diag_rows:
+                        _flag = _diag_flags.get(_sfx, f".{_sfx}")
+                        def _dp(x): return f"**{x}** ({x*100//_dd['n']}%)" if x else "–"
+                        md.append(f"| {_flag} .{_sfx} | {_dd['n']} | {_dp(_dd['yf_fwd'])} | {_dp(_dd['fmp_only'])} | {_dp(_dd['none'])} |")
+                    md.append(f"| **Total** | **{_all_tot}** | **{_yf_tot}** ({_yf_tot*100//_all_tot}%) | **{_fmp_tot}** ({_fmp_tot*100//_all_tot}%) | **{_non_tot}** ({_non_tot*100//_all_tot}%) |")
+                    md.append(f"\n_yf earningsTrend: free, covers all markets with analyst consensus · FMP only: paid, fills where earningsTrend unavailable · no rev est: no analyst revenue consensus (small-cap, local-only)_\n")
+
 
                 # ── Per-country estimate coverage (full breakdown, all markets) ──
                 # Answers: which countries have EPS-only, Rev-only, or no estimates at all?
