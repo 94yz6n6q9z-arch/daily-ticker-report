@@ -30,16 +30,19 @@ on:
         default: '0'
         type: string
   schedule:
-    # 23:00 CET = 22:00 UTC Mon–Fri (after US market close + after-hours earnings)
-    # Runtime ~2–3hrs → finishes by 02:00 CET. Daily report runs at 04:00 CET.
-    - cron: '0 22 * * 1-5'
+    # 23:00 CET = 22:00 UTC Sun–Fri (after US market close + after-hours earnings)
+    # Sunday run added so Monday's 04:00 CET report uses fresh data (not Friday's).
+    # Runtime ~40min with parallel fetch. Daily report runs at 04:00 CET.
+    - cron: '0 22 * * 0-5'
 
 jobs:
   gc-data:
     runs-on: ubuntu-latest
-    timeout-minutes: 240   # 4hr cap — full universe at 1.5s/ticker needs ~3hr
+    timeout-minutes: 240
     permissions:
       contents: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Checkout
