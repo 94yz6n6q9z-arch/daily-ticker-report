@@ -57,7 +57,7 @@ from universe import (
 # ────────────────────────────────────────────────────────────────
 # Configuration
 # ────────────────────────────────────────────────────────────────
-GC_VERSION = "0.6.5"
+GC_VERSION = "0.6.6"
 
 # Version history (mirrors the changelog pattern in scan.py)
 _GC_VERSION_LOG: dict = {
@@ -221,6 +221,16 @@ _GC_VERSION_LOG: dict = {
         "past earnings_dates rows — upcoming quarter dates never match past rows). "
         "forward_estimates is the seed for estimates snapshot repository: each daily "
         "run captures current consensus; over time becomes historical estimate data."
+    ),
+    "0.6.6": (
+        "Fix _fetch_revenue_estimates_yahoo: three bugs. "
+        "(1) Guard was `revenue_estimate OR revenue_reported` — filtered out earningsTrend rows "
+        "with eps_estimate only (no revenue consensus). Fixed to include all trend rows. "
+        "(2) All rows were tagged _method=yahoo_quotesummary with no distinction between "
+        "earningsTrend (forward) and earningsHistory (past). Added _is_forward=True/False. "
+        "(3) Block 2c used exact date match for upcoming row enrichment. Fixed to ±2 months. "
+        "forward_estimates now filtered to _is_forward=True only (genuine upcoming quarters). "
+        "_yahoo_qs_fwd_rev counter added: rows in forward_estimates that have rev_estimate."
     ),
 }
 
@@ -632,21 +642,49 @@ def _fetch_revenue_estimates_yahoo(tk, ticker: str) -> List[Dict]:
                 "rev_estimate": rev_est_h if (rev_est_h is not None and np.isfinite(rev_est_h) and rev_est_h > 0) else None,
             }
 
-        # Merge trend + history into unified rows
-        all_qtrs = set(trend_by_qtr.keys()) | set(hist_by_qtr.keys())
-        for d in all_qtrs:
-            t_data = trend_by_qtr.get(d, {})
-            h_data = hist_by_qtr.get(d, {})
+        # Build rows from earningsTrend (forward) separately from earningsHistory (past)
+        # Tag each row with _is_forward so callers can distinguish future vs past quarters.
+        # earningsTrend = FORWARD: has rev_estimate + eps_estimate for upcoming quarters
+        # earningsHistory = PAST: has eps_actual + eps_estimate; rev_actual always null
+
+        # Forward rows from earningsTrend
+        for d, t_data in trend_by_qtr.items():
+            rev_est = t_data.get("rev_estimate")
+            eps_est = t_data.get("eps_estimate")
+            if rev_est is None and eps_est is None:
+                continue  # nothing useful in this trend item
             row = {
-                "date": d + "-01",  # approximate date for YYYY-MM matching
-                "revenue_estimate": t_data.get("rev_estimate") or h_data.get("rev_estimate"),
-                "revenue_reported": h_data.get("rev_actual"),
-                "eps_estimate":     t_data.get("eps_estimate") or h_data.get("eps_estimate"),
-                "eps_reported":     h_data.get("eps_actual"),
-                "_method":          "yahoo_quotesummary",
+                "date": d + "-01",
+                "revenue_estimate": rev_est,
+                "revenue_reported": None,  # earningsHistory.revenueActual always null
+                "eps_estimate": eps_est,
+                "eps_reported": None,
+                "_method": "yahoo_quotesummary",
+                "_is_forward": True,   # upcoming quarter — store in forward_estimates
             }
-            if row["revenue_estimate"] is not None or row["revenue_reported"] is not None:
-                rows.append(row)
+            # Supplement with earningsHistory data for the same quarter if present
+            h_data = hist_by_qtr.get(d, {})
+            if row["eps_estimate"] is None:
+                row["eps_estimate"] = h_data.get("eps_estimate")
+            rows.append(row)
+
+        # Past rows from earningsHistory (EPS actuals only — no revenue)
+        for d, h_data in hist_by_qtr.items():
+            if d in trend_by_qtr:
+                continue  # already handled above as a forward row
+            eps_act = h_data.get("eps_actual")
+            eps_est = h_data.get("eps_estimate")
+            if eps_act is None and eps_est is None:
+                continue
+            rows.append({
+                "date": d + "-01",
+                "revenue_estimate": h_data.get("rev_estimate"),  # always None in practice
+                "revenue_reported": h_data.get("rev_actual"),    # always None in practice
+                "eps_estimate": eps_est,
+                "eps_reported": eps_act,
+                "_method": "yahoo_quotesummary",
+                "_is_forward": False,  # past quarter — do NOT include in forward_estimates
+            })
 
     except Exception as _e:
         pass  # silent — caller will fall through to other sources
@@ -910,16 +948,21 @@ def fetch_earnings_data(ticker: str) -> Dict[str, Any]:
         try:
             yq_rows = _fetch_revenue_estimates_yahoo(tk, ticker)
             if yq_rows:
-                # Store as forward_estimates — upcoming quarters only
-                fwd = [r for r in yq_rows if r.get("revenue_estimate") is not None
-                       or r.get("eps_estimate") is not None]
+                # Store forward-looking rows only (_is_forward=True = from earningsTrend)
+                # earningsHistory rows (_is_forward=False) are past quarters — exclude
+                fwd = [r for r in yq_rows if r.get("_is_forward")
+                       and (r.get("revenue_estimate") is not None or r.get("eps_estimate") is not None)]
                 if fwd:
                     out["forward_estimates"] = fwd
                     out["_yahoo_qs_fwd_rows"] = len(fwd)
-                # Also try to enrich any upcoming rows already in best_eps
-                # (upcoming = eps_reported is None, eps_estimate is not None)
+                    out["_yahoo_qs_fwd_rev"] = sum(1 for r in fwd if r.get("revenue_estimate") is not None)
+                # Also enrich upcoming rows in best_eps with rev_estimate from earningsTrend
+                # Only touch rows where eps_reported is None (upcoming quarters)
+                # Use ±2 month tolerance — earningsTrend end-date vs announcement date differ
                 yq_by_qtr: Dict[str, Dict] = {}
                 for r in yq_rows:
+                    if not r.get("_is_forward"):
+                        continue  # skip earningsHistory past rows
                     d = (r.get("date") or "")[:7]
                     if d:
                         yq_by_qtr[d] = r
@@ -927,14 +970,24 @@ def fetch_earnings_data(ticker: str) -> Dict[str, Any]:
                     if row.get("eps_reported") is not None:
                         continue  # past row — skip (revenue_reported handled in Phase A step 3)
                     d = (row.get("date") or "")[:7]
-                    if d in yq_by_qtr:
-                        qd = yq_by_qtr[d]
-                        if row.get("revenue_estimate") is None and qd.get("revenue_estimate"):
-                            row["revenue_estimate"] = qd["revenue_estimate"]
-                            row["_rev_est_source"] = "yahoo_qs"
-                        if row.get("eps_estimate") is None and qd.get("eps_estimate"):
-                            row["eps_estimate"] = qd["eps_estimate"]
-                            row["_eps_est_source"] = "yahoo_qs"
+                    candidates = [d]
+                    try:
+                        _y2, _m2 = int(d[:4]), int(d[5:7])
+                        for _delta in [-1, 1, -2, 2]:
+                            _nm2 = _m2 + _delta; _ny2 = _y2 + (_nm2-1)//12; _nm2 = ((_nm2-1)%12)+1
+                            candidates.append(f"{_ny2:04d}-{_nm2:02d}")
+                    except Exception:
+                        pass
+                    for _key2 in candidates:
+                        if _key2 in yq_by_qtr:
+                            qd = yq_by_qtr[_key2]
+                            if row.get("revenue_estimate") is None and qd.get("revenue_estimate"):
+                                row["revenue_estimate"] = qd["revenue_estimate"]
+                                row["_rev_est_source"] = "yahoo_qs"
+                            if row.get("eps_estimate") is None and qd.get("eps_estimate"):
+                                row["eps_estimate"] = qd["eps_estimate"]
+                                row["_eps_est_source"] = "yahoo_qs"
+                            break
         except Exception as _yq_err:
             out["_yahoo_qs_error"] = str(_yq_err)
         out["earnings_dates"] = best_eps
