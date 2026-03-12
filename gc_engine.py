@@ -56,7 +56,7 @@ from universe import (
 # ────────────────────────────────────────────────────────────────
 # Configuration
 # ────────────────────────────────────────────────────────────────
-GC_VERSION = "0.6.9"
+GC_VERSION = "0.7.0"
 
 # Version history (mirrors the changelog pattern in scan.py)
 _GC_VERSION_LOG: dict = {
@@ -274,6 +274,18 @@ _GC_VERSION_LOG: dict = {
         "New staleness banner in _build_coverage_html: when any tickers are serving "
         "from cached data, a red warning table is prepended to the coverage HTML showing "
         "count/pct stale, oldest cache date, and the degradation run date."
+    ),
+    "0.7.0": (
+        "Fix A — _last_known_mcap: market cap is now persisted as a top-level field "
+        "independent of the info{} block. Written on every fresh fetch that returns a "
+        "valid mcap > 0. Copied forward when cache-preservation (Fix 2) is triggered. "
+        "Falls back from info.market_cap to _last_known_mcap in the mcap floor filter "
+        "so the filter remains operative even after a degraded run wiped info fields. "
+        "Fix B — FMP company-profile mcap fallback: after the FMP earnings pass, any "
+        "active ticker still missing both info.market_cap and _last_known_mcap gets "
+        "a lightweight FMP /stable/company-profile call to retrieve mktCap. Only runs "
+        "when FMP_API_KEY is set and ticker exchange is in FMP_ALPHA_BATCH_SUFFIXES. "
+        "Fix C — export_universe.py: corrected 14 wrong exchange-to-country mappings."
     ),
 }
 
@@ -2516,7 +2528,12 @@ def fetch_earnings_universe(
         # Only filters when we have a reliable cached market cap (> 0).
         # New tickers (no cache) are always fetched once to establish market cap.
         if t in cache and not cache[t].get("new_constituent"):
-            cached_mc = (cache[t].get("info") or {}).get("market_cap") or 0
+            # Fix A: fall back to _last_known_mcap if info.market_cap was wiped
+            cached_mc = (
+                (cache[t].get("info") or {}).get("market_cap")
+                or cache[t].get("_last_known_mcap")
+                or 0
+            )
             try:
                 cached_mc = float(cached_mc)
             except (TypeError, ValueError):
@@ -2714,6 +2731,14 @@ def fetch_earnings_universe(
                 results[t].pop("_used_cached", None)
                 results[t].pop("_cache_fallback_reason", None)
                 results[t].pop("_cache_fallback_run_date", None)
+                # Fix A: persist last known good mcap as top-level field
+                # Survives degraded runs that wipe info{} block
+                import math as _math_a
+                _fresh_mc = results[t].get("info", {}).get("market_cap")
+                if _fresh_mc and not _math_a.isnan(float(_fresh_mc)) and float(_fresh_mc) > 0:
+                    results[t]["_last_known_mcap"] = float(_fresh_mc)
+                elif cache.get(t, {}).get("_last_known_mcap"):
+                    results[t]["_last_known_mcap"] = cache[t]["_last_known_mcap"]
 
         except Exception as e:
             results[t] = {"ticker": t, "error": str(e), "fetched_at": now.isoformat()}
@@ -2952,6 +2977,52 @@ def fetch_earnings_universe(
             v.pop("_no_data_runs", None)  # reset counter on any successful data fetch
     if auto_inactived:
         print(f"[gc-data] auto-inactived {auto_inactived} persistent zero-data tickers")
+
+    # ── Fix B: FMP company-profile mcap fallback ─────────────────
+    # For tickers that went through a fresh fetch but still have no market cap
+    # (yfinance returns empty info for many EM/APAC exchanges), hit the FMP
+    # /stable/company-profile endpoint which reliably returns mktCap.
+    # Only runs when FMP_API_KEY is set and exchange is in FMP_ALPHA_BATCH_SUFFIXES.
+    # Stores result in _last_known_mcap and info.market_cap so the mcap floor
+    # filter works correctly on the next run without needing another FMP call.
+    _fmp_key_mcap = os.environ.get("FMP_API_KEY", "").strip()
+    if _fmp_key_mcap:
+        _mcap_candidates = [
+            t for t in results
+            if not results[t].get("inactive")
+            and not results[t].get("below_min_mcap")
+            and not results[t].get("_last_known_mcap")
+            and not (results[t].get("info") or {}).get("market_cap")
+            and (t.rsplit(".", 1)[-1] if "." in t else "US") in FMP_ALPHA_BATCH_SUFFIXES
+        ]
+        if _mcap_candidates:
+            print(f"[gc-data] Fix B: FMP mcap fallback for {len(_mcap_candidates)} tickers missing market cap")
+            _mcap_filled = 0
+            for _i, _t in enumerate(_mcap_candidates):
+                if _i > 0 and _i % 50 == 0:
+                    print(f"[gc-data] Fix B: mcap progress {_i}/{len(_mcap_candidates)}")
+                    time.sleep(0.5)
+                try:
+                    _bare = _t.split(".")[0].upper()
+                    _profile = _fmp_get("/company-profile", {"symbol": _bare}, _fmp_key_mcap)
+                    if _profile and isinstance(_profile, dict):
+                        _mkt = _profile.get("mktCap") or _profile.get("marketCap")
+                        if _mkt:
+                            try:
+                                _mkt_f = float(_mkt)
+                                if _mkt_f > 0:
+                                    results[_t]["_last_known_mcap"] = _mkt_f
+                                    if not results[_t].get("info"):
+                                        results[_t]["info"] = {}
+                                    results[_t]["info"]["market_cap"] = _mkt_f
+                                    results[_t]["_mcap_source"] = "fmp_profile"
+                                    _mcap_filled += 1
+                            except (TypeError, ValueError):
+                                pass
+                    time.sleep(0.12)
+                except Exception:
+                    pass
+            print(f"[gc-data] Fix B: FMP mcap filled {_mcap_filled}/{len(_mcap_candidates)} tickers")
 
     # ── Summary ───────────────────────────────────────────────────
     active_results = {k: v for k, v in results.items()
