@@ -26,8 +26,6 @@ import math
 import os
 import time
 import traceback
-import threading
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -58,7 +56,7 @@ from universe import (
 # ────────────────────────────────────────────────────────────────
 # Configuration
 # ────────────────────────────────────────────────────────────────
-GC_VERSION = "0.6.8"
+GC_VERSION = "0.6.9"
 
 # Version history (mirrors the changelog pattern in scan.py)
 _GC_VERSION_LOG: dict = {
@@ -223,26 +221,15 @@ _GC_VERSION_LOG: dict = {
         "forward_estimates is the seed for estimates snapshot repository: each daily "
         "run captures current consensus; over time becomes historical estimate data."
     ),
-    "0.6.8": (
-        "Five fixes + parallel fetch speedup. "
-        "(Issue #4/#5) has_eps summary counter fixed: now counts tickers with at least one "
-        "eps_reported row (was counting any earnings_dates row including forward-only). "
-        "(Issue #6) FMP EU/DM rev-missing batch now logs date-match failures per run — "
-        "shows how many tickers had FMP data but no matching earnings_dates row to write to. "
-        "(Issue #8) earningsHistory EPS estimates now merged into past earnings_dates rows: "
-        "for each past row where eps_reported exists but eps_estimate is None, the "
-        "earningsHistory consensus estimate (±2 month tolerance) is backfilled. "
-        "Tagged _eps_est_source='yahoo_earnings_history'. Recovers non-US EPS estimate "
-        "coverage significantly (India/Korea/Taiwan/Japan had 0% EPS estimate on past rows). "
-        "(Issue #10) fetch_earnings_universe now uses ThreadPoolExecutor(max_workers=4) for "
-        "the first yfinance pass — I/O-bound network calls run in parallel, ~4x faster. "
-        "Inner per-ticker sleeps (between EPS methods) unchanged to respect per-ticker rate "
-        "limits. Outer loop sleeps removed (parallelism makes them redundant). "
-        "Expected runtime: full run 2.5hr → ~40min; daily cached run ~15min. "
-        "GC_FETCH_WORKERS env var overrides worker count (set to 1 to restore serial mode). "
-        "Removed batch_day scheduling entirely: all tickers (US + RoW) now fetch every "
-        "weekday. With parallel fetch completing in ~40min, the weekly batch rotation is "
-        "no longer needed. assign_batch_day() removed. hashlib import removed."
+    "0.6.6": (
+        "Fix _fetch_revenue_estimates_yahoo: three bugs. "
+        "(1) Guard was `revenue_estimate OR revenue_reported` — filtered out earningsTrend rows "
+        "with eps_estimate only (no revenue consensus). Fixed to include all trend rows. "
+        "(2) All rows were tagged _method=yahoo_quotesummary with no distinction between "
+        "earningsTrend (forward) and earningsHistory (past). Added _is_forward=True/False. "
+        "(3) Block 2c used exact date match for upcoming row enrichment. Fixed to ±2 months. "
+        "forward_estimates now filtered to _is_forward=True only (genuine upcoming quarters). "
+        "_yahoo_qs_fwd_rev counter added: rows in forward_estimates that have rev_estimate."
     ),
     "0.6.7": (
         "Fix _fetch_revenue_estimates_yahoo: remove handle_404=True from get_raw_json call. "
@@ -253,15 +240,40 @@ _GC_VERSION_LOG: dict = {
         "groups; 28/29 tickers pass. Single 404 failure (LVMH.PA genuinely absent on Yahoo) "
         "is correctly handled by the existing except block."
     ),
-    "0.6.6": (
-        "Fix _fetch_revenue_estimates_yahoo: three bugs. "
-        "(1) Guard was `revenue_estimate OR revenue_reported` — filtered out earningsTrend rows "
-        "with eps_estimate only (no revenue consensus). Fixed to include all trend rows. "
-        "(2) All rows were tagged _method=yahoo_quotesummary with no distinction between "
-        "earningsTrend (forward) and earningsHistory (past). Added _is_forward=True/False. "
-        "(3) Block 2c used exact date match for upcoming row enrichment. Fixed to ±2 months. "
-        "forward_estimates now filtered to _is_forward=True only (genuine upcoming quarters). "
-        "_yahoo_qs_fwd_rev counter added: rows in forward_estimates that have rev_estimate."
+    "0.6.8": (
+        "Five fixes + parallel fetch (later reverted — see 0.6.9). "
+        "(Issue #4/#5) has_eps summary counter fixed: now counts tickers with at least one "
+        "eps_reported row (was counting any earnings_dates row including forward-only). "
+        "(Issue #6) FMP EU/DM rev-missing batch now logs date-match failures per run. "
+        "(Issue #8) earningsHistory EPS estimates backfilled into past earnings_dates rows "
+        "where eps_estimate was None. Tagged _eps_est_source='yahoo_earnings_history'. "
+        "Recovers non-US EPS estimate coverage (India/Korea/Taiwan/Japan had 0% before). "
+        "(Issue #10) Parallel fetch with ThreadPoolExecutor(max_workers=4) added — "
+        "reverted in 0.6.9 because shared yfinance crumb session is invalidated by "
+        "concurrent requests within ~2 minutes, causing 88% 401 failure rate. "
+        "Removed batch_day scheduling: all tickers now fetch every weekday."
+    ),
+    "0.6.9": (
+        "Fix 1 — Revert to serial fetch: ThreadPoolExecutor removed. "
+        "Root cause confirmed: 4 parallel workers share a single yfinance crumb/cookie "
+        "session. Yahoo invalidates the crumb within ~2 min of parallel load, causing "
+        "88%+ of tickers to return empty (4,513/5,152 failed in both 11-Mar runs). "
+        "Serial sequential loop restored (same as pre-0.6.8). 0.75s pause every 100 "
+        "tickers maintained to respect Yahoo rate limits. "
+        "Fix 2 — Cache preservation on failed fetch: if a refetch returns empty data "
+        "(no eps_reported, no quarterly_revenue) AND the existing cache has good data, "
+        "the old cache entry is preserved instead of being overwritten with empty. "
+        "Tagged with _used_cached=True and _cache_fallback_run_date so downstream "
+        "reporting can distinguish fresh vs cached data. yf_failed list is NOT "
+        "extended for cache-preserved tickers (FMP fallback skipped — data already good). "
+        "Fix 3 — Early abort on yfinance degradation: after the first 200 tickers "
+        "are processed, if >50% are empty (>=100 failures), the remaining fetch is "
+        "aborted. Remaining tickers pull from cache if available, or are left with an "
+        "error=fetch_aborted_yf_degraded marker. This prevents force runs from wiping "
+        "the entire state when Yahoo is rate-limiting. A prominent warning is logged. "
+        "New staleness banner in _build_coverage_html: when any tickers are serving "
+        "from cached data, a red warning table is prepended to the coverage HTML showing "
+        "count/pct stale, oldest cache date, and the degradation run date."
     ),
 }
 
@@ -292,8 +304,10 @@ EPS_BEAT_STREAK_MIN = 2
 # ────────────────────────────────────────────────────────────────
 # Fetch scheduling
 # All tickers (US + RoW) are fetched every weekday (Mon–Fri).
-# Removed batch_day logic (v0.6.8): with parallel fetch (~40min full run)
-# batching is no longer necessary to stay within the 4hr window.
+# Removed batch_day logic (v0.6.8): weekday batching is no longer
+# needed now that each run processes the full universe sequentially.
+# Serial fetch completes in ~2.5 hrs; cache skips non-stale tickers
+# so cached daily runs are significantly faster.
 # Earnings trigger: any ticker with earnings_date within 1 day is
 #                   always fetched regardless of weekend/weekday.
 # ────────────────────────────────────────────────────────────────
@@ -2609,83 +2623,153 @@ def fetch_earnings_universe(
         if ex not in seen_exch:
             ordered_fetch.extend(by_exchange[ex])
 
-    # ── First pass: yfinance (parallel) ──────────────────────────
-    # I/O-bound network calls — run in parallel with ThreadPoolExecutor.
-    # max_workers=4 is conservative; stays well within Yahoo's ~2000 req/hr limit.
-    # Inner per-ticker sleeps (between EPS method retries) remain in fetch_earnings_data
-    # so each ticker still throttles its own requests appropriately.
-    # Outer loop sleeps removed — parallelism makes them redundant.
-    # Override with GC_FETCH_WORKERS env var (set to 1 to restore serial mode).
-    _max_workers = max(1, int(os.environ.get("GC_FETCH_WORKERS", "4")))
-    yf_failed: List[str] = []
-    _yf_lock = threading.Lock()   # protects yf_failed appends
-    _prog_count = [0]             # mutable counter for progress reporting
-    _prog_lock = threading.Lock()
+    # ── Helper: does a cache entry contain real data worth preserving? ────────
+    def _cache_has_data(entry: dict) -> bool:
+        if not entry:
+            return False
+        return (
+            any(e.get("eps_reported") is not None for e in entry.get("earnings_dates", []))
+            or len(entry.get("quarterly_revenue", [])) >= 4
+        )
 
-    def _fetch_one(t: str) -> tuple:
+    # ── First pass: yfinance (serial) ─────────────────────────────
+    # Serial sequential loop — parallel fetch (v0.6.8) was reverted because
+    # 4 concurrent workers share one yfinance crumb/cookie session and Yahoo
+    # invalidates it within ~2 minutes, causing 88%+ 401 failures on both
+    # 2026-03-11 runs (4,513 and 4,522 of 5,152 tickers empty).
+    # Serial with per-ticker pauses keeps the crumb alive for the full run.
+    yf_failed: List[str] = []
+    _cache_preserved: int = 0   # tickers saved from cache on failed refetch
+    _abort_fetch: bool = False   # Fix 3: set True if Yahoo is degraded early
+
+    print(f"[gc-data] first pass: {len(ordered_fetch)} tickers, 1 worker (serial)")
+    for i, t in enumerate(ordered_fetch):
+        if i > 0 and i % 100 == 0:
+            print(f"[gc-data] progress: {i}/{len(ordered_fetch)} fetched")
+            time.sleep(0.75)   # Hard pause every 100 — resets Yahoo rate-limit window
+
+        # ── Fix 3: Early abort on yfinance degradation ───────────
+        # After first 200 tickers, if >50% are empty, Yahoo's crumb has
+        # almost certainly expired. Abort remaining fetches and pull from
+        # cache to avoid overwriting good data with empty results.
+        if i == 200 and not _abort_fetch:
+            failed_so_far = len(yf_failed)
+            if failed_so_far >= 100:
+                print(
+                    f"[gc-data] ⚠️  ABORT: {failed_so_far}/200 tickers empty on first 200 — "
+                    f"yfinance crumb likely expired. Preserving existing cache for remaining tickers."
+                )
+                _abort_fetch = True
+
+        if _abort_fetch:
+            # Use cache if available to avoid data loss
+            old = cache.get(t, {})
+            if _cache_has_data(old):
+                preserved = dict(old)
+                preserved["_used_cached"] = True
+                preserved["_cache_fallback_reason"] = "fetch_aborted_yf_degraded"
+                preserved["_cache_fallback_run_date"] = now.isoformat()
+                results[t] = preserved
+                _cache_preserved += 1
+            else:
+                results[t] = {
+                    "ticker": t,
+                    "error": "fetch_aborted_yf_degraded",
+                    "fetched_at": now.isoformat(),
+                }
+            continue
+
         try:
             data = fetch_earnings_data(t)
-            has_past_eps = any(
-                e.get("eps_reported") is not None for e in data.get("earnings_dates", [])
-            )
-            has_rev = len(data.get("quarterly_revenue", [])) >= 4
-            has_info = data.get("info", {}).get("revenue_growth") is not None
-            failed = (
-                not data.get("inactive")
-                and not has_past_eps and not has_rev and not has_info
-                and "error" not in data
-            )
-            return t, data, failed
-        except Exception as e:
-            return t, {"ticker": t, "error": str(e), "fetched_at": now.isoformat()}, True
-
-    print(f"[gc-data] first pass: {len(ordered_fetch)} tickers, {_max_workers} workers")
-    with ThreadPoolExecutor(max_workers=_max_workers) as _pool:
-        _futures = {_pool.submit(_fetch_one, t): t for t in ordered_fetch}
-        for _fut in as_completed(_futures):
-            t, data, is_failed = _fut.result()
-            results[t] = data
+            # Auto-inactive: zombie detected
             if data.get("inactive"):
                 cache[t] = {**data, "inactive_since": now.isoformat()}
-            elif is_failed:
-                with _yf_lock:
+                results[t] = data
+                continue
+
+            has_past_eps = any(e.get("eps_reported") is not None for e in data.get("earnings_dates", []))
+            has_rev = len(data.get("quarterly_revenue", [])) >= 4
+            has_info = data.get("info", {}).get("revenue_growth") is not None
+            is_failed = not has_past_eps and not has_rev and not has_info and "error" not in data
+
+            # ── Fix 2: Cache preservation on failed fetch ─────────
+            # If this refetch returned empty AND the existing cache has real data,
+            # keep the old data rather than overwriting with empty.
+            if is_failed:
+                old = cache.get(t, {})
+                if _cache_has_data(old):
+                    preserved = dict(old)
+                    preserved["_used_cached"] = True
+                    preserved["_cache_fallback_reason"] = "yf_empty_on_refetch"
+                    preserved["_cache_fallback_run_date"] = now.isoformat()
+                    results[t] = preserved
+                    _cache_preserved += 1
+                    # Don't add to yf_failed — cache covers it; skip FMP
+                else:
+                    results[t] = data
                     yf_failed.append(t)
-            with _prog_lock:
-                _prog_count[0] += 1
-                if _prog_count[0] % 200 == 0:
-                    print(f"[gc-data] progress: {_prog_count[0]}/{len(ordered_fetch)} fetched")
+            else:
+                results[t] = data
+                # Fresh good data — clear any stale flags from prior runs
+                results[t].pop("_used_cached", None)
+                results[t].pop("_cache_fallback_reason", None)
+                results[t].pop("_cache_fallback_run_date", None)
 
-    # ── yfinance retry pass (parallel, 2-second cooldown) ────────
+        except Exception as e:
+            results[t] = {"ticker": t, "error": str(e), "fetched_at": now.isoformat()}
+            yf_failed.append(t)
+
+        ex = _exch(t)
+        pause = 0.22 if ex == "US" else 0.11
+        if i % 5 == 4:
+            time.sleep(pause)
+
+    if _cache_preserved:
+        print(f"[gc-data] cache preserved: {_cache_preserved} tickers kept from prior run (yf returned empty)")
+    if _abort_fetch:
+        print(f"[gc-data] ⚠️  fetch aborted early — {_cache_preserved} tickers served from cache, "
+              f"{len(yf_failed)} with no cache coverage")
+
+    # ── yfinance retry pass (serial, 5-second cooldown) ──────────
     # Second attempt before involving FMP — covers transient throttle hits.
-    # Use fewer workers on retry to be gentler on Yahoo after recent requests.
-    if yf_failed:
+    # Skip retry entirely if we aborted (crumb is dead; retry would also fail).
+    if yf_failed and not _abort_fetch:
         print(f"[gc-data] yfinance retry: {len(yf_failed)} tickers empty on first pass")
-        time.sleep(2.0)
+        time.sleep(3.5)
         still_failed: List[str] = []
-        _retry_lock = threading.Lock()
-
-        def _retry_one(t: str) -> tuple:
+        for i, t in enumerate(yf_failed):
+            if i > 0 and i % 30 == 0:
+                time.sleep(1.5)
             try:
                 data = fetch_earnings_data(t)
-                has_past_eps = any(
-                    e.get("eps_reported") is not None for e in data.get("earnings_dates", [])
-                )
+                has_past_eps = any(e.get("eps_reported") is not None for e in data.get("earnings_dates", []))
                 has_rev = len(data.get("quarterly_revenue", [])) >= 4
                 has_info = data.get("info", {}).get("revenue_growth") is not None
-                failed = not has_past_eps and not has_rev and not has_info and "error" not in data
-                return t, data, failed
-            except Exception as e:
-                return t, {"ticker": t, "error": str(e), "fetched_at": now.isoformat()}, True
+                is_failed = not has_past_eps and not has_rev and not has_info and "error" not in data
 
-        _retry_workers = max(1, _max_workers // 2)  # half workers on retry
-        with ThreadPoolExecutor(max_workers=_retry_workers) as _rpool:
-            _rfutures = {_rpool.submit(_retry_one, t): t for t in yf_failed}
-            for _rfut in as_completed(_rfutures):
-                t, data, is_failed = _rfut.result()
-                results[t] = data
+                # Fix 2 applies on retry too
                 if is_failed:
-                    with _retry_lock:
+                    old = cache.get(t, {})
+                    if _cache_has_data(old):
+                        preserved = dict(old)
+                        preserved["_used_cached"] = True
+                        preserved["_cache_fallback_reason"] = "yf_empty_on_retry"
+                        preserved["_cache_fallback_run_date"] = now.isoformat()
+                        results[t] = preserved
+                        _cache_preserved += 1
+                    else:
+                        results[t] = data
                         still_failed.append(t)
+                else:
+                    results[t] = data
+                    results[t].pop("_used_cached", None)
+                    results[t].pop("_cache_fallback_reason", None)
+                    results[t].pop("_cache_fallback_run_date", None)
+
+            except Exception as e:
+                results[t] = {"ticker": t, "error": str(e), "fetched_at": now.isoformat()}
+                still_failed.append(t)
+            time.sleep(0.30)
         yf_failed = still_failed
 
     # ── FMP fallback (if API key present) ────────────────────────
@@ -3292,8 +3376,73 @@ def _build_coverage_html(earnings_cache: Dict[str, Any]) -> str:
         v = d.get(k, 0)
         return pct(v) if v > 0 else "<span style='color:#aaa;'>–</span>"
 
+    # ── Staleness banner (Fix 2/3 — v0.6.9) ─────────────────────
+    # When yfinance degraded and cache was used, show a prominent warning
+    # before the coverage tables so the operator knows data is not fresh.
+    stale_entries = [
+        (k, v) for k, v in earnings_cache.items()
+        if v.get("_used_cached") and not v.get("inactive") and not v.get("below_min_mcap")
+    ]
+    stale_count = len(stale_entries)
+    active_n = sum(1 for v in earnings_cache.values()
+                   if not v.get("inactive") and not v.get("below_min_mcap"))
+    stale_pct = stale_count * 100 // max(active_n, 1)
+
+    staleness_html = ""
+    if stale_count > 0:
+        # Find oldest original fetched_at among stale entries
+        oldest_date = "unknown"
+        try:
+            dates = [
+                v.get("fetched_at", "")
+                for _, v in stale_entries
+                if v.get("fetched_at")
+            ]
+            if dates:
+                oldest_date = min(dates)[:10]  # YYYY-MM-DD only
+        except Exception:
+            pass
+        # Find the degradation run date (when cache fallback was triggered)
+        degradation_date = "unknown"
+        try:
+            run_dates = [
+                v.get("_cache_fallback_run_date", "")
+                for _, v in stale_entries
+                if v.get("_cache_fallback_run_date")
+            ]
+            if run_dates:
+                degradation_date = max(run_dates)[:10]
+        except Exception:
+            pass
+        # Reason breakdown
+        reasons: Dict[str, int] = {}
+        for _, v in stale_entries:
+            r = v.get("_cache_fallback_reason", "unknown")
+            reasons[r] = reasons.get(r, 0) + 1
+        reason_str = "; ".join(f"{r}: {c}" for r, c in sorted(reasons.items()))
+
+        staleness_html = (
+            f"<div style='background:#fff3cd;border:2px solid #e67e22;border-radius:4px;"
+            f"padding:12px 16px;margin-bottom:14px;font-family:Arial,sans-serif;'>"
+            f"<b style='color:#c0392b;font-size:14px;'>⚠️ Data Freshness Warning</b>"
+            f"<table style='font-family:Arial;font-size:12px;margin-top:8px;border-collapse:collapse;width:100%;'>"
+            f"<tr><td style='padding:3px 8px;font-weight:bold;color:#555;width:220px;'>Tickers using cached data</td>"
+            f"<td style='padding:3px 8px;color:#c0392b;font-weight:bold;'>{stale_count} of {active_n} active ({stale_pct}%)</td></tr>"
+            f"<tr><td style='padding:3px 8px;font-weight:bold;color:#555;'>Oldest cached data date</td>"
+            f"<td style='padding:3px 8px;'>{oldest_date}</td></tr>"
+            f"<tr><td style='padding:3px 8px;font-weight:bold;color:#555;'>Degradation detected on</td>"
+            f"<td style='padding:3px 8px;'>{degradation_date}</td></tr>"
+            f"<tr><td style='padding:3px 8px;font-weight:bold;color:#555;'>Fallback reasons</td>"
+            f"<td style='padding:3px 8px;'>{reason_str}</td></tr>"
+            f"</table>"
+            f"<p style='font-size:11px;color:#666;margin:8px 0 0;'>"
+            f"Coverage numbers below reflect cached data for stale tickers. "
+            f"Run gc_engine --mode data without --force at night to restore fresh coverage.</p>"
+            f"</div>"
+        )
+
     # ── Table 1: EPS + Revenue source coverage ───────────────────────────────
-    html = (
+    html = staleness_html + (
         f"<h3 style='font-family:Arial;font-size:14px;margin:16px 0 6px;color:#1a1a2e;'>"
         f"📊 GC Data Layer — Coverage Summary (v{GC_VERSION})</h3>"
         f"<table style='{_STYLE}'>"
