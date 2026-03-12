@@ -1,35 +1,31 @@
 {
-  "generated_utc": "2026-03-12T12:32:53Z",
-  "universe": "World",
-  "source_fund": "IWDA",
-  "source_url": "https://www.ishares.com/uk/individual/en/products/251882/ishares-core-msci-world-ucits-etf-acc-fund/1506575576011.ajax?dataType=fund&fileName=IWDA_holdings&fileType=csv",
-  "source_as_of": null,
-  "row_count": 1107,
-  "unique_tickers": 1107,
-  "sector_counts": {
-    "Communication Services": 56,
-    "Consumer Discretionary": 97,
-    "Consumer Staples": 78,
-    "Energy": 47,
-    "Financials": 207,
-    "Health Care": 104,
-    "Industrials": 204,
-    "Information Technology": 120,
-    "Materials": 77,
-    "Real Estate": 51,
-    "Utilities": 66
-  },
-  "mapping_confidence_counts": {
-    "high": 979,
-    "low": 10,
-    "med": 118
-  },
-  "added_count": 0,
-  "removed_count": 0,
-  "added_sample": [],
-  "removed_sample": [],
-  "notes": [
-    "Public-source proxy (iShares World ETF holdings), not a licensed direct MSCI constituent feed.",
-    "scan.py requires Ticker + Sector and uses Company/Country when present; extra columns are for audit/debug."
-  ]
+  "as_of": "2026-03-12",
+  "source_url": "https://www.ishares.com/de/privatanleger/de/produkte/251882/ishares-msci-world-ucits-etf-acc-fund/1535604580385.ajax?fileType=xls&fileName=iShares-Core-MSCI-World-UCITS-ETF_fund&dataType=fund",
+  "n_tickers": 1309,
+  "label": "World",
+  "countries": {
+    "Vereinigte Staaten": 536,
+    "Japan": 178,
+    "Kanada": 84,
+    "Vereinigtes Königreich": 71,
+    "Deutschland": 54,
+    "Frankreich": 54,
+    "Australien": 46,
+    "Schweden": 41,
+    "Schweiz": 40,
+    "Niederlande": 29,
+    "Italien": 27,
+    "Hongkong": 26,
+    "Spanien": 22,
+    "Singapur": 16,
+    "Dänemark": 15,
+    "Israel": 14,
+    "Finnland": 13,
+    "Belgien": 12,
+    "Norwegen": 11,
+    "Österreich": 5,
+    "Irland": 5,
+    "Neuseeland": 5,
+    "Portugal": 5
+  }
 }
