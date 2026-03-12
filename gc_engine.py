@@ -371,6 +371,83 @@ def _should_fetch_today(ticker: str, cached: Dict[str, Any], now: dt.datetime, f
 # ────────────────────────────────────────────────────────────────
 FMP_TARGET_EXCHANGES = ["KL", "IS", "PS", "AD", "DU", "T", "AX", "L", "JO", "HK", "PA", "SW"]
 
+# ── FX rate table for mcap USD conversion ────────────────────────────────────
+# yfinance info["marketCap"] returns the value in LOCAL currency.
+# We compare against a USD floor, so we must convert.
+# All entries are "{CURRENCY}USD=X" format → Yahoo returns "1 CURRENCY = X USD".
+_CURRENCY_TO_YAHOO_FX: Dict[str, str] = {
+    "EUR": "EURUSD=X", "GBP": "GBPUSD=X", "JPY": "JPYUSD=X",
+    "KRW": "KRWUSD=X", "TWD": "TWDUSD=X", "HKD": "HKDUSD=X",
+    "AUD": "AUDUSD=X", "CAD": "CADUSD=X", "CHF": "CHFUSD=X",
+    "SEK": "SEKUSD=X", "NOK": "NOKUSD=X", "DKK": "DKKUSD=X",
+    "INR": "INRUSD=X", "BRL": "BRLUSD=X", "MXN": "MXNUSD=X",
+    "SGD": "SGDUSD=X", "TRY": "TRYUSD=X", "THB": "THBUSD=X",
+    "IDR": "IDRUSD=X", "ZAR": "ZARUSD=X", "QAR": "QARUSD=X",
+    "KWD": "KWDUSD=X", "SAR": "SARUSD=X", "ILS": "ILSUSD=X",
+    "PLN": "PLNUSD=X", "CLP": "CLPUSD=X", "COP": "COPUSD=X",
+    "HUF": "HUFUSD=X", "CZK": "CZKUSD=X", "AED": "AEDUSD=X",
+    "NZD": "NZDUSD=X", "EGP": "EGPUSD=X", "PKR": "PKRUSD=X",
+    "BDT": "BDTUSD=X", "CNY": "CNYUSD=X", "CNH": "CNHUSD=X",
+}
+
+# Module-level FX cache — populated once per process, reused across tickers.
+_FX_RATE_CACHE: Dict[str, float] = {}
+
+
+def _get_fx_rate_to_usd(currency: str) -> float:
+    """Return the rate to multiply local-currency mcap by to get USD equivalent.
+
+    Uses Yahoo Finance {CURRENCY}USD=X spot tickers.  Falls back to 1.0 if
+    Yahoo is unavailable or the currency is unknown (conservative: keeps ticker
+    in the pipeline rather than incorrectly filtering it out).
+
+    Results are cached for the life of the process (one cache per gc_engine run).
+    FMP company-profile mcap is already in USD — pass currency="USD" for those.
+    """
+    if not currency:
+        return 1.0
+    currency = currency.upper().strip()
+    if currency in ("USD", "USX"):
+        return 1.0
+    if currency in _FX_RATE_CACHE:
+        return _FX_RATE_CACHE[currency]
+
+    fx_sym = _CURRENCY_TO_YAHOO_FX.get(currency)
+    if not fx_sym:
+        print(f"[fx] Unknown currency '{currency}' — assuming 1:1 (will not filter)")
+        _FX_RATE_CACHE[currency] = 1.0
+        return 1.0
+
+    try:
+        import yfinance as _yf
+        info = _yf.Ticker(fx_sym).info
+        rate = (info.get("regularMarketPrice")
+                or info.get("previousClose")
+                or info.get("bid"))
+        if rate and float(rate) > 0:
+            rate = float(rate)
+            _FX_RATE_CACHE[currency] = rate
+            print(f"[fx] {currency}: 1 {currency} = {rate:.6f} USD ({fx_sym})")
+            return rate
+    except Exception as e:
+        print(f"[fx] Could not fetch {fx_sym}: {e} — assuming 1:1")
+
+    _FX_RATE_CACHE[currency] = 1.0
+    return 1.0
+
+
+def _mcap_to_usd(mcap_local: float, currency: str, mcap_source: str = "") -> float:
+    """Convert market cap in local currency to USD.
+
+    If mcap_source is 'fmp_profile', FMP already returns USD — skip conversion.
+    Returns 0.0 if mcap_local is invalid.
+    """
+    if not mcap_local or mcap_local <= 0:
+        return 0.0
+    if mcap_source == "fmp_profile" or (currency or "").upper() in ("USD", "USX", ""):
+        return float(mcap_local)
+    return float(mcap_local) * _get_fx_rate_to_usd(currency)
+
 # ────────────────────────────────────────────────────────────────
 # Catalyst keywords for major event detection via yfinance news
 # Events that qualify as Layer-2 equivalent WITHOUT earnings beats
@@ -2522,13 +2599,14 @@ def fetch_earnings_universe(
             dead_skipped += 1
             continue
 
-        # ── Market-cap floor filter (v0.6.0) ──────────────────────────────────
-        # Skip tickers below the minimum investable market cap for their exchange.
-        # US + EU: $2B floor. All other markets (EM, APAC, MENA): $5B floor.
-        # Only filters when we have a reliable cached market cap (> 0).
-        # New tickers (no cache) are always fetched once to establish market cap.
+        # ── Market-cap floor filter ─────────────────────────────────────────────
+        # RULES (v0.8.0):
+        #   • Floor: $2B USD across ALL markets (MIN_MCAP_US_EU = MIN_MCAP_OTHER = 2B)
+        #   • mcap from yfinance is in LOCAL currency → convert to USD via live FX rates
+        #   • ONLY exclude when we KNOW the mcap AND it falls below floor.
+        #     If mcap is 0 / missing, let the ticker through — do NOT exclude on ignorance.
+        #   • FMP profile mcap is already in USD (skip FX conversion for that source)
         if t in cache and not cache[t].get("new_constituent"):
-            # Fix A: fall back to _last_known_mcap if info.market_cap was wiped
             cached_mc = (
                 (cache[t].get("info") or {}).get("market_cap")
                 or cache[t].get("_last_known_mcap")
@@ -2539,13 +2617,22 @@ def fetch_earnings_universe(
             except (TypeError, ValueError):
                 cached_mc = 0.0
             import math as _math
-            if cached_mc > 0 and not _math.isnan(cached_mc) and cached_mc < mcap_threshold(t):
-                # Below floor — mark and skip, don't waste an API call
-                cache[t]["below_min_mcap"] = True
-                cache[t]["mcap_threshold"] = mcap_threshold(t)
-                results[t] = cache[t]
-                mcap_skipped += 1
-                continue
+            if cached_mc > 0 and not _math.isnan(cached_mc):
+                _currency   = (cache[t].get("info") or {}).get("currency", "USD") or "USD"
+                _mcap_src   = cache[t].get("_mcap_source", "")
+                cached_mc_usd = _mcap_to_usd(cached_mc, _currency, _mcap_src)
+                if cached_mc_usd > 0 and cached_mc_usd < MIN_MCAP_US_EU:
+                    # Below $2B USD floor — mark and skip
+                    cache[t]["below_min_mcap"] = True
+                    cache[t]["mcap_threshold"] = MIN_MCAP_US_EU
+                    cache[t]["_mcap_usd"]      = cached_mc_usd
+                    results[t] = cache[t]
+                    mcap_skipped += 1
+                    continue
+                # We have a valid mcap — store the USD equivalent for export tools
+                if cached_mc_usd > 0:
+                    cache[t]["_mcap_usd"] = cached_mc_usd
+            # cached_mc == 0 → unknown mcap → let ticker through (rule: exclude only when known)
 
         if t in cache:
             cached = cache[t]
@@ -2737,8 +2824,15 @@ def fetch_earnings_universe(
                 _fresh_mc = results[t].get("info", {}).get("market_cap")
                 if _fresh_mc and not _math_a.isnan(float(_fresh_mc)) and float(_fresh_mc) > 0:
                     results[t]["_last_known_mcap"] = float(_fresh_mc)
+                    # Also store USD equivalent (for export_universe and mcap filter)
+                    _cur = (results[t].get("info") or {}).get("currency", "USD") or "USD"
+                    _usd = _mcap_to_usd(float(_fresh_mc), _cur)
+                    if _usd > 0:
+                        results[t]["_mcap_usd"] = _usd
                 elif cache.get(t, {}).get("_last_known_mcap"):
                     results[t]["_last_known_mcap"] = cache[t]["_last_known_mcap"]
+                    if cache[t].get("_mcap_usd"):
+                        results[t]["_mcap_usd"] = cache[t]["_mcap_usd"]
 
         except Exception as e:
             results[t] = {"ticker": t, "error": str(e), "fetched_at": now.isoformat()}
