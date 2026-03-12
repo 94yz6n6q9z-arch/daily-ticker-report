@@ -46,7 +46,13 @@ NEW (this update):
 - v98: Companion to gc_engine.py 0.6.2–0.6.3. Added ADR_MAP + get_fmp_symbol() to universe.py (25 APAC numeric→US ADR mappings: 2330.TW→TSM, 7203.T→TM etc.). FMP alpha-batch expanded from EU-only to all alpha-suffix exchanges globally (FMP_ALPHA_BATCH_SUFFIXES: +India, Brazil, Mexico, Turkey, Indonesia, S.Africa, Chile, Qatar, Kuwait, Singapore). Adds ~900 more tickers to the FMP revenue-missing batch. All exchange classification constants (DEAD_MARKET_SUFFIXES, EU_SUFFIXES, MIN_MCAP_US_EU, MIN_MCAP_OTHER, mcap_threshold, FMP_ALPHA_BATCH_SUFFIXES, ADR_MAP, get_fmp_symbol) now imported exclusively from universe.py — scan.py no longer defines any exchange logic itself.
 - v99: Data source breakdown table rewritten — correct attribution for all 4 fields. Corrected wrong claim that APAC numeric markets (KS/TW/T/SS/SZ) have no EPS estimates from yfinance: earnings_dates HTML provides analyst consensus for ALL global markets. Revenue estimate is the only field where APAC numeric = 0%. Table now 5 columns (yf earn_dates | yf income_stmt | yf fwd_est | FMP | missing), dropping the defunct yf_quoteSummary and Finnhub columns. Added fwd_covered counter in table footer (earningsTrend tickers with forward_estimates, v0.6.5+). New diagnostic table: Forward revenue estimate coverage — per market, for every ticker with a yfinance EPS estimate, shows whether forward rev estimate came from yf earningsTrend (free), FMP only (paid), or is absent. This makes FMP residual value visible per run. Companion: gc_engine.py 0.6.5–0.6.6 (earningsTrend auth fix, Phase A linkage, _is_forward tagging, ±2 month tolerance, auto-inactive for persistent zero-data tickers). universe.py 1.2.0: load_universe() now filters DEAD_MARKET_SUFFIXES and KNOWN_DEAD_TICKERS at source; .DU added to DEAD_MARKET_SUFFIXES (95% dead confirmed). Effect: ~145 fewer tickers enter pipeline; active count projects below 5,000.
 - v100: Option A universe filter. OHLCV download list now built from gc_state.json active set rather than raw load_universe() output. Tickers gc_engine has marked inactive or below_min_mcap are excluded from the yf_download_chunk call — eliminates OHLCV fetches for dead markets, below-mcap stocks, and persistent zero-data tickers. New MSCI constituents not yet seen by gc_engine pass through unfiltered for their first run (one free pass), then gc_engine trims them on the next cycle. gc_state absent (first run) falls back to full MSCI universe. Establishes explicit run-order dependency: gc_engine (mode=data) must complete and write gc_state.json BEFORE scan.py runs. Companion: universe.py 1.2.0, gc_engine.py 0.6.6.
-- v101: Universe simplification companion. Removed MSCI_KR_CSV import (deleted from universe.py 1.4.0 — Korea now fully covered by msci_em_classification.csv via XLS-based pipeline). Removed korea_count from report stats block. Companion: universe.py 1.4.0, update_msci_world_classification.py 3.0.0."""
+- v101: Universe simplification companion. Removed MSCI_KR_CSV import (deleted from universe.py 1.4.0 — Korea now fully covered by msci_em_classification.csv via XLS-based pipeline). Removed korea_count from report stats block. Companion: universe.py 1.4.0, update_msci_world_classification.py 3.0.0.
+- v102: Ticker normalization + exchange coverage fixes. Companion: universe.py 1.5.0, gc_engine.py 0.8.0.
+  (1) _clean_ticker _EXCHANGE_SUFFIXES: added .AE (UAE unified), .TWO (Taiwan Gretai) — prevents mangling to hyphens.
+  (2) _infer_country_from_ticker suffix_map: expanded from 18 → 40+ entries (added .KQ, .TWO, .AE, .IS, .SA, .NS, .BO, .BK, .JK, .SN, .WA, .AT, .VI, .IR, .LS, .MX, .JO, .SR, .QA, .KW, .NZ, .TW, .SI, .AD, .DU, .HE, .OL, .ST, .CO, .SW).
+  (3) load_msci_csv_sectors(): replaced Turkish-only -E.IS normalization with full universe._normalize_ticker — now covers all markets (UAE, Thailand NVDR, London double-dot, class-share dot→dash).
+  (4) Option A filter: comment clarifies below_min_mcap only excludes when gc_engine confirmed it — unknown mcap tickers pass through (rule: exclude only when known).
+  (5) Coverage table _EXCH_FLAGS: added .AE (UAE unified), .KQ (KOSDAQ), .TWO (Taiwan Gretai), .BO (India BSE)."""
 from __future__ import annotations
 import argparse
 import datetime as dt
@@ -603,11 +609,12 @@ def _clean_ticker(t: str) -> str:
         "MX",        # Mexico
         "KL",        # Malaysia
         "SR",        # Saudi Arabia
-        "AD", "DU",  # UAE (Abu Dhabi / Dubai)
+        "AD", "DU", "AE",  # UAE (Abu Dhabi / Dubai / unified .AE — remapped by universe.py)
         "WA",        # Poland (Warsaw)
         "AT",        # Greece (Athens)
         "CA",        # Egypt (Cairo)
         "PS",        # Philippines
+        "TWO",       # Taiwan Gretai Securities Market
         "QA",        # Qatar
         "PR",        # Czech Republic (Prague)
         "BD",        # Hungary (Budapest)
@@ -822,8 +829,11 @@ def load_msci_world_classification(path: Path = MSCI_WORLD_CLASSIFICATION_CSV) -
         return pd.DataFrame(columns=cols)
     df = raw.copy()
     df["Ticker"] = df[col_t].astype(str).map(_clean_ticker).str.strip()
-    # Normalize Borsa Istanbul format: iShares/MSCI use TICKER-E.IS; yfinance expects TICKER.IS
-    df["Ticker"] = df["Ticker"].str.replace(r"-E\.IS$", ".IS", regex=True)
+    # Full ticker normalization via universe.py _normalize_ticker:
+    # covers Turkey (-E.IS), Thailand (.R.BK), UAE (.AD/.DU→.AE),
+    # London double-dot (BA..L), Canada/Chile class shares (RCI.B.TO→RCI-B.TO)
+    from universe import _normalize_ticker as _uni_norm
+    df["Ticker"] = df["Ticker"].map(_uni_norm)
     df["Company"] = df[col_c].astype(str).str.strip() if col_c is not None else ""
     df["Country"] = df[col_country].astype(str).str.strip() if col_country is not None else ""
     df["Sector"] = df[col_s].astype(str).map(_normalize_sp500_sector_label).str.strip()
@@ -878,23 +888,48 @@ def _infer_country_from_ticker(ticker: str) -> str:
     if "." in t:
         suffix = t.rsplit(".", 1)[-1]
     suffix_map = {
-        "KS": "South Korea",
-        "T": "Japan",
-        "DE": "Germany",
-        "MI": "Italy",
-        "PA": "France",
-        "SW": "Switzerland",
-        "L": "United Kingdom",
-        "MC": "Spain",
-        "AS": "Netherlands",
-        "HK": "Hong Kong",
-        "TO": "Canada",
-        "AX": "Australia",
-        "ST": "Sweden",
-        "CO": "Denmark",
-        "HE": "Finland",
-        "OL": "Norway",
-        "BR": "Belgium",
+        "KS":  "South Korea",
+        "KQ":  "South Korea (KOSDAQ)",
+        "T":   "Japan",
+        "DE":  "Germany",
+        "MI":  "Italy",
+        "PA":  "France",
+        "SW":  "Switzerland",
+        "L":   "United Kingdom",
+        "MC":  "Spain",
+        "AS":  "Netherlands",
+        "HK":  "Hong Kong",
+        "TO":  "Canada",
+        "AX":  "Australia",
+        "NZ":  "New Zealand",
+        "ST":  "Sweden",
+        "CO":  "Denmark",
+        "HE":  "Finland",
+        "OL":  "Norway",
+        "BR":  "Belgium",
+        "IS":  "Turkey",
+        "SA":  "Brazil",
+        "NS":  "India (NSE)",
+        "BO":  "India (BSE)",
+        "SI":  "Singapore",
+        "TW":  "Taiwan",
+        "TWO": "Taiwan (Gretai)",
+        "AE":  "UAE",
+        "AD":  "UAE",
+        "DU":  "UAE",
+        "SR":  "Saudi Arabia",
+        "QA":  "Qatar",
+        "KW":  "Kuwait",
+        "JO":  "South Africa",
+        "MX":  "Mexico",
+        "BK":  "Thailand",
+        "JK":  "Indonesia",
+        "SN":  "Chile",
+        "WA":  "Poland",
+        "AT":  "Greece",
+        "VI":  "Austria",
+        "IR":  "Ireland",
+        "LS":  "Portugal",
     }
     if suffix in suffix_map:
         return suffix_map[suffix]
@@ -7026,6 +7061,9 @@ def main():
             import json as _gcj
             _gc_cache = _gcj.loads(_gc_state_path.read_text(encoding="utf-8")).get("earnings_cache", {})
             for _t, _v in _gc_cache.items():
+                # Only exclude from OHLCV when gc_engine has CONFIRMED below floor.
+                # Tickers with unknown mcap (_mcap_usd absent) are NOT excluded —
+                # we only filter when we know and the value is confirmed below $2B USD.
                 if _v.get("inactive") or _v.get("below_min_mcap"):
                     _gc_inactive.add(_t)
                 else:
@@ -7792,8 +7830,10 @@ def main():
                     "SI": "🇸🇬 Singapore",  "AX": "🇦🇺 Australia",   "NS": "🇮🇳 India",
                     "SA": "🇧🇷 Brazil/SA",  "JO": "🇿🇦 S. Africa",   "MX": "🇲🇽 Mexico",
                     "JK": "🇮🇩 Indonesia",  "BK": "🇹🇭 Thailand",    "KL": "🇲🇾 Malaysia",
-                    "IS": "🇹🇷 Turkey",     "TA": "🇮🇱 Israel",      "AD": "🇦🇪 UAE-AD",
-                    "DU": "🇦🇪 UAE-DU",     "SN": "🇨🇱 Chile",       "BR": "🇧🇪 Belgium",
+                    "IS": "🇹🇷 Turkey",     "TA": "🇮🇱 Israel",      "AE": "🇦🇪 UAE",
+                    "AD": "🇦🇪 UAE-AD",     "DU": "🇦🇪 UAE-DU",     "SN": "🇨🇱 Chile",
+                    "KQ": "🇰🇷 Korea(KQ)",  "TWO":"🇹🇼 Taiwan(OTC)", "BO": "🇮🇳 India(BSE)",
+                    "BR": "🇧🇪 Belgium",
                 }
                 _ct: dict = _dd2(lambda: {"n":0,"er":0,"ee":0,"rr":0,"re":0,"a4":0,"blind":0,"eps_o":0,"rev_o":0})
                 for ticker, d in ec.items():
