@@ -48,11 +48,23 @@ VERSION HISTORY
        Companion: update_msci_world_classification.py v3.0.0 (reads iShares
        XLS directly via exact exchange-name → Yahoo suffix table, ~2,100
        total tickers replacing the old ~6,400 EIMI-based universe).
+1.5.0  _normalize_ticker() — comprehensive Yahoo Finance ticker normalization:
+       (1) Turkey: ASELS.E.IS / ASELS-E.IS → ASELS.IS
+       (2) Thailand NVDR: ADVANC.R.BK → ADVANC.BK
+       (3) UAE remap: .AD/.DU → .AE (Yahoo unified UAE suffix)
+       (4) London double-dot: BA..L → BA.L
+       (5) Class-share 2-dot rule: RCI.B.TO → RCI-B.TO, GIB.A.TO → GIB-A.TO,
+           BAJAJ.AUTO.NS → BAJAJ-AUTO.NS (first dot → dash for multi-part names)
+       TICKER_OVERRIDES: 2299955D.TO→CSU.TO, BRK.B→BRK-B, HEI.A→HEI-A
+       DEAD_MARKET_SUFFIXES: removed AD/DU (now remapped to .AE, not dead)
+       FMP_ALPHA_BATCH_SUFFIXES: added AE, KQ, BO
+       MIN_MCAP_OTHER: lowered $5B→$2B (unified floor; FX conversion in gc_engine)
+       .KQ (KOSDAQ) and .TWO (Taiwan Gretai) recognised in FMP suffix set
 """
 
 from __future__ import annotations
 
-UNIVERSE_VERSION = "1.4.0"
+UNIVERSE_VERSION = "1.5.0"
 
 import os
 import re
@@ -88,7 +100,12 @@ _SOURCE_PRIORITY: Dict[str, int] = {
 # If a correction can be derived from the iShares export (company name,
 # exchange, country), it belongs in update_msci_world_classification.py instead.
 TICKER_OVERRIDES: Dict[str, str] = {
-    # (currently empty — all known overrides live in update_msci_world_classification.py)
+    # MSCI CSV errors — wrong Bloomberg placeholder, correct Yahoo ticker
+    "2299955D.TO": "CSU.TO",     # Constellation Software Inc. → TSX: CSU
+    # US dual-class shares: MSCI CSVs use dot notation, Yahoo Finance uses dash
+    "BRK.B":  "BRK-B",          # Berkshire Hathaway Class B
+    "HEI.A":  "HEI-A",          # Heico Corporation Class A
+    "HEI.B":  "HEI",            # Heico Corporation Class B (listed as HEI)
 }
 
 # ── Known-dead tickers ────────────────────────────────────────────────────────
@@ -149,8 +166,9 @@ def is_ghost_ticker(ticker: str) -> bool:
 DEAD_MARKET_SUFFIXES: set = {
     "KL",   # Malaysia — Bursa Malaysia, yfinance quoteSummary 404s universally
     "PS",   # Philippines — Philippine SE, same
-    "AD",   # UAE Abu Dhabi — ADX, same
-    "DU",   # UAE Dubai — DFM, 95% dead (20/21 tickers have zero data, confirmed in gc_state)
+    # NOTE: AD (Abu Dhabi) and DU (Dubai) removed from dead list.
+    # _normalize_ticker() remaps .AD/.DU → .AE (Yahoo Finance's current suffix for UAE).
+    # e.g. AIRARABIA.AD → AIRARABIA.AE per https://finance.yahoo.com/quote/AIRARABIA.AE/
 }
 
 # EU + CH + UK exchange suffixes for market-cap floor purposes.
@@ -175,11 +193,17 @@ EU_SUFFIXES: frozenset = frozenset({
     "VI",  # Vienna (Wiener Börse)
 })
 
-# Market-cap floors. Applied in gc_engine per-ticker before fetching.
-# US (no suffix) + EU: $2B — developed markets, reasonable small/mid cap liquidity.
-# All other markets (EM, APAC, MENA, LatAm): $5B — less liquid, higher noise floor.
-MIN_MCAP_US_EU: int = 2_000_000_000   # $2B
-MIN_MCAP_OTHER: int = 5_000_000_000   # $5B
+# Market-cap floors — NOW UNIFIED at $2B USD across all markets.
+# mcap values from yfinance are in LOCAL currency; gc_engine.py converts to USD
+# using live FX rates before comparing to this floor.
+# US (no suffix) + EU: $2B — same as before.
+# All other markets (EM, APAC, MENA, LatAm): lowered from $5B → $2B USD.
+# Rationale: MSCI EM constituents are by definition investable mid/large caps;
+# applying a $5B USD floor was excluding legitimate EM mid-caps that simply have
+# local currencies weaker than USD (e.g. 3B KWD ≈ $10B USD was passing before,
+# but a 150B KRW ≈ $110M USD should correctly fail).
+MIN_MCAP_US_EU: int = 2_000_000_000   # $2B USD
+MIN_MCAP_OTHER: int = 2_000_000_000   # $2B USD (unified — FX conversion handles currency)
 
 
 def mcap_threshold(ticker: str) -> int:
@@ -208,9 +232,11 @@ FMP_ALPHA_BATCH_SUFFIXES: frozenset = frozenset({
     # Asia-Pacific alpha
     "AX",  # ASX Australia
     "NS",  # NSE India
+    "BO",  # BSE India
     "SI",  # SGX Singapore
+    "KQ",  # KOSDAQ Korea (alpha tickers e.g. CELLTRION)
     # EM alpha
-    "SA",  # B3 Brazil (tickers like VALE3, PETR4 — alpha with digits, not pure numeric)
+    "SA",  # B3 Brazil (tickers like VALE3, PETR4)
     "JK",  # Jakarta IDX
     "MX",  # BMV Mexico
     "IS",  # Borsa Istanbul
@@ -218,7 +244,7 @@ FMP_ALPHA_BATCH_SUFFIXES: frozenset = frozenset({
     "JO",  # JSE South Africa
     "QA",  # Qatar Exchange
     "KW",  # Kuwait SE
-    # Note: .BO (BSE India) uses same alpha symbols as .NS — add if BSE tickers are in universe
+    "AE",  # UAE (Abu Dhabi + Dubai — remapped from .AD/.DU by _normalize_ticker)
 })
 
 
@@ -292,6 +318,54 @@ def get_fmp_symbol(ticker: str) -> str:
 
 
 
+def _normalize_ticker(t: str) -> str:
+    """Normalize a raw MSCI CSV ticker to the correct Yahoo Finance format.
+
+    Handles all known systematic differences between MSCI/Bloomberg notation
+    and Yahoo Finance URL format:
+
+    1. London double-dot:    BA..L      → BA.L
+    2. Turkey E-class:       ASELS.E.IS → ASELS.IS  (also dash form -E.IS)
+    3. Thailand NVDR R-class:ADVANC.R.BK→ ADVANC.BK
+    4. UAE suffix remap:     AIRARABIA.AD → AIRARABIA.AE
+                             EMAAR.DU     → EMAAR.AE
+    5. Canada/Chile/other multi-dot class shares:
+                             RCI.B.TO   → RCI-B.TO
+                             GIB.A.TO   → GIB-A.TO
+                             BAJAJ.AUTO.NS → BAJAJ-AUTO.NS
+       Rule: any SYMBOL.PART.EXCHANGE with exactly 2 dots →
+             first dot becomes dash (Yahoo convention for share classes
+             and hyphenated names).
+
+    US dual-class shares (BRK.B, HEI.A) are handled via TICKER_OVERRIDES,
+    not here, because a bare ".B" suffix is ambiguous with some exchange codes.
+    """
+    t = t.strip()
+    if not t:
+        return t
+
+    # 1. London double-dot: BA..L → BA.L  (two consecutive dots → one dot)
+    t = re.sub(r'\.\.([A-Z]+)$', r'.\1', t)
+
+    # 2. Turkey: strip E-class marker  (ASELS.E.IS or ASELS-E.IS → ASELS.IS)
+    t = re.sub(r'\.E\.IS$', '.IS', t)
+    t = re.sub(r'-E\.IS$',  '.IS', t)
+
+    # 3. Thailand NVDR: strip R-class marker  (ADVANC.R.BK → ADVANC.BK)
+    t = re.sub(r'\.R\.BK$', '.BK', t)
+
+    # 4. UAE suffix remap  (.AD → .AE, .DU → .AE)
+    t = re.sub(r'\.(AD|DU)$', '.AE', t)
+
+    # 5. General 2-dot rule: SYMBOL.PART.EXCHANGE → SYMBOL-PART.EXCHANGE
+    #    Only fires when SYMBOL and PART are both purely alphanumeric.
+    #    Does NOT fire for bare-numeric symbols (e.g. 0700.HK — no second dot).
+    #    Handles: RCI.B.TO, GIB.A.TO, BAJAJ.AUTO.NS, AC.A.SN, etc.
+    t = re.sub(r'^([A-Z][A-Z0-9]*)\.([A-Z][A-Z0-9]*)\.([A-Z]+)$', r'\1-\2.\3', t)
+
+    return t
+
+
 # ── Universe loader ───────────────────────────────────────────────────────────
 
 def load_universe() -> pd.DataFrame:
@@ -340,12 +414,15 @@ def load_universe() -> pd.DataFrame:
     combined = combined.drop_duplicates(subset=["Ticker"], keep="first")
     combined = combined.drop(columns=["_source", "_priority"], errors="ignore")
 
-    # Normalize Borsa Istanbul tickers: strip -E suffix (KCHOL-E.IS → KCHOL.IS)
+    # ── Ticker normalization (v1.5.0) ─────────────────────────────────────────
+    # Apply BEFORE ghost filter so multi-dot class-share tickers (e.g. RCI.B.TO)
+    # are converted to Yahoo format (RCI-B.TO) before the multi-dot ghost check.
     before_norm = combined["Ticker"].copy()
-    combined["Ticker"] = combined["Ticker"].str.replace(r"-E\.IS$", ".IS", regex=True)
+    combined["Ticker"] = combined["Ticker"].apply(_normalize_ticker)
     normalized = (combined["Ticker"] != before_norm).sum()
     if normalized:
-        print(f"[universe] Normalized {normalized} Turkish .IS tickers (stripped -E suffix)")
+        print(f"[universe] Normalized {normalized} tickers via _normalize_ticker "
+              f"(Turkey -E, Thailand .R, UAE .AD/.DU→.AE, class-share dots→dashes, double-dots)")
     combined = combined.drop_duplicates(subset=["Ticker"], keep="first")
 
     # Apply runtime ticker overrides (symbol renames, corporate actions)
