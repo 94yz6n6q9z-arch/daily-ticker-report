@@ -78,7 +78,6 @@ from universe import (
     GC_STATE_PATH,
     MSCI_CSV,
     MSCI_EM_CSV,
-    MSCI_KR_CSV,
     # Exchange classification
     DEAD_MARKET_SUFFIXES,
     EU_SUFFIXES,
@@ -320,7 +319,7 @@ EMAIL_TXT_PATH = DOCS_DIR / "email.txt"
 CUSTOM_TICKERS_PATH = CONFIG_DIR / "tickers_custom.txt"
 SP500_LOCAL = CONFIG_DIR / "universe_sp500.txt"
 NDX_LOCAL = CONFIG_DIR / "universe_nasdaq100.txt"
-# MSCI CSV paths imported from universe.py (MSCI_CSV, MSCI_EM_CSV, MSCI_KR_CSV)
+# MSCI CSV paths imported from universe.py (MSCI_CSV, MSCI_EM_CSV)
 MSCI_WORLD_CLASSIFICATION_CSV = MSCI_CSV      # alias for backward compat
 MSCI_EM_CLASSIFICATION_CSV = MSCI_EM_CSV      # alias for backward compat
 # ----------------------------
@@ -7608,24 +7607,21 @@ def main():
                 gc_updated = gc_state.get("last_data_update", "unknown")[:10]
 
                 # World vs EM + Korea breakdown — use imported path constants from universe.py
-                world_count = em_count = korea_count = 0
+                world_count = em_count = 0
                 try:
                     if MSCI_CSV.exists():
                         world_count = len(pd.read_csv(MSCI_CSV, dtype=str))
                     if MSCI_EM_CSV.exists():
                         em_count = len(pd.read_csv(MSCI_EM_CSV, dtype=str))
-                    if MSCI_KR_CSV.exists():
-                        korea_count = len(pd.read_csv(MSCI_KR_CSV, dtype=str))
                 except Exception: pass
 
                 gc_fmp = sum(1 for d in ec.values() if d.get("data_source") == "fmp_fallback")
 
                 md.append(f"- **GC Data Layer** (as of {gc_updated}): universe **{gc_total}** tickers")
-                if world_count or em_count or korea_count:
+                if world_count or em_count:
                     parts = []
                     if world_count: parts.append(f"World: {world_count}")
                     if em_count:    parts.append(f"EM: {em_count}")
-                    if korea_count: parts.append(f"Korea: {korea_count}")
                     md.append(f" ({' + '.join(parts)})")
                 md.append(f" | rev data: **{gc_rev}** ({gc_rev*100//max(gc_total,1)}%) | EPS history: **{gc_eps}** ({gc_eps*100//max(gc_total,1)}%) | blind: **{gc_blind}** ({gc_blind*100//max(gc_total,1)}%)\n")
                 # ── Data source breakdown for all 4 fields ────────────────────────
