@@ -1,4 +1,4 @@
-name: Weekly MSCI World Refresh
+name: Weekly MSCI World + EM Refresh
 
 on:
   workflow_dispatch:
@@ -16,8 +16,10 @@ concurrency:
 jobs:
   refresh-msci-world:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       TZ: Europe/Berlin
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Checkout
@@ -44,22 +46,12 @@ jobs:
           test -f tools/update_msci_world_classification.py
           echo "Found tools/update_msci_world_classification.py"
 
-      # ── Step 0: Sync manual tickers JSON (runs BEFORE main refresh) ──────────
-      # Fetches EIMI + IWDA holdings, extracts Qatar/Kuwait/Saudi/NZL country slices,
-      # diffs against config/msci_manual_tickers.json, and rewrites JSON if anything changed.
-      # The main refresh steps below read from this JSON — so constituent changes
-      # (MSCI semi-annual rebalances) are picked up automatically with no code edits.
-      - name: Sync MSCI manual tickers JSON (auto-update Qatar/Kuwait/Saudi/NZL)
+      # Downloads XLS directly from iShares (not CSV API).
+      # Exchange column in XLS is source of truth for Yahoo suffix mapping.
+      # ~1,300 World stocks + ~830 EM stocks = ~2,100 unique tickers total.
+      - name: Refresh MSCI World + EM classification
         run: |
-          # Exit 0 = no changes, 1 = JSON updated (both are success), 2 = fetch error (fail).
-          python tools/sync_msci_manual_tickers.py \
-            --json config/msci_manual_tickers.json \
-          && echo "[sync] No constituent changes." \
-          || { code=$?; [ $code -eq 1 ] && echo "[sync] JSON updated (changes detected)." || exit $code; }
-
-      # ── Step 1: MSCI World + EM (blocking — these are the core universes) ─────
-      - name: Run weekly MSCI World + EM refresh
-        run: |
+          cd ${{ github.workspace }}
           python tools/update_msci_world_classification.py \
             --universe both \
             --out config/msci_world_classification.csv \
@@ -67,107 +59,23 @@ jobs:
             --meta docs/msci_world_classification_meta.json \
             --meta-em docs/msci_em_classification_meta.json
 
-      # ── Steps 2–8: Country-specific ETFs for numeric-ticker markets ───────────
-      # These markets use pure-numeric ticker codes (e.g. Japan: 7203, Taiwan: 2330).
-      # The UCITS EM/World funds (EEM/EIMI) export bare numbers without exchange
-      # suffixes — they are rejected by _is_ghost_raw_ticker() and lost silently.
-      # Dedicated US-listed iShares country ETFs export pre-suffixed Yahoo Finance
-      # symbols (7203.T, 2330.TW, 0700.HK etc.) which resolve correctly.
-      # Each step is non-blocking (continue-on-error: true) so a single ETF
-      # download failure does not abort the entire refresh.
-
-      - name: Run MSCI Korea refresh (EWY → .KS, ~90 stocks)
-        continue-on-error: true
-        run: |
-          python tools/update_msci_world_classification.py \
-            --universe korea \
-            --out-korea config/msci_korea_classification.csv \
-            --meta-korea docs/msci_korea_classification_meta.json \
-            --min-rows-korea 80
-
-      - name: Run MSCI Japan refresh (EWJ → .T, ~230 stocks)
-        continue-on-error: true
-        run: |
-          python tools/update_msci_world_classification.py \
-            --universe japan \
-            --out-japan config/msci_japan_classification.csv \
-            --meta-japan docs/msci_japan_classification_meta.json \
-            --min-rows-japan 175
-
-      - name: Run MSCI Taiwan refresh (EWT → .TW, ~90 stocks)
-        continue-on-error: true
-        run: |
-          python tools/update_msci_world_classification.py \
-            --universe taiwan \
-            --out-taiwan config/msci_taiwan_classification.csv \
-            --meta-taiwan docs/msci_taiwan_classification_meta.json \
-            --min-rows-taiwan 70
-
-      - name: Run MSCI China refresh (MCHI → .SS/.SZ, ~60 stocks)
-        continue-on-error: true
-        run: |
-          python tools/update_msci_world_classification.py \
-            --universe china \
-            --out-china config/msci_china_classification.csv \
-            --meta-china docs/msci_china_classification_meta.json \
-            --min-rows-china 50
-
-      - name: Run MSCI Hong Kong refresh (EWH → .HK, ~110 stocks)
-        continue-on-error: true
-        run: |
-          python tools/update_msci_world_classification.py \
-            --universe hk \
-            --out-hk config/msci_hk_classification.csv \
-            --meta-hk docs/msci_hk_classification_meta.json \
-            --min-rows-hk 30
-
-      - name: Run MSCI Saudi Arabia refresh (manual → .SR, ~25 stocks)
-        # KSA ETF URL returns HTTP 404. Saudi stocks also flow through EIMI (allow_numeric=True).
-        # This step writes a dedicated msci_saudi_classification.csv from MSCI_MANUAL_TICKERS.
-        continue-on-error: true
-        run: |
-          python tools/update_msci_world_classification.py \
-            --universe saudi \
-            --out-saudi config/msci_saudi_classification.csv \
-            --meta-saudi docs/msci_saudi_classification_meta.json \
-            --min-rows-saudi 20
-
-      # ── Malaysia (.KL) ───────────────────────────────────────────────────────
-      # EWM (iShares MSCI Malaysia ETF) returns HTML instead of CSV (bot detection).
-      # Malaysia .KL tickers are alphabetic (e.g. MAYBANK.KL, PBBANK.KL) and correctly
-      # flow through the EIMI universe step above — no ghost filter issues.
-      # Dedicated msci_malaysia_classification.csv is not generated; gc_engine.py
-      # loads .KL coverage from msci_em_classification.csv instead.
-      # TODO: convert to manual_only once the ~27 MSCI EM Malaysia constituents are verified.
-
-      - name: Run MSCI New Zealand refresh (ENZL → .NZ, 5 stocks)
-        # Small universe but all 5 are legitimate MSCI World constituents.
-        # No numeric-ticker issue; the .NZ suffix rule already existed, the
-        # source was simply never wired to a fetch target until v1.7.0.
-        continue-on-error: true
-        run: |
-          python tools/update_msci_world_classification.py \
-            --universe nzl \
-            --out-nzl config/msci_nzl_classification.csv \
-            --meta-nzl docs/msci_nzl_classification_meta.json \
-            --min-rows-nzl 4
-
-      # Qatar (13 stocks) and Kuwait (7 stocks) have no dedicated iShares ETF.
-      # They are injected as hardcoded MSCI_MANUAL_TICKERS into the EM CSV
-      # automatically when --universe em (or both/all) runs above.
-      # No separate workflow step needed.
-
-      # ── Commit all generated CSVs in one push ─────────────────────────────────
       - name: Commit and push changes (if any)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add -A
+          git add \
+            config/msci_world_classification.csv \
+            config/msci_em_classification.csv \
+            docs/msci_world_classification_meta.json \
+            docs/msci_em_classification_meta.json \
+            || true
+
           if git diff --cached --quiet; then
             echo "No changes to commit."
             exit 0
           fi
 
-          git commit -m "Weekly MSCI World + EM + 9 country ETFs refresh [skip ci]"
+          git commit -m "Weekly MSCI World + EM refresh [skip ci] $(date -u +%Y-%m-%d)"
+          git pull --rebase
           git push
