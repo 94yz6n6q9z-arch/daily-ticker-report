@@ -1,9 +1,10 @@
 # .github/workflows/gc-data.yml
 # Run Growth Compounder data layer — fetches/caches earnings data for
-# MSCI World + MSCI EM combined universe (~2,600 tickers).
+# MSCI World + MSCI EM standard universe (~2,100 tickers).
 #
 # Schedule: starts 23:00 CET (22:00 UTC) Mon–Fri, after US earnings drop.
-# Runtime: ~2–3 hours. Daily report (daily.yml) runs at 04:00 CET (03:00 UTC).
+# Runtime: ~1 hour (down from ~3hr after universe simplification to 2 ETFs).
+# Daily report (daily.yml) runs at 04:00 CET (03:00 UTC).
 #
 # Data source priority:
 #   1. yfinance (4-method EPS chain, exchange-ordered fetch, 1–1.5s per ticker)
@@ -32,7 +33,6 @@ on:
   schedule:
     # 23:00 CET = 22:00 UTC Sun–Fri (after US market close + after-hours earnings)
     # Sunday run added so Monday's 04:00 CET report uses fresh data (not Friday's).
-    # Runtime ~40min with parallel fetch. Daily report runs at 04:00 CET.
     - cron: '0 22 * * 0-5'
 
 jobs:
@@ -69,6 +69,11 @@ jobs:
           python tools/update_msci_world_classification.py --universe em \
             --out-em config/msci_em_classification.csv \
             --meta-em docs/msci_em_classification_meta.json
+
+      # ── ONE-TIME ONLY: remove stale gc_state entries from old 6,400-ticker universe ──
+      # After this run, delete these 3 lines (or the step will harmlessly no-op forever).
+      - name: One-time gc_state cleanup (remove stale tickers from old universe)
+        run: python tools/gc_state_cleanup.py --apply
 
       - name: Run GC data layer
         env:
