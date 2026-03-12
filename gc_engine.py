@@ -26,21 +26,6 @@ import math
 import os
 import time
 import traceback
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import requests
-# ──────────────────────────────────────────────────────────────────────────────
-# EXPERIMENTAL: gc_engine-2w-exp.py
-# This file tests 2-worker parallel fetch with PER-THREAD isolated
-# yfinance sessions. Each worker creates its own requests.Session and
-# passes it to yf.Ticker(session=...) so crumb negotiation is fully
-# independent between threads. Yahoo cannot invalidate both crumbs
-# simultaneously as they are established by separate TCP sessions.
-#
-# Hypothesis: 2 isolated sessions avoid the crumb invalidation that
-# killed 88% of tickers in the 4-worker shared-session runs (11-Mar-2026).
-# If this file produces coverage ≥90% on a full run, promote to production
-# and set GC_FETCH_WORKERS=2 as the new default in gc_engine.py.
-#
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -71,7 +56,7 @@ from universe import (
 # ────────────────────────────────────────────────────────────────
 # Configuration
 # ────────────────────────────────────────────────────────────────
-GC_VERSION = "0.6.9-2w-exp"
+GC_VERSION = "0.6.9"
 
 # Version history (mirrors the changelog pattern in scan.py)
 _GC_VERSION_LOG: dict = {
@@ -815,16 +800,9 @@ def _best_eps_rows(methods_results: List[List[Dict]]) -> Tuple[List[Dict], str]:
     return best, best_method
 
 
-def fetch_earnings_data(ticker: str, _session=None) -> Dict[str, Any]:
+def fetch_earnings_data(ticker: str) -> Dict[str, Any]:
     """Fetch earnings and revenue data for a single ticker from yfinance.
     Uses 4 fallback methods for EPS + catalyst news scan.
-
-    Args:
-        ticker: Yahoo Finance ticker symbol.
-        _session: optional requests.Session to pass to yf.Ticker(session=...).
-                  When provided, yfinance uses this session's crumb/cookies
-                  instead of the shared global session. Used by the 2-worker
-                  experimental parallel fetch to isolate sessions per thread.
 
     Returns dict with:
         - quarterly_revenue: list of {date, revenue, revenue_yoy_growth}
@@ -836,7 +814,7 @@ def fetch_earnings_data(ticker: str, _session=None) -> Dict[str, Any]:
     """
     out: Dict[str, Any] = {"ticker": ticker}
     try:
-        tk = yf.Ticker(ticker) if _session is None else yf.Ticker(ticker, session=_session)
+        tk = yf.Ticker(ticker)
 
         # ── Zombie / delisted auto-detection ────────────────────────────────
         # Tickers with no price AND no financials are dead — skip all 4 methods.
@@ -2654,135 +2632,107 @@ def fetch_earnings_universe(
             or len(entry.get("quarterly_revenue", [])) >= 4
         )
 
-    # ── EXPERIMENTAL: 2-worker parallel fetch with isolated sessions ──────────
-    # Each worker thread creates its own requests.Session and passes it to
-    # yf.Ticker(session=...) so crumb negotiation is independent per thread.
-    # With 4 shared-session workers (v0.6.8), Yahoo invalidated the crumb
-    # within ~2 minutes causing 88%+ 401 failures. With isolated sessions,
-    # each thread has its own valid crumb and Yahoo cannot cross-invalidate them.
-    #
-    # Worker count = 2 (conservative). Increase only if this run shows <5% 401s.
-    # Per-ticker sleeps inside fetch_earnings_data are unchanged (rate limiting).
-    # ──────────────────────────────────────────────────────────────────────────
-    _EXP_WORKERS = 2
-
-    def _make_session() -> requests.Session:
-        """Create a new requests.Session with browser-like headers for yfinance."""
-        sess = requests.Session()
-        sess.headers.update({
-            "User-Agent": (
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/122.0.0.0 Safari/537.36"
-            ),
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5",
-        })
-        return sess
-
-    # Pre-warm one session per worker — thread-local storage ensures each
-    # thread always uses its own session (never shares across threads).
-    import threading as _threading
-    _thread_local = _threading.local()
-
-    def _get_thread_session() -> requests.Session:
-        if not hasattr(_thread_local, "session"):
-            _thread_local.session = _make_session()
-        return _thread_local.session
-
+    # ── First pass: yfinance (serial) ─────────────────────────────
+    # Serial sequential loop — parallel fetch (v0.6.8) was reverted because
+    # 4 concurrent workers share one yfinance crumb/cookie session and Yahoo
+    # invalidates it within ~2 minutes, causing 88%+ 401 failures on both
+    # 2026-03-11 runs (4,513 and 4,522 of 5,152 tickers empty).
+    # Serial with per-ticker pauses keeps the crumb alive for the full run.
     yf_failed: List[str] = []
-    _cache_preserved: int = 0
-    _abort_fetch: bool = False
-    _yf_lock = _threading.Lock()
-    _prog_count = [0]
-    _prog_lock = _threading.Lock()
-    _fail_count = [0]    # for early abort detection
-    _abort_checked = [False]
+    _cache_preserved: int = 0   # tickers saved from cache on failed refetch
+    _abort_fetch: bool = False   # Fix 3: set True if Yahoo is degraded early
 
-    def _fetch_one_isolated(t: str) -> tuple:
-        """Fetch a single ticker using the calling thread's isolated session."""
-        sess = _get_thread_session()
+    print(f"[gc-data] first pass: {len(ordered_fetch)} tickers, 1 worker (serial)")
+    for i, t in enumerate(ordered_fetch):
+        if i > 0 and i % 100 == 0:
+            print(f"[gc-data] progress: {i}/{len(ordered_fetch)} fetched")
+            time.sleep(0.75)   # Hard pause every 100 — resets Yahoo rate-limit window
+
+        # ── Fix 3: Early abort on yfinance degradation ───────────
+        # After first 200 tickers, if >50% are empty, Yahoo's crumb has
+        # almost certainly expired. Abort remaining fetches and pull from
+        # cache to avoid overwriting good data with empty results.
+        if i == 200 and not _abort_fetch:
+            failed_so_far = len(yf_failed)
+            if failed_so_far >= 100:
+                print(
+                    f"[gc-data] ⚠️  ABORT: {failed_so_far}/200 tickers empty on first 200 — "
+                    f"yfinance crumb likely expired. Preserving existing cache for remaining tickers."
+                )
+                _abort_fetch = True
+
+        if _abort_fetch:
+            # Use cache if available to avoid data loss
+            old = cache.get(t, {})
+            if _cache_has_data(old):
+                preserved = dict(old)
+                preserved["_used_cached"] = True
+                preserved["_cache_fallback_reason"] = "fetch_aborted_yf_degraded"
+                preserved["_cache_fallback_run_date"] = now.isoformat()
+                results[t] = preserved
+                _cache_preserved += 1
+            else:
+                results[t] = {
+                    "ticker": t,
+                    "error": "fetch_aborted_yf_degraded",
+                    "fetched_at": now.isoformat(),
+                }
+            continue
+
         try:
-            # Pass isolated session to yf.Ticker — each thread has its own crumb
-            tk_kwargs = {"session": sess}
-            data = fetch_earnings_data(t, _session=sess)
-            has_past_eps = any(
-                e.get("eps_reported") is not None for e in data.get("earnings_dates", [])
-            )
-            has_rev = len(data.get("quarterly_revenue", [])) >= 4
-            has_info = data.get("info", {}).get("revenue_growth") is not None
-            is_failed = (
-                not data.get("inactive")
-                and not has_past_eps and not has_rev and not has_info
-                and "error" not in data
-            )
-            return t, data, is_failed
-        except Exception as e:
-            return t, {"ticker": t, "error": str(e), "fetched_at": now.isoformat()}, True
-
-    print(f"[gc-data] first pass: {len(ordered_fetch)} tickers, {_EXP_WORKERS} workers (ISOLATED SESSIONS — experimental)")
-    with ThreadPoolExecutor(max_workers=_EXP_WORKERS) as _pool:
-        _futures = {_pool.submit(_fetch_one_isolated, t): t for t in ordered_fetch}
-        for _fut in as_completed(_futures):
-            t, data, is_failed = _fut.result()
-
-            with _prog_lock:
-                _prog_count[0] += 1
-                n = _prog_count[0]
-                if n % 200 == 0:
-                    print(f"[gc-data] progress: {n}/{len(ordered_fetch)} fetched")
-                # Fix 3: Early abort check after first 200 completions
-                if n == 200 and not _abort_checked[0]:
-                    _abort_checked[0] = True
-                    if _fail_count[0] >= 100:
-                        print(
-                            f"[gc-data] ⚠️  ABORT: {_fail_count[0]}/200 tickers empty — "
-                            f"isolated sessions may not have resolved crumb issue. Aborting."
-                        )
-                        _abort_fetch = True
-
+            data = fetch_earnings_data(t)
+            # Auto-inactive: zombie detected
             if data.get("inactive"):
                 cache[t] = {**data, "inactive_since": now.isoformat()}
                 results[t] = data
                 continue
 
-            if _abort_fetch and not is_failed:
-                # Already aborted — only accept good results, cache-preserve failures
-                results[t] = data
-                continue
+            has_past_eps = any(e.get("eps_reported") is not None for e in data.get("earnings_dates", []))
+            has_rev = len(data.get("quarterly_revenue", [])) >= 4
+            has_info = data.get("info", {}).get("revenue_growth") is not None
+            is_failed = not has_past_eps and not has_rev and not has_info and "error" not in data
 
+            # ── Fix 2: Cache preservation on failed fetch ─────────
+            # If this refetch returned empty AND the existing cache has real data,
+            # keep the old data rather than overwriting with empty.
             if is_failed:
-                with _fail_count.__class__():
-                    pass  # _fail_count is a list, no lock needed for list item mutation
-                _fail_count[0] += 1
                 old = cache.get(t, {})
                 if _cache_has_data(old):
                     preserved = dict(old)
                     preserved["_used_cached"] = True
-                    preserved["_cache_fallback_reason"] = (
-                        "fetch_aborted_yf_degraded" if _abort_fetch else "yf_empty_on_refetch"
-                    )
+                    preserved["_cache_fallback_reason"] = "yf_empty_on_refetch"
                     preserved["_cache_fallback_run_date"] = now.isoformat()
                     results[t] = preserved
-                    with _yf_lock:
-                        _cache_preserved += 1
+                    _cache_preserved += 1
+                    # Don't add to yf_failed — cache covers it; skip FMP
                 else:
                     results[t] = data
-                    with _yf_lock:
-                        yf_failed.append(t)
+                    yf_failed.append(t)
             else:
                 results[t] = data
+                # Fresh good data — clear any stale flags from prior runs
                 results[t].pop("_used_cached", None)
                 results[t].pop("_cache_fallback_reason", None)
                 results[t].pop("_cache_fallback_run_date", None)
 
-    if _cache_preserved:
-        print(f"[gc-data] cache preserved: {_cache_preserved} tickers kept from prior run")
-    if _abort_fetch:
-        print(f"[gc-data] ⚠️  fetch aborted early — isolated-session hypothesis may be wrong. "
-              f"See 401 counts above. Fall back to gc_engine-9.py (serial) if this persists.")
+        except Exception as e:
+            results[t] = {"ticker": t, "error": str(e), "fetched_at": now.isoformat()}
+            yf_failed.append(t)
 
-    # ── Retry pass (serial — gentler after parallel load) ────────
+        ex = _exch(t)
+        pause = 0.22 if ex == "US" else 0.11
+        if i % 5 == 4:
+            time.sleep(pause)
+
+    if _cache_preserved:
+        print(f"[gc-data] cache preserved: {_cache_preserved} tickers kept from prior run (yf returned empty)")
+    if _abort_fetch:
+        print(f"[gc-data] ⚠️  fetch aborted early — {_cache_preserved} tickers served from cache, "
+              f"{len(yf_failed)} with no cache coverage")
+
+    # ── yfinance retry pass (serial, 5-second cooldown) ──────────
+    # Second attempt before involving FMP — covers transient throttle hits.
+    # Skip retry entirely if we aborted (crumb is dead; retry would also fail).
     if yf_failed and not _abort_fetch:
         print(f"[gc-data] yfinance retry: {len(yf_failed)} tickers empty on first pass")
         time.sleep(3.5)
@@ -2796,6 +2746,8 @@ def fetch_earnings_universe(
                 has_rev = len(data.get("quarterly_revenue", [])) >= 4
                 has_info = data.get("info", {}).get("revenue_growth") is not None
                 is_failed = not has_past_eps and not has_rev and not has_info and "error" not in data
+
+                # Fix 2 applies on retry too
                 if is_failed:
                     old = cache.get(t, {})
                     if _cache_has_data(old):
@@ -2813,6 +2765,7 @@ def fetch_earnings_universe(
                     results[t].pop("_used_cached", None)
                     results[t].pop("_cache_fallback_reason", None)
                     results[t].pop("_cache_fallback_run_date", None)
+
             except Exception as e:
                 results[t] = {"ticker": t, "error": str(e), "fetched_at": now.isoformat()}
                 still_failed.append(t)
@@ -2949,6 +2902,33 @@ def fetch_earnings_universe(
     # it is very likely a ghost (unsupported exchange suffix, delisted, no Yahoo support).
     # Mark inactive so it is excluded from active counts and not fetched again.
     # Threshold = 3 runs to avoid false-positives from temporary yfinance failures.
+    #
+    # DEGRADED-RUN GUARD (v0.6.9): If this run was aborted early OR >40% of active
+    # tickers are empty (indicating a global yfinance outage, not per-ticker ghosts),
+    # freeze the _no_data_runs counter entirely for this run. This prevents mass
+    # false-inactivation after 3 consecutive outage runs (as happened 2026-03-11/12).
+    _active_fetched = [
+        v for t, v in results.items()
+        if not v.get("inactive") and not v.get("below_min_mcap")
+    ]
+    _empty_this_run = sum(
+        1 for v in _active_fetched
+        if not any(e.get("eps_reported") is not None for e in v.get("earnings_dates", []))
+        and len(v.get("quarterly_revenue", [])) < 4
+        and not v.get("info", {}).get("revenue_growth")
+        and not v.get("_used_cached")
+    )
+    _run_degraded = _abort_fetch or (
+        len(_active_fetched) > 200
+        and _empty_this_run / len(_active_fetched) > 0.40
+    )
+    if _run_degraded:
+        print(
+            f"[gc-data] ⚠️  Degraded run detected "
+            f"({_empty_this_run}/{len(_active_fetched)} active tickers empty) — "
+            f"auto-inactive counter FROZEN this run to prevent false ghost-marking."
+        )
+
     auto_inactived = 0
     for t, v in results.items():
         if v.get("inactive") or v.get("below_min_mcap"):
@@ -2959,14 +2939,15 @@ def fetch_earnings_universe(
         gap = not (has_rev or has_eps or has_info)
         v["data_gap_alert"] = gap
         if gap:
-            # Increment persistent gap counter in cache
-            prev_gaps = (cache.get(t) or {}).get("_no_data_runs", 0)
-            v["_no_data_runs"] = prev_gaps + 1
-            if v["_no_data_runs"] >= 3:
-                v["inactive"] = True
-                v["inactive_since"] = now.isoformat()
-                v["inactive_reason"] = "persistent_no_data_3_runs"
-                auto_inactived += 1
+            if not _run_degraded:
+                # Only increment counter on clean runs — outage runs don't count
+                prev_gaps = (cache.get(t) or {}).get("_no_data_runs", 0)
+                v["_no_data_runs"] = prev_gaps + 1
+                if v["_no_data_runs"] >= 3:
+                    v["inactive"] = True
+                    v["inactive_since"] = now.isoformat()
+                    v["inactive_reason"] = "persistent_no_data_3_runs"
+                    auto_inactived += 1
         else:
             v.pop("_no_data_runs", None)  # reset counter on any successful data fetch
     if auto_inactived:
