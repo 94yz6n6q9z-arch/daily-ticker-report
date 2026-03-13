@@ -60,11 +60,17 @@ VERSION HISTORY
        FMP_ALPHA_BATCH_SUFFIXES: added AE, KQ, BO
        MIN_MCAP_OTHER: lowered $5B→$2B (unified floor; FX conversion in gc_engine)
        .KQ (KOSDAQ) and .TWO (Taiwan Gretai) recognised in FMP suffix set
+1.6.0  mcap floor lowered $2B → $1B USD (MIN_MCAP_US_EU = MIN_MCAP_OTHER = 1_000_000_000).
+       TICKER_OVERRIDES: added BRKB→BRK-B, HEIA→HEI-A (iShares XLS omits the dot so the
+       BRK.B/HEI.A overrides never fired from raw CSV; bare-symbol variants now handled).
+       _normalize_ticker(): added Mexico asterisk strip — AC*.MX → AC.MX (asterisk in
+       iShares XLS for voting-class shares breaks yfinance; stripped before any lookup).
+       Companion: gc_engine.py 0.8.0, scan.py v102, export_universe.py v4.
 """
 
 from __future__ import annotations
 
-UNIVERSE_VERSION = "1.5.0"
+UNIVERSE_VERSION = "1.6.0"
 
 import os
 import re
@@ -103,8 +109,10 @@ TICKER_OVERRIDES: Dict[str, str] = {
     # MSCI CSV errors — wrong Bloomberg placeholder, correct Yahoo ticker
     "2299955D.TO": "CSU.TO",     # Constellation Software Inc. → TSX: CSU
     # US dual-class shares: MSCI CSVs use dot notation, Yahoo Finance uses dash
-    "BRK.B":  "BRK-B",          # Berkshire Hathaway Class B
-    "HEI.A":  "HEI-A",          # Heico Corporation Class A
+    "BRK.B":  "BRK-B",          # Berkshire Hathaway Class B (dot form)
+    "BRKB":   "BRK-B",          # Berkshire Hathaway Class B (bare form — iShares XLS)
+    "HEI.A":  "HEI-A",          # Heico Corporation Class A (dot form)
+    "HEIA":   "HEI-A",          # Heico Corporation Class A (bare form — iShares XLS)
     "HEI.B":  "HEI",            # Heico Corporation Class B (listed as HEI)
 }
 
@@ -202,8 +210,8 @@ EU_SUFFIXES: frozenset = frozenset({
 # applying a $5B USD floor was excluding legitimate EM mid-caps that simply have
 # local currencies weaker than USD (e.g. 3B KWD ≈ $10B USD was passing before,
 # but a 150B KRW ≈ $110M USD should correctly fail).
-MIN_MCAP_US_EU: int = 2_000_000_000   # $2B USD
-MIN_MCAP_OTHER: int = 2_000_000_000   # $2B USD (unified — FX conversion handles currency)
+MIN_MCAP_US_EU: int = 1_000_000_000   # $1B USD
+MIN_MCAP_OTHER: int = 1_000_000_000   # $1B USD (unified — FX conversion handles currency)
 
 
 def mcap_threshold(ticker: str) -> int:
@@ -324,44 +332,45 @@ def _normalize_ticker(t: str) -> str:
     Handles all known systematic differences between MSCI/Bloomberg notation
     and Yahoo Finance URL format:
 
-    1. London double-dot:    BA..L      → BA.L
-    2. Turkey E-class:       ASELS.E.IS → ASELS.IS  (also dash form -E.IS)
-    3. Thailand NVDR R-class:ADVANC.R.BK→ ADVANC.BK
-    4. UAE suffix remap:     AIRARABIA.AD → AIRARABIA.AE
-                             EMAAR.DU     → EMAAR.AE
+    0. TICKER_OVERRIDES exact match: BRKB -> BRK-B, HEIA -> HEI-A
+    1. London double-dot:    BA..L      -> BA.L
+    2. Turkey E-class:       ASELS.E.IS -> ASELS.IS  (also dash form -E.IS)
+    3. Thailand NVDR R-class:ADVANC.R.BK -> ADVANC.BK
+    4. UAE suffix remap:     AIRARABIA.AD -> AIRARABIA.AE / EMAAR.DU -> EMAAR.AE
     5. Canada/Chile/other multi-dot class shares:
-                             RCI.B.TO   → RCI-B.TO
-                             GIB.A.TO   → GIB-A.TO
-                             BAJAJ.AUTO.NS → BAJAJ-AUTO.NS
-       Rule: any SYMBOL.PART.EXCHANGE with exactly 2 dots →
-             first dot becomes dash (Yahoo convention for share classes
-             and hyphenated names).
-
-    US dual-class shares (BRK.B, HEI.A) are handled via TICKER_OVERRIDES,
-    not here, because a bare ".B" suffix is ambiguous with some exchange codes.
+                             RCI.B.TO -> RCI-B.TO, GIB.A.TO -> GIB-A.TO,
+                             BAJAJ.AUTO.NS -> BAJAJ-AUTO.NS
+       Rule: SYMBOL.PART.EXCHANGE (exactly 2 dots) -> SYMBOL-PART.EXCHANGE
+    6. Mexico voting-class asterisk: AC*.MX -> AC.MX
+       iShares XLS marks dual-class Mexican shares with *; yfinance rejects it.
     """
     t = t.strip()
     if not t:
         return t
 
-    # 1. London double-dot: BA..L → BA.L  (two consecutive dots → one dot)
+    # 0. TICKER_OVERRIDES exact match (bare-symbol variants: BRKB, HEIA, etc.)
+    if t in TICKER_OVERRIDES:
+        return TICKER_OVERRIDES[t]
+
+    # 1. London double-dot: BA..L -> BA.L
+    t = re.sub(r'\.\.[A-Z]', lambda m: '.' + m.group(0)[-1], t)
     t = re.sub(r'\.\.([A-Z]+)$', r'.\1', t)
 
-    # 2. Turkey: strip E-class marker  (ASELS.E.IS or ASELS-E.IS → ASELS.IS)
+    # 2. Turkey: strip E-class marker  (ASELS.E.IS or ASELS-E.IS -> ASELS.IS)
     t = re.sub(r'\.E\.IS$', '.IS', t)
-    t = re.sub(r'-E\.IS$',  '.IS', t)
+    t = re.sub(r'-E\.IS$',   '.IS', t)
 
-    # 3. Thailand NVDR: strip R-class marker  (ADVANC.R.BK → ADVANC.BK)
+    # 3. Thailand NVDR: strip R-class marker  (ADVANC.R.BK -> ADVANC.BK)
     t = re.sub(r'\.R\.BK$', '.BK', t)
 
-    # 4. UAE suffix remap  (.AD → .AE, .DU → .AE)
+    # 4. UAE suffix remap  (.AD -> .AE, .DU -> .AE)
     t = re.sub(r'\.(AD|DU)$', '.AE', t)
 
-    # 5. General 2-dot rule: SYMBOL.PART.EXCHANGE → SYMBOL-PART.EXCHANGE
-    #    Only fires when SYMBOL and PART are both purely alphanumeric.
-    #    Does NOT fire for bare-numeric symbols (e.g. 0700.HK — no second dot).
-    #    Handles: RCI.B.TO, GIB.A.TO, BAJAJ.AUTO.NS, AC.A.SN, etc.
+    # 5. General 2-dot rule: SYMBOL.PART.EXCHANGE -> SYMBOL-PART.EXCHANGE
     t = re.sub(r'^([A-Z][A-Z0-9]*)\.([A-Z][A-Z0-9]*)\.([A-Z]+)$', r'\1-\2.\3', t)
+
+    # 6. Mexico asterisk: AC*.MX -> AC.MX
+    t = re.sub(r'\*\.', '.', t)
 
     return t
 
