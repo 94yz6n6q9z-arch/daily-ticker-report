@@ -56,7 +56,7 @@ from universe import (
 # ────────────────────────────────────────────────────────────────
 # Configuration
 # ────────────────────────────────────────────────────────────────
-GC_VERSION = "0.8.0"
+GC_VERSION = "0.8.1"
 
 # Version history (mirrors the changelog pattern in scan.py)
 _GC_VERSION_LOG: dict = {
@@ -307,6 +307,18 @@ _GC_VERSION_LOG: dict = {
         "(6) scan.py v102: below_min_mcap removed from OHLCV Option A filter — mcap gating "
         "is GC-only; scan.py fetches OHLCV for all universe tickers regardless of mcap."
     ),
+    "0.8.1": (
+        "mcap subdivision bug-fix: _mcap_to_usd() was applying the ZAc/ILA subdivision_scale "
+        "(x0.01) to marketCap, but yfinance always returns marketCap in the base currency "
+        "(ZAR / ILS) regardless of the price currency reported. This caused all 27 .JO and "
+        "11 .TA tickers to have mcap understated 100x, wrongly flagging every South African "
+        "and Israeli stock as below_min_mcap (e.g. Naspers stored as $0.43B instead of $42.8B, "
+        "NICE Systems as $0.07B instead of $7.4B). Fix: _mcap_to_usd() now remaps ZAc->ZAR and "
+        "ILA->ILS before the FX lookup, so the subdivision_scale in _get_fx_rate_to_usd is never "
+        "applied to marketCap. The x0.01 scale remains correct for price conversions. "
+        "GBp was already handled correctly via the pre-existing GBp->GBP mapping. "
+        "Net effect: 38 wrongly-expelled tickers (27 .JO + 11 .TA) return to active universe."
+    ),
 }
 
 # OHLCV download
@@ -473,11 +485,21 @@ def _mcap_to_usd(mcap_local: float, currency: str, mcap_source: str = "") -> flo
 
     If mcap_source is 'fmp_profile', FMP already returns USD — skip conversion.
     Returns 0.0 if mcap_local is invalid.
+
+    IMPORTANT - subdivision currencies:
+    yfinance reports info["currency"] as the *price* currency (e.g. ZAc, ILA, GBp),
+    but info["marketCap"] is ALWAYS in the base currency (ZAR, ILS, GBP respectively).
+    We remap subdivision currencies to their base before the FX lookup so that the
+    x0.01 subdivision_scale in _get_fx_rate_to_usd is never applied to marketCap.
+    GBp is already handled by the GBp->GBP entry in _CURRENCY_TO_YAHOO_FX.
     """
     if not mcap_local or mcap_local <= 0:
         return 0.0
     if mcap_source == "fmp_profile" or (currency or "").upper() in ("USD", "USX", ""):
         return float(mcap_local)
+    # Remap subdivision currencies: marketCap is in base currency, not subdivisions
+    _MCAP_CURRENCY_REMAP = {"ZAC": "ZAR", "ZAc": "ZAR", "ILA": "ILS"}
+    currency = _MCAP_CURRENCY_REMAP.get(currency, currency)
     return float(mcap_local) * _get_fx_rate_to_usd(currency)
 
 # ────────────────────────────────────────────────────────────────
