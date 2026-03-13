@@ -47,12 +47,14 @@ NEW (this update):
 - v99: Data source breakdown table rewritten — correct attribution for all 4 fields. Corrected wrong claim that APAC numeric markets (KS/TW/T/SS/SZ) have no EPS estimates from yfinance: earnings_dates HTML provides analyst consensus for ALL global markets. Revenue estimate is the only field where APAC numeric = 0%. Table now 5 columns (yf earn_dates | yf income_stmt | yf fwd_est | FMP | missing), dropping the defunct yf_quoteSummary and Finnhub columns. Added fwd_covered counter in table footer (earningsTrend tickers with forward_estimates, v0.6.5+). New diagnostic table: Forward revenue estimate coverage — per market, for every ticker with a yfinance EPS estimate, shows whether forward rev estimate came from yf earningsTrend (free), FMP only (paid), or is absent. This makes FMP residual value visible per run. Companion: gc_engine.py 0.6.5–0.6.6 (earningsTrend auth fix, Phase A linkage, _is_forward tagging, ±2 month tolerance, auto-inactive for persistent zero-data tickers). universe.py 1.2.0: load_universe() now filters DEAD_MARKET_SUFFIXES and KNOWN_DEAD_TICKERS at source; .DU added to DEAD_MARKET_SUFFIXES (95% dead confirmed). Effect: ~145 fewer tickers enter pipeline; active count projects below 5,000.
 - v100: Option A universe filter. OHLCV download list now built from gc_state.json active set rather than raw load_universe() output. Tickers gc_engine has marked inactive or below_min_mcap are excluded from the yf_download_chunk call — eliminates OHLCV fetches for dead markets, below-mcap stocks, and persistent zero-data tickers. New MSCI constituents not yet seen by gc_engine pass through unfiltered for their first run (one free pass), then gc_engine trims them on the next cycle. gc_state absent (first run) falls back to full MSCI universe. Establishes explicit run-order dependency: gc_engine (mode=data) must complete and write gc_state.json BEFORE scan.py runs. Companion: universe.py 1.2.0, gc_engine.py 0.6.6.
 - v101: Universe simplification companion. Removed MSCI_KR_CSV import (deleted from universe.py 1.4.0 — Korea now fully covered by msci_em_classification.csv via XLS-based pipeline). Removed korea_count from report stats block. Companion: universe.py 1.4.0, update_msci_world_classification.py 3.0.0.
-- v102: Ticker normalization + exchange coverage fixes. Companion: universe.py 1.5.0, gc_engine.py 0.8.0.
-  (1) _clean_ticker _EXCHANGE_SUFFIXES: added .AE (UAE unified), .TWO (Taiwan Gretai) — prevents mangling to hyphens.
-  (2) _infer_country_from_ticker suffix_map: expanded from 18 → 40+ entries (added .KQ, .TWO, .AE, .IS, .SA, .NS, .BO, .BK, .JK, .SN, .WA, .AT, .VI, .IR, .LS, .MX, .JO, .SR, .QA, .KW, .NZ, .TW, .SI, .AD, .DU, .HE, .OL, .ST, .CO, .SW).
-  (3) load_msci_csv_sectors(): replaced Turkish-only -E.IS normalization with full universe._normalize_ticker — now covers all markets (UAE, Thailand NVDR, London double-dot, class-share dot→dash).
-  (4) Option A filter: comment clarifies below_min_mcap only excludes when gc_engine confirmed it — unknown mcap tickers pass through (rule: exclude only when known).
-  (5) Coverage table _EXCH_FLAGS: added .AE (UAE unified), .KQ (KOSDAQ), .TWO (Taiwan Gretai), .BO (India BSE)."""
+- v102: Ticker normalization + exchange coverage + GC/OHLCV filter separation. Companion: universe.py 1.5.0, gc_engine.py 0.8.0.
+  (1) _clean_ticker _EXCHANGE_SUFFIXES: added .AE (UAE unified), .TWO (Taiwan Gretai).
+  (2) _infer_country_from_ticker suffix_map: expanded from 18 → 40+ entries.
+  (3) load_msci_csv_sectors(): replaced Turkish-only normalization with universe._normalize_ticker.
+  (4) Option A OHLCV filter: REMOVED below_min_mcap from filter — mcap gating is GC-only.
+      scan.py now fetches OHLCV for ALL active universe tickers; only truly inactive tickers
+      (dead markets, known dead, persistent no-data) are excluded from the download.
+  (5) Coverage table _EXCH_FLAGS: added .AE, .KQ, .TWO, .BO."""
 from __future__ import annotations
 import argparse
 import datetime as dt
@@ -7048,11 +7050,10 @@ def main():
     msci_all = set(msci_df["Ticker"].astype(str).tolist())
 
     # ── Option A: filter MSCI universe against gc_state.json active set ────────
-    # gc_engine runs first and establishes which tickers are active (not inactive,
-    # not below_min_mcap). scan.py uses that vetted set as its OHLCV download list.
-    # This means: gc_engine MUST run before scan.py on each daily cycle.
-    # New MSCI constituents not yet in gc_state pass through unfiltered — they get
-    # one free fetch pass, then gc_engine trims them on the next run if below mcap.
+    # gc_engine runs first and establishes which tickers are truly inactive
+    # (dead markets, known dead, persistent no-data). scan.py excludes ONLY those
+    # from its OHLCV download — below_min_mcap is a GC-only filter, not an OHLCV filter.
+    # New MSCI constituents not yet in gc_state pass through unfiltered.
     _gc_state_path = DOCS_DIR / "gc_state.json"
     _gc_active: set = set()
     _gc_inactive: set = set()
@@ -7061,14 +7062,15 @@ def main():
             import json as _gcj
             _gc_cache = _gcj.loads(_gc_state_path.read_text(encoding="utf-8")).get("earnings_cache", {})
             for _t, _v in _gc_cache.items():
-                # Only exclude from OHLCV when gc_engine has CONFIRMED below floor.
-                # Tickers with unknown mcap (_mcap_usd absent) are NOT excluded —
-                # we only filter when we know and the value is confirmed below $2B USD.
-                if _v.get("inactive") or _v.get("below_min_mcap"):
+                # For OHLCV purposes, only skip tickers gc_engine has confirmed INACTIVE
+                # (dead markets, known dead, persistent no-data).
+                # below_min_mcap is a GC-only filter — scan.py fetches OHLCV for ALL
+                # universe tickers regardless of mcap so technical signals still fire.
+                if _v.get("inactive"):
                     _gc_inactive.add(_t)
                 else:
                     _gc_active.add(_t)
-            print(f"[msci] gc_state loaded: {len(_gc_active)} active, {len(_gc_inactive)} inactive/below_mcap")
+            print(f"[msci] gc_state loaded: {len(_gc_active)} active, {len(_gc_inactive)} inactive (dead/no-data)")
         except Exception as _e:
             print(f"[msci] gc_state load failed ({_e}) — using full MSCI universe as fallback")
 
