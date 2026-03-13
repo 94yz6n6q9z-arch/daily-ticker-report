@@ -56,7 +56,7 @@ from universe import (
 # ────────────────────────────────────────────────────────────────
 # Configuration
 # ────────────────────────────────────────────────────────────────
-GC_VERSION = "0.7.0"
+GC_VERSION = "0.8.0"
 
 # Version history (mirrors the changelog pattern in scan.py)
 _GC_VERSION_LOG: dict = {
@@ -287,6 +287,26 @@ _GC_VERSION_LOG: dict = {
         "when FMP_API_KEY is set and ticker exchange is in FMP_ALPHA_BATCH_SUFFIXES. "
         "Fix C — export_universe.py: corrected 14 wrong exchange-to-country mappings."
     ),
+    "0.8.0": (
+        "FX conversion + mcap re-validation + floor reduction. Companion: universe.py 1.5.0. "
+        "(1) _CURRENCY_TO_YAHOO_FX: added KWF→KWD alias (yfinance reports Kuwait as KWF not KWD; "
+        "1 KWD ≈ $3.27 — was treated as 1:1 causing 3 Kuwait tickers to be wrongly below_min_mcap). "
+        "Added ZAC→ZAR alias with ×0.01 scale (South Africa cents). "
+        "Added ILA→ILS alias with ×0.01 scale (Israeli agorot — .TA stocks showed mcap 100× too large). "
+        "(2) _FMP_SUFFIX_MAP: expanded from 19 → 50+ entries covering all active exchanges. "
+        "Added .IS (Turkey), .KQ (KOSDAQ), .AE (UAE unified→strip), .TWO (Taiwan Gretai→strip), "
+        ".BO (India BSE→strip), .JK .BK .SN .SI .QA .KW .SR .TA .NZ etc. "
+        "(3) mcap floor: $2B → $1B USD across all markets (universe.py MIN_MCAP_US_EU/OTHER). "
+        "(4) below_min_mcap weekly re-validation: previously once a ticker was flagged below floor "
+        "it was frozen forever. Now gc_engine does a light yfinance info re-fetch every 7 days "
+        "for below_min_mcap tickers — if mcap has grown past the floor the flag is cleared and "
+        "the ticker re-enters the full fetch pipeline automatically. _mcap_recheck_date field "
+        "tracks the last check date in gc_state.json. "
+        "(5) export_universe.py v4: _normalize_ticker applied in _read_csv_tickers() — fixes "
+        "100+ phantom no_cache entries (AKBNK.E.IS etc. now correctly match AKBNK.IS in cache). "
+        "(6) scan.py v102: below_min_mcap removed from OHLCV Option A filter — mcap gating "
+        "is GC-only; scan.py fetches OHLCV for all universe tickers regardless of mcap."
+    ),
 }
 
 # OHLCV download
@@ -388,6 +408,12 @@ _CURRENCY_TO_YAHOO_FX: Dict[str, str] = {
     "HUF": "HUFUSD=X", "CZK": "CZKUSD=X", "AED": "AEDUSD=X",
     "NZD": "NZDUSD=X", "EGP": "EGPUSD=X", "PKR": "PKRUSD=X",
     "BDT": "BDTUSD=X", "CNY": "CNYUSD=X", "CNH": "CNHUSD=X",
+    # yfinance non-standard currency codes → map to ISO equivalent
+    "KWF": "KWDUSD=X",  # Kuwait: yfinance reports "KWF" instead of ISO "KWD" (1 KWD ≈ $3.27)
+    "ZAC": "ZARUSD=X",  # South Africa: yfinance reports cents "ZAC" — divided by 100 below
+    # ILA (Israeli Agorot): yfinance reports "ILA" for .TA stocks.
+    # 1 ILA = 0.01 ILS. We fetch ILSUSD=X and divide by 100 in _get_fx_rate_to_usd.
+    "ILA": "ILSUSD=X",
 }
 
 # Module-level FX cache — populated once per process, reused across tickers.
@@ -418,6 +444,11 @@ def _get_fx_rate_to_usd(currency: str) -> float:
         _FX_RATE_CACHE[currency] = 1.0
         return 1.0
 
+    # Subdivision currencies: mcap is reported in sub-units, not the base currency.
+    # ZAC = South African cents (1 ZAC = 0.01 ZAR), ILA = Israeli agorot (1 ILA = 0.01 ILS).
+    # We fetch the base-currency USD rate then divide by 100.
+    subdivision_scale = 0.01 if currency in ("ZAC", "ILA") else 1.0
+
     try:
         import yfinance as _yf
         info = _yf.Ticker(fx_sym).info
@@ -425,9 +456,10 @@ def _get_fx_rate_to_usd(currency: str) -> float:
                 or info.get("previousClose")
                 or info.get("bid"))
         if rate and float(rate) > 0:
-            rate = float(rate)
+            rate = float(rate) * subdivision_scale
             _FX_RATE_CACHE[currency] = rate
-            print(f"[fx] {currency}: 1 {currency} = {rate:.6f} USD ({fx_sym})")
+            print(f"[fx] {currency}: 1 {currency} = {rate:.6f} USD ({fx_sym}"
+                  + ("×0.01)" if subdivision_scale != 1.0 else ")"))
             return rate
     except Exception as e:
         print(f"[fx] Could not fetch {fx_sym}: {e} — assuming 1:1")
@@ -2600,13 +2632,77 @@ def fetch_earnings_universe(
             continue
 
         # ── Market-cap floor filter ─────────────────────────────────────────────
-        # RULES (v0.8.0):
-        #   • Floor: $2B USD across ALL markets (MIN_MCAP_US_EU = MIN_MCAP_OTHER = 2B)
+        # RULES (v0.8.0+):
+        #   • Floor: $1B USD across ALL markets (MIN_MCAP_US_EU = MIN_MCAP_OTHER = 1B)
         #   • mcap from yfinance is in LOCAL currency → convert to USD via live FX rates
         #   • ONLY exclude when we KNOW the mcap AND it falls below floor.
         #     If mcap is 0 / missing, let the ticker through — do NOT exclude on ignorance.
         #   • FMP profile mcap is already in USD (skip FX conversion for that source)
+        #   • below_min_mcap is RE-VALIDATED weekly: a company that grows past the floor
+        #     re-enters the pipeline automatically on the next weekly re-check.
         if t in cache and not cache[t].get("new_constituent"):
+
+            if cache[t].get("below_min_mcap"):
+                # ── Weekly re-check for previously below-floor tickers ──────────
+                # Without this, a company that grows from $0.8B → $1.5B stays
+                # frozen as below_min_mcap forever because we never re-fetch.
+                _last_check = cache[t].get("_mcap_recheck_date", "")
+                _today_str  = now.date().isoformat()
+                _days_since = 999
+                if _last_check:
+                    try:
+                        _days_since = (now.date() - dt.date.fromisoformat(_last_check)).days
+                    except Exception:
+                        pass
+                if _days_since >= 7 or force:
+                    try:
+                        import yfinance as _yf_mc
+                        _fresh_info = _yf_mc.Ticker(t).info or {}
+                        _fresh_mc   = _fresh_info.get("marketCap") or _fresh_info.get("market_cap")
+                        _fresh_cur  = (_fresh_info.get("currency")
+                                       or (cache[t].get("info") or {}).get("currency") or "USD")
+                        cache[t]["_mcap_recheck_date"] = _today_str
+                        if _fresh_mc:
+                            _fresh_mc_usd = _mcap_to_usd(float(_fresh_mc), _fresh_cur)
+                            if _fresh_mc_usd >= MIN_MCAP_US_EU:
+                                # Graduated past floor — clear flag, re-enter full pipeline
+                                print(f"[gc-data] {t}: mcap grew to ${_fresh_mc_usd/1e9:.1f}B "
+                                      f"— clearing below_min_mcap, scheduling full re-fetch")
+                                cache[t].pop("below_min_mcap", None)
+                                cache[t].pop("mcap_threshold", None)
+                                cache[t]["_last_known_mcap"] = float(_fresh_mc)
+                                cache[t]["_mcap_usd"]        = _fresh_mc_usd
+                                if not cache[t].get("info"):
+                                    cache[t]["info"] = {}
+                                cache[t]["info"]["market_cap"] = float(_fresh_mc)
+                                cache[t]["info"]["currency"]   = _fresh_cur
+                                # Fall through to normal cache/fetch logic below
+                            else:
+                                # Still below floor — refresh stored mcap value and skip
+                                cache[t]["_last_known_mcap"]   = float(_fresh_mc)
+                                cache[t]["_mcap_usd"]          = _fresh_mc_usd
+                                cache[t]["mcap_threshold"]      = MIN_MCAP_US_EU
+                                results[t] = cache[t]
+                                mcap_skipped += 1
+                                continue
+                        else:
+                            # yfinance returned no mcap — keep flag, skip
+                            results[t] = cache[t]
+                            mcap_skipped += 1
+                            continue
+                    except Exception:
+                        # Re-check fetch failed — keep flag, try again next week
+                        cache[t]["_mcap_recheck_date"] = _today_str
+                        results[t] = cache[t]
+                        mcap_skipped += 1
+                        continue
+                else:
+                    # Not yet due for weekly re-check — skip as-is
+                    results[t] = cache[t]
+                    mcap_skipped += 1
+                    continue
+
+            # ── Normal mcap evaluation (not previously flagged below floor) ──
             cached_mc = (
                 (cache[t].get("info") or {}).get("market_cap")
                 or cache[t].get("_last_known_mcap")
@@ -2618,21 +2714,22 @@ def fetch_earnings_universe(
                 cached_mc = 0.0
             import math as _math
             if cached_mc > 0 and not _math.isnan(cached_mc):
-                _currency   = (cache[t].get("info") or {}).get("currency", "USD") or "USD"
-                _mcap_src   = cache[t].get("_mcap_source", "")
+                _currency     = (cache[t].get("info") or {}).get("currency", "USD") or "USD"
+                _mcap_src     = cache[t].get("_mcap_source", "")
                 cached_mc_usd = _mcap_to_usd(cached_mc, _currency, _mcap_src)
                 if cached_mc_usd > 0 and cached_mc_usd < MIN_MCAP_US_EU:
-                    # Below $2B USD floor — mark and skip
-                    cache[t]["below_min_mcap"] = True
-                    cache[t]["mcap_threshold"] = MIN_MCAP_US_EU
-                    cache[t]["_mcap_usd"]      = cached_mc_usd
+                    # Below $1B USD floor — mark, record recheck date, skip
+                    cache[t]["below_min_mcap"]     = True
+                    cache[t]["mcap_threshold"]      = MIN_MCAP_US_EU
+                    cache[t]["_mcap_usd"]           = cached_mc_usd
+                    cache[t]["_mcap_recheck_date"]  = now.date().isoformat()
                     results[t] = cache[t]
                     mcap_skipped += 1
                     continue
-                # We have a valid mcap — store the USD equivalent for export tools
+                # Valid mcap above floor — store USD equivalent for export tools
                 if cached_mc_usd > 0:
                     cache[t]["_mcap_usd"] = cached_mc_usd
-            # cached_mc == 0 → unknown mcap → let ticker through (rule: exclude only when known)
+            # cached_mc == 0 → unknown → let through (never exclude on ignorance)
 
         if t in cache:
             cached = cache[t]
