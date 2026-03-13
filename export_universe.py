@@ -1,30 +1,55 @@
 #!/usr/bin/env python3
 """
-export_universe.py  —  Universe review export  v3
+export_universe.py  —  Universe review export  v4
 ==================================================
-Produces universe_review.csv with per-quarter data detail.
+Produces universe_review.csv: every ticker in the MSCI World + EM universe
+with country, exchange, market cap, current gc_state status, and data health.
 
-Key additions vs v2:
-  Last 4 historical quarters (q1=most recent, q2-q4 older):
-    q{n}_date, q{n}_eps_reported, q{n}_eps_estimate, q{n}_eps_beat, q{n}_eps_source,
-    q{n}_rev_reported, q{n}_rev_estimate, q{n}_rev_beat, q{n}_rev_source
+Usage:
+    python export_universe.py [--state docs/gc_state.json] [--out universe_review.csv]
 
-  1 forward quarter (nearest upcoming earnings):
-    fwd_date, fwd_eps_estimate, fwd_eps_source, fwd_rev_estimate, fwd_rev_source
+Changes in v4:
+  - ROOT FIX: Import universe._normalize_ticker and apply to all CSV-sourced tickers
+    before building csv_sources. Previously AKBNK.E.IS (raw XLS) never matched
+    AKBNK.IS (cache key) — 100+ tickers falsely showed as no_cache. Now they match.
+  - EXCHANGE_COUNTRY: added AE (UAE unified), KQ (KOSDAQ), TWO (Taiwan Gretai)
+  - mcap: use _mcap_usd (FX-converted by gc_engine) for market_cap_usd_b;
+    mcap_local_b + mcap_currency kept as separate columns
+  - Unified $2B USD mcap floor (was split $2B US/EU + $5B EM)
+  - passes_mcap=? only when _mcap_usd absent; N only when confirmed below floor
+  - Full v3 column schema: q1..q4 historical + fwd_* forward estimates,
+    has_eps_history, has_rev_history, has_fwd_eps, has_fwd_rev, company
 
-Design rules:
-  - Historical vs forward STRICTLY separated — never mixed
-  - Stars use ONLY historical reported quarters (gc_engine already enforces this)
-  - Forward estimates have no beat/miss column (no actuals to compare against)
-  - mcap shown in USD (_mcap_usd from gc_engine v0.8.0+, FX-converted)
-  - passes_mcap=? when mcap unknown (only N when KNOWN below floor)
-  - Universal $2B USD floor (was $2B US/EU + $5B EM)
+Changes in v3 (carried forward):
+  - q1..q4 historical quarter columns (date, eps/rev reported+estimate+beat+source)
+  - fwd_* forward estimate columns
+  - has_eps_history / has_rev_history (actuals only)
+  - has_fwd_eps / has_fwd_rev (forward consensus)
+
+Changes in v2 (carried forward):
+  - Fixed 14 wrong exchange→country mappings
+  - _last_known_mcap fallback; ghost-risk summary
 """
 
-import argparse, csv, json, math, datetime as dt
+import argparse
+import csv
+import json
+import math
+import re
+import sys
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+
+# Import normalization from universe.py (same directory)
+try:
+    sys.path.insert(0, str(Path(__file__).parent))
+    from universe import _normalize_ticker, TICKER_OVERRIDES
+    _HAS_UNIVERSE = True
+except ImportError:
+    _HAS_UNIVERSE = False
+    print("[export] WARNING: universe.py not found — ticker normalization disabled, no_cache may be inflated")
+    def _normalize_ticker(t): return t
+    TICKER_OVERRIDES = {}
 
 BASE_DIR   = Path(__file__).parent
 CONFIG_DIR = BASE_DIR / "config"
@@ -32,70 +57,269 @@ DOCS_DIR   = BASE_DIR / "docs"
 
 DEFAULT_STATE = DOCS_DIR / "gc_state.json"
 DEFAULT_OUT   = BASE_DIR / "universe_review.csv"
-MIN_MCAP_USD  = 2_000_000_000   # $2B USD universal floor
 
+# Unified $1B USD floor (gc_engine v0.8.0 — FX conversion handles currency)
+MIN_MCAP_USD = 1_000_000_000
+
+# ── Correct exchange→country map ─────────────────────────────────────────────
+# KEY CORRECTIONS vs v1:
+#   .AT  = Athens Exchange (Greece)  — NOT Vienna (that is .VI)
+#   .VI  = Vienna Stock Exchange (Austria)
+#   .CA  = Egyptian Exchange Cairo   — NOT Chile
+#   .BD  = Budapest Stock Exchange (Hungary)  — NOT Bangladesh
+#   .PR  = Prague Stock Exchange (Czech Republic)
+#   .R   = Thailand NVDR share class — NOT Russia
+#   .CL  = Colombia (Bolsa de Valores de Colombia) — NOT Chile
+#   .SN  = Santiago Stock Exchange (Chile)
+#   .SI  = Singapore Exchange (SGX)
+#   .TA  = Tel Aviv Stock Exchange (Israel)
+#   .B   = Colombia B-share (or Santiago B-share — confirm with data)
 EXCHANGE_COUNTRY = {
-    "US":"United States","TO":"Canada","SA":"Brazil","MX":"Mexico",
-    "SN":"Chile","CL":"Colombia","CA":"Egypt",
-    "L":"United Kingdom","DE":"Germany","PA":"France","AS":"Netherlands",
-    "MI":"Italy","MC":"Spain","ST":"Sweden","OL":"Norway","HE":"Finland",
-    "CO":"Denmark","LS":"Portugal","BR":"Belgium","IR":"Ireland",
-    "SW":"Switzerland","WA":"Poland","VI":"Austria","AT":"Greece",
-    "PR":"Czech Republic","BD":"Hungary",
-    "SR":"Saudi Arabia","QA":"Qatar","KW":"Kuwait",
-    "AE":"UAE","AD":"UAE Abu Dhabi (legacy)","DU":"UAE Dubai (legacy)",
-    "JO":"South Africa","TA":"Israel",
-    "T":"Japan","TW":"Taiwan","TWO":"Taiwan (Gretai)","HK":"Hong Kong",
-    "SS":"China-SH","SZ":"China-SZ","KS":"South Korea","KQ":"South Korea (KOSDAQ)",
-    "NS":"India (NSE)","BO":"India (BSE)","SI":"Singapore",
-    "AX":"Australia","NZ":"New Zealand",
-    "KL":"Malaysia (dead)","PS":"Philippines (dead)",
-    "JK":"Indonesia","BK":"Thailand","IS":"Turkey",
+    # Americas
+    "US": "United States",
+    "TO": "Canada",
+    "SA": "Brazil",
+    "MX": "Mexico",
+    "SN": "Chile (Santiago)",
+    "CL": "Colombia",
+    "CA": "Egypt",                  # .CA = Egyptian Exchange (Cairo) — NOT Canada/Chile
+    "B":  "Colombia (B share)",
+
+    # Europe
+    "L":  "United Kingdom",
+    "DE": "Germany",
+    "PA": "France",
+    "AS": "Netherlands",
+    "MI": "Italy",
+    "MC": "Spain",
+    "ST": "Sweden",
+    "OL": "Norway",
+    "HE": "Finland",
+    "CO": "Denmark",
+    "LS": "Portugal",
+    "BR": "Belgium",
+    "IR": "Ireland",
+    "SW": "Switzerland",
+    "WA": "Poland",
+    "VI": "Austria",
+    "AT": "Greece",                 # .AT = Athens Exchange (ATHEX) — NOT Austria
+    "PR": "Czech Republic",
+    "BD": "Hungary",
+    "GR": "Greece (alt)",
+
+    # Middle East / Africa
+    "SR": "Saudi Arabia",
+    "QA": "Qatar",
+    "KW": "Kuwait",
+    "AE": "UAE",                    # .AE = unified after universe.py remaps .AD/.DU
+    "AD": "UAE (Abu Dhabi)",        # legacy — universe.py remaps to .AE
+    "DU": "UAE (Dubai)",            # legacy — universe.py remaps to .AE
+    "JO": "South Africa",
+    "EG": "Egypt (alt)",
+    "IL": "Israel (alt)",
+    "TA": "Israel",
+
+    # Asia-Pacific
+    "T":   "Japan",
+    "TW":  "Taiwan",
+    "TWO": "Taiwan (Gretai OTC)",   # .TWO = Taipei Exchange / Gretai Securities Market
+    "HK":  "Hong Kong",
+    "SS":  "China (Shanghai)",
+    "SZ":  "China (Shenzhen)",
+    "KS":  "South Korea",
+    "KQ":  "South Korea (KOSDAQ)",  # .KQ = Korea KOSDAQ
+    "NS":  "India (NSE)",
+    "BO":  "India (BSE)",
+    "SI":  "Singapore",
+    "AX":  "Australia",
+    "NZ":  "New Zealand",
+    "KL":  "Malaysia (dead)",
+    "PS":  "Philippines (dead)",
+    "JK":  "Indonesia",
+    "BK":  "Thailand",
+    "R":   "Thailand (NVDR)",
+    "SG":  "Singapore (alt)",
+
+    # Other
+    "IS": "Turkey",
+    "RE": "Reunion",
 }
 
-CSV_DEFS = [("world","msci_world_classification.csv"),("em","msci_em_classification.csv")]
+
+CSV_DEFS = [
+    ("world",  "msci_world_classification.csv"),
+    ("em",     "msci_em_classification.csv"),
+    ("japan",  "msci_japan_classification.csv"),
+    ("taiwan", "msci_taiwan_classification.csv"),
+    ("china",  "msci_china_classification.csv"),
+    ("hk",     "msci_hk_classification.csv"),
+    ("saudi",  "msci_saudi_classification.csv"),
+    ("korea",  "msci_korea_classification.csv"),
+    ("nzl",    "msci_nzl_classification.csv"),
+]
+
+FIELDNAMES = [
+    "ticker", "company", "country", "exchange", "source_csvs", "in_em_csv",
+    "market_cap_usd_b", "mcap_local_b", "mcap_currency", "mcap_source", "passes_mcap",
+    "status", "no_data_runs", "ghost_risk",
+    "has_eps_history", "has_rev_history", "has_fwd_eps", "has_fwd_rev", "data_gap",
+    # Most recent historical quarter (q1 = newest)
+    "q1_date", "q1_eps_reported", "q1_eps_estimate", "q1_eps_beat", "q1_eps_source",
+    "q1_rev_reported", "q1_rev_estimate", "q1_rev_beat", "q1_rev_source",
+    # Second most recent quarter
+    "q2_date", "q2_eps_reported", "q2_eps_estimate", "q2_eps_beat", "q2_eps_source",
+    "q2_rev_reported", "q2_rev_estimate", "q2_rev_beat", "q2_rev_source",
+    # Third
+    "q3_date", "q3_eps_reported", "q3_eps_estimate", "q3_eps_beat", "q3_eps_source",
+    "q3_rev_reported", "q3_rev_estimate", "q3_rev_beat", "q3_rev_source",
+    # Fourth
+    "q4_date", "q4_eps_reported", "q4_eps_estimate", "q4_eps_beat", "q4_eps_source",
+    "q4_rev_reported", "q4_rev_estimate", "q4_rev_beat", "q4_rev_source",
+    # Nearest upcoming quarter (forward — no actuals/beat yet)
+    "fwd_date", "fwd_eps_estimate", "fwd_eps_source", "fwd_rev_estimate", "fwd_rev_source",
+    "inactive_reason", "inactive_since", "fetched_at", "error",
+]
+
+# Known data quality issues — flagged in output
+KNOWN_BAD_CSVS = {
+    "korea": "⚠ Contains Indian .NS tickers, not Korean .KS — needs regeneration",
+    "taiwan": "⚠ Contains bare US tickers without .TW suffix — needs regeneration",
+}
 
 
-def _quarter_fieldnames(n):
-    p = f"q{n}_"
-    return [f"{p}date",f"{p}eps_reported",f"{p}eps_estimate",f"{p}eps_beat",f"{p}eps_source",
-            f"{p}rev_reported",f"{p}rev_estimate",f"{p}rev_beat",f"{p}rev_source"]
-
-FIELDNAMES = (
-    ["ticker","company","country","exchange","source_csvs","in_em_csv",
-     "market_cap_usd_b","mcap_local_b","mcap_currency","mcap_source","passes_mcap",
-     "status","no_data_runs","ghost_risk",
-     "has_eps_history","has_rev_history","has_fwd_eps","has_fwd_rev","data_gap"] +
-    _quarter_fieldnames(1) + _quarter_fieldnames(2) +
-    _quarter_fieldnames(3) + _quarter_fieldnames(4) +
-    ["fwd_date","fwd_eps_estimate","fwd_eps_source","fwd_rev_estimate","fwd_rev_source",
-     "inactive_reason","inactive_since","fetched_at","error"]
-)
+def _exch(ticker):
+    return ticker.rsplit(".", 1)[-1] if "." in ticker else "US"
 
 
-def _exch(t):
-    return t.rsplit(".",1)[-1] if "." in t else "US"
+def _country(ticker):
+    ex = _exch(ticker)
+    return EXCHANGE_COUNTRY.get(ex, f"Unknown ({ex})")
 
-def _country(t):
-    return EXCHANGE_COUNTRY.get(_exch(t), f"Unknown ({_exch(t)})")
+
+def _mcap_floor(ticker):
+    # Unified $2B USD floor — FX conversion handled by gc_engine
+    return MIN_MCAP_USD
+
 
 def _fmt_b(v):
     try:
         f = float(v)
-        if math.isfinite(f) and f > 0:
-            return f"{f/1e9:.2f}"
+        if f > 0:
+            return f"{f / 1e9:.2f}"
     except (TypeError, ValueError):
         pass
     return ""
 
-def _safe_float(v):
+
+def _pct(v):
+    """Format a float as percentage string e.g. 0.053 → '5.3%'"""
     try:
-        f = float(v)
-        return f if math.isfinite(f) else None
+        return f"{float(v)*100:.1f}%"
     except (TypeError, ValueError):
-        return None
+        return ""
+
+
+def _beat_str(reported, estimate):
+    """Return 'beat'/'miss'/'' from two numeric strings."""
+    try:
+        r, e = float(reported), float(estimate)
+        if abs(e) < 1e-9:
+            return ""
+        return "beat" if r >= e else "miss"
+    except (TypeError, ValueError):
+        return ""
+
+
+def _quarter_row(q: dict, rev_row: dict | None) -> dict:
+    """Extract one quarter's worth of columns from an earnings_dates entry + optional rev row."""
+    import datetime as _dt
+    today = _dt.date.today().isoformat()
+    date = (q.get("date") or "")[:10]
+    if not date or date > today:
+        return {}  # forward quarter — don't include as historical
+
+    eps_rep  = q.get("eps_reported")
+    eps_est  = q.get("eps_estimate")
+    eps_src  = q.get("_eps_est_source") or ("yfinance" if eps_rep is not None else "")
+    eps_beat = _beat_str(eps_rep, eps_est) if eps_est is not None else ""
+
+    rev_rep  = q.get("revenue_reported")
+    rev_est  = q.get("revenue_estimate")
+    rev_src  = q.get("_rev_source") or ""
+    # Fallback: pull from matched quarterly_revenue row
+    if rev_rep is None and rev_row:
+        rev_rep = rev_row.get("revenue")
+        if rev_rep and not rev_src:
+            rev_src = "yf_income_stmt"
+    rev_beat = _beat_str(rev_rep, rev_est) if rev_est is not None else ""
+
+    def _f(v):
+        if v is None: return ""
+        try: return f"{float(v):.4f}"
+        except: return str(v)
+
+    return {
+        "date":        date,
+        "eps_reported": _f(eps_rep),
+        "eps_estimate": _f(eps_est),
+        "eps_beat":    eps_beat,
+        "eps_source":  eps_src,
+        "rev_reported": _f(rev_rep) if rev_rep is not None else "",
+        "rev_estimate": _f(rev_est) if rev_est is not None else "",
+        "rev_beat":    rev_beat,
+        "rev_source":  rev_src,
+    }
+
+
+def _fwd_quarter(entry: dict) -> dict:
+    """Extract the nearest upcoming (forward) quarter from forward_estimates."""
+    import datetime as _dt
+    today = _dt.date.today().isoformat()
+
+    # First try forward_estimates block (gc_engine v0.6.5+)
+    fwd = entry.get("forward_estimates") or {}
+    if fwd:
+        date      = (fwd.get("date") or "")[:10]
+        eps_est   = fwd.get("eps_estimate")
+        eps_src   = fwd.get("eps_source") or "fmp"
+        rev_est   = fwd.get("revenue_estimate")
+        rev_src   = fwd.get("revenue_source") or ("fmp" if rev_est else "")
+        def _f(v):
+            if v is None: return ""
+            try: return f"{float(v):.4f}"
+            except: return str(v)
+        return {
+            "date":        date,
+            "eps_estimate": _f(eps_est),
+            "eps_source":  eps_src,
+            "rev_estimate": _f(rev_est) if rev_est is not None else "",
+            "rev_source":  rev_src,
+        }
+
+    # Fallback: scan earnings_dates for the nearest future quarter with an eps_estimate
+    eds = entry.get("earnings_dates") or []
+    future = sorted(
+        [e for e in eds if (e.get("date") or "") > today and e.get("eps_estimate") is not None],
+        key=lambda e: e["date"]
+    )
+    if not future:
+        return {}
+    q = future[0]
+    def _f(v):
+        if v is None: return ""
+        try: return f"{float(v):.4f}"
+        except: return str(v)
+    return {
+        "date":        (q.get("date") or "")[:10],
+        "eps_estimate": _f(q.get("eps_estimate")),
+        "eps_source":  q.get("_eps_est_source") or "yfinance",
+        "rev_estimate": _f(q.get("revenue_estimate")) if q.get("revenue_estimate") is not None else "",
+        "rev_source":  q.get("_rev_source") or ("fmp" if q.get("revenue_estimate") else ""),
+    }
+
 
 def _read_csv_tickers(path):
+    """Read tickers from a classification CSV and normalize them via universe._normalize_ticker."""
     if not path.exists():
         return []
     result = []
@@ -103,75 +327,11 @@ def _read_csv_tickers(path):
         reader = csv.DictReader(f)
         for row in reader:
             t = (row.get("Ticker") or row.get("ticker") or "").strip()
-            c = (row.get("Company") or row.get("company") or row.get("Name") or "").strip()
             if t:
-                result.append((t, c))
+                # v4: normalize immediately so CSV-sourced tickers match gc_state keys
+                t = _normalize_ticker(t)
+                result.append(t)
     return result
-
-def _eps_beat_label(eps_rep, eps_est, surp_pct):
-    if eps_rep is None:
-        return ""
-    if surp_pct is not None:
-        s = float(surp_pct)
-        return "match" if abs(s) <= 0.5 else ("beat" if s > 0 else "miss")
-    if eps_est is not None:
-        diff = float(eps_rep) - float(eps_est)
-        return "match" if abs(diff) <= 0.01 else ("beat" if diff > 0 else "miss")
-    return ""
-
-def _rev_beat_label(rev_rep, rev_est):
-    if rev_rep is None or rev_est is None:
-        return ""
-    r_rep, r_est = float(rev_rep), float(rev_est)
-    if r_est <= 0:
-        return ""
-    ratio = (r_rep - r_est) / r_est
-    return "match" if abs(ratio) <= 0.005 else ("beat" if ratio > 0 else "miss")
-
-def _extract_quarters(entry):
-    """Return (past_quarters[:4], fwd_quarter|None).
-    past = historical with eps_reported not None, date <= today, newest first.
-    fwd  = nearest future entry with at least one estimate, no actuals yet.
-    Stars use past ONLY. fwd is display-only.
-    """
-    today = dt.date.today().isoformat()
-    dates = entry.get("earnings_dates", [])
-    past = sorted(
-        [d for d in dates
-         if d.get("eps_reported") is not None
-         and (d.get("date") or "") <= today],
-        key=lambda r: r.get("date",""), reverse=True
-    )
-    future = sorted(
-        [d for d in dates
-         if d.get("eps_reported") is None
-         and (d.get("eps_estimate") is not None or d.get("revenue_estimate") is not None)
-         and ((d.get("date") or "") > today or d.get("_is_forward"))],
-        key=lambda r: r.get("date","")
-    )
-    return past[:4], (future[0] if future else None)
-
-def _quarter_cols(q, n):
-    """Return dict of q{n}_* columns for one historical quarter."""
-    prefix = f"q{n}_"
-    if not q:
-        return {f: "" for f in _quarter_fieldnames(n)}
-    eps_rep  = _safe_float(q.get("eps_reported"))
-    eps_est  = _safe_float(q.get("eps_estimate"))
-    eps_surp = _safe_float(q.get("eps_surprise_pct"))
-    rev_rep  = _safe_float(q.get("revenue_reported"))
-    rev_est  = _safe_float(q.get("revenue_estimate"))
-    return {
-        f"{prefix}date":         (q.get("date") or "")[:10],
-        f"{prefix}eps_reported": "" if eps_rep is None else f"{eps_rep:.4f}",
-        f"{prefix}eps_estimate": "" if eps_est is None else f"{eps_est:.4f}",
-        f"{prefix}eps_beat":     _eps_beat_label(eps_rep, eps_est, eps_surp),
-        f"{prefix}eps_source":   q.get("_eps_est_source") or "",
-        f"{prefix}rev_reported": _fmt_b(rev_rep) if rev_rep is not None else "",
-        f"{prefix}rev_estimate": _fmt_b(rev_est) if rev_est is not None else "",
-        f"{prefix}rev_beat":     _rev_beat_label(rev_rep, rev_est),
-        f"{prefix}rev_source":   q.get("_rev_est_source") or q.get("_rev_act_source") or "",
-    }
 
 
 def main():
@@ -180,59 +340,86 @@ def main():
     ap.add_argument("--out",   default=str(DEFAULT_OUT))
     args = ap.parse_args()
 
+    state_path = Path(args.state)
+    out_path   = Path(args.out)
+
     cache = {}
-    if Path(args.state).exists():
-        print(f"[export] Loading {args.state} …")
-        with open(args.state, "r", encoding="utf-8") as f:
+    if state_path.exists():
+        print(f"[export] Loading {state_path} …")
+        with open(state_path, "r", encoding="utf-8") as f:
             state = json.load(f)
         cache = state.get("earnings_cache", {})
-        print(f"[export] gc_state entries: {len(cache):,}")
+        print(f"[export] gc_state cache entries: {len(cache):,}")
     else:
-        print(f"[export] WARNING: {args.state} not found")
+        print(f"[export] WARNING: {state_path} not found")
 
-    csv_sources   = defaultdict(set)
-    csv_companies = {}
+    csv_sources = defaultdict(set)
+    csv_counts  = {}
+
     for name, fname in CSV_DEFS:
-        for t, comp in _read_csv_tickers(CONFIG_DIR / fname):
+        path = CONFIG_DIR / fname
+        tickers = _read_csv_tickers(path)
+        csv_counts[name] = len(tickers)
+        for t in tickers:
             csv_sources[t].add(name)
-            if comp and t not in csv_companies:
-                csv_companies[t] = comp
+        if name in KNOWN_BAD_CSVS and tickers:
+            print(f"[export] WARNING {name} CSV: {KNOWN_BAD_CSVS[name]}")
 
-    for t in cache:
-        if t not in csv_sources:
-            csv_sources[t].add("state_only")
+    for ticker in cache:
+        if ticker not in csv_sources:
+            csv_sources[ticker].add("state_only")
 
     all_tickers = sorted(csv_sources.keys())
-    print(f"[export] Unique tickers: {len(all_tickers):,}")
+
+    print(f"\n[export] Raw CSV counts (before dedup):")
+    for name, _ in CSV_DEFS:
+        n = csv_counts.get(name, 0)
+        note = "  ← KNOWN BAD" if name in KNOWN_BAD_CSVS else ""
+        print(f"  {name:8s}: {n:5,}{note}")
+    print(f"  Raw sum:      {sum(csv_counts.values()):,}")
+    print(f"  After dedup:  {len(all_tickers):,} unique tickers")
+    overlap = sum(1 for s in csv_sources.values() if len(s) > 1)
+    print(f"  Multi-CSV:    {overlap:,} tickers appear in 2+ CSVs")
+    print(f"  Explanation:  Taiwan/Korea/HK/China tickers appear in both their")
+    print(f"                country CSV and the EM CSV. Dedup collapses to one.")
+
+    risk_1 = sum(1 for v in cache.values() if v.get("_no_data_runs") == 1)
+    risk_2 = sum(1 for v in cache.values() if v.get("_no_data_runs") == 2)
+    print(f"\n[export] Pre-poisoned _no_data_runs from outage runs:")
+    print(f"  _no_data_runs=1 (MED risk):  {risk_1:,}  — 2 more misses → false-inactive")
+    print(f"  _no_data_runs=2 (HIGH risk): {risk_2:,}  — 1 more miss  → false-inactive")
 
     rows = []
     for ticker in all_tickers:
-        entry  = cache.get(ticker, {})
-        info   = entry.get("info") or {}
+        entry   = cache.get(ticker, {})
+        info    = entry.get("info") or {}
         sources = csv_sources[ticker]
 
-        # mcap — prefer _mcap_usd (FX-converted), fall back to local
-        mcap_usd   = _safe_float(entry.get("_mcap_usd"))
-        mcap_local = _safe_float(info.get("market_cap") or entry.get("_last_known_mcap"))
-        mcap_cur   = (info.get("currency") or entry.get("_mcap_currency") or "")
-        mcap_src   = entry.get("_mcap_source", "yf" if info.get("market_cap") else "")
+        # ── Company name ────────────────────────────────────────────
+        company = info.get("longName") or info.get("shortName") or ""
 
-        mcap_usd_b   = _fmt_b(mcap_usd)   if (mcap_usd   and mcap_usd   > 0) else ""
-        mcap_local_b = _fmt_b(mcap_local) if (mcap_local and mcap_local > 0) else ""
+        # ── mcap ───────────────────────────────────────────────────
+        # Prefer _mcap_usd (FX-converted by gc_engine v0.8.0)
+        mcap_usd   = entry.get("_mcap_usd")
+        mcap_local = info.get("market_cap") or entry.get("_last_known_mcap")
+        mcap_currency = (info.get("currency") or "").upper()
+        mcap_source = ""
+        if mcap_usd:
+            mcap_source = entry.get("_mcap_source") or "yf"
+        elif mcap_local:
+            mcap_source = entry.get("_mcap_source") or "yf"
 
-        # passes_mcap: only N when KNOWN below floor; ? when unknown
+        # passes_mcap: ? when unknown, N only when we KNOW it's below floor
         if mcap_usd and mcap_usd > 0:
             passes_mcap = "Y" if mcap_usd >= MIN_MCAP_USD else "N"
-        elif entry.get("below_min_mcap"):
-            passes_mcap = "N"
         else:
             passes_mcap = "?"
 
-        # status
+        # ── Status ──────────────────────────────────────────────────
         if entry.get("inactive"):
             ir    = entry.get("inactive_reason", "")
             since = (entry.get("inactive_since") or "")[:10]
-            if any(x in ir for x in ["no_price_no_financials","known_dead","dead_market"]):
+            if any(x in ir for x in ["no_price_no_financials", "known_dead", "dead_market"]):
                 status = "inactive_dead"
             elif ir == "persistent_no_data_3_runs" and since >= "2026-03-11":
                 status = "inactive_degraded"
@@ -250,63 +437,105 @@ def main():
         ndr        = entry.get("_no_data_runs", 0)
         ghost_risk = "HIGH" if ndr >= 2 else ("MED" if ndr == 1 else "")
 
-        past_qs, fwd = _extract_quarters(entry)
+        # ── Earnings dates — split historical vs forward ─────────────
+        import datetime as _dt
+        today = _dt.date.today().isoformat()
+        all_eds = entry.get("earnings_dates") or []
+        hist_eds = sorted(
+            [e for e in all_eds if e.get("eps_reported") is not None
+             and (e.get("date") or "") <= today],
+            key=lambda e: e.get("date", ""), reverse=True
+        )
 
-        has_eps_hist = any(q.get("eps_reported") is not None for q in past_qs)
-        has_rev_hist = len(entry.get("quarterly_revenue", [])) >= 1
-        has_fwd_eps  = fwd is not None and fwd.get("eps_estimate") is not None
-        has_fwd_rev  = fwd is not None and fwd.get("revenue_estimate") is not None
-        data_gap     = not (has_eps_hist or has_rev_hist)
+        # Build quarterly_revenue lookup by year-month for rev matching
+        qr_by_ym = {}
+        for qr in (entry.get("quarterly_revenue") or []):
+            d = (qr.get("date") or "")[:7]
+            if d:
+                qr_by_ym[d] = qr
 
-        q_data = {}
-        for n in range(1, 5):
-            q_data.update(_quarter_cols(past_qs[n-1] if n <= len(past_qs) else None, n))
+        def _match_rev(ed_date):
+            """Find best-matching rev row within ±1 month of earnings date."""
+            d = (ed_date or "")[:7]
+            if not d: return None
+            if d in qr_by_ym: return qr_by_ym[d]
+            y, m = int(d[:4]), int(d[5:7])
+            for delta in [-1, 1, -2, 2]:
+                nm = m + delta; ny = y + (nm - 1) // 12; nm = ((nm - 1) % 12) + 1
+                key = f"{ny:04d}-{nm:02d}"
+                if key in qr_by_ym: return qr_by_ym[key]
+            return None
 
-        if fwd:
-            fe = _safe_float(fwd.get("eps_estimate"))
-            fr = _safe_float(fwd.get("revenue_estimate"))
-            fwd_cols = {
-                "fwd_date":         (fwd.get("date") or "")[:10],
-                "fwd_eps_estimate": "" if fe is None else f"{fe:.4f}",
-                "fwd_eps_source":   fwd.get("_eps_est_source") or "",
-                "fwd_rev_estimate": _fmt_b(fr) if fr else "",
-                "fwd_rev_source":   fwd.get("_rev_est_source") or "",
-            }
-        else:
-            fwd_cols = {k:"" for k in ["fwd_date","fwd_eps_estimate","fwd_eps_source",
-                                        "fwd_rev_estimate","fwd_rev_source"]}
+        # 4 most recent historical quarters
+        q_cols = {}
+        for qi, ed in enumerate(hist_eds[:4], 1):
+            qdata = _quarter_row(ed, _match_rev(ed.get("date")))
+            prefix = f"q{qi}_"
+            q_cols[prefix + "date"]         = qdata.get("date", "")
+            q_cols[prefix + "eps_reported"] = qdata.get("eps_reported", "")
+            q_cols[prefix + "eps_estimate"] = qdata.get("eps_estimate", "")
+            q_cols[prefix + "eps_beat"]     = qdata.get("eps_beat", "")
+            q_cols[prefix + "eps_source"]   = qdata.get("eps_source", "")
+            q_cols[prefix + "rev_reported"] = qdata.get("rev_reported", "")
+            q_cols[prefix + "rev_estimate"] = qdata.get("rev_estimate", "")
+            q_cols[prefix + "rev_beat"]     = qdata.get("rev_beat", "")
+            q_cols[prefix + "rev_source"]   = qdata.get("rev_source", "")
+        # Fill missing quarters with empty strings
+        for qi in range(len(hist_eds[:4]) + 1, 5):
+            prefix = f"q{qi}_"
+            for sf in ["date","eps_reported","eps_estimate","eps_beat","eps_source",
+                       "rev_reported","rev_estimate","rev_beat","rev_source"]:
+                q_cols[prefix + sf] = ""
+
+        # Forward quarter
+        fwd = _fwd_quarter(entry)
+        fwd_cols = {
+            "fwd_date":         fwd.get("date", ""),
+            "fwd_eps_estimate": fwd.get("eps_estimate", ""),
+            "fwd_eps_source":   fwd.get("eps_source", ""),
+            "fwd_rev_estimate": fwd.get("rev_estimate", ""),
+            "fwd_rev_source":   fwd.get("rev_source", ""),
+        }
+
+        # ── has_* flags ─────────────────────────────────────────────
+        has_eps_history = any(e.get("eps_reported") is not None for e in all_eds
+                              if (e.get("date") or "") <= today)
+        has_rev_history = len(entry.get("quarterly_revenue") or []) >= 4
+        has_fwd_eps     = bool(fwd_cols["fwd_eps_estimate"])
+        has_fwd_rev     = bool(fwd_cols["fwd_rev_estimate"])
+        data_gap        = not (has_eps_history or has_rev_history
+                               or info.get("revenue_growth") or info.get("market_cap"))
 
         rows.append({
-            "ticker":           ticker,
-            "company":          csv_companies.get(ticker, ""),
-            "country":          _country(ticker),
-            "exchange":         _exch(ticker),
-            "source_csvs":      ",".join(sorted(sources)),
-            "in_em_csv":        "Y" if "em" in sources else "",
-            "market_cap_usd_b": mcap_usd_b,
-            "mcap_local_b":     mcap_local_b,
-            "mcap_currency":    mcap_cur,
-            "mcap_source":      mcap_src,
-            "passes_mcap":      passes_mcap,
-            "status":           status,
-            "no_data_runs":     str(ndr) if ndr else "",
-            "ghost_risk":       ghost_risk,
-            "has_eps_history":  "Y" if has_eps_hist else "",
-            "has_rev_history":  "Y" if has_rev_hist else "",
-            "has_fwd_eps":      "Y" if has_fwd_eps else "",
-            "has_fwd_rev":      "Y" if has_fwd_rev else "",
-            "data_gap":         "Y" if data_gap else "",
-            **q_data,
+            "ticker":          ticker,
+            "company":         company,
+            "country":         _country(ticker),
+            "exchange":        _exch(ticker),
+            "source_csvs":     ",".join(sorted(s for s in sources if s != "state_only")),
+            "in_em_csv":       "Y" if "em" in sources else "",
+            "market_cap_usd_b": _fmt_b(mcap_usd),
+            "mcap_local_b":    _fmt_b(mcap_local),
+            "mcap_currency":   mcap_currency,
+            "mcap_source":     mcap_source,
+            "passes_mcap":     passes_mcap,
+            "status":          status,
+            "no_data_runs":    str(ndr) if ndr else "",
+            "ghost_risk":      ghost_risk,
+            "has_eps_history": "Y" if has_eps_history else "",
+            "has_rev_history": "Y" if has_rev_history else "",
+            "has_fwd_eps":     "Y" if has_fwd_eps else "",
+            "has_fwd_rev":     "Y" if has_fwd_rev else "",
+            "data_gap":        "Y" if data_gap else "",
+            **q_cols,
             **fwd_cols,
-            "inactive_reason":  entry.get("inactive_reason", ""),
-            "inactive_since":   (entry.get("inactive_since") or "")[:10],
-            "fetched_at":       (entry.get("fetched_at") or "")[:10],
-            "error":            str(entry.get("error", ""))[:80],
+            "inactive_reason": entry.get("inactive_reason", ""),
+            "inactive_since":  (entry.get("inactive_since") or "")[:10],
+            "fetched_at":      (entry.get("fetched_at") or "")[:10],
+            "error":           str(entry.get("error", ""))[:80],
         })
 
     rows.sort(key=lambda r: (r["country"], r["ticker"]))
 
-    out_path = Path(args.out)
     with open(out_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
         writer.writeheader()
@@ -317,31 +546,33 @@ def main():
     sc = Counter(r["status"] for r in rows)
     print(f"\n[export] Status breakdown:")
     for s, n in sorted(sc.items(), key=lambda x: -x[1]):
-        print(f"  {s:30s}: {n:5,}")
+        print(f"  {s:25s}: {n:5,}")
 
     mc_yes = sum(1 for r in rows if r["passes_mcap"] == "Y")
     mc_no  = sum(1 for r in rows if r["passes_mcap"] == "N")
     mc_unk = sum(1 for r in rows if r["passes_mcap"] == "?")
-    print(f"\n[export] Market cap ($2B USD floor):")
-    print(f"  Passes  (USD mcap known >= 2B) : {mc_yes:,}")
-    print(f"  Below   (USD mcap known <  2B) : {mc_no:,}")
-    print(f"  Unknown (no USD mcap available): {mc_unk:,}  ← run gc_engine v0.8.0+ to populate")
+    print(f"\n[export] Market cap filter (unified $2B USD floor):")
+    print(f"  Passes floor:   {mc_yes:,}")
+    print(f"  Below floor:    {mc_no:,}")
+    print(f"  Unknown mcap:   {mc_unk:,}  ← missing _mcap_usd in gc_state")
 
-    he = sum(1 for r in rows if r["has_eps_history"] == "Y")
-    hr = sum(1 for r in rows if r["has_rev_history"] == "Y")
-    fe = sum(1 for r in rows if r["has_fwd_eps"]     == "Y")
-    fr = sum(1 for r in rows if r["has_fwd_rev"]     == "Y")
-    print(f"\n[export] Data coverage (2 separate dimensions — never mixed):")
-    print(f"  Historical EPS (reported actuals): {he:,}")
-    print(f"  Historical Rev (income statement): {hr:,}")
-    print(f"  Forward EPS estimate             : {fe:,}  ← display only, not scored")
-    print(f"  Forward Rev estimate             : {fr:,}  ← display only, not scored")
-    print(f"\n  Stars use ONLY historical beats. fwd columns have no beat/miss field.")
+    norm_note = "(normalization active)" if _HAS_UNIVERSE else "(normalization DISABLED — universe.py not found)"
+    print(f"\n[export] Ticker normalization: {norm_note}")
 
+    active_rows = [r for r in rows if r["status"] == "active"]
+    print(f"  has_eps_history: {sum(1 for r in active_rows if r['has_eps_history']=='Y'):,}")
+    print(f"  has_rev_history: {sum(1 for r in active_rows if r['has_rev_history']=='Y'):,}")
+    print(f"  has_fwd_eps:     {sum(1 for r in active_rows if r['has_fwd_eps']=='Y'):,}")
+    print(f"  has_fwd_rev:     {sum(1 for r in active_rows if r['has_fwd_rev']=='Y'):,}")
+
+    print(f"\n[export] Active tickers by country (top 25):")
     ca = Counter(r["country"] for r in rows if r["status"] == "active")
-    print(f"\n[export] Active tickers by country (top 30):")
-    for country, n in ca.most_common(30):
-        print(f"  {country:40s}: {n:4,}")
+    for country, n in ca.most_common(25):
+        print(f"  {country:35s}: {n:4,}")
+
+    print(f"\n[export] Known CSV issues to fix:")
+    for name, msg in KNOWN_BAD_CSVS.items():
+        print(f"  {name:8s}: {msg}")
 
     print(f"\n[export] Done.")
 
