@@ -160,6 +160,7 @@
     "AVB|EARLY_RECT_BREAKDOWN",
     "BAJAJHLDNG.NS|CONFIRMED_RECT_BOTTOM_BREAKDOWN",
     "BID.JO|CONFIRMED_RECT_BOTTOM_BREAKDOWN",
+    "BP.L|CONFIRMED_MOMO_TREND_BREAKOUT",
     "BURL|EARLY_RECT_BREAKDOWN",
     "CAE.TO|CONFIRMED_HS_TOP_BREAKDOWN",
     "CF|CONFIRMED_IHS_BREAKOUT",
@@ -175,8 +176,10 @@
     "HINDALCO.NS|EARLY_RECT_TOP_BREAKOUT",
     "HNR1.DE|CONFIRMED_ASC_TRIANGLE_BREAKOUT",
     "HOLX|EARLY_ASC_TRIANGLE_BREAKDOWN",
+    "IFT.NZ|EARLY_RECT_BREAKOUT",
     "IGM.TO|EARLY_RECT_TOP_BREAKDOWN",
     "INVH|EARLY_RECT_BOTTOM_BREAKDOWN",
+    "JD.L|EARLY_RECT_BREAKDOWN",
     "LYB|VALIDATED_MOMO_TREND_BREAKOUT",
     "MONET.PR|CONFIRMED_HS_TOP_BREAKDOWN",
     "MPC|VALIDATED_MOMO_TREND_BREAKOUT",
@@ -185,8 +188,6 @@
     "NTR.TO|CONFIRMED_MOMO_TREND_BREAKOUT",
     "OKLO|EARLY_DESC_TRIANGLE_BREAKDOWN",
     "OXY|CONFIRMED_MOMO_TREND_BREAKOUT",
-    "PETR3.SA|CONFIRMED_MOMO_TREND_BREAKOUT",
-    "PETR4.SA|CONFIRMED_MOMO_TREND_BREAKOUT",
     "PFC.NS|EARLY_IHS_BREAKOUT",
     "PFE|EARLY_ASC_TRIANGLE_BREAKDOWN",
     "PKN.WA|VALIDATED_MOMO_TREND_BREAKOUT",
@@ -209,24 +210,26 @@
     "CLS.TO|EARLY_RECT_BREAKDOWN",
     "HINDALCO.NS|EARLY_RECT_TOP_BREAKOUT",
     "PFE|EARLY_ASC_TRIANGLE_BREAKDOWN",
+    "JD.L|EARLY_RECT_BREAKDOWN",
     "BURL|EARLY_RECT_BREAKDOWN",
     "REGN|EARLY_RECT_TOP_BREAKDOWN",
     "HOLX|EARLY_ASC_TRIANGLE_BREAKDOWN",
     "VST|EARLY_RECT_BOTTOM_BREAKDOWN",
     "VST|EARLY_RECT_BOTTOM_BREAKDOWN",
     "DLR|EARLY_IHS_BREAKOUT",
-    "INVH|EARLY_RECT_BOTTOM_BREAKDOWN",
     "BYDDY|EARLY_RECT_BREAKOUT",
+    "INVH|EARLY_RECT_BOTTOM_BREAKDOWN",
     "0392.HK|EARLY_IHS_BREAKOUT",
     "2688.HK|EARLY_RECT_BREAKDOWN",
     "OKLO|EARLY_DESC_TRIANGLE_BREAKDOWN",
     "OKLO|EARLY_DESC_TRIANGLE_BREAKDOWN",
     "AVB|EARLY_RECT_BREAKDOWN",
+    "IFT.NZ|EARLY_RECT_BREAKOUT",
     "ABCAPITAL.NS|EARLY_RECT_TOP_BREAKDOWN",
     "2395.TW|EARLY_IHS_BREAKOUT",
     "PFC.NS|EARLY_IHS_BREAKOUT",
-    "4661.T|EARLY_RECT_BOTTOM_BREAKOUT",
-    "WRB|EARLY_RECT_BREAKDOWN"
+    "WRB|EARLY_RECT_BREAKDOWN",
+    "4661.T|EARLY_RECT_BOTTOM_BREAKOUT"
   ],
   "hs_geom": {
     "AAPL": {
@@ -1401,35 +1404,35 @@
             "p": 89.0999984741211,
             "label": "LS",
             "kind": "point",
-            "i": 89
+            "i": 88
           },
           {
             "t": "2025-11-19T00:00:00",
             "p": 84.0,
             "label": "H",
             "kind": "point",
-            "i": 114
+            "i": 113
           },
           {
             "t": "2025-12-31T00:00:00",
             "p": 89.94999694824219,
             "label": "RS",
             "kind": "point",
-            "i": 142
+            "i": 141
           },
           {
             "t": "2025-10-27T00:00:00",
             "p": 99.8499984741211,
             "label": "R1",
             "kind": "point",
-            "i": 98
+            "i": 97
           },
           {
             "t": "2025-12-05T00:00:00",
             "p": 96.0,
             "label": "R2",
             "kind": "point",
-            "i": 126
+            "i": 125
           }
         ],
         "lines": [
@@ -1439,12 +1442,12 @@
             "t2": "2025-12-05",
             "y2": 96.0,
             "label": "Neckline",
-            "i1": 98,
-            "i2": 126
+            "i1": 97,
+            "i2": 125
           }
         ],
-        "pattern_start_i": 89,
-        "pattern_end_i": 142,
+        "pattern_start_i": 88,
+        "pattern_end_i": 141,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -3597,35 +3600,35 @@
             "p": 938.9000244140625,
             "label": "LS",
             "kind": "point",
-            "i": 134
+            "i": 133
           },
           {
             "t": "2026-01-16T00:00:00",
             "p": 889.7000122070312,
             "label": "H",
             "kind": "point",
-            "i": 152
+            "i": 151
           },
           {
             "t": "2026-02-17T00:00:00",
             "p": 952.9000244140625,
             "label": "RS",
             "kind": "point",
-            "i": 173
+            "i": 172
           },
           {
             "t": "2025-12-19T00:00:00",
             "p": 974.2000122070312,
             "label": "R1",
             "kind": "point",
-            "i": 136
+            "i": 135
           },
           {
             "t": "2026-02-13T00:00:00",
             "p": 977.2999877929688,
             "label": "R2",
             "kind": "point",
-            "i": 171
+            "i": 170
           }
         ],
         "lines": [
@@ -3635,12 +3638,12 @@
             "t2": "2026-02-13T00:00:00",
             "y2": 977.2999877929688,
             "label": "Neckline",
-            "i1": 136,
-            "i2": 171
+            "i1": 135,
+            "i2": 170
           }
         ],
-        "pattern_start_i": 134,
-        "pattern_end_i": 173,
+        "pattern_start_i": 133,
+        "pattern_end_i": 172,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -4024,35 +4027,35 @@
             "p": 2439.5,
             "label": "LS",
             "kind": "point",
-            "i": 103
+            "i": 102
           },
           {
             "t": "2025-11-27T00:00:00",
             "p": 2877.5,
             "label": "H",
             "kind": "point",
-            "i": 120
+            "i": 119
           },
           {
             "t": "2025-12-19T00:00:00",
             "p": 2508.0,
             "label": "RS",
             "kind": "point",
-            "i": 136
+            "i": 135
           },
           {
             "t": "2025-11-06T00:00:00",
             "p": 2265.0,
             "label": "T1",
             "kind": "point",
-            "i": 106
+            "i": 105
           },
           {
             "t": "2025-12-11T00:00:00",
             "p": 2266.0,
             "label": "T2",
             "kind": "point",
-            "i": 130
+            "i": 129
           }
         ],
         "lines": [
@@ -4062,12 +4065,12 @@
             "t2": "2025-12-11T00:00:00",
             "y2": 2266.0,
             "label": "Neckline",
-            "i1": 106,
-            "i2": 130
+            "i1": 105,
+            "i2": 129
           }
         ],
-        "pattern_start_i": 103,
-        "pattern_end_i": 136,
+        "pattern_start_i": 102,
+        "pattern_end_i": 135,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -18664,35 +18667,35 @@
             "p": 58.400001525878906,
             "label": "LS",
             "kind": "point",
-            "i": 145
+            "i": 144
           },
           {
             "t": "2026-01-29T00:00:00",
             "p": 59.790000915527344,
             "label": "H",
             "kind": "point",
-            "i": 161
+            "i": 160
           },
           {
             "t": "2026-02-23T00:00:00",
             "p": 58.150001525878906,
             "label": "RS",
             "kind": "point",
-            "i": 176
+            "i": 175
           },
           {
             "t": "2026-01-21T00:00:00",
             "p": 58.02000045776367,
             "label": "T1",
             "kind": "point",
-            "i": 155
+            "i": 154
           },
           {
             "t": "2026-02-13T00:00:00",
             "p": 57.060001373291016,
             "label": "T2",
             "kind": "point",
-            "i": 172
+            "i": 171
           }
         ],
         "lines": [
@@ -18702,12 +18705,12 @@
             "t2": "2026-02-13",
             "y2": 57.060001373291016,
             "label": "Neckline",
-            "i1": 155,
-            "i2": 172
+            "i1": 154,
+            "i2": 171
           }
         ],
-        "pattern_start_i": 145,
-        "pattern_end_i": 176,
+        "pattern_start_i": 144,
+        "pattern_end_i": 175,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -23605,35 +23608,35 @@
             "p": 21.360000610351562,
             "label": "LS",
             "kind": "point",
-            "i": 55
+            "i": 54
           },
           {
             "t": "2025-09-29T00:00:00",
             "p": 22.200000762939453,
             "label": "H",
             "kind": "point",
-            "i": 80
+            "i": 79
           },
           {
             "t": "2025-11-12T00:00:00",
             "p": 21.3799991607666,
             "label": "RS",
             "kind": "point",
-            "i": 109
+            "i": 108
           },
           {
             "t": "2025-09-04T00:00:00",
             "p": 19.540000915527344,
             "label": "T1",
             "kind": "point",
-            "i": 63
+            "i": 62
           },
           {
             "t": "2025-10-17T00:00:00",
             "p": 18.06999969482422,
             "label": "T2",
             "kind": "point",
-            "i": 92
+            "i": 91
           }
         ],
         "lines": [
@@ -23643,12 +23646,12 @@
             "t2": "2025-10-17T00:00:00",
             "y2": 18.06999969482422,
             "label": "Neckline",
-            "i1": 63,
-            "i2": 92
+            "i1": 62,
+            "i2": 91
           }
         ],
-        "pattern_start_i": 55,
-        "pattern_end_i": 109,
+        "pattern_start_i": 54,
+        "pattern_end_i": 108,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -23849,35 +23852,35 @@
             "p": 1473.0,
             "label": "LS",
             "kind": "point",
-            "i": 14
+            "i": 13
           },
           {
             "t": "2025-07-22T00:00:00",
             "p": 1423.0,
             "label": "H",
             "kind": "point",
-            "i": 34
+            "i": 33
           },
           {
             "t": "2025-09-01T00:00:00",
             "p": 1479.0,
             "label": "RS",
             "kind": "point",
-            "i": 62
+            "i": 61
           },
           {
             "t": "2025-06-30T00:00:00",
             "p": 1555.5,
             "label": "R1",
             "kind": "point",
-            "i": 19
+            "i": 18
           },
           {
             "t": "2025-08-13T00:00:00",
             "p": 1556.0,
             "label": "R2",
             "kind": "point",
-            "i": 49
+            "i": 48
           }
         ],
         "lines": [
@@ -23887,12 +23890,12 @@
             "t2": "2025-08-13T00:00:00",
             "y2": 1556.0,
             "label": "Neckline",
-            "i1": 19,
-            "i2": 49
+            "i1": 18,
+            "i2": 48
           }
         ],
-        "pattern_start_i": 14,
-        "pattern_end_i": 62,
+        "pattern_start_i": 13,
+        "pattern_end_i": 61,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -24825,35 +24828,35 @@
             "p": 56.58000183105469,
             "label": "LS",
             "kind": "point",
-            "i": 120
+            "i": 119
           },
           {
             "t": "2026-01-06T00:00:00",
             "p": 50.529998779296875,
             "label": "H",
             "kind": "point",
-            "i": 143
+            "i": 142
           },
           {
             "t": "2026-02-12T00:00:00",
             "p": 54.439998626708984,
             "label": "RS",
             "kind": "point",
-            "i": 169
+            "i": 168
           },
           {
             "t": "2025-12-09T00:00:00",
             "p": 57.540000915527344,
             "label": "R1",
             "kind": "point",
-            "i": 126
+            "i": 125
           },
           {
             "t": "2026-01-29T00:00:00",
             "p": 57.470001220703125,
             "label": "R2",
             "kind": "point",
-            "i": 159
+            "i": 158
           }
         ],
         "lines": [
@@ -24863,12 +24866,12 @@
             "t2": "2026-01-29T00:00:00",
             "y2": 57.470001220703125,
             "label": "Neckline",
-            "i1": 126,
-            "i2": 159
+            "i1": 125,
+            "i2": 158
           }
         ],
-        "pattern_start_i": 120,
-        "pattern_end_i": 169,
+        "pattern_start_i": 119,
+        "pattern_end_i": 168,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -26035,7 +26038,7 @@
     "QAN.AX": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 10.768078382198626,
+      "level": 10.768078382198627,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -26045,35 +26048,35 @@
             "p": 11.100000381469727,
             "label": "LS",
             "kind": "point",
-            "i": 24
+            "i": 23
           },
           {
             "t": "2025-08-28T00:00:00",
             "p": 12.119999885559082,
             "label": "H",
             "kind": "point",
-            "i": 53
+            "i": 52
           },
           {
             "t": "2025-10-10T00:00:00",
             "p": 11.1899995803833,
             "label": "RS",
             "kind": "point",
-            "i": 84
+            "i": 83
           },
           {
             "t": "2025-07-24T00:00:00",
             "p": 10.829999923706055,
             "label": "T1",
             "kind": "point",
-            "i": 28
+            "i": 27
           },
           {
             "t": "2025-10-06T00:00:00",
             "p": 10.8100004196167,
             "label": "T2",
             "kind": "point",
-            "i": 80
+            "i": 79
           }
         ],
         "lines": [
@@ -26083,12 +26086,12 @@
             "t2": "2025-10-06T00:00:00",
             "y2": 10.8100004196167,
             "label": "Neckline",
-            "i1": 28,
-            "i2": 80
+            "i1": 27,
+            "i2": 79
           }
         ],
-        "pattern_start_i": 24,
-        "pattern_end_i": 84,
+        "pattern_start_i": 23,
+        "pattern_end_i": 83,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -26106,35 +26109,35 @@
             "p": 19.520000457763672,
             "label": "LS",
             "kind": "point",
-            "i": 89
+            "i": 88
           },
           {
             "t": "2025-12-05T00:00:00",
             "p": 18.829999923706055,
             "label": "H",
             "kind": "point",
-            "i": 124
+            "i": 123
           },
           {
             "t": "2026-01-21T00:00:00",
             "p": 19.579999923706055,
             "label": "RS",
             "kind": "point",
-            "i": 154
+            "i": 153
           },
           {
             "t": "2025-11-12T00:00:00",
             "p": 20.56999969482422,
             "label": "R1",
             "kind": "point",
-            "i": 107
+            "i": 106
           },
           {
             "t": "2025-12-23T00:00:00",
             "p": 20.100000381469727,
             "label": "R2",
             "kind": "point",
-            "i": 136
+            "i": 135
           }
         ],
         "lines": [
@@ -26144,12 +26147,12 @@
             "t2": "2025-12-23T00:00:00",
             "y2": 20.100000381469727,
             "label": "Neckline",
-            "i1": 107,
-            "i2": 136
+            "i1": 106,
+            "i2": 135
           }
         ],
-        "pattern_start_i": 89,
-        "pattern_end_i": 154,
+        "pattern_start_i": 88,
+        "pattern_end_i": 153,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -26645,7 +26648,7 @@
     "SOL.AX": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 14.786687215169266,
+      "level": 14.786687215169273,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -26655,35 +26658,35 @@
             "p": 42.650001525878906,
             "label": "LS",
             "kind": "point",
-            "i": 43
+            "i": 42
           },
           {
             "t": "2025-09-10T00:00:00",
             "p": 44.560001373291016,
             "label": "H",
             "kind": "point",
-            "i": 62
+            "i": 61
           },
           {
             "t": "2025-10-01T00:00:00",
             "p": 40.56999969482422,
             "label": "RS",
             "kind": "point",
-            "i": 77
+            "i": 76
           },
           {
             "t": "2025-09-03T00:00:00",
             "p": 41.91999816894531,
             "label": "T1",
             "kind": "point",
-            "i": 57
+            "i": 56
           },
           {
             "t": "2025-09-29T00:00:00",
             "p": 38.220001220703125,
             "label": "T2",
             "kind": "point",
-            "i": 75
+            "i": 74
           }
         ],
         "lines": [
@@ -26693,12 +26696,12 @@
             "t2": "2025-09-29T00:00:00",
             "y2": 38.220001220703125,
             "label": "Neckline",
-            "i1": 57,
-            "i2": 75
+            "i1": 56,
+            "i2": 74
           }
         ],
-        "pattern_start_i": 43,
-        "pattern_end_i": 77,
+        "pattern_start_i": 42,
+        "pattern_end_i": 76,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -26716,35 +26719,35 @@
             "p": 5.400000095367432,
             "label": "LS",
             "kind": "point",
-            "i": 101
+            "i": 100
           },
           {
             "t": "2026-01-06T00:00:00",
             "p": 5.010000228881836,
             "label": "H",
             "kind": "point",
-            "i": 143
+            "i": 142
           },
           {
             "t": "2026-02-25T00:00:00",
             "p": 5.400000095367432,
             "label": "RS",
             "kind": "point",
-            "i": 178
+            "i": 177
           },
           {
             "t": "2025-11-28T00:00:00",
             "p": 5.46999979019165,
             "label": "R1",
             "kind": "point",
-            "i": 119
+            "i": 118
           },
           {
             "t": "2026-02-19T00:00:00",
             "p": 5.579999923706055,
             "label": "R2",
             "kind": "point",
-            "i": 174
+            "i": 173
           }
         ],
         "lines": [
@@ -26754,12 +26757,12 @@
             "t2": "2026-02-19T00:00:00",
             "y2": 5.579999923706055,
             "label": "Neckline",
-            "i1": 119,
-            "i2": 174
+            "i1": 118,
+            "i2": 173
           }
         ],
-        "pattern_start_i": 101,
-        "pattern_end_i": 178,
+        "pattern_start_i": 100,
+        "pattern_end_i": 177,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -27265,35 +27268,35 @@
             "p": 86.05000305175781,
             "label": "LS",
             "kind": "point",
-            "i": 145
+            "i": 144
           },
           {
             "t": "2026-01-29T00:00:00",
             "p": 90.94999694824219,
             "label": "H",
             "kind": "point",
-            "i": 162
+            "i": 161
           },
           {
             "t": "2026-02-27T00:00:00",
             "p": 86.80000305175781,
             "label": "RS",
             "kind": "point",
-            "i": 180
+            "i": 179
           },
           {
             "t": "2026-01-22T00:00:00",
             "p": 82.5,
             "label": "T1",
             "kind": "point",
-            "i": 157
+            "i": 156
           },
           {
             "t": "2026-02-13T00:00:00",
             "p": 80.30000305175781,
             "label": "T2",
             "kind": "point",
-            "i": 173
+            "i": 172
           }
         ],
         "lines": [
@@ -27303,12 +27306,12 @@
             "t2": "2026-02-13T00:00:00",
             "y2": 80.30000305175781,
             "label": "Neckline",
-            "i1": 157,
-            "i2": 173
+            "i1": 156,
+            "i2": 172
           }
         ],
-        "pattern_start_i": 145,
-        "pattern_end_i": 180,
+        "pattern_start_i": 144,
+        "pattern_end_i": 179,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -29217,35 +29220,35 @@
             "p": 67.0,
             "label": "LS",
             "kind": "point",
-            "i": 108
+            "i": 107
           },
           {
             "t": "2025-12-09T00:00:00",
             "p": 71.0,
             "label": "H",
             "kind": "point",
-            "i": 129
+            "i": 128
           },
           {
             "t": "2026-01-14T00:00:00",
             "p": 69.0,
             "label": "RS",
             "kind": "point",
-            "i": 151
+            "i": 150
           },
           {
             "t": "2025-11-19T00:00:00",
             "p": 60.0,
             "label": "T1",
             "kind": "point",
-            "i": 115
+            "i": 114
           },
           {
             "t": "2025-12-22T00:00:00",
             "p": 64.0,
             "label": "T2",
             "kind": "point",
-            "i": 138
+            "i": 137
           }
         ],
         "lines": [
@@ -29255,12 +29258,12 @@
             "t2": "2025-12-22T00:00:00",
             "y2": 64.0,
             "label": "Neckline",
-            "i1": 115,
-            "i2": 138
+            "i1": 114,
+            "i2": 137
           }
         ],
-        "pattern_start_i": 108,
-        "pattern_end_i": 151,
+        "pattern_start_i": 107,
+        "pattern_end_i": 150,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -29390,7 +29393,7 @@
     "HINDPETRO.NS": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 479.54309239880797,
+      "level": 479.5430923988079,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -29400,35 +29403,35 @@
             "p": 429.8999938964844,
             "label": "LS",
             "kind": "point",
-            "i": 24
+            "i": 23
           },
           {
             "t": "2025-08-29T00:00:00",
             "p": 375.8999938964844,
             "label": "H",
             "kind": "point",
-            "i": 56
+            "i": 55
           },
           {
             "t": "2025-10-14T00:00:00",
             "p": 442.6499938964844,
             "label": "RS",
             "kind": "point",
-            "i": 87
+            "i": 86
           },
           {
             "t": "2025-07-16T00:00:00",
             "p": 446.1000061035156,
             "label": "R1",
             "kind": "point",
-            "i": 26
+            "i": 25
           },
           {
             "t": "2025-10-09T00:00:00",
             "p": 458.0,
             "label": "R2",
             "kind": "point",
-            "i": 84
+            "i": 83
           }
         ],
         "lines": [
@@ -29438,12 +29441,12 @@
             "t2": "2025-10-09T00:00:00",
             "y2": 458.0,
             "label": "Neckline",
-            "i1": 26,
-            "i2": 84
+            "i1": 25,
+            "i2": 83
           }
         ],
-        "pattern_start_i": 24,
-        "pattern_end_i": 87,
+        "pattern_start_i": 23,
+        "pattern_end_i": 86,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -29827,35 +29830,35 @@
             "p": 425.32000732421875,
             "label": "LS",
             "kind": "point",
-            "i": 17
+            "i": 16
           },
           {
             "t": "2025-09-02T00:00:00",
             "p": 388.5,
             "label": "H",
             "kind": "point",
-            "i": 58
+            "i": 57
           },
           {
             "t": "2025-11-13T00:00:00",
             "p": 415.0400085449219,
             "label": "RS",
             "kind": "point",
-            "i": 107
+            "i": 106
           },
           {
             "t": "2025-07-09T00:00:00",
             "p": 445.8599853515625,
             "label": "R1",
             "kind": "point",
-            "i": 21
+            "i": 20
           },
           {
             "t": "2025-10-23T00:00:00",
             "p": 445.1199951171875,
             "label": "R2",
             "kind": "point",
-            "i": 93
+            "i": 92
           }
         ],
         "lines": [
@@ -29865,12 +29868,12 @@
             "t2": "2025-10-23T00:00:00",
             "y2": 445.1199951171875,
             "label": "Neckline",
-            "i1": 21,
-            "i2": 93
+            "i1": 20,
+            "i2": 92
           }
         ],
-        "pattern_start_i": 17,
-        "pattern_end_i": 107,
+        "pattern_start_i": 16,
+        "pattern_end_i": 106,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -30244,7 +30247,7 @@
     "MOTHERSON.NS": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 131.5905583699544,
+      "level": 131.59055836995444,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -30254,35 +30257,35 @@
             "p": 100.5,
             "label": "LS",
             "kind": "point",
-            "i": 23
+            "i": 22
           },
           {
             "t": "2025-08-12T00:00:00",
             "p": 90.2699966430664,
             "label": "H",
             "kind": "point",
-            "i": 45
+            "i": 44
           },
           {
             "t": "2025-09-25T00:00:00",
             "p": 105.37999725341797,
             "label": "RS",
             "kind": "point",
-            "i": 75
+            "i": 74
           },
           {
             "t": "2025-07-15T00:00:00",
             "p": 104.00666809082031,
             "label": "R1",
             "kind": "point",
-            "i": 25
+            "i": 24
           },
           {
             "t": "2025-09-23T00:00:00",
             "p": 112.08000183105469,
             "label": "R2",
             "kind": "point",
-            "i": 73
+            "i": 72
           }
         ],
         "lines": [
@@ -30292,12 +30295,12 @@
             "t2": "2025-09-23T00:00:00",
             "y2": 112.08000183105469,
             "label": "Neckline",
-            "i1": 25,
-            "i2": 73
+            "i1": 24,
+            "i2": 72
           }
         ],
-        "pattern_start_i": 23,
-        "pattern_end_i": 75,
+        "pattern_start_i": 22,
+        "pattern_end_i": 74,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -30437,35 +30440,35 @@
             "p": 393.6000061035156,
             "label": "LS",
             "kind": "point",
-            "i": 94
+            "i": 93
           },
           {
             "t": "2025-12-18T00:00:00",
             "p": 335.04998779296875,
             "label": "H",
             "kind": "point",
-            "i": 132
+            "i": 131
           },
           {
             "t": "2026-02-13T00:00:00",
             "p": 400.54998779296875,
             "label": "RS",
             "kind": "point",
-            "i": 171
+            "i": 170
           },
           {
             "t": "2025-10-29T00:00:00",
             "p": 408.79998779296875,
             "label": "R1",
             "kind": "point",
-            "i": 97
+            "i": 96
           },
           {
             "t": "2026-02-06T00:00:00",
             "p": 419.20001220703125,
             "label": "R2",
             "kind": "point",
-            "i": 166
+            "i": 165
           }
         ],
         "lines": [
@@ -30475,12 +30478,12 @@
             "t2": "2026-02-06T00:00:00",
             "y2": 419.20001220703125,
             "label": "Neckline",
-            "i1": 97,
-            "i2": 166
+            "i1": 96,
+            "i2": 165
           }
         ],
-        "pattern_start_i": 94,
-        "pattern_end_i": 171,
+        "pattern_start_i": 93,
+        "pattern_end_i": 170,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -30559,35 +30562,35 @@
             "p": 1566.300048828125,
             "label": "LS",
             "kind": "point",
-            "i": 8
+            "i": 7
           },
           {
             "t": "2025-08-08T00:00:00",
             "p": 1417.300048828125,
             "label": "H",
             "kind": "point",
-            "i": 44
+            "i": 43
           },
           {
             "t": "2025-09-26T00:00:00",
             "p": 1540.4000244140625,
             "label": "RS",
             "kind": "point",
-            "i": 77
+            "i": 76
           },
           {
             "t": "2025-06-26T00:00:00",
             "p": 1627.4000244140625,
             "label": "R1",
             "kind": "point",
-            "i": 13
+            "i": 12
           },
           {
             "t": "2025-09-22T00:00:00",
             "p": 1638.300048828125,
             "label": "R2",
             "kind": "point",
-            "i": 73
+            "i": 72
           }
         ],
         "lines": [
@@ -30597,12 +30600,12 @@
             "t2": "2025-09-22T00:00:00",
             "y2": 1638.300048828125,
             "label": "Neckline",
-            "i1": 13,
-            "i2": 73
+            "i1": 12,
+            "i2": 72
           }
         ],
-        "pattern_start_i": 8,
-        "pattern_end_i": 77,
+        "pattern_start_i": 7,
+        "pattern_end_i": 76,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -30681,35 +30684,35 @@
             "p": 109.76000213623047,
             "label": "LS",
             "kind": "point",
-            "i": 22
+            "i": 21
           },
           {
             "t": "2025-08-29T00:00:00",
             "p": 100.87999725341797,
             "label": "H",
             "kind": "point",
-            "i": 56
+            "i": 55
           },
           {
             "t": "2025-10-17T00:00:00",
             "p": 113.69999694824219,
             "label": "RS",
             "kind": "point",
-            "i": 90
+            "i": 89
           },
           {
             "t": "2025-07-16T00:00:00",
             "p": 114.97000122070312,
             "label": "R1",
             "kind": "point",
-            "i": 26
+            "i": 25
           },
           {
             "t": "2025-10-10T00:00:00",
             "p": 117.23999786376953,
             "label": "R2",
             "kind": "point",
-            "i": 85
+            "i": 84
           }
         ],
         "lines": [
@@ -30719,12 +30722,12 @@
             "t2": "2025-10-10T00:00:00",
             "y2": 117.23999786376953,
             "label": "Neckline",
-            "i1": 26,
-            "i2": 85
+            "i1": 25,
+            "i2": 84
           }
         ],
-        "pattern_start_i": 22,
-        "pattern_end_i": 90,
+        "pattern_start_i": 21,
+        "pattern_end_i": 89,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -31830,7 +31833,7 @@
     "AKBNK.IS": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 48.012511253356934,
+      "level": 47.84844887256622,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -31840,35 +31843,35 @@
             "p": 61.0,
             "label": "LS",
             "kind": "point",
-            "i": 62
+            "i": 61
           },
           {
             "t": "2025-10-14T00:00:00",
             "p": 53.5,
             "label": "H",
             "kind": "point",
-            "i": 85
+            "i": 84
           },
           {
             "t": "2025-11-11T00:00:00",
             "p": 58.29999923706055,
             "label": "RS",
             "kind": "point",
-            "i": 104
+            "i": 103
           },
           {
             "t": "2025-09-22T00:00:00",
             "p": 67.69999694824219,
             "label": "R1",
             "kind": "point",
-            "i": 69
+            "i": 68
           },
           {
             "t": "2025-11-06T00:00:00",
             "p": 62.45000076293945,
             "label": "R2",
             "kind": "point",
-            "i": 101
+            "i": 100
           }
         ],
         "lines": [
@@ -31878,15 +31881,15 @@
             "t2": "2025-11-06T00:00:00",
             "y2": 62.45000076293945,
             "label": "Neckline",
-            "i1": 69,
-            "i2": 101
+            "i1": 68,
+            "i2": 100
           }
         ],
-        "pattern_start_i": 62,
-        "pattern_end_i": 104,
+        "pattern_start_i": 61,
+        "pattern_end_i": 103,
         "trigger_line_type": "neckline"
       },
-      "asof": "2026-03-11T00:00:00"
+      "asof": "2026-03-12T00:00:00"
     },
     "ANSGR.IS": {
       "pattern": "IHS",
@@ -33477,7 +33480,7 @@
     "0960.HK": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 9.38999989453484,
+      "level": 9.389999894534839,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -33487,35 +33490,35 @@
             "p": 9.720000267028809,
             "label": "LS",
             "kind": "point",
-            "i": 121
+            "i": 120
           },
           {
             "t": "2025-12-30T00:00:00",
             "p": 8.529999732971191,
             "label": "H",
             "kind": "point",
-            "i": 141
+            "i": 140
           },
           {
             "t": "2026-01-26T00:00:00",
             "p": 9.479999542236328,
             "label": "RS",
             "kind": "point",
-            "i": 159
+            "i": 158
           },
           {
             "t": "2025-12-02T00:00:00",
             "p": 10.050000190734863,
             "label": "R1",
             "kind": "point",
-            "i": 123
+            "i": 122
           },
           {
             "t": "2026-01-22T00:00:00",
             "p": 9.710000038146973,
             "label": "R2",
             "kind": "point",
-            "i": 157
+            "i": 156
           }
         ],
         "lines": [
@@ -33525,12 +33528,12 @@
             "t2": "2026-01-22T00:00:00",
             "y2": 9.710000038146973,
             "label": "Neckline",
-            "i1": 123,
-            "i2": 157
+            "i1": 122,
+            "i2": 156
           }
         ],
-        "pattern_start_i": 121,
-        "pattern_end_i": 159,
+        "pattern_start_i": 120,
+        "pattern_end_i": 158,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -33548,35 +33551,35 @@
             "p": 9.239999771118164,
             "label": "LS",
             "kind": "point",
-            "i": 140
+            "i": 139
           },
           {
             "t": "2026-01-22T00:00:00",
             "p": 8.640000343322754,
             "label": "H",
             "kind": "point",
-            "i": 157
+            "i": 156
           },
           {
             "t": "2026-02-12T00:00:00",
             "p": 9.0,
             "label": "RS",
             "kind": "point",
-            "i": 172
+            "i": 171
           },
           {
             "t": "2026-01-02T00:00:00",
             "p": 9.550000190734863,
             "label": "R1",
             "kind": "point",
-            "i": 143
+            "i": 142
           },
           {
             "t": "2026-02-11T00:00:00",
             "p": 9.430000305175781,
             "label": "R2",
             "kind": "point",
-            "i": 171
+            "i": 170
           }
         ],
         "lines": [
@@ -33586,12 +33589,12 @@
             "t2": "2026-02-11T00:00:00",
             "y2": 9.430000305175781,
             "label": "Neckline",
-            "i1": 143,
-            "i2": 171
+            "i1": 142,
+            "i2": 170
           }
         ],
-        "pattern_start_i": 140,
-        "pattern_end_i": 172,
+        "pattern_start_i": 139,
+        "pattern_end_i": 171,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -33731,35 +33734,35 @@
             "p": 22.899999618530273,
             "label": "LS",
             "kind": "point",
-            "i": 93
+            "i": 92
           },
           {
             "t": "2025-11-19T00:00:00",
             "p": 20.399999618530273,
             "label": "H",
             "kind": "point",
-            "i": 118
+            "i": 117
           },
           {
             "t": "2025-12-18T00:00:00",
             "p": 22.200000762939453,
             "label": "RS",
             "kind": "point",
-            "i": 139
+            "i": 138
           },
           {
             "t": "2025-10-17T00:00:00",
             "p": 23.350000381469727,
             "label": "R1",
             "kind": "point",
-            "i": 96
+            "i": 95
           },
           {
             "t": "2025-12-04T00:00:00",
             "p": 22.950000762939453,
             "label": "R2",
             "kind": "point",
-            "i": 129
+            "i": 128
           }
         ],
         "lines": [
@@ -33769,12 +33772,12 @@
             "t2": "2025-12-04T00:00:00",
             "y2": 22.950000762939453,
             "label": "Neckline",
-            "i1": 96,
-            "i2": 129
+            "i1": 95,
+            "i2": 128
           }
         ],
-        "pattern_start_i": 93,
-        "pattern_end_i": 139,
+        "pattern_start_i": 92,
+        "pattern_end_i": 138,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -33914,35 +33917,35 @@
             "p": 5.630000114440918,
             "label": "LS",
             "kind": "point",
-            "i": 67
+            "i": 66
           },
           {
             "t": "2025-11-12T00:00:00",
             "p": 6.349999904632568,
             "label": "H",
             "kind": "point",
-            "i": 109
+            "i": 108
           },
           {
             "t": "2026-01-02T00:00:00",
             "p": 5.829999923706055,
             "label": "RS",
             "kind": "point",
-            "i": 143
+            "i": 142
           },
           {
             "t": "2025-10-08T00:00:00",
             "p": 5.090000152587891,
             "label": "T1",
             "kind": "point",
-            "i": 85
+            "i": 84
           },
           {
             "t": "2025-12-16T00:00:00",
             "p": 5.320000171661377,
             "label": "T2",
             "kind": "point",
-            "i": 133
+            "i": 132
           }
         ],
         "lines": [
@@ -33952,12 +33955,12 @@
             "t2": "2025-12-16T00:00:00",
             "y2": 5.320000171661377,
             "label": "Neckline",
-            "i1": 85,
-            "i2": 133
+            "i1": 84,
+            "i2": 132
           }
         ],
-        "pattern_start_i": 67,
-        "pattern_end_i": 143,
+        "pattern_start_i": 66,
+        "pattern_end_i": 142,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -34158,35 +34161,35 @@
             "p": 62.79999923706055,
             "label": "LS",
             "kind": "point",
-            "i": 146
+            "i": 145
           },
           {
             "t": "2026-01-29T00:00:00",
             "p": 65.1500015258789,
             "label": "H",
             "kind": "point",
-            "i": 162
+            "i": 161
           },
           {
             "t": "2026-02-23T00:00:00",
             "p": 60.5,
             "label": "RS",
             "kind": "point",
-            "i": 176
+            "i": 175
           },
           {
             "t": "2026-01-23T00:00:00",
             "p": 58.400001525878906,
             "label": "T1",
             "kind": "point",
-            "i": 158
+            "i": 157
           },
           {
             "t": "2026-02-13T00:00:00",
             "p": 58.349998474121094,
             "label": "T2",
             "kind": "point",
-            "i": 173
+            "i": 172
           }
         ],
         "lines": [
@@ -34196,12 +34199,12 @@
             "t2": "2026-02-13T00:00:00",
             "y2": 58.349998474121094,
             "label": "Neckline",
-            "i1": 158,
-            "i2": 173
+            "i1": 157,
+            "i2": 172
           }
         ],
-        "pattern_start_i": 146,
-        "pattern_end_i": 176,
+        "pattern_start_i": 145,
+        "pattern_end_i": 175,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -34585,35 +34588,35 @@
             "p": 19.149999618530273,
             "label": "LS",
             "kind": "point",
-            "i": 73
+            "i": 72
           },
           {
             "t": "2025-11-21T00:00:00",
             "p": 17.649999618530273,
             "label": "H",
             "kind": "point",
-            "i": 120
+            "i": 119
           },
           {
             "t": "2026-01-21T00:00:00",
             "p": 18.950000762939453,
             "label": "RS",
             "kind": "point",
-            "i": 161
+            "i": 160
           },
           {
             "t": "2025-09-25T00:00:00",
             "p": 19.649999618530273,
             "label": "R1",
             "kind": "point",
-            "i": 83
+            "i": 82
           },
           {
             "t": "2026-01-19T00:00:00",
             "p": 19.649999618530273,
             "label": "R2",
             "kind": "point",
-            "i": 159
+            "i": 158
           }
         ],
         "lines": [
@@ -34623,12 +34626,12 @@
             "t2": "2026-01-19T00:00:00",
             "y2": 19.649999618530273,
             "label": "Neckline",
-            "i1": 83,
-            "i2": 159
+            "i1": 82,
+            "i2": 158
           }
         ],
-        "pattern_start_i": 73,
-        "pattern_end_i": 161,
+        "pattern_start_i": 72,
+        "pattern_end_i": 160,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -34768,35 +34771,35 @@
             "p": 94.6500015258789,
             "label": "LS",
             "kind": "point",
-            "i": 32
+            "i": 31
           },
           {
             "t": "2025-08-25T00:00:00",
             "p": 104.4000015258789,
             "label": "H",
             "kind": "point",
-            "i": 55
+            "i": 54
           },
           {
             "t": "2025-09-19T00:00:00",
             "p": 96.80000305175781,
             "label": "RS",
             "kind": "point",
-            "i": 74
+            "i": 73
           },
           {
             "t": "2025-08-08T00:00:00",
             "p": 88.9000015258789,
             "label": "T1",
             "kind": "point",
-            "i": 44
+            "i": 43
           },
           {
             "t": "2025-09-03T00:00:00",
             "p": 93.0999984741211,
             "label": "T2",
             "kind": "point",
-            "i": 62
+            "i": 61
           }
         ],
         "lines": [
@@ -34806,12 +34809,12 @@
             "t2": "2025-09-03T00:00:00",
             "y2": 93.0999984741211,
             "label": "Neckline",
-            "i1": 44,
-            "i2": 62
+            "i1": 43,
+            "i2": 61
           }
         ],
-        "pattern_start_i": 32,
-        "pattern_end_i": 74,
+        "pattern_start_i": 31,
+        "pattern_end_i": 73,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -34941,7 +34944,7 @@
     "2269.HK": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 28.279046739850727,
+      "level": 28.27904673985072,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -34951,35 +34954,35 @@
             "p": 38.97999954223633,
             "label": "LS",
             "kind": "point",
-            "i": 65
+            "i": 64
           },
           {
             "t": "2025-10-03T00:00:00",
             "p": 42.18000030517578,
             "label": "H",
             "kind": "point",
-            "i": 83
+            "i": 82
           },
           {
             "t": "2025-10-27T00:00:00",
             "p": 37.279998779296875,
             "label": "RS",
             "kind": "point",
-            "i": 98
+            "i": 97
           },
           {
             "t": "2025-09-11T00:00:00",
             "p": 36.0,
             "label": "T1",
             "kind": "point",
-            "i": 68
+            "i": 67
           },
           {
             "t": "2025-10-14T00:00:00",
             "p": 34.65999984741211,
             "label": "T2",
             "kind": "point",
-            "i": 89
+            "i": 88
           }
         ],
         "lines": [
@@ -34989,12 +34992,12 @@
             "t2": "2025-10-14T00:00:00",
             "y2": 34.65999984741211,
             "label": "Neckline",
-            "i1": 68,
-            "i2": 89
+            "i1": 67,
+            "i2": 88
           }
         ],
-        "pattern_start_i": 65,
-        "pattern_end_i": 98,
+        "pattern_start_i": 64,
+        "pattern_end_i": 97,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -35012,35 +35015,35 @@
             "p": 14.880000114440918,
             "label": "LS",
             "kind": "point",
-            "i": 62
+            "i": 61
           },
           {
             "t": "2025-11-04T00:00:00",
             "p": 14.079999923706055,
             "label": "H",
             "kind": "point",
-            "i": 103
+            "i": 102
           },
           {
             "t": "2025-12-29T00:00:00",
             "p": 14.829999923706055,
             "label": "RS",
             "kind": "point",
-            "i": 140
+            "i": 139
           },
           {
             "t": "2025-09-17T00:00:00",
             "p": 15.420000076293945,
             "label": "R1",
             "kind": "point",
-            "i": 72
+            "i": 71
           },
           {
             "t": "2025-12-23T00:00:00",
             "p": 15.359999656677246,
             "label": "R2",
             "kind": "point",
-            "i": 138
+            "i": 137
           }
         ],
         "lines": [
@@ -35050,12 +35053,12 @@
             "t2": "2025-12-23T00:00:00",
             "y2": 15.359999656677246,
             "label": "Neckline",
-            "i1": 72,
-            "i2": 138
+            "i1": 71,
+            "i2": 137
           }
         ],
-        "pattern_start_i": 62,
-        "pattern_end_i": 140,
+        "pattern_start_i": 61,
+        "pattern_end_i": 139,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -35124,7 +35127,7 @@
     "2338.HK": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 17.471580756338017,
+      "level": 17.47158075633802,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -35134,35 +35137,35 @@
             "p": 14.800000190734863,
             "label": "LS",
             "kind": "point",
-            "i": 65
+            "i": 64
           },
           {
             "t": "2025-09-26T00:00:00",
             "p": 13.800000190734863,
             "label": "H",
             "kind": "point",
-            "i": 79
+            "i": 78
           },
           {
             "t": "2025-10-28T00:00:00",
             "p": 14.979999542236328,
             "label": "RS",
             "kind": "point",
-            "i": 99
+            "i": 98
           },
           {
             "t": "2025-09-17T00:00:00",
             "p": 15.069999694824219,
             "label": "R1",
             "kind": "point",
-            "i": 72
+            "i": 71
           },
           {
             "t": "2025-10-16T00:00:00",
             "p": 15.460000038146973,
             "label": "R2",
             "kind": "point",
-            "i": 91
+            "i": 90
           }
         ],
         "lines": [
@@ -35172,12 +35175,12 @@
             "t2": "2025-10-16T00:00:00",
             "y2": 15.460000038146973,
             "label": "Neckline",
-            "i1": 72,
-            "i2": 91
+            "i1": 71,
+            "i2": 90
           }
         ],
-        "pattern_start_i": 65,
-        "pattern_end_i": 99,
+        "pattern_start_i": 64,
+        "pattern_end_i": 98,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -35744,35 +35747,35 @@
             "p": 80.5999984741211,
             "label": "LS",
             "kind": "point",
-            "i": 66
+            "i": 65
           },
           {
             "t": "2025-10-02T00:00:00",
             "p": 73.30000305175781,
             "label": "H",
             "kind": "point",
-            "i": 87
+            "i": 86
           },
           {
             "t": "2025-11-11T00:00:00",
             "p": 79.0999984741211,
             "label": "RS",
             "kind": "point",
-            "i": 112
+            "i": 111
           },
           {
             "t": "2025-09-04T00:00:00",
             "p": 82.4000015258789,
             "label": "R1",
             "kind": "point",
-            "i": 68
+            "i": 67
           },
           {
             "t": "2025-10-30T00:00:00",
             "p": 87.4000015258789,
             "label": "R2",
             "kind": "point",
-            "i": 104
+            "i": 103
           }
         ],
         "lines": [
@@ -35782,12 +35785,12 @@
             "t2": "2025-10-30T00:00:00",
             "y2": 87.4000015258789,
             "label": "Neckline",
-            "i1": 68,
-            "i2": 104
+            "i1": 67,
+            "i2": 103
           }
         ],
-        "pattern_start_i": 66,
-        "pattern_end_i": 112,
+        "pattern_start_i": 65,
+        "pattern_end_i": 111,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -35805,35 +35808,35 @@
             "p": 71.69999694824219,
             "label": "LS",
             "kind": "point",
-            "i": 109
+            "i": 108
           },
           {
             "t": "2025-12-05T00:00:00",
             "p": 73.80000305175781,
             "label": "H",
             "kind": "point",
-            "i": 126
+            "i": 125
           },
           {
             "t": "2026-01-02T00:00:00",
             "p": 70.19999694824219,
             "label": "RS",
             "kind": "point",
-            "i": 143
+            "i": 142
           },
           {
             "t": "2025-11-24T00:00:00",
             "p": 67.80000305175781,
             "label": "T1",
             "kind": "point",
-            "i": 117
+            "i": 116
           },
           {
             "t": "2025-12-19T00:00:00",
             "p": 68.69999694824219,
             "label": "T2",
             "kind": "point",
-            "i": 136
+            "i": 135
           }
         ],
         "lines": [
@@ -35843,12 +35846,12 @@
             "t2": "2025-12-19T00:00:00",
             "y2": 68.69999694824219,
             "label": "Neckline",
-            "i1": 117,
-            "i2": 136
+            "i1": 116,
+            "i2": 135
           }
         ],
-        "pattern_start_i": 109,
-        "pattern_end_i": 143,
+        "pattern_start_i": 108,
+        "pattern_end_i": 142,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -35927,35 +35930,35 @@
             "p": 94.0,
             "label": "LS",
             "kind": "point",
-            "i": 114
+            "i": 113
           },
           {
             "t": "2025-12-29T00:00:00",
             "p": 98.19999694824219,
             "label": "H",
             "kind": "point",
-            "i": 145
+            "i": 144
           },
           {
             "t": "2026-02-23T00:00:00",
             "p": 95.69999694824219,
             "label": "RS",
             "kind": "point",
-            "i": 177
+            "i": 176
           },
           {
             "t": "2025-11-19T00:00:00",
             "p": 88.0999984741211,
             "label": "T1",
             "kind": "point",
-            "i": 118
+            "i": 117
           },
           {
             "t": "2026-02-02T00:00:00",
             "p": 90.5,
             "label": "T2",
             "kind": "point",
-            "i": 169
+            "i": 168
           }
         ],
         "lines": [
@@ -35965,12 +35968,12 @@
             "t2": "2026-02-02T00:00:00",
             "y2": 90.5,
             "label": "Neckline",
-            "i1": 118,
-            "i2": 169
+            "i1": 117,
+            "i2": 168
           }
         ],
-        "pattern_start_i": 114,
-        "pattern_end_i": 177,
+        "pattern_start_i": 113,
+        "pattern_end_i": 176,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -36293,35 +36296,35 @@
             "p": 7.110000133514404,
             "label": "LS",
             "kind": "point",
-            "i": 113
+            "i": 112
           },
           {
             "t": "2025-12-29T00:00:00",
             "p": 6.389999866485596,
             "label": "H",
             "kind": "point",
-            "i": 140
+            "i": 139
           },
           {
             "t": "2026-02-16T00:00:00",
             "p": 6.900000095367432,
             "label": "RS",
             "kind": "point",
-            "i": 174
+            "i": 173
           },
           {
             "t": "2025-11-25T00:00:00",
             "p": 7.25,
             "label": "R1",
             "kind": "point",
-            "i": 118
+            "i": 117
           },
           {
             "t": "2026-02-10T00:00:00",
             "p": 7.03000020980835,
             "label": "R2",
             "kind": "point",
-            "i": 170
+            "i": 169
           }
         ],
         "lines": [
@@ -36331,12 +36334,12 @@
             "t2": "2026-02-10T00:00:00",
             "y2": 7.03000020980835,
             "label": "Neckline",
-            "i1": 118,
-            "i2": 170
+            "i1": 117,
+            "i2": 169
           }
         ],
-        "pattern_start_i": 113,
-        "pattern_end_i": 174,
+        "pattern_start_i": 112,
+        "pattern_end_i": 173,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -36405,7 +36408,7 @@
     "3968.HK": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 51.30262997275905,
+      "level": 51.30262997275904,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -36415,35 +36418,35 @@
             "p": 50.849998474121094,
             "label": "LS",
             "kind": "point",
-            "i": 26
+            "i": 25
           },
           {
             "t": "2025-09-25T00:00:00",
             "p": 45.439998626708984,
             "label": "H",
             "kind": "point",
-            "i": 78
+            "i": 77
           },
           {
             "t": "2025-11-21T00:00:00",
             "p": 51.29999923706055,
             "label": "RS",
             "kind": "point",
-            "i": 116
+            "i": 115
           },
           {
             "t": "2025-07-24T00:00:00",
             "p": 53.150001525878906,
             "label": "R1",
             "kind": "point",
-            "i": 33
+            "i": 32
           },
           {
             "t": "2025-11-12T00:00:00",
             "p": 52.25,
             "label": "R2",
             "kind": "point",
-            "i": 109
+            "i": 108
           }
         ],
         "lines": [
@@ -36453,12 +36456,12 @@
             "t2": "2025-11-12T00:00:00",
             "y2": 52.25,
             "label": "Neckline",
-            "i1": 33,
-            "i2": 109
+            "i1": 32,
+            "i2": 108
           }
         ],
-        "pattern_start_i": 26,
-        "pattern_end_i": 116,
+        "pattern_start_i": 25,
+        "pattern_end_i": 115,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -38794,35 +38797,35 @@
             "p": 13.859999656677246,
             "label": "LS",
             "kind": "point",
-            "i": 39
+            "i": 38
           },
           {
             "t": "2025-09-25T00:00:00",
             "p": 12.550000190734863,
             "label": "H",
             "kind": "point",
-            "i": 78
+            "i": 77
           },
           {
             "t": "2025-12-08T00:00:00",
             "p": 13.600000381469727,
             "label": "RS",
             "kind": "point",
-            "i": 127
+            "i": 126
           },
           {
             "t": "2025-08-25T00:00:00",
             "p": 14.880000114440918,
             "label": "R1",
             "kind": "point",
-            "i": 55
+            "i": 54
           },
           {
             "t": "2025-12-02T00:00:00",
             "p": 14.140000343322754,
             "label": "R2",
             "kind": "point",
-            "i": 123
+            "i": 122
           }
         ],
         "lines": [
@@ -38832,12 +38835,12 @@
             "t2": "2025-12-02T00:00:00",
             "y2": 14.140000343322754,
             "label": "Neckline",
-            "i1": 55,
-            "i2": 123
+            "i1": 54,
+            "i2": 122
           }
         ],
-        "pattern_start_i": 39,
-        "pattern_end_i": 127,
+        "pattern_start_i": 38,
+        "pattern_end_i": 126,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -39221,35 +39224,35 @@
             "p": 62.70000076293945,
             "label": "LS",
             "kind": "point",
-            "i": 34
+            "i": 33
           },
           {
             "t": "2025-08-20T00:00:00",
             "p": 73.5,
             "label": "H",
             "kind": "point",
-            "i": 52
+            "i": 51
           },
           {
             "t": "2025-09-09T00:00:00",
             "p": 64.5999984741211,
             "label": "RS",
             "kind": "point",
-            "i": 66
+            "i": 65
           },
           {
             "t": "2025-08-01T00:00:00",
             "p": 58.400001525878906,
             "label": "T1",
             "kind": "point",
-            "i": 39
+            "i": 38
           },
           {
             "t": "2025-09-04T00:00:00",
             "p": 61.400001525878906,
             "label": "T2",
             "kind": "point",
-            "i": 63
+            "i": 62
           }
         ],
         "lines": [
@@ -39259,12 +39262,12 @@
             "t2": "2025-09-04T00:00:00",
             "y2": 61.400001525878906,
             "label": "Neckline",
-            "i1": 39,
-            "i2": 63
+            "i1": 38,
+            "i2": 62
           }
         ],
-        "pattern_start_i": 34,
-        "pattern_end_i": 66,
+        "pattern_start_i": 33,
+        "pattern_end_i": 65,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -39577,7 +39580,7 @@
     "9987.HK": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 387.65673463736005,
+      "level": 387.6567346373601,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -39587,35 +39590,35 @@
             "p": 348.6000061035156,
             "label": "LS",
             "kind": "point",
-            "i": 42
+            "i": 41
           },
           {
             "t": "2025-10-08T00:00:00",
             "p": 327.3999938964844,
             "label": "H",
             "kind": "point",
-            "i": 85
+            "i": 84
           },
           {
             "t": "2025-12-09T00:00:00",
             "p": 357.0,
             "label": "RS",
             "kind": "point",
-            "i": 128
+            "i": 127
           },
           {
             "t": "2025-08-26T00:00:00",
             "p": 368.6000061035156,
             "label": "R1",
             "kind": "point",
-            "i": 56
+            "i": 55
           },
           {
             "t": "2025-12-02T00:00:00",
             "p": 378.20001220703125,
             "label": "R2",
             "kind": "point",
-            "i": 123
+            "i": 122
           }
         ],
         "lines": [
@@ -39625,12 +39628,12 @@
             "t2": "2025-12-02T00:00:00",
             "y2": 378.20001220703125,
             "label": "Neckline",
-            "i1": 56,
-            "i2": 123
+            "i1": 55,
+            "i2": 122
           }
         ],
-        "pattern_start_i": 42,
-        "pattern_end_i": 128,
+        "pattern_start_i": 41,
+        "pattern_end_i": 127,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -53678,35 +53681,35 @@
             "p": 34.099998474121094,
             "label": "LS",
             "kind": "point",
-            "i": 101
+            "i": 100
           },
           {
             "t": "2025-12-31T00:00:00",
             "p": 31.600000381469727,
             "label": "H",
             "kind": "point",
-            "i": 142
+            "i": 141
           },
           {
             "t": "2026-03-04T00:00:00",
             "p": 34.81999969482422,
             "label": "RS",
             "kind": "point",
-            "i": 183
+            "i": 182
           },
           {
             "t": "2025-12-04T00:00:00",
             "p": 36.47999954223633,
             "label": "R1",
             "kind": "point",
-            "i": 125
+            "i": 124
           },
           {
             "t": "2026-02-11T00:00:00",
             "p": 36.08000183105469,
             "label": "R2",
             "kind": "point",
-            "i": 171
+            "i": 170
           }
         ],
         "lines": [
@@ -53716,12 +53719,12 @@
             "t2": "2026-02-11T00:00:00",
             "y2": 36.08000183105469,
             "label": "Neckline",
-            "i1": 125,
-            "i2": 171
+            "i1": 124,
+            "i2": 170
           }
         ],
-        "pattern_start_i": 101,
-        "pattern_end_i": 183,
+        "pattern_start_i": 100,
+        "pattern_end_i": 182,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -53739,35 +53742,35 @@
             "p": 318.5,
             "label": "LS",
             "kind": "point",
-            "i": 93
+            "i": 92
           },
           {
             "t": "2025-12-17T00:00:00",
             "p": 273.5,
             "label": "H",
             "kind": "point",
-            "i": 138
+            "i": 137
           },
           {
             "t": "2026-03-04T00:00:00",
             "p": 311.5,
             "label": "RS",
             "kind": "point",
-            "i": 183
+            "i": 182
           },
           {
             "t": "2025-10-29T00:00:00",
             "p": 330.5,
             "label": "R1",
             "kind": "point",
-            "i": 103
+            "i": 102
           },
           {
             "t": "2026-02-26T00:00:00",
             "p": 336.5,
             "label": "R2",
             "kind": "point",
-            "i": 180
+            "i": 179
           }
         ],
         "lines": [
@@ -53777,12 +53780,12 @@
             "t2": "2026-02-26T00:00:00",
             "y2": 336.5,
             "label": "Neckline",
-            "i1": 103,
-            "i2": 180
+            "i1": 102,
+            "i2": 179
           }
         ],
-        "pattern_start_i": 93,
-        "pattern_end_i": 183,
+        "pattern_start_i": 92,
+        "pattern_end_i": 182,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -53790,7 +53793,7 @@
     "2912.TW": {
       "pattern": "HS_TOP",
       "direction": "BREAKDOWN",
-      "level": 248.86363636363635,
+      "level": 248.8636363636364,
       "meta": {
         "annot_type": "hs",
         "variant": "top",
@@ -53800,35 +53803,35 @@
             "p": 262.0,
             "label": "LS",
             "kind": "point",
-            "i": 11
+            "i": 10
           },
           {
             "t": "2025-07-14T00:00:00",
             "p": 268.5,
             "label": "H",
             "kind": "point",
-            "i": 31
+            "i": 30
           },
           {
             "t": "2025-08-21T00:00:00",
             "p": 257.5,
             "label": "RS",
             "kind": "point",
-            "i": 58
+            "i": 57
           },
           {
             "t": "2025-06-30T00:00:00",
             "p": 256.5,
             "label": "T1",
             "kind": "point",
-            "i": 21
+            "i": 20
           },
           {
             "t": "2025-08-15T00:00:00",
             "p": 255.0,
             "label": "T2",
             "kind": "point",
-            "i": 54
+            "i": 53
           }
         ],
         "lines": [
@@ -53838,12 +53841,12 @@
             "t2": "2025-08-15T00:00:00",
             "y2": 255.0,
             "label": "Neckline",
-            "i1": 21,
-            "i2": 54
+            "i1": 20,
+            "i2": 53
           }
         ],
-        "pattern_start_i": 11,
-        "pattern_end_i": 58,
+        "pattern_start_i": 10,
+        "pattern_end_i": 57,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -53922,35 +53925,35 @@
             "p": 9.260000228881836,
             "label": "LS",
             "kind": "point",
-            "i": 116
+            "i": 115
           },
           {
             "t": "2026-01-14T00:00:00",
             "p": 8.739999771118164,
             "label": "H",
             "kind": "point",
-            "i": 151
+            "i": 150
           },
           {
             "t": "2026-03-04T00:00:00",
             "p": 9.229999542236328,
             "label": "RS",
             "kind": "point",
-            "i": 183
+            "i": 182
           },
           {
             "t": "2025-12-02T00:00:00",
             "p": 9.800000190734863,
             "label": "R1",
             "kind": "point",
-            "i": 123
+            "i": 122
           },
           {
             "t": "2026-02-25T00:00:00",
             "p": 9.819999694824219,
             "label": "R2",
             "kind": "point",
-            "i": 178
+            "i": 177
           }
         ],
         "lines": [
@@ -53960,12 +53963,12 @@
             "t2": "2026-02-25T00:00:00",
             "y2": 9.819999694824219,
             "label": "Neckline",
-            "i1": 123,
-            "i2": 178
+            "i1": 122,
+            "i2": 177
           }
         ],
-        "pattern_start_i": 116,
-        "pattern_end_i": 183,
+        "pattern_start_i": 115,
+        "pattern_end_i": 182,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -54339,7 +54342,7 @@
     "0823.HK": {
       "pattern": "IHS",
       "direction": "BREAKOUT",
-      "level": 39.0206874321247,
+      "level": 39.020687432124696,
       "meta": {
         "annot_type": "hs",
         "variant": "inverse",
@@ -54349,35 +54352,35 @@
             "p": 35.900001525878906,
             "label": "LS",
             "kind": "point",
-            "i": 116
+            "i": 115
           },
           {
             "t": "2026-01-06T00:00:00",
             "p": 34.20000076293945,
             "label": "H",
             "kind": "point",
-            "i": 145
+            "i": 144
           },
           {
             "t": "2026-03-04T00:00:00",
             "p": 37.47999954223633,
             "label": "RS",
             "kind": "point",
-            "i": 183
+            "i": 182
           },
           {
             "t": "2025-12-01T00:00:00",
             "p": 37.08000183105469,
             "label": "R1",
             "kind": "point",
-            "i": 122
+            "i": 121
           },
           {
             "t": "2026-02-27T00:00:00",
             "p": 38.7599983215332,
             "label": "R2",
             "kind": "point",
-            "i": 180
+            "i": 179
           }
         ],
         "lines": [
@@ -54387,12 +54390,12 @@
             "t2": "2026-02-27T00:00:00",
             "y2": 38.7599983215332,
             "label": "Neckline",
-            "i1": 122,
-            "i2": 180
+            "i1": 121,
+            "i2": 179
           }
         ],
-        "pattern_start_i": 116,
-        "pattern_end_i": 183,
+        "pattern_start_i": 115,
+        "pattern_end_i": 182,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -54410,35 +54413,35 @@
             "p": 68.6500015258789,
             "label": "LS",
             "kind": "point",
-            "i": 116
+            "i": 115
           },
           {
             "t": "2026-01-20T00:00:00",
             "p": 61.849998474121094,
             "label": "H",
             "kind": "point",
-            "i": 155
+            "i": 154
           },
           {
             "t": "2026-03-05T00:00:00",
             "p": 65.5999984741211,
             "label": "RS",
             "kind": "point",
-            "i": 184
+            "i": 183
           },
           {
             "t": "2025-11-27T00:00:00",
             "p": 72.55000305175781,
             "label": "R1",
             "kind": "point",
-            "i": 120
+            "i": 119
           },
           {
             "t": "2026-02-11T00:00:00",
             "p": 74.80000305175781,
             "label": "R2",
             "kind": "point",
-            "i": 171
+            "i": 170
           }
         ],
         "lines": [
@@ -54448,12 +54451,12 @@
             "t2": "2026-02-11T00:00:00",
             "y2": 74.80000305175781,
             "label": "Neckline",
-            "i1": 120,
-            "i2": 171
+            "i1": 119,
+            "i2": 170
           }
         ],
-        "pattern_start_i": 116,
-        "pattern_end_i": 184,
+        "pattern_start_i": 115,
+        "pattern_end_i": 183,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -54471,35 +54474,35 @@
             "p": 11.65999984741211,
             "label": "LS",
             "kind": "point",
-            "i": 56
+            "i": 55
           },
           {
             "t": "2025-10-16T00:00:00",
             "p": 11.170000076293945,
             "label": "H",
             "kind": "point",
-            "i": 91
+            "i": 90
           },
           {
             "t": "2025-12-05T00:00:00",
             "p": 11.720000267028809,
             "label": "RS",
             "kind": "point",
-            "i": 126
+            "i": 125
           },
           {
             "t": "2025-09-11T00:00:00",
             "p": 11.899999618530273,
             "label": "R1",
             "kind": "point",
-            "i": 68
+            "i": 67
           },
           {
             "t": "2025-11-12T00:00:00",
             "p": 12.020000457763672,
             "label": "R2",
             "kind": "point",
-            "i": 109
+            "i": 108
           }
         ],
         "lines": [
@@ -54509,12 +54512,12 @@
             "t2": "2025-11-12T00:00:00",
             "y2": 12.020000457763672,
             "label": "Neckline",
-            "i1": 68,
-            "i2": 109
+            "i1": 67,
+            "i2": 108
           }
         ],
-        "pattern_start_i": 56,
-        "pattern_end_i": 126,
+        "pattern_start_i": 55,
+        "pattern_end_i": 125,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -54576,6 +54579,189 @@
         ],
         "pattern_start_i": 50,
         "pattern_end_i": 130,
+        "trigger_line_type": "neckline"
+      },
+      "asof": "2026-03-12T00:00:00"
+    },
+    "MINT.BK": {
+      "pattern": "IHS",
+      "direction": "BREAKOUT",
+      "level": 25.38000005086263,
+      "meta": {
+        "annot_type": "hs",
+        "variant": "inverse",
+        "points": [
+          {
+            "t": "2025-09-22T00:00:00",
+            "p": 23.299999237060547,
+            "label": "LS",
+            "kind": "point",
+            "i": 73
+          },
+          {
+            "t": "2025-11-21T00:00:00",
+            "p": 19.799999237060547,
+            "label": "H",
+            "kind": "point",
+            "i": 115
+          },
+          {
+            "t": "2026-01-16T00:00:00",
+            "p": 22.299999237060547,
+            "label": "RS",
+            "kind": "point",
+            "i": 150
+          },
+          {
+            "t": "2025-09-25T00:00:00",
+            "p": 23.700000762939453,
+            "label": "R1",
+            "kind": "point",
+            "i": 76
+          },
+          {
+            "t": "2025-12-24T00:00:00",
+            "p": 24.600000381469727,
+            "label": "R2",
+            "kind": "point",
+            "i": 136
+          }
+        ],
+        "lines": [
+          {
+            "t1": "2025-09-25T00:00:00",
+            "y1": 23.700000762939453,
+            "t2": "2025-12-24T00:00:00",
+            "y2": 24.600000381469727,
+            "label": "Neckline",
+            "i1": 76,
+            "i2": 136
+          }
+        ],
+        "pattern_start_i": 73,
+        "pattern_end_i": 150,
+        "trigger_line_type": "neckline"
+      },
+      "asof": "2026-03-12T00:00:00"
+    },
+    "TRUE.BK": {
+      "pattern": "IHS",
+      "direction": "BREAKOUT",
+      "level": 15.474073127464012,
+      "meta": {
+        "annot_type": "hs",
+        "variant": "inverse",
+        "points": [
+          {
+            "t": "2025-07-04T00:00:00",
+            "p": 10.800000190734863,
+            "label": "LS",
+            "kind": "point",
+            "i": 21
+          },
+          {
+            "t": "2025-08-01T00:00:00",
+            "p": 10.300000190734863,
+            "label": "H",
+            "kind": "point",
+            "i": 39
+          },
+          {
+            "t": "2025-09-04T00:00:00",
+            "p": 11.199999809265137,
+            "label": "RS",
+            "kind": "point",
+            "i": 61
+          },
+          {
+            "t": "2025-07-15T00:00:00",
+            "p": 11.300000190734863,
+            "label": "R1",
+            "kind": "point",
+            "i": 27
+          },
+          {
+            "t": "2025-08-26T00:00:00",
+            "p": 12.0,
+            "label": "R2",
+            "kind": "point",
+            "i": 54
+          }
+        ],
+        "lines": [
+          {
+            "t1": "2025-07-15T00:00:00",
+            "y1": 11.300000190734863,
+            "t2": "2025-08-26T00:00:00",
+            "y2": 12.0,
+            "label": "Neckline",
+            "i1": 27,
+            "i2": 54
+          }
+        ],
+        "pattern_start_i": 21,
+        "pattern_end_i": 61,
+        "trigger_line_type": "neckline"
+      },
+      "asof": "2026-03-12T00:00:00"
+    },
+    "TTB.BK": {
+      "pattern": "IHS",
+      "direction": "BREAKOUT",
+      "level": 2.1025001108646393,
+      "meta": {
+        "annot_type": "hs",
+        "variant": "inverse",
+        "points": [
+          {
+            "t": "2025-08-27T00:00:00",
+            "p": 1.899999976158142,
+            "label": "LS",
+            "kind": "point",
+            "i": 55
+          },
+          {
+            "t": "2025-10-17T00:00:00",
+            "p": 1.809999942779541,
+            "label": "H",
+            "kind": "point",
+            "i": 91
+          },
+          {
+            "t": "2025-12-12T00:00:00",
+            "p": 1.9500000476837158,
+            "label": "RS",
+            "kind": "point",
+            "i": 128
+          },
+          {
+            "t": "2025-09-29T00:00:00",
+            "p": 1.909999966621399,
+            "label": "R1",
+            "kind": "point",
+            "i": 78
+          },
+          {
+            "t": "2025-11-26T00:00:00",
+            "p": 1.9800000190734863,
+            "label": "R2",
+            "kind": "point",
+            "i": 118
+          }
+        ],
+        "lines": [
+          {
+            "t1": "2025-09-29T00:00:00",
+            "y1": 1.909999966621399,
+            "t2": "2025-11-26T00:00:00",
+            "y2": 1.9800000190734863,
+            "label": "Neckline",
+            "i1": 78,
+            "i2": 118
+          }
+        ],
+        "pattern_start_i": 55,
+        "pattern_end_i": 128,
         "trigger_line_type": "neckline"
       },
       "asof": "2026-03-12T00:00:00"
@@ -54768,8 +54954,8 @@
             "t2": "2026-03-02",
             "y2": 4065.0,
             "label": "Upper",
-            "i1": 127,
-            "i2": 181
+            "i1": 126,
+            "i2": 180
           },
           {
             "t1": "2025-12-08",
@@ -54777,8 +54963,8 @@
             "t2": "2026-03-02",
             "y2": 4065.0,
             "label": "Lower",
-            "i1": 127,
-            "i2": 181
+            "i1": 126,
+            "i2": 180
           }
         ],
         "touch_points": [
@@ -54833,8 +55019,8 @@
             "t2": "2026-02-26",
             "y2": 2971.0,
             "label": "Upper",
-            "i1": 106,
-            "i2": 179
+            "i1": 105,
+            "i2": 178
           },
           {
             "t1": "2025-11-06",
@@ -54842,8 +55028,8 @@
             "t2": "2026-02-26",
             "y2": 2971.0,
             "label": "Lower",
-            "i1": 106,
-            "i2": 179
+            "i1": 105,
+            "i2": 178
           }
         ],
         "touch_points": [
@@ -54905,8 +55091,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 4390.1423088278725,
             "label": "Upper",
-            "i1": 127,
-            "i2": 188
+            "i1": 126,
+            "i2": 187
           },
           {
             "t1": "2025-12-08T00:00:00",
@@ -54914,8 +55100,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 4085.620667926906,
             "label": "Lower",
-            "i1": 127,
-            "i2": 188
+            "i1": 126,
+            "i2": 187
           }
         ],
         "touch_points": [
@@ -55012,8 +55198,8 @@
             "t2": "2026-03-05T00:00:00",
             "y2": 4849.0498783455005,
             "label": "Upper",
-            "i1": 119,
-            "i2": 184
+            "i1": 118,
+            "i2": 183
           },
           {
             "t1": "2025-11-26T00:00:00",
@@ -55021,8 +55207,8 @@
             "t2": "2026-03-05T00:00:00",
             "y2": 4490.175753228121,
             "label": "Lower",
-            "i1": 119,
-            "i2": 184
+            "i1": 118,
+            "i2": 183
           }
         ],
         "touch_points": [
@@ -55177,8 +55363,8 @@
             "t2": "2026-03-05T00:00:00",
             "y2": 5239.985587583147,
             "label": "Upper",
-            "i1": 85,
-            "i2": 184
+            "i1": 84,
+            "i2": 183
           },
           {
             "t1": "2025-10-06T00:00:00",
@@ -55186,8 +55372,8 @@
             "t2": "2026-03-05T00:00:00",
             "y2": 4983.3558234077445,
             "label": "Lower",
-            "i1": 85,
-            "i2": 184
+            "i1": 84,
+            "i2": 183
           }
         ],
         "touch_points": [
@@ -58071,8 +58257,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 5574.5028095733605,
             "label": "Upper",
-            "i1": 141,
-            "i2": 188
+            "i1": 140,
+            "i2": 187
           },
           {
             "t1": "2025-12-26T00:00:00",
@@ -58080,8 +58266,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 4799.713186813186,
             "label": "Lower",
-            "i1": 141,
-            "i2": 188
+            "i1": 140,
+            "i2": 187
           }
         ],
         "touch_points": [
@@ -59260,25 +59446,25 @@
       "meta": {
         "annot_type": "band",
         "pattern": "RECT",
-        "start_i": 113,
+        "start_i": 114,
         "end_i": 179,
         "lines": [
           {
             "t1": "2025-12-04T00:00:00",
-            "y1": 11.998524389631761,
-            "t2": "2026-03-13T00:00:00",
-            "y2": 11.048282638180549,
+            "y1": 11.998524389631768,
+            "t2": "2026-03-12T00:00:00",
+            "y2": 11.062680240475265,
             "label": "Upper",
-            "i1": 113,
+            "i1": 114,
             "i2": 179
           },
           {
             "t1": "2025-12-04T00:00:00",
-            "y1": 11.216693641162674,
-            "t2": "2026-03-13T00:00:00",
-            "y2": 10.56896700008982,
+            "y1": 11.241218815197794,
+            "t2": "2026-03-12T00:00:00",
+            "y2": 10.568581766947784,
             "label": "Lower",
-            "i1": 113,
+            "i1": 114,
             "i2": 179
           }
         ],
@@ -59288,72 +59474,65 @@
             "p": 12.0,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 115
+            "i": 116
           },
           {
             "t": "2026-01-07T00:00:00",
             "p": 11.779999732971191,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 133
+            "i": 134
           },
           {
             "t": "2026-01-15T00:00:00",
             "p": 11.609999656677246,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 139
+            "i": 140
           },
           {
             "t": "2026-02-12T00:00:00",
             "p": 11.390000343322754,
             "label": "H touch",
             "kind": "touch_high",
-            "i": 158
+            "i": 159
           },
           {
             "t": "2025-12-31T00:00:00",
             "p": 11.079999923706055,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 130
+            "i": 131
           },
           {
             "t": "2026-02-05T00:00:00",
             "p": 10.779999732971191,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 154
+            "i": 155
           },
           {
             "t": "2026-02-17T00:00:00",
             "p": 10.729999542236328,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 161
+            "i": 162
           },
           {
             "t": "2026-03-04T00:00:00",
             "p": 10.699999809265137,
             "label": "L touch",
             "kind": "touch_low",
-            "i": 172
-          },
-          {
-            "t": "2026-03-10T00:00:00",
-            "p": 10.600000381469727,
-            "label": "L touch",
-            "kind": "touch_low",
-            "i": 176
+            "i": 173
           }
         ],
-        "pattern_end_i": 176,
-        "pattern_end_t": "2026-03-10T00:00:00",
-        "containment": 0.9552238805970149,
+        "pattern_end_i": 173,
+        "pattern_end_t": "2026-03-04T00:00:00",
+        "containment": 0.9545454545454546,
         "alternations": 5,
         "trend_label": "NEUTRAL"
       },
-      "last_touch": "2026-03-10T00:00:00"
+      "last_touch": "2026-03-04T00:00:00"
     },
     "ITRK.L": {
       "pattern": "RECT_BOTTOM",
@@ -59441,8 +59620,8 @@
             "t2": "2026-03-10T00:00:00",
             "y2": 82.37742720866227,
             "label": "Upper",
-            "i1": 140,
-            "i2": 188
+            "i1": 139,
+            "i2": 187
           },
           {
             "t1": "2025-12-31T00:00:00",
@@ -59450,8 +59629,8 @@
             "t2": "2026-03-10T00:00:00",
             "y2": 75.0413111273888,
             "label": "Lower",
-            "i1": 140,
-            "i2": 188
+            "i1": 139,
+            "i2": 187
           }
         ],
         "touch_points": [
@@ -59813,8 +59992,8 @@
             "t2": "2026-03-10T00:00:00",
             "y2": 220.89752351089598,
             "label": "Upper",
-            "i1": 140,
-            "i2": 187
+            "i1": 139,
+            "i2": 186
           },
           {
             "t1": "2025-12-31T00:00:00",
@@ -59822,8 +60001,8 @@
             "t2": "2026-03-10T00:00:00",
             "y2": 205.34491839738416,
             "label": "Lower",
-            "i1": 140,
-            "i2": 187
+            "i1": 139,
+            "i2": 186
           }
         ],
         "touch_points": [
@@ -61434,8 +61613,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 359.16061103299785,
             "label": "Upper",
-            "i1": 130,
-            "i2": 188
+            "i1": 129,
+            "i2": 187
           },
           {
             "t1": "2025-12-16T00:00:00",
@@ -61443,8 +61622,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 325.37298319807815,
             "label": "Lower",
-            "i1": 130,
-            "i2": 188
+            "i1": 129,
+            "i2": 187
           }
         ],
         "touch_points": [
@@ -61731,8 +61910,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 7046.90935743953,
             "label": "Upper",
-            "i1": 112,
-            "i2": 188
+            "i1": 111,
+            "i2": 187
           },
           {
             "t1": "2025-11-14T00:00:00",
@@ -61740,8 +61919,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 6331.480637813211,
             "label": "Lower",
-            "i1": 112,
-            "i2": 188
+            "i1": 111,
+            "i2": 187
           }
         ],
         "touch_points": [
@@ -62672,8 +62851,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 1763.9535428920794,
             "label": "Upper",
-            "i1": 99,
-            "i2": 188
+            "i1": 98,
+            "i2": 187
           },
           {
             "t1": "2025-10-31T00:00:00",
@@ -62681,8 +62860,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 1616.3395199779004,
             "label": "Lower",
-            "i1": 99,
-            "i2": 188
+            "i1": 98,
+            "i2": 187
           }
         ],
         "touch_points": [
@@ -62816,8 +62995,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 2351.9367977528095,
             "label": "Upper",
-            "i1": 141,
-            "i2": 188
+            "i1": 140,
+            "i2": 187
           },
           {
             "t1": "2026-01-01T00:00:00",
@@ -62825,8 +63004,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 2221.708467936613,
             "label": "Lower",
-            "i1": 141,
-            "i2": 188
+            "i1": 140,
+            "i2": 187
           }
         ],
         "touch_points": [
@@ -63979,8 +64158,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 1433.7239826284306,
             "label": "Upper",
-            "i1": 125,
-            "i2": 188
+            "i1": 124,
+            "i2": 187
           },
           {
             "t1": "2025-12-09T00:00:00",
@@ -63988,8 +64167,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 1328.833907057708,
             "label": "Lower",
-            "i1": 125,
-            "i2": 188
+            "i1": 124,
+            "i2": 187
           }
         ],
         "touch_points": [
@@ -65464,8 +65643,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 1519.9149546413948,
             "label": "Upper",
-            "i1": 130,
-            "i2": 188
+            "i1": 129,
+            "i2": 187
           },
           {
             "t1": "2025-12-16T00:00:00",
@@ -65473,8 +65652,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 1434.8647472151304,
             "label": "Lower",
-            "i1": 130,
-            "i2": 188
+            "i1": 129,
+            "i2": 187
           }
         ],
         "touch_points": [
@@ -68315,8 +68494,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 12.929063411074393,
             "label": "Upper",
-            "i1": 134,
-            "i2": 188
+            "i1": 133,
+            "i2": 187
           },
           {
             "t1": "2025-12-17T00:00:00",
@@ -68324,8 +68503,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 12.282175747701045,
             "label": "Lower",
-            "i1": 134,
-            "i2": 188
+            "i1": 133,
+            "i2": 187
           }
         ],
         "touch_points": [
@@ -68401,8 +68580,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 33.872559169553355,
             "label": "Upper",
-            "i1": 124,
-            "i2": 188
+            "i1": 123,
+            "i2": 187
           },
           {
             "t1": "2025-12-03T00:00:00",
@@ -68410,8 +68589,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 31.711482593568718,
             "label": "Lower",
-            "i1": 124,
-            "i2": 188
+            "i1": 123,
+            "i2": 187
           }
         ],
         "touch_points": [
@@ -68466,8 +68645,8 @@
             "t2": "2026-03-10T00:00:00",
             "y2": 27.549175566022843,
             "label": "Upper",
-            "i1": 116,
-            "i2": 187
+            "i1": 115,
+            "i2": 186
           },
           {
             "t1": "2025-11-21T00:00:00",
@@ -68475,8 +68654,8 @@
             "t2": "2026-03-10T00:00:00",
             "y2": 24.915529917315517,
             "label": "Lower",
-            "i1": 116,
-            "i2": 187
+            "i1": 115,
+            "i2": 186
           }
         ],
         "touch_points": [
@@ -71055,8 +71234,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 27.44432324865596,
             "label": "Upper",
-            "i1": 106,
-            "i2": 188
+            "i1": 105,
+            "i2": 187
           },
           {
             "t1": "2025-11-03T00:00:00",
@@ -71064,8 +71243,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 26.902778976395744,
             "label": "Lower",
-            "i1": 106,
-            "i2": 188
+            "i1": 105,
+            "i2": 187
           }
         ],
         "touch_points": [
@@ -71571,8 +71750,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 20.80079538362837,
             "label": "Upper",
-            "i1": 93,
-            "i2": 188
+            "i1": 92,
+            "i2": 187
           },
           {
             "t1": "2025-10-14T00:00:00",
@@ -71580,8 +71759,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 20.39718173542225,
             "label": "Lower",
-            "i1": 93,
-            "i2": 188
+            "i1": 92,
+            "i2": 187
           }
         ],
         "touch_points": [
@@ -71815,8 +71994,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 41.240131708458655,
             "label": "Upper",
-            "i1": 107,
-            "i2": 188
+            "i1": 106,
+            "i2": 187
           },
           {
             "t1": "2025-11-04T00:00:00",
@@ -71824,8 +72003,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 39.244563791214865,
             "label": "Lower",
-            "i1": 107,
-            "i2": 188
+            "i1": 106,
+            "i2": 187
           }
         ],
         "touch_points": [
@@ -72558,8 +72737,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 67.08704623669608,
             "label": "Upper",
-            "i1": 115,
-            "i2": 188
+            "i1": 114,
+            "i2": 187
           },
           {
             "t1": "2025-11-20T00:00:00",
@@ -72567,8 +72746,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 61.90868538025286,
             "label": "Lower",
-            "i1": 115,
-            "i2": 188
+            "i1": 114,
+            "i2": 187
           }
         ],
         "touch_points": [
@@ -73064,8 +73243,8 @@
             "t2": "2026-03-10T00:00:00",
             "y2": 22.36389561362889,
             "label": "Upper",
-            "i1": 112,
-            "i2": 187
+            "i1": 111,
+            "i2": 186
           },
           {
             "t1": "2025-11-17T00:00:00",
@@ -73073,8 +73252,8 @@
             "t2": "2026-03-10T00:00:00",
             "y2": 21.546973722602676,
             "label": "Lower",
-            "i1": 112,
-            "i2": 187
+            "i1": 111,
+            "i2": 186
           }
         ],
         "touch_points": [
@@ -73595,8 +73774,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 110.93683743276416,
             "label": "Upper",
-            "i1": 110,
-            "i2": 188
+            "i1": 109,
+            "i2": 187
           },
           {
             "t1": "2025-11-07T00:00:00",
@@ -73604,8 +73783,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 105.24282433983925,
             "label": "Lower",
-            "i1": 110,
-            "i2": 188
+            "i1": 109,
+            "i2": 187
           }
         ],
         "touch_points": [
@@ -73746,8 +73925,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 24.294592524010966,
             "label": "Upper",
-            "i1": 94,
-            "i2": 188
+            "i1": 93,
+            "i2": 187
           },
           {
             "t1": "2025-10-15T00:00:00",
@@ -73755,8 +73934,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 23.525008925190402,
             "label": "Lower",
-            "i1": 94,
-            "i2": 188
+            "i1": 93,
+            "i2": 187
           }
         ],
         "touch_points": [
@@ -75130,8 +75309,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 27.90097471049413,
             "label": "Upper",
-            "i1": 98,
-            "i2": 188
+            "i1": 97,
+            "i2": 187
           },
           {
             "t1": "2025-10-27T00:00:00",
@@ -75139,8 +75318,8 @@
             "t2": "2026-03-11T00:00:00",
             "y2": 25.264913305667356,
             "label": "Lower",
-            "i1": 98,
-            "i2": 188
+            "i1": 97,
+            "i2": 187
           }
         ],
         "touch_points": [
