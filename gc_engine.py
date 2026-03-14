@@ -2637,8 +2637,8 @@ def fetch_earnings_universe(
             continue
 
         # ── Dead-market skip (v0.6.0) ─────────────────────────────────────────
-        # Exchanges KL (Malaysia), PS (Philippines), AD (UAE Abu Dhabi) return
-        # 0 usable data from yfinance — skip entirely to save API calls.
+        # PS (Philippines), AD (UAE Abu Dhabi) return 0 usable data from yfinance.
+        # KL (Malaysia) removed from dead markets v1.7.0 — numeric.KL tickers work.
         t_suffix = t.rsplit(".", 1)[-1] if "." in t else "US"
         if t_suffix in DEAD_MARKET_SUFFIXES:
             if t not in cache:
