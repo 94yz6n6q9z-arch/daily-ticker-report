@@ -60,6 +60,11 @@ VERSION HISTORY
        FMP_ALPHA_BATCH_SUFFIXES: added AE, KQ, BO
        MIN_MCAP_OTHER: lowered $5B→$2B (unified floor; FX conversion in gc_engine)
        .KQ (KOSDAQ) and .TWO (Taiwan Gretai) recognised in FMP suffix set
+1.7.0  TICKER_OVERRIDES: TITIM.MI->TIT.MI, CICT.SI->CPAMF, BAAKOMB.PR->KOMB.PR,
+       532483.BO->CANBK.BO, SHFL.NS->SHRIRAMFIN.BO (cross-exchange NSE->BSE).
+       KNOWN_DEAD_TICKERS: FFGRP.AT (suspended), 4BRZ.DE (ETF not equity), --.HK (placeholder).
+       DEAD_MARKET_SUFFIXES: removed KL — ~35 Malaysian MSCI constituents now enter pipeline.
+       FMP_ALPHA_BATCH_SUFFIXES: added KL.
 1.6.0  mcap floor lowered $2B → $1B USD (MIN_MCAP_US_EU = MIN_MCAP_OTHER = 1_000_000_000).
        TICKER_OVERRIDES: added BRKB→BRK-B, HEIA→HEI-A (iShares XLS omits the dot so the
        BRK.B/HEI.A overrides never fired from raw CSV; bare-symbol variants now handled).
@@ -70,7 +75,7 @@ VERSION HISTORY
 
 from __future__ import annotations
 
-UNIVERSE_VERSION = "1.6.0"
+UNIVERSE_VERSION = "1.7.0"
 
 import os
 import re
@@ -114,6 +119,16 @@ TICKER_OVERRIDES: Dict[str, str] = {
     "HEI.A":  "HEI-A",          # Heico Corporation Class A (dot form)
     "HEIA":   "HEI-A",          # Heico Corporation Class A (bare form — iShares XLS)
     "HEI.B":  "HEI",            # Heico Corporation Class B (listed as HEI)
+    # EU renamed / restructured tickers
+    "TITIM.MI": "TIT.MI",       # Telecom Italia — renamed on Borsa Italiana
+    # Singapore: CapitaLand ICIT — Yahoo Finance uses US OTC ticker CPAMF
+    "CICT.SI":  "CPAMF",        # CapitaLand Integrated Commercial Trust
+    # Czech Republic: MSCI uses old Bloomberg code, Yahoo uses correct ticker
+    "BAAKOMB.PR": "KOMB.PR",    # Komercni Banka
+    # India: BSE numeric code → proper Yahoo ticker
+    "532483.BO": "CANBK.BO",    # Canara Bank (BSE numeric)
+    # India: cross-exchange remap — Yahoo data is on BSE not NSE
+    "SHFL.NS":  "SHRIRAMFIN.BO", # Shriram Finance
 }
 
 # ── Known-dead tickers ────────────────────────────────────────────────────────
@@ -133,6 +148,12 @@ KNOWN_DEAD_TICKERS: set = {
     "TCSG", "UPRO", "VKCO",
     # Gulf tickers with no Yahoo Finance quoteSummary support
     "DHBK", "DUBK", "IGRD", "IQCD", "UDCD", "VFQS",
+    # Delisted / trading suspended
+    "FFGRP.AT",    # FFGROUP SA — trading suspended on Athens SE
+    # ETFs masquerading as equities in MSCI XLS (iShares XETRA cross-listings)
+    "4BRZ.DE",     # iShares MSCI Brazil ETF on XETRA — not an equity
+    # MSCI placeholder / non-equity rows
+    "--.HK",       # iShares null placeholder — not a real company
 }
 
 # ── Ghost ticker detection ────────────────────────────────────────────────────
@@ -172,8 +193,9 @@ def is_ghost_ticker(ticker: str) -> bool:
 # Skipped entirely (same treatment as KNOWN_DEAD_TICKERS) to save API calls.
 # Confirmed via gc_state.json: 0% EPS/Revenue coverage across all tickers.
 DEAD_MARKET_SUFFIXES: set = {
-    "KL",   # Malaysia — Bursa Malaysia, yfinance quoteSummary 404s universally
-    "PS",   # Philippines — Philippine SE, same
+    "PS",   # Philippines — Philippine SE, yfinance quoteSummary 404s universally
+    # NOTE: KL (Malaysia) removed v1.7.0 — Bursa Malaysia stocks confirmed working on
+    # Yahoo Finance as numeric.KL tickers (e.g. 5347.KL = Tenaga Nasional).
     # NOTE: AD (Abu Dhabi) and DU (Dubai) removed from dead list.
     # _normalize_ticker() remaps .AD/.DU → .AE (Yahoo Finance's current suffix for UAE).
     # e.g. AIRARABIA.AD → AIRARABIA.AE per https://finance.yahoo.com/quote/AIRARABIA.AE/
@@ -253,6 +275,7 @@ FMP_ALPHA_BATCH_SUFFIXES: frozenset = frozenset({
     "QA",  # Qatar Exchange
     "KW",  # Kuwait SE
     "AE",  # UAE (Abu Dhabi + Dubai — remapped from .AD/.DU by _normalize_ticker)
+    "KL",  # Malaysia Bursa — numeric tickers (e.g. 5347.KL)
 })
 
 
