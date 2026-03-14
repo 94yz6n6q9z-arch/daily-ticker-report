@@ -45,6 +45,8 @@ DOCS_DIR   = BASE_DIR / "docs"
 DEFAULT_STATE = DOCS_DIR / "gc_state.json"
 DEFAULT_OUT   = BASE_DIR / "universe_review.csv"
 
+EXPORT_VERSION = "5.0.0"
+
 MIN_MCAP_US_EU = 1_000_000_000
 MIN_MCAP_OTHER = 1_000_000_000
 
