@@ -2,22 +2,26 @@ name: Daily Report
 
 on:
   workflow_dispatch:
+  # PRIMARY trigger: fires automatically when gc-data completes.
+  # This is the reliable path — no GitHub scheduler delay risk.
+  # gc-data finishes ~01:00 UTC; daily report starts immediately after.
+  # NOTE: 'gc-data-refresh' matches the `name:` field in gc-data.yml exactly.
+  workflow_run:
+    workflows: ["gc-data-refresh"]
+    types: [completed]
+  # FALLBACK trigger: cron in case workflow_run misfires or gc-data ran manually.
+  # Fallback window: 02:15–05:30 CET/CEST.
+  # gc-data finishes ~02:00 CET; starting at 02:15 gives it breathing room.
+  # 05:30 end ensures email arrives before the working day.
+  # Cron starts at UTC 01 (= CET 02) so first fallback slot is CET 02:19.
+  # Previously the window was 04:00–05:15, causing ALL scheduled runs to be blocked
+  # because GitHub routinely executes cron jobs 90–120 min after the trigger time.
   schedule:
-    # Dense retries during the UTC hours that map to 04:00–05:15 Europe/Vienna
-    # across both CET and CEST. We avoid :00 because GitHub documents that the
-    # start of every hour is a high-load period for scheduled workflows.
-    #
-    # Local valid attempts after the gate:
-    #   CET : 04:07, 04:19, 04:31, 04:43, 04:55, 05:07
-    #   CEST: 04:07, 04:19, 04:31, 04:43, 04:55, 05:07
-    # Sat morning still catches Friday's market close. Sun is the only full rest day.
-    - cron: "7,19,31,43,55 2-4 * * 1-6"
+    - cron: "7,19,31,43,55 1-4 * * 1-6"
 
 permissions:
   contents: write
 
-# Opt into Node.js 24 now — actions/checkout, setup-python, and upload-artifact
-# will be forced onto it by GitHub on June 2, 2026 anyway.
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -39,11 +43,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Decide whether to run (manual always sends; scheduled latest-safe-start + lock)
+      - name: Decide whether to run
         id: gate
         env:
           EVENT_NAME: ${{ github.event_name }}
           SCHEDULE_EXPR: ${{ github.event.schedule }}
+          WF_RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          WF_RUN_NAME: ${{ github.event.workflow_run.name }}
         run: |
           python - <<'PY'
           import json
@@ -51,47 +57,64 @@ jobs:
           from datetime import datetime, time, timezone
           from pathlib import Path
 
-          event_name = (os.environ.get("EVENT_NAME") or "").strip()
-          schedule_expr = (os.environ.get("SCHEDULE_EXPR") or "").strip()
-          now_local = datetime.now()  # TZ is set by workflow env
-          now_utc = datetime.now(timezone.utc)
-          today = now_local.strftime("%Y-%m-%d")
-          now_hm = now_local.strftime("%H:%M")
+          event_name       = (os.environ.get("EVENT_NAME") or "").strip()
+          schedule_expr    = (os.environ.get("SCHEDULE_EXPR") or "").strip()
+          wf_conclusion    = (os.environ.get("WF_RUN_CONCLUSION") or "").strip()
+          wf_name          = (os.environ.get("WF_RUN_NAME") or "").strip()
+          now_local        = datetime.now()   # TZ=Europe/Vienna set by workflow env
+          now_utc          = datetime.now(timezone.utc)
+          today            = now_local.strftime("%Y-%m-%d")
+          now_hm           = now_local.strftime("%H:%M")
 
-          # Business rule (Europe/Vienna local time):
-          # - Earliest send attempt: 04:00
-          # - Latest safe start:    05:15
-          # Anything after 05:15 is too late to guarantee inbox delivery by 06:00.
-          start = time(4, 0)
-          latest_start = time(5, 15)
+          # ── Once-per-day lock ──────────────────────────────────────────────
+          lock  = Path("docs/email_state.json")
+          last  = ""
+          if lock.exists():
+              try:
+                  last = json.loads(lock.read_text(encoding="utf-8")).get("last_sent_date","") or ""
+              except Exception:
+                  last = ""
 
-          def in_window(t):
-              return start <= t <= latest_start
+          already_sent = (last == today)
 
-          run = False
+          run    = False
           reason = ""
 
+          # ── Gate logic per trigger type ────────────────────────────────────
+
           if event_name == "workflow_dispatch":
-              run = True
+              # Manual trigger always runs — operator override.
+              run    = True
               reason = "manual_run"
-          else:
-              if not in_window(now_local.time()):
-                  run = False
-                  reason = f"outside_window ({now_hm} not in 04:00-05:15 Europe/Vienna)"
+
+          elif event_name == "workflow_run":
+              # Fired by gc-data completing. Only proceed if gc-data succeeded.
+              if wf_conclusion != "success":
+                  run    = False
+                  reason = f"gc_data_did_not_succeed (conclusion={wf_conclusion})"
+              elif already_sent:
+                  run    = False
+                  reason = f"already_sent_today ({last}) — workflow_run duplicate"
               else:
-                  lock = Path("docs/email_state.json")
-                  last = ""
-                  if lock.exists():
-                      try:
-                          last = json.loads(lock.read_text(encoding="utf-8")).get("last_sent_date","") or ""
-                      except Exception:
-                          last = ""
-                  if last == today:
-                      run = False
-                      reason = f"already_sent_today ({last})"
-                  else:
-                      run = True
-                      reason = "scheduled_in_window_and_not_sent"
+                  run    = True
+                  reason = f"workflow_run_trigger gc_data_succeeded"
+
+          else:
+              # Scheduled cron — fallback path.
+              # Window: 02:15–05:30 Europe/Vienna (gc-data done ~02:00; email by 05:30).
+              # The lock ensures only one send per day even with multiple cron fires.
+              earliest    = time(2, 15)
+              latest_start = time(5, 30)
+
+              if not (earliest <= now_local.time() <= latest_start):
+                  run    = False
+                  reason = f"outside_window ({now_hm} not in 04:00–09:00 Europe/Vienna)"
+              elif already_sent:
+                  run    = False
+                  reason = f"already_sent_today ({last})"
+              else:
+                  run    = True
+                  reason = "scheduled_in_window_and_not_sent"
 
           out = os.environ["GITHUB_OUTPUT"]
           with open(out, "a", encoding="utf-8") as f:
@@ -100,15 +123,15 @@ jobs:
               f.write(f"today={today}\n")
               f.write(f"now_hm={now_hm}\n")
               f.write(f"event={event_name}\n")
-              f.write(f"schedule_expr={schedule_expr}\n")
+              f.write(f"wf_conclusion={wf_conclusion}\n")
               f.write(f"local_ts={now_local.strftime('%Y-%m-%d %H:%M:%S %Z')}\n")
               f.write(f"utc_ts={now_utc.strftime('%Y-%m-%d %H:%M:%S UTC')}\n")
-          print(
-              "gate:",
-              {"run": run, "reason": reason, "event": event_name, "schedule": schedule_expr,
-               "local": now_local.strftime('%Y-%m-%d %H:%M:%S %Z'),
-               "utc": now_utc.strftime('%Y-%m-%d %H:%M:%S UTC')}
-          )
+          print("gate:", {
+              "run": run, "reason": reason, "event": event_name,
+              "wf_conclusion": wf_conclusion, "wf_name": wf_name,
+              "local": now_local.strftime('%Y-%m-%d %H:%M:%S %Z'),
+              "utc":   now_utc.strftime('%Y-%m-%d %H:%M:%S UTC'),
+          })
           PY
 
       - name: Stop early (no-op run)
@@ -116,42 +139,41 @@ jobs:
         run: |
           echo "Skipping: ${{ steps.gate.outputs.reason }}"
           echo "Event:    ${{ steps.gate.outputs.event }}"
-          echo "Schedule: ${{ steps.gate.outputs.schedule_expr }}"
+          echo "WF conc:  ${{ steps.gate.outputs.wf_conclusion }}"
           echo "Local:    ${{ steps.gate.outputs.local_ts }}"
           echo "UTC:      ${{ steps.gate.outputs.utc_ts }}"
 
-      - name: Check gc_state.json freshness (scheduled runs require fresh GC data)
+      - name: Check gc_state.json freshness
         if: ${{ steps.gate.outputs.run == 'true' }}
         env:
           EVENT_NAME: ${{ github.event_name }}
         run: |
           python - <<'PY'
-          import sys
-          import os
+          import sys, os
           from pathlib import Path
           from datetime import datetime, timezone, timedelta
 
           event_name = (os.environ.get("EVENT_NAME") or "").strip()
           p = Path("docs/gc_state.json")
           if not p.exists():
-              msg = "docs/gc_state.json not found. gc-data may not have run or may have failed."
+              msg = "docs/gc_state.json not found."
               if event_name == "schedule":
-                  print(f"ERROR: {msg}")
-                  sys.exit(1)
-              print(f"WARNING: {msg} Manual run will continue.")
-              sys.exit(0)
+                  print(f"ERROR: {msg}"); sys.exit(1)
+              print(f"WARNING: {msg} Continuing (manual/workflow_run)."); sys.exit(0)
 
           mtime = datetime.fromtimestamp(p.stat().st_mtime, tz=timezone.utc)
-          age = datetime.now(timezone.utc) - mtime
+          age   = datetime.now(timezone.utc) - mtime
           print(f"gc_state.json age: {age}")
 
-          max_age = timedelta(hours=8)
+          # workflow_run fires right after gc-data → always fresh.
+          # cron fallback: gc-data runs ~23:30 UTC, cron fallback window 04:00–09:00 CET
+          # = UTC 03:00–08:00 → max age ~8.5h. Give headroom with 12h limit.
+          max_age = timedelta(hours=12)
           if age > max_age:
               msg = f"gc_state.json is stale ({age}; expected < {max_age})."
               if event_name == "schedule":
-                  print(f"ERROR: {msg}")
-                  sys.exit(1)
-              print(f"WARNING: {msg} Manual run will continue.")
+                  print(f"ERROR: {msg}"); sys.exit(1)
+              print(f"WARNING: {msg} Continuing.")
           else:
               print(f"gc_state.json is fresh ({age} old). OK.")
           PY
@@ -160,10 +182,10 @@ jobs:
         if: ${{ steps.gate.outputs.run == 'true' }}
         run: |
           echo "Event:    ${{ steps.gate.outputs.event }}"
-          echo "Schedule: ${{ steps.gate.outputs.schedule_expr }}"
+          echo "Reason:   ${{ steps.gate.outputs.reason }}"
           echo "Local:    ${{ steps.gate.outputs.local_ts }}"
           echo "UTC:      ${{ steps.gate.outputs.utc_ts }}"
-          echo "Reason:   ${{ steps.gate.outputs.reason }}"
+          echo "WF conc:  ${{ steps.gate.outputs.wf_conclusion }}"
 
       - name: Set up Python
         if: ${{ steps.gate.outputs.run == 'true' }}
@@ -231,10 +253,9 @@ jobs:
           import os
           import markdown as md
 
-          base = os.environ.get("PUBLIC_IMG_BASE","").rstrip("/")
-          docs = Path("docs"); docs.mkdir(parents=True, exist_ok=True)
-
-          report = docs / "report.md"
+          base    = os.environ.get("PUBLIC_IMG_BASE","").rstrip("/")
+          docs    = Path("docs"); docs.mkdir(parents=True, exist_ok=True)
+          report  = docs / "report.md"
           scanlog = docs / "scan.log"
 
           if report.exists():
@@ -246,29 +267,32 @@ jobs:
               (docs / "email.md").write_text(txt, encoding="utf-8")
 
               body_html = md.markdown(txt, extensions=["tables","sane_lists","fenced_code"])
-              html = "<!doctype html><html><head>" \
-                     "<meta charset='utf-8'/><meta name='viewport' content='width=device-width, initial-scale=1'/>" \
-                     "<style>" \
-                     "body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif;line-height:1.35;}" \
-                     "h1,h2,h3{margin:16px 0 10px;}" \
-                     "table{border-collapse:collapse;width:100%;margin:10px 0 18px;}" \
-                     "th,td{border:1px solid #ddd;padding:8px;vertical-align:top;}" \
-                     "th{background:#f6f8fa;}" \
-                     "img{max-width:100%;height:auto;}" \
-                     "</style></head><body>" + body_html + "</body></html>"
+              html = (
+                  "<!doctype html><html><head>"
+                  "<meta charset='utf-8'/>"
+                  "<meta name='viewport' content='width=device-width, initial-scale=1'/>"
+                  "<style>"
+                  "body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif;line-height:1.35;}"
+                  "h1,h2,h3{margin:16px 0 10px;}"
+                  "table{border-collapse:collapse;width:100%;margin:10px 0 18px;}"
+                  "th,td{border:1px solid #ddd;padding:8px;vertical-align:top;}"
+                  "th{background:#f6f8fa;}"
+                  "img{max-width:100%;height:auto;}"
+                  "</style></head><body>" + body_html + "</body></html>"
+              )
               (docs / "email.html").write_text(html, encoding="utf-8")
-
               (docs / "email.txt").write_text(txt[:12000], encoding="utf-8")
           else:
               log_tail = ""
               if scanlog.exists():
-                  lines = scanlog.read_text(encoding="utf-8", errors="ignore").splitlines()
+                  lines    = scanlog.read_text(encoding="utf-8", errors="ignore").splitlines()
                   log_tail = "\n".join(lines[-120:])
-              txt = "Daily Ticker Report — ERROR\n\nscan.py did not produce docs/report.md.\n\nLast log lines:\n" + log_tail
+              txt  = "Daily Ticker Report — ERROR\n\nscan.py did not produce docs/report.md.\n\nLast log lines:\n" + log_tail
+              html = ("<html><body><h1>Daily Ticker Report</h1><h2>ERROR</h2>"
+                      "<pre style='white-space:pre-wrap'>"
+                      + txt.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")
+                      + "</pre></body></html>")
               (docs / "email.txt").write_text(txt[:12000], encoding="utf-8")
-              html = "<html><body><h1>Daily Ticker Report</h1><h2>ERROR</h2><pre style='white-space:pre-wrap'>" + \
-                     (txt.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")) + \
-                     "</pre></body></html>"
               (docs / "email.html").write_text(html, encoding="utf-8")
               (docs / "email.md").write_text(txt, encoding="utf-8")
           PY
@@ -279,10 +303,9 @@ jobs:
           set -e
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
           mkdir -p docs/img
-          git add docs/report.md docs/index.md docs/state.json docs/img docs/email.md docs/email.html docs/email.txt || true
-
+          git add docs/report.md docs/index.md docs/state.json docs/img \
+                  docs/email.md docs/email.html docs/email.txt || true
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
@@ -299,26 +322,26 @@ jobs:
       - name: Verify mail secrets (fail early with clear error)
         if: ${{ steps.gate.outputs.run == 'true' }}
         env:
-          MAIL_TO: ${{ secrets.MAIL_TO }}
+          MAIL_TO:       ${{ secrets.MAIL_TO }}
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
         run: |
-          test -n "$MAIL_TO" || (echo "MAIL_TO secret missing/empty" && exit 1)
+          test -n "$MAIL_TO"       || (echo "MAIL_TO secret missing/empty"       && exit 1)
           test -n "$MAIL_USERNAME" || (echo "MAIL_USERNAME secret missing/empty" && exit 1)
           test -n "$MAIL_PASSWORD" || (echo "MAIL_PASSWORD secret missing/empty" && exit 1)
 
       - name: Send email (inline macro charts)
         if: ${{ steps.gate.outputs.run == 'true' }}
         env:
-          MAIL_TO: ${{ secrets.MAIL_TO }}
+          MAIL_TO:       ${{ secrets.MAIL_TO }}
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
-          MAIL_SUBJECT: ${{ steps.subject.outputs.subject }}
+          MAIL_SUBJECT:  ${{ steps.subject.outputs.subject }}
         run: |
           python tools/send_gmail_inline.py
 
-      - name: Update once-per-day email lock (scheduled runs only)
-        if: ${{ steps.gate.outputs.run == 'true' && github.event_name == 'schedule' }}
+      - name: Update once-per-day email lock
+        if: ${{ steps.gate.outputs.run == 'true' }}
         run: |
           set -e
           mkdir -p docs
@@ -329,11 +352,10 @@ jobs:
 
           p = Path("docs/email_state.json")
           p.parent.mkdir(parents=True, exist_ok=True)
-
           now = datetime.now()
           state = {
-            "last_sent_date": now.strftime("%Y-%m-%d"),
-            "last_sent_ts": now.strftime("%Y-%m-%d %H:%M:%S"),
+              "last_sent_date": now.strftime("%Y-%m-%d"),
+              "last_sent_ts":   now.strftime("%Y-%m-%d %H:%M:%S"),
           }
           p.write_text(json.dumps(state, indent=2), encoding="utf-8")
           print("Wrote", p)
