@@ -56,7 +56,7 @@ from universe import (
 # ────────────────────────────────────────────────────────────────
 # Configuration
 # ────────────────────────────────────────────────────────────────
-GC_VERSION = "0.8.1"
+GC_VERSION = "0.8.2"
 
 # Version history (mirrors the changelog pattern in scan.py)
 _GC_VERSION_LOG: dict = {
@@ -306,6 +306,19 @@ _GC_VERSION_LOG: dict = {
         "100+ phantom no_cache entries (AKBNK.E.IS etc. now correctly match AKBNK.IS in cache). "
         "(6) scan.py v102: below_min_mcap removed from OHLCV Option A filter — mcap gating "
         "is GC-only; scan.py fetches OHLCV for all universe tickers regardless of mcap."
+    ),
+    "0.8.2": (
+        "FMP alpha-batch symbol fix: the EU/DM rev-missing batch was stripping the exchange "
+        "suffix and sending bare symbols to FMP (e.g. NESN.SW -> NESN, OR.PA -> OR, "
+        "SIE.DE -> SIE). FMP requires the exchange-qualified symbol (NESN.SW, OR.PA, SIE.DE) "
+        "to identify the correct company — bare symbols either return no data or match a "
+        "different US-listed company with the same name. The batch now calls _yahoo_to_fmp(t) "
+        "which produces the correct FMP symbol for every exchange. fetch_fmp_single() already "
+        "used _yahoo_to_fmp internally so no change needed there. "
+        "Effect: all 558 rev-missing tickers now send the correct symbol to FMP. "
+        "UK (.L) still strips correctly (HSBA.L -> HSBA, LSE symbols are globally unique). "
+        "Unmapped suffixes (JO, IS, WA, JK etc.) pass through as TICKER.SUFFIX which is "
+        "the correct FMP format for those markets."
     ),
     "0.8.1": (
         "mcap subdivision bug-fix: _mcap_to_usd() was applying the ZAc/ILA subdivision_scale "
@@ -3080,10 +3093,13 @@ def fetch_earnings_universe(
                     print(f"[gc-data] EU/DM rev-missing: {i}/{len(rev_missing)}")
                     time.sleep(1.0)
                 try:
-                    # Use bare symbol — /stable/earnings and FMP income-statement are
-                    # US-centric; bare symbol matches the US cross-listing where it exists.
-                    bare = t.split(".")[0].upper()
-                    fdata = fetch_fmp_single(bare, fmp_key_rev)
+                    # Use _yahoo_to_fmp() to get the correct FMP symbol with exchange suffix.
+                    # FMP requires TICKER.EXCHANGE (e.g. NESN.SW, OR.PA, SIE.DE) to identify
+                    # the correct non-US company. Bare symbol stripping was causing 0/558 matches.
+                    # UK (.L) correctly strips to bare (HSBA.L -> HSBA) via _FMP_SUFFIX_MAP.
+                    # Unmapped suffixes pass through as TICKER.SUFFIX (JO, IS, WA etc.).
+                    fmp_sym = _yahoo_to_fmp(t)
+                    fdata = fetch_fmp_single(fmp_sym, fmp_key_rev)
                     if fdata and fdata.get("earnings_dates"):
                         existing = results.get(t, {})
                         ed_existing = existing.get("earnings_dates", [])
