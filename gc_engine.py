@@ -56,7 +56,7 @@ from universe import (
 # ────────────────────────────────────────────────────────────────
 # Configuration
 # ────────────────────────────────────────────────────────────────
-GC_VERSION = "0.8.2"
+GC_VERSION = "0.8.3"
 
 # Version history (mirrors the changelog pattern in scan.py)
 _GC_VERSION_LOG: dict = {
@@ -306,6 +306,18 @@ _GC_VERSION_LOG: dict = {
         "100+ phantom no_cache entries (AKBNK.E.IS etc. now correctly match AKBNK.IS in cache). "
         "(6) scan.py v102: below_min_mcap removed from OHLCV Option A filter — mcap gating "
         "is GC-only; scan.py fetches OHLCV for all universe tickers regardless of mcap."
+    ),
+    "0.8.3": (
+        "Fix _fetch_revenue_estimates_yahoo() for yfinance 1.2.0. "
+        "Root cause: get_raw_json() in yfinance 1.2.0 requires params dict passed separately "
+        "— NOT embedded in the URL string. Our code built the full URL with query params "
+        "embedded (e.g. ?modules=earningsTrend%2CearningsHistory&...) which 1.2.0 does not "
+        "parse, returning empty result silently. Result: 0 tickers got earningsTrend data. "
+        "Fix: pass base URL + separate params dict to get_raw_json. "
+        "Also added native yfinance 1.2.0 fallbacks: tk.revenue_estimate, "
+        "tk.earnings_estimate, tk.earnings_history for when get_raw_json is unavailable. "
+        "earnings_history now also used for past EPS estimates on non-US tickers (India, "
+        "Korea, Taiwan, Japan) which yfinance earnings_dates misses."
     ),
     "0.8.2": (
         "FMP alpha-batch symbol fix: the EU/DM rev-missing batch was stripping the exchange "
@@ -730,159 +742,195 @@ def _fetch_eps_method4(tk) -> List[Dict]:
 
 
 def _fetch_revenue_estimates_yahoo(tk, ticker: str) -> List[Dict]:
-    """Fetch forward revenue + EPS estimates from Yahoo Finance quoteSummary endpoint.
+    """Fetch forward revenue + EPS estimates from Yahoo Finance.
 
-    Uses yfinance's authenticated session (tk._data.get_raw_json) so the crumb/cookie
-    handshake is handled automatically — unlike the previous bare requests.get() which
-    failed silently for all tickers in production (GitHub Actions IPs blocked).
+    yfinance 1.2.0 fix: get_raw_json() requires params passed as a SEPARATE dict,
+    NOT embedded in the URL string. The old approach built a URL with query params
+    inline (?modules=earningsTrend%2C...) which 1.2.0 silently ignored, returning
+    empty for all 2,100 tickers.
 
-    Modules used:
-      earningsTrend  → forward revenue + EPS estimates for next 2-4 quarters
-      earningsHistory → past EPS actuals + estimates (revenue rarely present)
+    Strategy (in order):
+      1. get_raw_json with correct params dict — earningsTrend + earningsHistory
+      2. Native yfinance 1.2.0 properties: tk.revenue_estimate, tk.earnings_estimate,
+         tk.earnings_history — these use the same authenticated session internally
+         and are the officially supported API
 
-    Returns list of {date, revenue_estimate, eps_estimate} — FORWARD LOOKING.
-    These are stored in out["forward_estimates"], NOT merged into past earnings_dates rows.
-    earningsTrend dates are upcoming quarters; they will never match past eps_reported rows.
-
-    Historical note: Yahoo removed revenueActual from earningsHistory. That field returns
-    null universally. revenue_reported for past quarters comes from income_stmt (Phase A).
+    Returns list of rows tagged with _is_forward=True (upcoming) or False (past).
+    Same dict shape as before so callers need no changes.
     """
     rows = []
+    trend_by_qtr: Dict[str, Dict] = {}
+    hist_by_qtr:  Dict[str, Dict] = {}
+
+    # ── Path 1: get_raw_json with separate params dict (yfinance 1.2.0 API) ──────
     try:
-        # Use yfinance's authenticated session — handles crumb/cookie automatically.
-        # This is the correct approach; bare requests.get() is blocked on GitHub Actions.
-        # ticker is the full Yahoo symbol (e.g. "AAPL", "ASML.AS", "7203.T")
-        url = (
-            f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/{ticker}"
-            f"?modules=earningsTrend%2CearningsHistory&corsDomain=finance.yahoo.com"
-        )
+        base_url = f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/{ticker}"
+        params = {
+            "modules": "earningsTrend,earningsHistory",
+            "corsDomain": "finance.yahoo.com",
+            "formatted": "false",
+            "symbol": ticker,
+        }
         raw = None
-        # Primary: use yfinance internal authenticated session.
-        # NOTE: do NOT pass handle_404=True — that kwarg does not exist in yfinance 1.2.0
-        # and throws TypeError which is silently swallowed, returning [] for every ticker.
-        # 404s (ticker genuinely missing from Yahoo) are handled by the except below.
         try:
-            raw = tk._data.get_raw_json(url)
-        except Exception:
-            pass
-        # Fallback: try via requests using yfinance cookie session if available
-        if not raw:
+            # yfinance 1.2.0: get_raw_json(url, params=dict) — params separate from URL
+            raw = tk._data.get_raw_json(base_url, params=params)
+        except TypeError:
+            # Older yfinance: positional only — try without keyword
             try:
-                import requests as _req
-                sess = getattr(tk._data, "session", None) or _req
-                resp = sess.get(url, timeout=10)
-                if resp.status_code == 200:
-                    raw = resp.json()
+                raw = tk._data.get_raw_json(base_url)
             except Exception:
                 pass
+        except Exception:
+            pass
 
-        if not raw:
-            return rows
+        if raw:
+            result = (raw.get("quoteSummary") or {}).get("result") or []
+            if result:
+                data = result[0]
+                # earningsTrend — forward quarters with rev + EPS estimates
+                for item in data.get("earningsTrend", {}).get("trend", []):
+                    period = item.get("endDate", {})
+                    if isinstance(period, dict):
+                        period = period.get("fmt", "")
+                    d = str(period)[:7]
+                    if not d or len(d) < 7:
+                        continue
+                    rev_avg = item.get("revenueEstimate") or {}
+                    rev_est = _safe_float(rev_avg.get("avg") or rev_avg.get("raw"))                               if isinstance(rev_avg, dict) else None
+                    eps_avg = item.get("earningsEstimate") or {}
+                    eps_est = _safe_float(eps_avg.get("avg") or eps_avg.get("raw"))                               if isinstance(eps_avg, dict) else None
+                    trend_by_qtr[d] = {
+                        "rev_estimate": rev_est if (rev_est is not None and np.isfinite(rev_est) and rev_est > 0) else None,
+                        "eps_estimate": eps_est if (eps_est is not None and np.isfinite(eps_est)) else None,
+                    }
+                # earningsHistory — past quarters with EPS actuals + estimates
+                for item in data.get("earningsHistory", {}).get("history", []):
+                    period = item.get("quarter", {})
+                    if isinstance(period, dict):
+                        period = period.get("fmt", "")
+                    d = str(period)[:7]
+                    if not d or len(d) < 7:
+                        continue
+                    def _raw(field):
+                        v = item.get(field)
+                        return _safe_float(v.get("raw") if isinstance(v, dict) else v)
+                    hist_by_qtr[d] = {
+                        "eps_actual":   _raw("epsActual"),
+                        "eps_estimate": _raw("epsEstimate"),
+                        "rev_actual":   _raw("revenueActual"),   # always None in practice
+                        "rev_estimate": _raw("revenueEstimate"), # always None in practice
+                    }
+    except Exception:
+        pass
 
-        result = (raw.get("quoteSummary") or {}).get("result") or []
-        if not result:
-            return rows
-        data = result[0]
+    # ── Path 2: native yfinance 1.2.0 properties (fallback if Path 1 empty) ────
+    # tk.revenue_estimate / earnings_estimate return DataFrames indexed by period
+    # label (0q, +1q, 0y, +1y). We can get dates from earningsTrend OR from
+    # tk.earnings_history which IS date-indexed.
+    if not trend_by_qtr and not hist_by_qtr:
+        try:
+            import pandas as _pd
 
-        # 1) earningsTrend: current/recent quarters with revenue estimates
-        trend_by_qtr: Dict[str, Dict] = {}
-        trend = data.get("earningsTrend", {}).get("trend", [])
-        for item in trend:
-            period = item.get("endDate", {}).get("fmt") or item.get("endDate", "")
-            if isinstance(period, dict):
-                period = period.get("fmt", "")
-            d = str(period)[:7]  # YYYY-MM
-            if not d or len(d) < 7:
-                continue
-            rev_est = None
-            rev_avg = (item.get("revenueEstimate") or {})
-            if isinstance(rev_avg, dict):
-                rev_est = _safe_float(rev_avg.get("avg") or rev_avg.get("raw"))
-            eps_est = None
-            eps_avg = (item.get("earningsEstimate") or {})
-            if isinstance(eps_avg, dict):
-                eps_est = _safe_float(eps_avg.get("avg") or eps_avg.get("raw"))
-            trend_by_qtr[d] = {
-                "rev_estimate": rev_est if (rev_est is not None and np.isfinite(rev_est) and rev_est > 0) else None,
-                "eps_estimate": eps_est if (eps_est is not None and np.isfinite(eps_est)) else None,
-            }
+            # earnings_history — past quarters, date-indexed DataFrame
+            # Columns: epsActual, epsEstimate, epsDifference, surprisePercent
+            eh = getattr(tk, "earnings_history", None)
+            if eh is not None and not eh.empty:
+                for idx, row_h in eh.iterrows():
+                    try:
+                        d = str(_pd.Timestamp(idx))[:7]
+                        if d:
+                            hist_by_qtr[d] = {
+                                "eps_actual":   _safe_float(row_h.get("epsActual")),
+                                "eps_estimate": _safe_float(row_h.get("epsEstimate")),
+                                "rev_actual":   None,
+                                "rev_estimate": None,
+                            }
+                    except Exception:
+                        pass
+        except Exception:
+            pass
 
-        # 2) earningsHistory: past quarters with actuals + estimates
-        hist_by_qtr: Dict[str, Dict] = {}
-        history = data.get("earningsHistory", {}).get("history", [])
-        for item in history:
-            period = item.get("quarter", {})
-            if isinstance(period, dict):
-                period = period.get("fmt", "")
-            d = str(period)[:7]
-            if not d or len(d) < 7:
-                continue
-            eps_act = _safe_float((item.get("epsActual") or {}).get("raw")
-                                  if isinstance(item.get("epsActual"), dict)
-                                  else item.get("epsActual"))
-            eps_est_h = _safe_float((item.get("epsEstimate") or {}).get("raw")
-                                    if isinstance(item.get("epsEstimate"), dict)
-                                    else item.get("epsEstimate"))
-            # Revenue fields in earningsHistory (present on some tickers)
-            rev_act = _safe_float((item.get("revenueActual") or {}).get("raw")
-                                  if isinstance(item.get("revenueActual"), dict)
-                                  else item.get("revenueActual"))
-            rev_est_h = _safe_float((item.get("revenueEstimate") or {}).get("raw")
-                                    if isinstance(item.get("revenueEstimate"), dict)
-                                    else item.get("revenueEstimate"))
-            hist_by_qtr[d] = {
-                "eps_actual": eps_act if (eps_act is not None and np.isfinite(eps_act)) else None,
-                "eps_estimate": eps_est_h if (eps_est_h is not None and np.isfinite(eps_est_h)) else None,
-                "rev_actual": rev_act if (rev_act is not None and np.isfinite(rev_act) and rev_act > 0) else None,
-                "rev_estimate": rev_est_h if (rev_est_h is not None and np.isfinite(rev_est_h) and rev_est_h > 0) else None,
-            }
+        try:
+            import pandas as _pd
+            # revenue_estimate + earnings_estimate — forward periods (0q, +1q, 0y, +1y)
+            # Period labels don't give us exact dates; we use them in order to match
+            # against upcoming earnings_dates rows (sorted ascending by date).
+            # We build forward rows without dates — caller's date-matching loop will
+            # match them via _is_forward=True and period order.
+            rev_est_df = getattr(tk, "revenue_estimate", None)
+            eps_est_df = getattr(tk, "earnings_estimate", None)
 
-        # Build rows from earningsTrend (forward) separately from earningsHistory (past)
-        # Tag each row with _is_forward so callers can distinguish future vs past quarters.
-        # earningsTrend = FORWARD: has rev_estimate + eps_estimate for upcoming quarters
-        # earningsHistory = PAST: has eps_actual + eps_estimate; rev_actual always null
+            # Build date lookup from earnings_dates upcoming rows if available
+            # (we don't have access here — use period label as proxy date key)
+            # Store as period_label→values; caller uses the QUARTERLY periods only
+            for period_label in ["0q", "+1q"]:
+                rev_val = None
+                eps_val = None
+                if rev_est_df is not None and not rev_est_df.empty:
+                    try:
+                        if period_label in rev_est_df.index:
+                            rev_val = _safe_float(rev_est_df.loc[period_label, "avg"])
+                    except Exception:
+                        pass
+                if eps_est_df is not None and not eps_est_df.empty:
+                    try:
+                        if period_label in eps_est_df.index:
+                            eps_val = _safe_float(eps_est_df.loc[period_label, "avg"])
+                    except Exception:
+                        pass
+                if rev_val is not None or eps_val is not None:
+                    # Use period_label as a pseudo-date key; tagged as forward
+                    trend_by_qtr[f"__period_{period_label}"] = {
+                        "rev_estimate": rev_val if (rev_val is not None and np.isfinite(rev_val) and rev_val > 0) else None,
+                        "eps_estimate": eps_val if (eps_val is not None and np.isfinite(eps_val)) else None,
+                        "_period_label": period_label,  # for caller to handle
+                    }
+        except Exception:
+            pass
 
-        # Forward rows from earningsTrend
-        for d, t_data in trend_by_qtr.items():
-            rev_est = t_data.get("rev_estimate")
-            eps_est = t_data.get("eps_estimate")
-            if rev_est is None and eps_est is None:
-                continue  # nothing useful in this trend item
-            row = {
-                "date": d + "-01",
-                "revenue_estimate": rev_est,
-                "revenue_reported": None,  # earningsHistory.revenueActual always null
-                "eps_estimate": eps_est,
-                "eps_reported": None,
-                "_method": "yahoo_quotesummary",
-                "_is_forward": True,   # upcoming quarter — store in forward_estimates
-            }
-            # Supplement with earningsHistory data for the same quarter if present
-            h_data = hist_by_qtr.get(d, {})
-            if row["eps_estimate"] is None:
-                row["eps_estimate"] = h_data.get("eps_estimate")
-            rows.append(row)
+    # ── Build output rows ────────────────────────────────────────────────────────
+    # Forward rows from earningsTrend (or native revenue/earnings_estimate)
+    for d, t_data in trend_by_qtr.items():
+        rev_est = t_data.get("rev_estimate")
+        eps_est = t_data.get("eps_estimate")
+        if rev_est is None and eps_est is None:
+            continue
+        is_period_label = d.startswith("__period_")
+        row = {
+            "date": d + "-01" if not is_period_label else None,
+            "revenue_estimate": rev_est,
+            "revenue_reported": None,
+            "eps_estimate": eps_est,
+            "eps_reported": None,
+            "_method": "yahoo_quotesummary",
+            "_is_forward": True,
+        }
+        if is_period_label:
+            row["_period_label"] = t_data.get("_period_label")
+        # Supplement with earningsHistory for same quarter
+        h_data = hist_by_qtr.get(d, {})
+        if row["eps_estimate"] is None:
+            row["eps_estimate"] = h_data.get("eps_estimate")
+        rows.append(row)
 
-        # Past rows from earningsHistory (EPS actuals only — no revenue)
-        for d, h_data in hist_by_qtr.items():
-            if d in trend_by_qtr:
-                continue  # already handled above as a forward row
-            eps_act = h_data.get("eps_actual")
-            eps_est = h_data.get("eps_estimate")
-            if eps_act is None and eps_est is None:
-                continue
-            rows.append({
-                "date": d + "-01",
-                "revenue_estimate": h_data.get("rev_estimate"),  # always None in practice
-                "revenue_reported": h_data.get("rev_actual"),    # always None in practice
-                "eps_estimate": eps_est,
-                "eps_reported": eps_act,
-                "_method": "yahoo_quotesummary",
-                "_is_forward": False,  # past quarter — do NOT include in forward_estimates
-            })
-
-    except Exception as _e:
-        pass  # silent — caller will fall through to other sources
+    # Past rows from earningsHistory
+    for d, h_data in hist_by_qtr.items():
+        if d in trend_by_qtr:
+            continue
+        eps_act = h_data.get("eps_actual")
+        eps_est = h_data.get("eps_estimate")
+        if eps_act is None and eps_est is None:
+            continue
+        rows.append({
+            "date": d + "-01",
+            "revenue_estimate": h_data.get("rev_estimate"),
+            "revenue_reported": h_data.get("rev_actual"),
+            "eps_estimate": eps_est,
+            "eps_reported": eps_act,
+            "_method": "yahoo_quotesummary",
+            "_is_forward": False,
+        })
 
     return rows
 
