@@ -297,15 +297,26 @@ jobs:
               (docs / "email.md").write_text(txt, encoding="utf-8")
           PY
 
+      - name: Archive report, index, and state to root reports folder
+        if: ${{ steps.gate.outputs.run == 'true' && steps.status.outputs.ok == 'true' }}
+        run: |
+          set -e
+          TS=$(date +'%Y%m%d-%H%M')
+          mkdir -p reports
+          cp docs/report.md "reports/report_${TS}.md"
+          [ -f docs/index.md ] && cp docs/index.md "reports/index_${TS}.md"
+          [ -f docs/state.json ] && cp docs/state.json "reports/state_${TS}.json"
+
       - name: Commit and push report
         if: ${{ steps.gate.outputs.run == 'true' && steps.status.outputs.ok == 'true' }}
         run: |
           set -e
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          mkdir -p docs/img
+          mkdir -p docs/img reports
           git add docs/report.md docs/index.md docs/state.json docs/img \
-                  docs/email.md docs/email.html docs/email.txt || true
+                  docs/email.md docs/email.html docs/email.txt \
+                  reports || true
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
