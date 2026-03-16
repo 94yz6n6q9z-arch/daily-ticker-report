@@ -56,7 +56,7 @@ from universe import (
 # ────────────────────────────────────────────────────────────────
 # Configuration
 # ────────────────────────────────────────────────────────────────
-GC_VERSION = "0.8.3"
+GC_VERSION = "0.8.4"
 
 # Version history (mirrors the changelog pattern in scan.py)
 _GC_VERSION_LOG: dict = {
@@ -306,6 +306,23 @@ _GC_VERSION_LOG: dict = {
         "100+ phantom no_cache entries (AKBNK.E.IS etc. now correctly match AKBNK.IS in cache). "
         "(6) scan.py v102: below_min_mcap removed from OHLCV Option A filter — mcap gating "
         "is GC-only; scan.py fetches OHLCV for all universe tickers regardless of mcap."
+    ),
+    "0.8.4": (
+        "Fix 1 — _best_eps_rows quality preference: previously selected the result with "
+        "most rows (pure count). This caused income_stmt_derived (Method 4, no eps_estimate) "
+        "to beat earnings_dates rows when yfinance returns fewer earn_dates rows on a given "
+        "run (rate limit, transient, non-US exchange quirk). Result: 888 tickers lost their "
+        "eps_estimate entirely because income_stmt rows hardcode eps_estimate=None. "
+        "Fix: score = (has_estimates, row_count). A single earn_dates row with an estimate "
+        "beats 8 income_stmt_derived rows without estimates. income_stmt_derived is a revenue "
+        "fallback only — it should never win when earn_dates has EPS data with consensus. "
+        "Fix 2 — _fetch_revenue_estimates_yahoo Path 1 (earningsTrend): params kwarg in "
+        "get_raw_json(url, params=dict) is not accepted by the installed yfinance version. "
+        "TypeError catch fell through to get_raw_json(base_url) with no query string, "
+        "returning empty for all tickers. Only 13/2101 got fwd data (via Path 2 fallback). "
+        "Fix: embed params in URL using urlencode before calling get_raw_json, matching how "
+        "yfinance constructs quoteSummary URLs internally. Crumb/cookie still handled by "
+        "yfinance session. Expected 500+ tickers to get earningsTrend fwd estimates."
     ),
     "0.8.3": (
         "Fix _fetch_revenue_estimates_yahoo() for yfinance 1.2.0. "
@@ -762,25 +779,28 @@ def _fetch_revenue_estimates_yahoo(tk, ticker: str) -> List[Dict]:
     trend_by_qtr: Dict[str, Dict] = {}
     hist_by_qtr:  Dict[str, Dict] = {}
 
-    # ── Path 1: get_raw_json with separate params dict (yfinance 1.2.0 API) ──────
+    # ── Path 1: get_raw_json with params embedded in URL ────────────────────────
+    # yfinance's get_raw_json(url) injects the crumb/cookie from the active session.
+    # The params kwarg form (get_raw_json(url, params=dict)) is NOT accepted by all
+    # yfinance versions — TypeError was silently caught, then the fallback call
+    # get_raw_json(base_url) sent a bare URL with no query string → empty response.
+    # Fix: urlencode the params into the URL string before passing to get_raw_json.
+    # This matches how yfinance constructs quoteSummary URLs internally.
     try:
-        base_url = f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/{ticker}"
-        params = {
+        from urllib.parse import urlencode as _ue
+        _params = {
             "modules": "earningsTrend,earningsHistory",
             "corsDomain": "finance.yahoo.com",
             "formatted": "false",
             "symbol": ticker,
         }
+        full_url = (
+            f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/{ticker}"
+            f"?{_ue(_params)}"
+        )
         raw = None
         try:
-            # yfinance 1.2.0: get_raw_json(url, params=dict) — params separate from URL
-            raw = tk._data.get_raw_json(base_url, params=params)
-        except TypeError:
-            # Older yfinance: positional only — try without keyword
-            try:
-                raw = tk._data.get_raw_json(base_url)
-            except Exception:
-                pass
+            raw = tk._data.get_raw_json(full_url)
         except Exception:
             pass
 
@@ -993,13 +1013,28 @@ def fetch_catalyst_events(ticker: str, tk) -> List[Dict]:
 
 def _best_eps_rows(methods_results: List[List[Dict]]) -> Tuple[List[Dict], str]:
     """Pick the best EPS data from multiple method results.
-    Prefers methods with most past (reported) data points."""
+
+    Scoring priority (highest wins):
+      1. has_estimates: any past row has eps_estimate (consensus data present)
+      2. row_count: number of past rows with eps_reported
+
+    Rationale: income_stmt_derived (Method 4) hardcodes eps_estimate=None because
+    income statements have no consensus data. A single earn_dates row with an analyst
+    estimate is more valuable than 8 income_stmt_derived rows without any estimates.
+    income_stmt_derived should only win when earn_dates/get_earnings_dates return nothing.
+    """
     best: List[Dict] = []
     best_method = "none"
+    best_score = (-1, -1)  # (has_estimates_int, past_row_count)
     for rows in methods_results:
         past = [r for r in rows if r.get("eps_reported") is not None]
-        if len(past) > len([r for r in best if r.get("eps_reported") is not None]):
+        if not past:
+            continue
+        has_est = int(any(r.get("eps_estimate") is not None for r in past))
+        score = (has_est, len(past))
+        if score > best_score:
             best = rows
+            best_score = score
             best_method = rows[0].get("_method", "unknown") if rows else "unknown"
     return best, best_method
 
