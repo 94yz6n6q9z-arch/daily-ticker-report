@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-03-19",
+  "as_of": "2026-03-20",
   "source_url": "https://www.ishares.com/de/privatanleger/de/produkte/251882/ishares-msci-world-ucits-etf-acc-fund/1535604580385.ajax?fileType=xls&fileName=iShares-Core-MSCI-World-UCITS-ETF_fund&dataType=fund",
   "n_tickers": 1309,
   "label": "World",
@@ -25,7 +25,7 @@
     "Norwegen": 11,
     "Österreich": 5,
     "Irland": 5,
-    "Neuseeland": 5,
-    "Portugal": 5
+    "Portugal": 5,
+    "Neuseeland": 5
   }
 }
