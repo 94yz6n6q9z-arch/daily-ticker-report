@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-03-23",
+  "as_of": "2026-03-24",
   "source_url": "https://www.ishares.com/de/privatanleger/de/produkte/251858/ishares-msci-emerging-markets-ucits-etf-acc-fund/1535604580385.ajax?fileType=xls&fileName=iShares-MSCI-EM-UCITS-ETF-USD-Acc_fund&dataType=fund",
   "n_tickers": 805,
   "label": "EM",
@@ -15,8 +15,8 @@
     "Mexiko": 22,
     "Thailand": 18,
     "Indonesien": 17,
-    "Ver. Arabische Emirate": 16,
     "Polen": 16,
+    "Ver. Arabische Emirate": 16,
     "Qatar": 12,
     "Türkei": 12,
     "Philippinen": 11,
