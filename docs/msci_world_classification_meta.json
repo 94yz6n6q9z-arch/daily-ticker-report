@@ -1,7 +1,7 @@
 {
-  "as_of": "2026-04-22",
+  "as_of": "2026-04-23",
   "source_url": "https://www.ishares.com/de/privatanleger/de/produkte/251882/ishares-msci-world-ucits-etf-acc-fund/1535604580385.ajax?fileType=xls&fileName=iShares-Core-MSCI-World-UCITS-ETF_fund&dataType=fund",
-  "n_tickers": 1307,
+  "n_tickers": 1306,
   "label": "World",
   "countries": {
     "Vereinigte Staaten": 536,
@@ -11,11 +11,11 @@
     "Deutschland": 54,
     "Frankreich": 54,
     "Australien": 46,
-    "Schweiz": 41,
     "Schweden": 41,
+    "Schweiz": 40,
     "Niederlande": 28,
-    "Italien": 26,
     "Hongkong": 26,
+    "Italien": 26,
     "Spanien": 22,
     "Singapur": 16,
     "Dänemark": 15,
