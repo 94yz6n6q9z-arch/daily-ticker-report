@@ -1,12 +1,12 @@
 # Daily Report
 
-_Generated: **2026-05-02 02:11 CEST** | Version: **v101**_
+_Generated: **2026-05-04 00:43 CEST** | Version: **v101**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Headline: Big Tech earnings and renewed AI appetite kept the rally intact even as oil headlines and tariff talk lingered in the background. The Nasdaq 100 rose 0.9% and the S&P 500 added 0.3% while the VIX edged up 0.6%, extending a strong three-to-four-week upswing in equities (NDX +15.4% over 1M) despite choppier cross-currents around oil and trade. On the watchlist, DASH jumped 4.3% while RRTL sank 13.6%.
+Headline: AI-led equity momentum rolls on into a week framed by jobs data, semiconductor earnings and fresh Fed scrutiny, even as oil headlines swirl around Opec. The Nasdaq 100 rose 0.9% and the S&P 500 added 0.3% while the Vix edged up 0.6%, extending a strong three-to-four-week run in big tech and broader equities (NDX +15.4% over 1M). Biggest movers on the watchlist were Cocoa up 5.0% and DASH up 4.3%, while RRTL fell 13.6% and Coffee slid 7.3%.
 
 **Key tape (multi-horizon):**
 
@@ -17,19 +17,19 @@ Headline: Big Tech earnings and renewed AI appetite kept the rally intact even a
 | STOXX Europe 600 |   611.55 | <span style="color:#11823b;">+0.04%</span> | <span style="color:#11823b;">+0.15%</span> | <span style="color:#11823b;">+2.32%</span>  | <span style="color:#11823b;">+0.09%</span>  | <span style="color:#11823b;">+6.93%</span>  |
 | DAX              | 24292.4  | <span style="color:#11823b;">+1.41%</span> | <span style="color:#11823b;">+0.57%</span> | <span style="color:#11823b;">+7.11%</span>  | <span style="color:#b91c1c;">-1.00%</span>  | <span style="color:#11823b;">+1.39%</span>  |
 | CAC 40           |  8114.84 | <span style="color:#11823b;">+0.53%</span> | <span style="color:#b91c1c;">-1.37%</span> | <span style="color:#11823b;">+3.81%</span>  | <span style="color:#b91c1c;">-0.14%</span>  | <span style="color:#b91c1c;">-0.08%</span>  |
-| FTSE 100         | 10378.8  | <span style="color:#11823b;">+1.62%</span> | <span style="color:#b91c1c;">-0.75%</span> | <span style="color:#11823b;">+1.99%</span>  | <span style="color:#11823b;">+1.52%</span>  | <span style="color:#11823b;">+6.81%</span>  |
+| FTSE 100         | 10363.9  | <span style="color:#b91c1c;">-0.14%</span> | <span style="color:#b91c1c;">-0.15%</span> | <span style="color:#b91c1c;">-0.01%</span>  | <span style="color:#11823b;">+1.37%</span>  | <span style="color:#11823b;">+6.65%</span>  |
 | VIX              |    16.99 | <span style="color:#11823b;">+0.59%</span> | <span style="color:#b91c1c;">-9.19%</span> | <span style="color:#b91c1c;">-30.77%</span> | <span style="color:#b91c1c;">-2.58%</span>  | <span style="color:#b91c1c;">-2.58%</span>  |
 | EUR/USD          |     1.17 | <span style="color:#11823b;">+0.33%</span> | <span style="color:#11823b;">+0.34%</span> | <span style="color:#11823b;">+1.29%</span>  | <span style="color:#b91c1c;">-2.03%</span>  | <span style="color:#11823b;">+1.30%</span>  |
-| WTI Crude        |   102.5  | <span style="color:#b91c1c;">-2.45%</span> | <span style="color:#11823b;">+8.58%</span> | <span style="color:#11823b;">+2.38%</span>  | <span style="color:#11823b;">+57.18%</span> | <span style="color:#11823b;">+68.09%</span> |
-| Gold             |  4625.6  | <span style="color:#11823b;">+0.24%</span> | <span style="color:#b91c1c;">-2.05%</span> | <span style="color:#b91c1c;">-3.29%</span>  | <span style="color:#b91c1c;">-1.87%</span>  | <span style="color:#11823b;">+16.16%</span> |
-| Silver           |    75.84 | <span style="color:#11823b;">+3.14%</span> | <span style="color:#b91c1c;">-0.71%</span> | <span style="color:#b91c1c;">-0.04%</span>  | <span style="color:#b91c1c;">-3.13%</span>  | <span style="color:#11823b;">+58.02%</span> |
-| Coffee           |   289.95 | <span style="color:#b91c1c;">-3.64%</span> | <span style="color:#b91c1c;">-6.41%</span> | <span style="color:#b91c1c;">-2.64%</span>  | <span style="color:#b91c1c;">-12.73%</span> | <span style="color:#b91c1c;">-26.04%</span> |
-| Cocoa            |  3598    | <span style="color:#11823b;">+2.98%</span> | <span style="color:#11823b;">+7.44%</span> | <span style="color:#11823b;">+7.56%</span>  | <span style="color:#b91c1c;">-13.61%</span> | <span style="color:#b91c1c;">-41.51%</span> |
-| Bitcoin          | 78241    | <span style="color:#11823b;">+2.54%</span> | <span style="color:#11823b;">+0.81%</span> | <span style="color:#11823b;">+16.97%</span> | <span style="color:#11823b;">+1.65%</span>  | <span style="color:#b91c1c;">-26.57%</span> |
+| WTI Crude        |   101.22 | <span style="color:#b91c1c;">-0.71%</span> | <span style="color:#11823b;">+7.22%</span> | <span style="color:#b91c1c;">-9.25%</span>  | <span style="color:#11823b;">+62.89%</span> | <span style="color:#11823b;">+67.14%</span> |
+| Gold             |  4632.7  | <span style="color:#11823b;">+0.06%</span> | <span style="color:#b91c1c;">-1.90%</span> | <span style="color:#b91c1c;">-0.40%</span>  | <span style="color:#11823b;">+0.22%</span>  | <span style="color:#11823b;">+17.35%</span> |
+| Silver           |    76.21 | <span style="color:#11823b;">+0.35%</span> | <span style="color:#b91c1c;">-0.22%</span> | <span style="color:#11823b;">+4.78%</span>  | <span style="color:#b91c1c;">-0.73%</span>  | <span style="color:#11823b;">+61.71%</span> |
+| Coffee           |   279.05 | <span style="color:#b91c1c;">-7.26%</span> | <span style="color:#b91c1c;">-9.93%</span> | <span style="color:#b91c1c;">-6.30%</span>  | <span style="color:#b91c1c;">-16.01%</span> | <span style="color:#b91c1c;">-28.82%</span> |
+| Cocoa            |  3668    | <span style="color:#11823b;">+4.98%</span> | <span style="color:#11823b;">+9.53%</span> | <span style="color:#11823b;">+9.66%</span>  | <span style="color:#b91c1c;">-11.93%</span> | <span style="color:#b91c1c;">-40.37%</span> |
+| Bitcoin          | 79250.9  | <span style="color:#11823b;">+0.75%</span> | <span style="color:#11823b;">+0.75%</span> | <span style="color:#11823b;">+18.41%</span> | <span style="color:#11823b;">+0.71%</span>  | <span style="color:#b91c1c;">-21.99%</span> |
 
 **Macro charts (5Y):**
 
-<table><tr><td style='padding-right:12px;'><img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/macro_vix_5y.png?v=20260502001148' width='414' style='width:414px;max-width:414px;height:auto;'></td><td><img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/macro_eurusd_5y.png?v=20260502001148' width='414' style='width:414px;max-width:414px;height:auto;'></td></tr></table>
+<table><tr><td style='padding-right:12px;'><img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/macro_vix_5y.png?v=20260503224354' width='414' style='width:414px;max-width:414px;height:auto;'></td><td><img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/macro_eurusd_5y.png?v=20260503224354' width='414' style='width:414px;max-width:414px;height:auto;'></td></tr></table>
 
 
 ## 2) Biggest movers (≥ 4%)
@@ -38,6 +38,7 @@ Headline: Big Tech earnings and renewed AI appetite kept the rally intact even a
 
 | Ticker   | pct    |
 | :--- | ---: |
+| Cocoa    | +4.98% |
 | DASH     | +4.26% |
 
 **Session losers:**
@@ -45,6 +46,7 @@ Headline: Big Tech earnings and renewed AI appetite kept the rally intact even a
 | Ticker   | pct     |
 | :--- | ---: |
 | RRTL     | -13.59% |
+| Coffee   | -7.26%  |
 
 **After-hours gainers:** _None ≥ 4%_
 
@@ -56,27 +58,27 @@ _Upcoming earnings dates for your  watchlist._
 
 | Ticker   | Earnings Date   |   Days |
 | :--- | ---: | ---: |
-| PLTR     | 2026-05-04      |      2 |
-| CCJ      | 2026-05-05      |      3 |
-| LEU      | 2026-05-05      |      3 |
-| MPC      | 2026-05-05      |      3 |
-| UCG      | 2026-05-05      |      3 |
-| ARM      | 2026-05-06      |      4 |
-| DASH     | 2026-05-06      |      4 |
-| IONQ     | 2026-05-06      |      4 |
-| NVO      | 2026-05-06      |      4 |
-| INSW     | 2026-05-07      |      5 |
-| MELI     | 2026-05-07      |      5 |
-| SMR      | 2026-05-07      |      5 |
-| VST      | 2026-05-07      |      5 |
-| CEG      | 2026-05-11      |      9 |
-| MUV2     | 2026-05-12      |     10 |
-| OKLO     | 2026-05-12      |     10 |
-| QBTS     | 2026-05-12      |     10 |
-| RRTL     | 2026-05-13      |     11 |
-| TNK      | 2026-05-13      |     11 |
-| AMAT     | 2026-05-14      |     12 |
-| NU       | 2026-05-14      |     12 |
+| PLTR     | 2026-05-04      |      0 |
+| CCJ      | 2026-05-05      |      1 |
+| LEU      | 2026-05-05      |      1 |
+| MPC      | 2026-05-05      |      1 |
+| UCG      | 2026-05-05      |      1 |
+| ARM      | 2026-05-06      |      2 |
+| DASH     | 2026-05-06      |      2 |
+| IONQ     | 2026-05-06      |      2 |
+| NVO      | 2026-05-06      |      2 |
+| INSW     | 2026-05-07      |      3 |
+| MELI     | 2026-05-07      |      3 |
+| SMR      | 2026-05-07      |      3 |
+| VST      | 2026-05-07      |      3 |
+| CEG      | 2026-05-11      |      7 |
+| MUV2     | 2026-05-12      |      8 |
+| OKLO     | 2026-05-12      |      8 |
+| QBTS     | 2026-05-12      |      8 |
+| RRTL     | 2026-05-13      |      9 |
+| TNK      | 2026-05-13      |      9 |
+| AMAT     | 2026-05-14      |     10 |
+| NU       | 2026-05-14      |     10 |
 
 ## 4) Technical triggers
 
@@ -84,7 +86,7 @@ _Upcoming earnings dates for your  watchlist._
 
 - Tickers scanned: **2121**; usable OHLCV: **2117**
 
-- Candidates found: **609** (top patterns: IHS:108, HS_TOP:85, MOMO_TREND:82, DEAD_CAT_BOUNCE:78, RECT_TOP:68, RECT_BOTTOM:60, RECT:58, DESC_TRIANGLE:48)
+- Candidates found: **611** (top patterns: IHS:108, HS_TOP:85, MOMO_TREND:82, DEAD_CAT_BOUNCE:78, RECT_TOP:66, RECT_BOTTOM:64, RECT:58, DESC_TRIANGLE:48)
 
 - Live signals: EARLY **40**, CONFIRMED **28**, VALIDATED **8** (total 76)
 
@@ -92,7 +94,7 @@ _Upcoming earnings dates for your  watchlist._
 
 - Download: universe **2084** → downloaded **2084** → usable(≥80 bars) **2080** | short(<80) **4** | no data **0**
 
-- **GC Data Layer** (as of 2026-05-02): universe **2063** tickers
+- **GC Data Layer** (as of 2026-05-03): universe **2063** tickers
  (World: 1307 + EM: 809)
  | rev data: **1955** (94%) | EPS history: **2055** (99%) | blind: **0** (0%)
 
@@ -103,7 +105,7 @@ _Upcoming earnings dates for your  watchlist._
 | :--- | ---: | ---: | ---: | ---: | ---: |
 | EPS reported | **1767** (85%) | **289** (14%) | **0** (0%) | **0** (0%) | **0** (0%) |
 | EPS estimate | **1779** (86%) | **0** (0%) | **0** (0%) | **49** (2%) | **228** (11%) |
-| Rev reported | **288** (13%) | **736** (35%) | **0** (0%) | **707** (34%) | **325** (15%) |
+| Rev reported | **288** (13%) | **742** (35%) | **0** (0%) | **701** (33%) | **325** (15%) |
 | Rev estimate | **0** (0%) | **0** (0%) | **0** (0%) | **780** (37%) | **1276** (61%) |
 
 _yf earn_dates=HTML table all markets · yf income_stmt=quarterly financials · yf fwd_est=earningsTrend API · FMP=paid gap-filler · fwd_est: pending (earningsTrend v0.6.5)_
@@ -123,34 +125,34 @@ _yf earn_dates=HTML table all markets · yf income_stmt=quarterly financials · 
 | 🇩🇪 .DE | 52 | – | **15** (28%) | **37** (71%) |
 | 🇧🇷 .SA | 40 | – | – | **40** (100%) |
 | 🇸🇪 .ST | 33 | – | **3** (9%) | **30** (90%) |
+| 🇸🇦 .SR | 31 | – | – | **31** (100%) |
 | 🇬🇧 .L | 31 | – | **15** (48%) | **16** (51%) |
 | 🇫🇷 .PA | 31 | – | **9** (29%) | **22** (70%) |
-| 🇸🇦 .SR | 31 | – | – | **31** (100%) |
 | 🇮🇹 .MI | 26 | – | **6** (23%) | **20** (76%) |
 | 🇨🇭 .SW | 25 | – | **5** (20%) | **20** (80%) |
-| 🇪🇸 .MC | 22 | – | **8** (36%) | **14** (63%) |
 | 🇲🇽 .MX | 22 | – | **1** (4%) | **21** (95%) |
+| 🇪🇸 .MC | 22 | – | **8** (36%) | **14** (63%) |
 | .AS .AS | 18 | – | **5** (27%) | **13** (72%) |
 | .BK .BK | 18 | – | **4** (22%) | **14** (77%) |
 | 🇵🇱 .WA | 16 | – | **3** (18%) | **13** (81%) |
 | .CO .CO | 14 | – | **1** (7%) | **13** (92%) |
-| .HE .HE | 13 | – | – | **13** (100%) |
 | 🇮🇩 .JK | 13 | – | – | **13** (100%) |
+| .HE .HE | 13 | – | – | **13** (100%) |
 | 🇦🇺 .AX | 12 | – | **2** (16%) | **10** (83%) |
 | .SI .SI | 12 | – | – | **12** (100%) |
-| .OL .OL | 11 | – | **4** (36%) | **7** (63%) |
 | 🇹🇷 .IS | 11 | – | – | **11** (100%) |
-| .QA .QA | 11 | – | **1** (9%) | **10** (90%) |
+| .OL .OL | 11 | – | **4** (36%) | **7** (63%) |
 | .SN .SN | 11 | – | **1** (9%) | **10** (90%) |
+| .QA .QA | 11 | – | **1** (9%) | **10** (90%) |
 | .TA .TA | 10 | – | **4** (40%) | **6** (60%) |
 | .AT .AT | 8 | – | **2** (25%) | **6** (75%) |
-| .JO .JO | 7 | – | **2** (28%) | **5** (71%) |
-| .AE .AE | 7 | – | – | **7** (100%) |
 | .BR .BR | 7 | – | **3** (42%) | **4** (57%) |
+| .AE .AE | 7 | – | – | **7** (100%) |
+| .JO .JO | 7 | – | **2** (28%) | **5** (71%) |
 | .TWO .TWO | 6 | – | – | **6** (100%) |
-| 🇰🇼 .KW | 5 | – | – | **5** (100%) |
 | .LS .LS | 5 | – | – | **5** (100%) |
 | .VI .VI | 5 | – | **3** (60%) | **2** (40%) |
+| 🇰🇼 .KW | 5 | – | – | **5** (100%) |
 | **Total** | **1759** | **0** (0%) | **733** (41%) | **1026** (58%) |
 
 _yf earningsTrend: free, covers all markets with analyst consensus · FMP only: paid, fills where earningsTrend unavailable · no rev est: no analyst revenue consensus (small-cap, local-only)_
@@ -177,5 +179,4 @@ _yf earningsTrend: free, covers all markets with analyst consensus · FMP only: 
 | .SR | 33 | **33** (100%) | **31** (93%) | **31** (93%) | **0** (0%) | 0 | 31 | – | 2 |
 | 🇿🇦 S. Africa | 27 | **27** (100%) | **15** (55%) | **21** (77%) | **7** (25%) | 7 | 8 | – | **12** ⚠ |
 | 🇮🇹 Italy | 26 | **26** (100%) | **26** (100%) | **17** (65%) | **5** (19%) | 5 | 21 | – | 0 |
-| 🇳🇱 Netherlands | 25 | **25** (100%) | **19** (76%) | **20** (80%) | **6** (24%) | 6 | 13 | – | **6** ⚠ |
-| 🇪🇸 Spain | 22 | **22** (100%) | 
+| 🇳🇱 Netherlands | 25 | **25** (100%) | **19** (76%) |
