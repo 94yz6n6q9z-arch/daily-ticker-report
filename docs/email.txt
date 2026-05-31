@@ -1,12 +1,12 @@
 # Daily Report
 
-_Generated: **2026-05-30 02:43 CEST** | Version: **v101**_
+_Generated: **2026-06-01 00:56 CEST** | Version: **v101**_
 
 ## 1) Market recap & positioning
 
 **Executive summary:**
 
-Headline: AI-linked equities extended their late-month grind higher as energy-transition plays drew attention alongside a sharp slide in oil on expectations of a US-Iran deal. The Nasdaq 100 rose 0.4% and the S&P 500 added 0.2% while the VIX fell 2.7%, keeping the past few weeks’ steady advance intact (NDX +11.6% over 1M), even as WTI slipped 1.3% on the day. Biggest movers on the watchlist were Robinhood up 11.2%, Palantir up 9.2% and Microsoft up 5.4%, while Abercrombie & Fitch fell 6.0% and Cocoa dropped 4.8%.
+Headline: Big Tech and chip momentum kept the equity rally grinding higher even as oil jumped on Iran-war supply worries and regulators trained their sights on prediction markets. The Nasdaq 100 rose 0.36% and the S&P 500 gained 0.22% while the Vix fell 2.67%, extending the past month’s steady advance in growth shares (NDX +11.6% 1M). Biggest movers on the watchlist were Robinhood +11.15%, Palantir +9.21% and Microsoft +5.45%, while Abercrombie & Fitch fell 6.04% and Cocoa slid 4.29%.
 
 **Key tape (multi-horizon):**
 
@@ -14,22 +14,22 @@ Headline: AI-linked equities extended their late-month grind higher as energy-tr
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Nasdaq 100       | 30333.2  | <span style="color:#11823b;">+0.36%</span> | <span style="color:#11823b;">+2.89%</span> | <span style="color:#11823b;">+11.57%</span> | <span style="color:#11823b;">+21.53%</span> | <span style="color:#11823b;">+19.26%</span> |
 | S&P 500          |  7580.06 | <span style="color:#11823b;">+0.22%</span> | <span style="color:#11823b;">+1.43%</span> | <span style="color:#11823b;">+6.22%</span>  | <span style="color:#11823b;">+10.19%</span> | <span style="color:#11823b;">+10.67%</span> |
-| STOXX Europe 600 |   625.11 | <span style="color:#b91c1c;">-0.49%</span> | <span style="color:#11823b;">+0.73%</span> | <span style="color:#11823b;">+3.05%</span>  | <span style="color:#b91c1c;">-1.38%</span>  | <span style="color:#11823b;">+8.45%</span>  |
-| DAX              | 25092.2  | <span style="color:#b91c1c;">-0.34%</span> | <span style="color:#11823b;">+1.97%</span> | <span style="color:#11823b;">+4.47%</span>  | <span style="color:#b91c1c;">-0.76%</span>  | <span style="color:#11823b;">+5.27%</span>  |
-| CAC 40           |  8188.87 | <span style="color:#b91c1c;">-0.23%</span> | <span style="color:#11823b;">+1.27%</span> | <span style="color:#11823b;">+1.05%</span>  | <span style="color:#b91c1c;">-4.57%</span>  | <span style="color:#11823b;">+0.81%</span>  |
-| FTSE 100         | 10426    | <span style="color:#b91c1c;">-0.75%</span> | <span style="color:#b91c1c;">-0.17%</span> | <span style="color:#11823b;">+0.90%</span>  | <span style="color:#b91c1c;">-4.44%</span>  | <span style="color:#11823b;">+7.26%</span>  |
+| STOXX Europe 600 |   626    | <span style="color:#11823b;">+0.14%</span> | <span style="color:#11823b;">+0.14%</span> | <span style="color:#11823b;">+3.82%</span>  | <span style="color:#b91c1c;">-1.24%</span>  | <span style="color:#11823b;">+8.60%</span>  |
+| DAX              | 25104.7  | <span style="color:#11823b;">+0.05%</span> | <span style="color:#11823b;">+0.87%</span> | <span style="color:#11823b;">+4.80%</span>  | <span style="color:#b91c1c;">-0.71%</span>  | <span style="color:#11823b;">+5.32%</span>  |
+| CAC 40           |  8183.34 | <span style="color:#b91c1c;">-0.07%</span> | <span style="color:#11823b;">+0.83%</span> | <span style="color:#11823b;">+1.38%</span>  | <span style="color:#b91c1c;">-4.63%</span>  | <span style="color:#11823b;">+0.75%</span>  |
+| FTSE 100         | 10409.3  | <span style="color:#b91c1c;">-0.16%</span> | <span style="color:#b91c1c;">-0.54%</span> | <span style="color:#11823b;">+1.92%</span>  | <span style="color:#b91c1c;">-4.59%</span>  | <span style="color:#11823b;">+7.09%</span>  |
 | VIX              |    15.32 | <span style="color:#b91c1c;">-2.67%</span> | <span style="color:#b91c1c;">-8.26%</span> | <span style="color:#b91c1c;">-18.55%</span> | <span style="color:#b91c1c;">-22.86%</span> | <span style="color:#b91c1c;">-6.30%</span>  |
-| EUR/USD          |     1.17 | <span style="color:#11823b;">+0.35%</span> | <span style="color:#11823b;">+0.33%</span> | <span style="color:#b91c1c;">-0.50%</span>  | <span style="color:#b91c1c;">-1.22%</span>  | <span style="color:#11823b;">+0.51%</span>  |
-| WTI Crude        |    87.76 | <span style="color:#b91c1c;">-1.28%</span> | <span style="color:#b91c1c;">-9.15%</span> | <span style="color:#b91c1c;">-17.89%</span> | <span style="color:#11823b;">+30.95%</span> | <span style="color:#11823b;">+49.89%</span> |
-| Gold             |  4569.9  | <span style="color:#11823b;">+1.57%</span> | <span style="color:#11823b;">+1.08%</span> | <span style="color:#11823b;">+0.54%</span>  | <span style="color:#b91c1c;">-12.63%</span> | <span style="color:#11823b;">+8.34%</span>  |
-| Silver           |    75.58 | <span style="color:#b91c1c;">-0.08%</span> | <span style="color:#b91c1c;">-0.41%</span> | <span style="color:#11823b;">+5.61%</span>  | <span style="color:#b91c1c;">-18.45%</span> | <span style="color:#11823b;">+33.91%</span> |
-| Coffee           |   265.9  | <span style="color:#b91c1c;">-3.04%</span> | <span style="color:#b91c1c;">-2.37%</span> | <span style="color:#b91c1c;">-12.89%</span> | <span style="color:#b91c1c;">-6.57%</span>  | <span style="color:#b91c1c;">-35.62%</span> |
-| Cocoa            |  3901    | <span style="color:#b91c1c;">-4.83%</span> | <span style="color:#11823b;">+2.77%</span> | <span style="color:#11823b;">+16.97%</span> | <span style="color:#11823b;">+39.42%</span> | <span style="color:#b91c1c;">-27.81%</span> |
-| Bitcoin          | 73406    | <span style="color:#b91c1c;">-0.18%</span> | <span style="color:#b91c1c;">-4.26%</span> | <span style="color:#b91c1c;">-3.80%</span>  | <span style="color:#11823b;">+11.66%</span> | <span style="color:#b91c1c;">-14.96%</span> |
+| EUR/USD          |     1.17 | <span style="color:#11823b;">+0.04%</span> | <span style="color:#11823b;">+0.31%</span> | <span style="color:#b91c1c;">-0.61%</span>  | <span style="color:#b91c1c;">-0.87%</span>  | <span style="color:#11823b;">+0.43%</span>  |
+| WTI Crude        |    89.44 | <span style="color:#11823b;">+2.38%</span> | <span style="color:#b91c1c;">-7.41%</span> | <span style="color:#b91c1c;">-12.26%</span> | <span style="color:#11823b;">+25.57%</span> | <span style="color:#11823b;">+52.52%</span> |
+| Gold             |  4568.6  | <span style="color:#11823b;">+0.18%</span> | <span style="color:#11823b;">+1.05%</span> | <span style="color:#b91c1c;">-1.32%</span>  | <span style="color:#b91c1c;">-13.71%</span> | <span style="color:#11823b;">+9.12%</span>  |
+| Silver           |    75.41 | <span style="color:#b91c1c;">-0.27%</span> | <span style="color:#b91c1c;">-0.64%</span> | <span style="color:#b91c1c;">-0.71%</span>  | <span style="color:#b91c1c;">-14.58%</span> | <span style="color:#11823b;">+30.06%</span> |
+| Coffee           |   265.6  | <span style="color:#b91c1c;">-3.15%</span> | <span style="color:#b91c1c;">-2.48%</span> | <span style="color:#b91c1c;">-12.99%</span> | <span style="color:#b91c1c;">-6.68%</span>  | <span style="color:#b91c1c;">-35.69%</span> |
+| Cocoa            |  3923    | <span style="color:#b91c1c;">-4.29%</span> | <span style="color:#11823b;">+3.35%</span> | <span style="color:#11823b;">+17.63%</span> | <span style="color:#11823b;">+40.21%</span> | <span style="color:#b91c1c;">-27.41%</span> |
+| Bitcoin          | 73844    | <span style="color:#11823b;">+0.12%</span> | <span style="color:#b91c1c;">-4.08%</span> | <span style="color:#b91c1c;">-5.54%</span>  | <span style="color:#11823b;">+7.37%</span>  | <span style="color:#b91c1c;">-19.16%</span> |
 
 **Macro charts (5Y):**
 
-<table><tr><td style='padding-right:12px;'><img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/macro_vix_5y.png?v=20260530004300' width='414' style='width:414px;max-width:414px;height:auto;'></td><td><img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/macro_eurusd_5y.png?v=20260530004300' width='414' style='width:414px;max-width:414px;height:auto;'></td></tr></table>
+<table><tr><td style='padding-right:12px;'><img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/macro_vix_5y.png?v=20260531225647' width='414' style='width:414px;max-width:414px;height:auto;'></td><td><img src='https://94yz6n6q9z-arch.github.io/daily-ticker-report/img/macro_eurusd_5y.png?v=20260531225647' width='414' style='width:414px;max-width:414px;height:auto;'></td></tr></table>
 
 
 ## 2) Biggest movers (≥ 4%)
@@ -49,7 +49,7 @@ Headline: AI-linked equities extended their late-month grind higher as energy-tr
 | Ticker   | pct    |
 | :--- | ---: |
 | ANF      | -6.04% |
-| Cocoa    | -4.83% |
+| Cocoa    | -4.29% |
 
 **After-hours gainers:** _None ≥ 4%_
 
@@ -61,40 +61,40 @@ _Upcoming earnings dates for your  watchlist._
 
 | Ticker   | Earnings Date   |   Days |
 | :--- | ---: | ---: |
-| NAT      | 2026-06-01      |      2 |
-| AVGO     | 2026-06-03      |      4 |
+| NAT      | 2026-06-01      |      0 |
+| AVGO     | 2026-06-03      |      2 |
 
 ## 4) Technical triggers
 
 ### Signal engine health (diagnostics)
 
-- Tickers scanned: **2118**; usable OHLCV: **2115**
+- Tickers scanned: **2066**; usable OHLCV: **2062**
 
-- Candidates found: **748** (top patterns: IHS:140, MOMO_TREND:127, RECT_TOP:98, RECT_BOTTOM:84, RECT:82, HS_TOP:80, DEAD_CAT_BOUNCE:51, DESC_TRIANGLE:44)
+- Candidates found: **717** (top patterns: IHS:137, MOMO_TREND:115, RECT_TOP:104, HS_TOP:82, RECT:78, RECT_BOTTOM:72, DESC_TRIANGLE:46, DEAD_CAT_BOUNCE:45)
 
-- Live signals: EARLY **73**, CONFIRMED **72**, VALIDATED **23** (total 168)
+- Live signals: EARLY **76**, CONFIRMED **89**, VALIDATED **18** (total 183)
 
-- Geometry restored today: HS/IHS **115**, Band **187**
+- Geometry restored today: HS/IHS **114**, Band **183**
 
-- Download: universe **2081** → downloaded **2080** → usable(≥80 bars) **2078** | short(<80) **2** | no data **1**
+- Download: universe **2030** → downloaded **2029** → usable(≥80 bars) **2026** | short(<80) **3** | no data **1**
 
-  - No data by exchange: .DE: 1/55
+  - No data by exchange: .DE: 1/54
 
   - No data by country: Deutschland: 1
 
-- **GC Data Layer** (as of 2026-05-30): universe **2060** tickers
- (World: 1307 + EM: 808)
- | rev data: **1952** (94%) | EPS history: **2029** (98%) | blind: **0** (0%)
+- **GC Data Layer** (as of 2026-05-31): universe **2008** tickers
+ (World: 1281 + EM: 776)
+ | rev data: **1900** (94%) | EPS history: **1980** (98%) | blind: **0** (0%)
 
 
 **Data source breakdown** (per ticker with EPS history, dominant source):
 
 | Field | yf earn_dates | yf income_stmt | yf fwd_est | FMP | missing |
 | :--- | ---: | ---: | ---: | ---: | ---: |
-| EPS reported | **241** (11%) | **1788** (86%) | **0** (0%) | **0** (0%) | **0** (0%) |
-| EPS estimate | **1442** (70%) | **0** (0%) | **0** (0%) | **101** (4%) | **486** (23%) |
-| Rev reported | **1782** (86%) | **13** (0%) | **0** (0%) | **226** (10%) | **8** (0%) |
-| Rev estimate | **0** (0%) | **0** (0%) | **0** (0%) | **767** (37%) | **1262** (61%) |
+| EPS reported | **256** (12%) | **1724** (85%) | **0** (0%) | **0** (0%) | **0** (0%) |
+| EPS estimate | **1421** (70%) | **0** (0%) | **0** (0%) | **99** (4%) | **460** (22%) |
+| Rev reported | **1719** (85%) | **22** (1%) | **0** (0%) | **226** (11%) | **13** (0%) |
+| Rev estimate | **0** (0%) | **0** (0%) | **0** (0%) | **758** (37%) | **1222** (60%) |
 
 _yf earn_dates=HTML table all markets · yf income_stmt=quarterly financials · yf fwd_est=earningsTrend API · FMP=paid gap-filler · fwd_est covered: **2** tickers_
 
@@ -103,39 +103,39 @@ _yf earn_dates=HTML table all markets · yf income_stmt=quarterly financials · 
 
 | Market | N | yf earningsTrend | FMP only | no rev est |
 | :--- | ---: | ---: | ---: | ---: |
-| 🇺🇸 .US | 557 | – | **556** (99%) | **1** (0%) |
-| 🇮🇳 .NS | 160 | – | **5** (3%) | **155** (96%) |
+| 🇺🇸 .US | 550 | – | **550** (100%) | – |
+| 🇮🇳 .NS | 158 | – | **5** (3%) | **153** (96%) |
 | 🇨🇦 .TO | 82 | – | **49** (59%) | **33** (40%) |
-| 🇹🇼 .TW | 72 | – | **3** (4%) | **69** (95%) |
-| 🇰🇷 .KS | 64 | – | – | **64** (100%) |
-| 🇭🇰 .HK | 63 | – | **4** (6%) | **59** (93%) |
+| 🇹🇼 .TW | 66 | – | **3** (4%) | **63** (95%) |
+| 🇭🇰 .HK | 64 | – | **4** (6%) | **60** (93%) |
+| 🇰🇷 .KS | 63 | – | – | **63** (100%) |
 | 🇯🇵 .T | 45 | – | **3** (6%) | **42** (93%) |
-| 🇩🇪 .DE | 43 | **1** (2%) | **13** (30%) | **29** (67%) |
+| 🇩🇪 .DE | 42 | **1** (2%) | **12** (28%) | **29** (69%) |
 | 🇧🇷 .SA | 37 | – | – | **37** (100%) |
-| 🇸🇪 .ST | 32 | – | **2** (6%) | **30** (93%) |
+| 🇸🇪 .ST | 31 | – | **2** (6%) | **29** (93%) |
 | 🇸🇦 .SR | 27 | – | – | **27** (100%) |
-| 🇲🇽 .MX | 19 | – | **1** (5%) | **18** (94%) |
+| 🇲🇽 .MX | 18 | – | **1** (5%) | **17** (94%) |
 | 🇮🇹 .MI | 18 | – | **5** (27%) | **13** (72%) |
-| 🇪🇸 .MC | 17 | – | **6** (35%) | **11** (64%) |
 | .BK .BK | 17 | – | **3** (17%) | **14** (82%) |
+| 🇪🇸 .MC | 16 | – | **6** (37%) | **10** (62%) |
 | 🇫🇷 .PA | 15 | – | **6** (40%) | **9** (60%) |
 | 🇬🇧 .L | 14 | – | **8** (57%) | **6** (42%) |
-| .AS .AS | 14 | – | **4** (28%) | **10** (71%) |
-| .HE .HE | 13 | – | – | **13** (100%) |
+| .AS .AS | 13 | – | **4** (30%) | **9** (69%) |
 | .CO .CO | 13 | – | **1** (7%) | **12** (92%) |
-| .OL .OL | 11 | – | **3** (27%) | **8** (72%) |
+| .HE .HE | 13 | – | – | **13** (100%) |
+| .OL .OL | 12 | – | **3** (25%) | **9** (75%) |
 | 🇵🇱 .WA | 11 | – | **1** (9%) | **10** (90%) |
-| 🇮🇩 .JK | 11 | – | – | **11** (100%) |
 | .QA .QA | 11 | – | **1** (9%) | **10** (90%) |
 | 🇨🇭 .SW | 10 | – | **1** (10%) | **9** (90%) |
-| .SN .SN | 10 | – | **1** (10%) | **9** (90%) |
+| 🇮🇩 .JK | 9 | – | – | **9** (100%) |
+| .SN .SN | 9 | – | **1** (11%) | **8** (88%) |
 | .TA .TA | 8 | – | **2** (25%) | **6** (75%) |
-| 🇹🇷 .IS | 7 | – | – | **7** (100%) |
+| .TWO .TWO | 7 | – | – | **7** (100%) |
 | .AE .AE | 7 | – | – | **7** (100%) |
+| .AT .AT | 7 | – | **2** (28%) | **5** (71%) |
+| 🇹🇷 .IS | 7 | – | – | **7** (100%) |
 | .SI .SI | 7 | – | – | **7** (100%) |
-| .AT .AT | 6 | – | **2** (33%) | **4** (66%) |
-| .TWO .TWO | 6 | – | – | **6** (100%) |
-| **Total** | **1427** | **1** (0%) | **680** (47%) | **746** (52%) |
+| **Total** | **1407** | **1** (0%) | **673** (47%) | **733** (52%) |
 
 _yf earningsTrend: free, covers all markets with analyst consensus · FMP only: paid, fills where earningsTrend unavailable · no rev est: no analyst revenue consensus (small-cap, local-only)_
 
@@ -144,29 +144,29 @@ _yf earningsTrend: free, covers all markets with analyst consensus · FMP only: 
 
 | Country | N | EPS rep | EPS est | Rev rep | Rev est | All-4 | EPS est only | Rev est only | No est ⚠ |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 🇺🇸 US | 560 | **560** (100%) | **559** (99%) | **560** (100%) | **558** (99%) | 558 | 1 | – | 1 |
-| 🇭🇰 Hong Kong | 186 | **182** (97%) | **63** (33%) | **181** (97%) | **4** (2%) | 4 | 59 | – | **119** ⚠ |
-| 🇯🇵 Japan | 177 | **165** (93%) | **53** (29%) | **162** (91%) | **11** (6%) | 10 | 43 | 1 | **111** ⚠ |
-| 🇮🇳 India | 162 | **162** (100%) | **160** (98%) | **162** (100%) | **5** (3%) | 5 | 155 | – | 2 |
+| 🇺🇸 US | 553 | **553** (100%) | **552** (99%) | **553** (100%) | **552** (99%) | 552 | – | – | 1 |
+| 🇭🇰 Hong Kong | 179 | **175** (97%) | **64** (35%) | **173** (96%) | **4** (2%) | 4 | 60 | – | **111** ⚠ |
+| 🇯🇵 Japan | 168 | **158** (94%) | **53** (31%) | **153** (91%) | **11** (6%) | 10 | 43 | 1 | **104** ⚠ |
+| 🇮🇳 India | 160 | **160** (100%) | **158** (98%) | **160** (100%) | **5** (3%) | 5 | 153 | – | 2 |
 | 🇨🇦 Canada | 83 | **83** (100%) | **83** (100%) | **83** (100%) | **50** (60%) | 50 | 33 | – | 0 |
-| 🇹🇼 Taiwan | 77 | **77** (100%) | **72** (93%) | **77** (100%) | **3** (3%) | 3 | 69 | – | 5 |
-| 🇰🇷 S. Korea | 76 | **75** (98%) | **64** (84%) | **75** (98%) | **0** (0%) | 0 | 64 | – | **11** ⚠ |
-| 🇬🇧 UK | 71 | **71** (100%) | **34** (47%) | **71** (100%) | **27** (38%) | 27 | 7 | – | **37** ⚠ |
-| 🇩🇪 Germany | 54 | **53** (98%) | **43** (79%) | **52** (96%) | **13** (24%) | 13 | 30 | – | **10** ⚠ |
+| 🇰🇷 S. Korea | 74 | **73** (98%) | **63** (85%) | **73** (98%) | **0** (0%) | 0 | 63 | – | **10** ⚠ |
+| 🇹🇼 Taiwan | 70 | **70** (100%) | **66** (94%) | **70** (100%) | **3** (4%) | 3 | 63 | – | 4 |
+| 🇬🇧 UK | 66 | **66** (100%) | **32** (48%) | **66** (100%) | **25** (37%) | 25 | 7 | – | **34** ⚠ |
 | 🇫🇷 France | 53 | **53** (100%) | **28** (52%) | **53** (100%) | **17** (32%) | 17 | 11 | – | **25** ⚠ |
-| 🇦🇺 Australia | 46 | **46** (100%) | **18** (39%) | **46** (100%) | **16** (34%) | 16 | 2 | – | **28** ⚠ |
-| 🇧🇷 Brazil/SA | 42 | **38** (90%) | **37** (88%) | **38** (90%) | **0** (0%) | 0 | 37 | – | 1 |
-| 🇸🇪 Sweden | 41 | **41** (100%) | **33** (80%) | **41** (100%) | **3** (7%) | 3 | 30 | – | **8** ⚠ |
+| 🇩🇪 Germany | 53 | **52** (98%) | **42** (79%) | **51** (96%) | **12** (22%) | 12 | 30 | – | **10** ⚠ |
+| 🇦🇺 Australia | 47 | **47** (100%) | **18** (38%) | **47** (100%) | **16** (34%) | 16 | 2 | – | **29** ⚠ |
+| 🇧🇷 Brazil/SA | 42 | **38** (90%) | **37** (88%) | **37** (88%) | **0** (0%) | 0 | 37 | – | 1 |
 | 🇨🇭 Switzerland | 40 | **40** (100%) | **14** (35%) | **40** (100%) | **5** (12%) | 5 | 9 | – | **26** ⚠ |
+| 🇸🇪 Sweden | 40 | **40** (100%) | **32** (80%) | **40** (100%) | **3** (7%) | 3 | 29 | – | **8** ⚠ |
 | .SR | 33 | **33** (100%) | **27** (81%) | **33** (100%) | **0** (0%) | 0 | 27 | – | **6** ⚠ |
 | 🇿🇦 S. Africa | 27 | **27** (100%) | **11** (40%) | **27** (100%) | **10** (37%) | 10 | 1 | – | **16** ⚠ |
-| 🇳🇱 Netherlands | 25 | **25** (100%) | **16** (64%) | **25** (100%) | **6** (24%) | 6 | 10 | – | **9** ⚠ |
 | 🇮🇹 Italy | 25 | **25** (100%) | **18** (72%) | **25** (100%) | **5** (20%) | 5 | 13 | – | **7** ⚠ |
-| 🇪🇸 Spain | 22 | **22** (100%) | **18** (81%) | **22** (100%) | **8** (36%) | 7 | 11 | 1 | 3 |
-| 🇲🇽 Mexico | 22 | **20** (90%) | **19** (86%) | **20** (90%) | **1** (4%) | 1 | 18 | – | 1 |
+| 🇳🇱 Netherlands | 24 | **24** (100%) | **15** (62%) | **24** (100%) | **6** (25%) | 6 | 9 | – | **9** ⚠ |
+| 🇲🇽 Mexico | 21 | **19** (90%) | **18** (85%) | **19** (90%) | **1** (4%) | 1 | 17 | – | 1 |
+| 🇪🇸 Spain | 21 | **21** (100%) | **17** (80%) | **21** (100%) | **8** (38%) | 7 | 10 | 1 | 3 |
 | 🇹🇭 Thailand | 18 | **17** (94%) | **17** (94%) | **17** (94%) | **3** (16%) | 3 | 14 | – | 0 |
-| 🇮🇩 Indonesia | 17 | **17** (100%) | **11** (64%) | **17** (100%) | **0** (0%) | 0 | 11 | – | **6** ⚠ |
 | 🇵🇱 Poland | 16 | **16** (100%) | **12** (75%) | **16** (100%) | **2** (12%) | 2 | 10 | – | 4 |
 | 🇩🇰 Denmark | 15 | **15** (100%) | **13** (86%) | **15** (100%) | **1** (6%) | 1 | 12 | – | 2 |
 | 🇸🇬 Singapore | 14 | **14** (100%) | **7** (50%) | **14** (100%) | **0** (0%) | 0 | 7 | – | **7** ⚠ |
-| 🇫🇮 Finland | 13 | **13** (100%) | **13** (100%) | 
+| 🇫🇮 Finland | 13 | **13** (100%) | **13** (100%) | **13** (100%) | **0** (0%) | 0 | 13 | – | 0 |
+| 🇧🇪 Belgium | 12 | **12** (100%) | **6** (50%) | **11** (91%) | **3** (25%) | 3 | 3 | – | **6** ⚠ |
