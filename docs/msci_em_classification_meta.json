@@ -1,14 +1,14 @@
 {
-  "as_of": "2026-07-02",
+  "as_of": "2026-07-03",
   "source_url": "https://www.ishares.com/de/privatanleger/de/produkte/251858/ishares-msci-emerging-markets-ucits-etf-acc-fund/1535604580385.ajax?fileType=xls&fileName=iShares-MSCI-EM-UCITS-ETF-USD-Acc_fund&dataType=fund",
-  "n_tickers": 772,
+  "n_tickers": 771,
   "label": "EM",
   "countries": {
     "China": 167,
     "Indien": 164,
     "Taiwan": 77,
     "Korea": 77,
-    "Brasilien": 47,
+    "Brasilien": 46,
     "Saudi-Arabien": 33,
     "Südafrika": 27,
     "Mexiko": 21,
