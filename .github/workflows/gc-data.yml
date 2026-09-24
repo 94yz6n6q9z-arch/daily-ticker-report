@@ -54,9 +54,12 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install yfinance pandas numpy lxml requests
+        run: pip install yfinance pandas numpy lxml requests openpyxl xlrd
 
       - name: Refresh MSCI World classification
+        # If the iShares download/parse fails, keep yesterday's universe CSV
+        # and still run the earnings refresh (the script refuses to write a bad CSV).
+        continue-on-error: true
         run: |
           cd ${{ github.workspace }}
           python tools/update_msci_world_classification.py --universe world \
@@ -64,6 +67,7 @@ jobs:
             --meta docs/msci_world_classification_meta.json
 
       - name: Refresh MSCI EM classification
+        continue-on-error: true
         run: |
           cd ${{ github.workspace }}
           python tools/update_msci_world_classification.py --universe em \
