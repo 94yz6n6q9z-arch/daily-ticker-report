@@ -298,8 +298,15 @@ def _parse_spreadsheetml(raw_bytes: bytes) -> list[list[str]]:
         for row in table.findall("Row"):
             cells: list[str] = []
             for cell in row.findall("Cell"):
+                # SpreadsheetML omits empty cells and puts ss:Index (1-based) on the
+                # next non-empty one. Pad with "" so every value stays in its column.
+                # Ignoring this shifted/shortened rows and dropped every holding.
+                idx = cell.get("Index")
+                if idx and idx.isdigit():
+                    while len(cells) < int(idx) - 1:
+                        cells.append("")
                 data = cell.find("Data")
-                cells.append(data.text if data is not None and data.text else "")
+                cells.append((data.text or "").strip() if data is not None else "")
             rows.append(cells)
     return rows
 
@@ -354,43 +361,58 @@ def _parse_legacy_xls(raw_bytes: bytes) -> list[list[str]]:
 # ---------------------------------------------------------------------------
 # Holdings extraction
 # ---------------------------------------------------------------------------
-# Column indices in the iShares XLS data block:
-_COL_TICKER   = 0
-_COL_NAME     = 1
-_COL_SECTOR   = 2
-_COL_CLASS    = 3   # "Aktien" = equity
-_COL_MKVAL    = 4   # market value of holding (not company market cap)
-_COL_WEIGHT   = 5   # weight % in fund
-_COL_PRICE    = 8   # share price in local currency
-_COL_COUNTRY  = 9
-_COL_EXCHANGE = 10
-_COL_CURRENCY = 11
+# Columns are located by HEADER NAME (German or English), not fixed position,
+# so an added/reordered column in the download can't silently break parsing.
+_HEADER_ALIASES: dict[str, tuple[str, ...]] = {
+    "ticker":   ("emittententicker", "ticker", "issuer ticker"),
+    "name":     ("name",),
+    "sector":   ("sektor", "sector"),
+    "class":    ("anlageklasse", "asset class"),
+    "weight":   ("gewichtung (%)", "weight (%)", "gewichtung", "weight"),
+    "country":  ("standort", "location", "land", "country"),
+    "exchange": ("börse", "boerse", "exchange"),
+    "currency": ("marktwährung", "market currency", "währung", "currency"),
+}
+_REQUIRED_COLS = ("ticker", "name", "class", "exchange")
+# Fallback positions (the historical layout) if a header name is unrecognised
+_FALLBACK_POS = {"ticker": 0, "name": 1, "sector": 2, "class": 3, "weight": 5,
+                 "country": 9, "exchange": 10, "currency": 11}
+# Asset-class labels meaning "equity" (compared lower-case, stripped)
+_EQUITY_CLASSES = {"aktien", "aktie", "equity", "equities", "stock", "stocks"}
 
-_EQUITY_CLASS = "Aktien"   # German for "equities"
-_HEADER_MARKER = "Emittententicker"   # first column of the data header row
+
+def _norm(s: str) -> str:
+    return (s or "").replace("\xa0", " ").strip().lower()
 
 
-def _find_data_start(rows: list[list[str]]) -> tuple[int, str]:
-    """Return (data_start_index, fund_name) from the XLS rows."""
-    fund_name = ""
+def _find_header(rows: list[list[str]]) -> tuple[int, dict[str, int]]:
+    """Locate the data header row and map logical columns → indices."""
     for i, row in enumerate(rows):
-        if len(row) >= 2 and not fund_name:
-            # Row 1 (0-indexed) usually has the fund name
-            if row[0] and row[0] != rows[0][0]:
-                fund_name = row[0]
-        if row and row[0] == _HEADER_MARKER:
-            return i + 1, fund_name
+        normed = [_norm(c) for c in row]
+        if not any(n in _HEADER_ALIASES["ticker"] for n in normed):
+            continue
+        colmap: dict[str, int] = {}
+        for key, aliases in _HEADER_ALIASES.items():
+            for j, n in enumerate(normed):
+                if n in aliases:
+                    colmap[key] = j
+                    break
+        for key, pos in _FALLBACK_POS.items():
+            colmap.setdefault(key, pos)
+        return i, colmap
     sys.exit("[msci-refresh] could not find data header row in XLS")
 
 
 def _extract_holdings(rows: list[list[str]], fund_id: str) -> list[dict]:
     """Extract equity holdings from parsed XLS rows."""
-    data_start, _fund_name_raw = _find_data_start(rows)
+    header_idx, col = _find_header(rows)
+    data_start = header_idx + 1
+    width = max(col.values()) + 1
 
-    # Grab fund date from metadata rows (row index 3 or similar)
+    # Fund date from the metadata rows above the header
     source_date = ""
-    for row in rows[:8]:
-        if len(row) >= 2 and "Holdings as of" in str(row[0]):
+    for row in rows[:header_idx]:
+        if len(row) >= 2 and any(k in _norm(row[0]) for k in ("as of", "stand", "per")):
             source_date = row[1]
             break
 
@@ -399,17 +421,22 @@ def _extract_holdings(rows: list[list[str]], fund_id: str) -> list[dict]:
     skipped_rows: int = 0
 
     for row in rows[data_start:]:
-        if len(row) <= _COL_CURRENCY:
+        if not row or not any(c.strip() for c in row):
             continue
-        if row[_COL_CLASS] != _EQUITY_CLASS:
+        row = row + [""] * (width - len(row))   # pad short rows instead of dropping them
+        if _norm(row[col["class"]]) not in _EQUITY_CLASSES:
             continue
 
-        raw_ticker = row[_COL_TICKER].strip()
-        exchange   = row[_COL_EXCHANGE].strip()
-        name       = row[_COL_NAME].strip()
-        sector     = row[_COL_SECTOR].strip()
-        country    = row[_COL_COUNTRY].strip()
-        weight     = row[_COL_WEIGHT].strip()
+        raw_ticker = row[col["ticker"]].strip()
+        exchange   = row[col["exchange"]].strip()
+        name       = row[col["name"]].strip()
+        sector     = row[col["sector"]].strip()
+        country    = row[col["country"]].strip()
+        weight     = row[col["weight"]].strip()
+
+        if not raw_ticker:
+            skipped_rows += 1
+            continue
 
         # Skip fund-of-fund rows
         if raw_ticker in SKIP_TICKERS:
@@ -455,6 +482,23 @@ def _extract_holdings(rows: list[list[str]], fund_id: str) -> list[dict]:
     return results
 
 
+def _diagnose(rows: list[list[str]], label: str) -> None:
+    """Print what the file actually contains, so a failed parse is debuggable from the log."""
+    print(f"[msci-refresh:{label}] DIAGNOSTICS — {len(rows)} rows parsed")
+    try:
+        hi, col = _find_header(rows)
+        print(f"[msci-refresh:{label}]   header row {hi}: {rows[hi]}")
+        print(f"[msci-refresh:{label}]   column map: {col}")
+        from collections import Counter
+        classes = Counter(r[col['class']] for r in rows[hi + 1:] if len(r) > col['class'])
+        print(f"[msci-refresh:{label}]   asset-class values: {classes.most_common(8)}")
+        for r in rows[hi + 1:hi + 4]:
+            print(f"[msci-refresh:{label}]   sample row ({len(r)} cells): {r}")
+    except SystemExit:
+        for r in rows[:10]:
+            print(f"[msci-refresh:{label}]   row: {r}")
+
+
 # ---------------------------------------------------------------------------
 # CSV output
 # ---------------------------------------------------------------------------
@@ -498,6 +542,22 @@ def _write_meta(holdings: list[dict], meta_path: Path, label: str, url: str) -> 
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+# Minimum plausible equity holdings per fund after exchange mapping.
+# Normal: World ~1,300, EM ~800+. Anything far below means a broken parse.
+MIN_HOLDINGS = {"world": 1000, "em": 500}
+
+
+def _existing_row_count(path: Path | None) -> int:
+    """Rows in the current CSV (0 if missing/unreadable)."""
+    if not path or not Path(path).exists():
+        return 0
+    try:
+        with open(path, encoding="utf-8") as f:
+            return max(sum(1 for _ in f) - 1, 0)
+    except Exception:
+        return 0
+
+
 def _process(key: str, out_path: Path | None, meta_path: Path | None) -> list[dict]:
     cfg = SOURCES[key]
     label = cfg["label"]
@@ -512,6 +572,21 @@ def _process(key: str, out_path: Path | None, meta_path: Path | None) -> list[di
 
     holdings = _extract_holdings(rows, cfg["fund_id"])
     print(f"[msci-refresh:{label}] {len(holdings)} equity holdings extracted")
+
+    # Sanity guard: a parse that returns far fewer holdings than expected is a
+    # broken download/format, not a real index change. Keep the previous CSV and
+    # fail loudly — writing it would empty the universe and crash gc_engine.
+    floor = MIN_HOLDINGS[key]
+    prev = _existing_row_count(out_path)
+    reason = ""
+    if len(holdings) < floor:
+        reason = f"{len(holdings)} holdings < minimum {floor}"
+    elif prev and len(holdings) < 0.8 * prev:
+        reason = f"{len(holdings)} holdings is >20% below previous {prev}"
+    if reason:
+        _diagnose(rows, label)
+        sys.exit(f"[msci-refresh:{label}] ABORT — {reason}. "
+                 f"Existing CSV left untouched ({prev} rows).")
 
     if out_path:
         _write_csv(holdings, out_path, url)
