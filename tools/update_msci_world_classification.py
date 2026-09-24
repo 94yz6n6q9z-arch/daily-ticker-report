@@ -47,24 +47,38 @@ except ImportError:
     sys.exit("requests is required: pip install requests")
 
 # ---------------------------------------------------------------------------
-# Source URLs — German iShares site, XLS download endpoint
+# Source URLs — BlackRock fund-document API (get-fund-document endpoint).
+# The old iShares German .ajax endpoint with a hardcoded timestamp in the path
+# (…/1535604580385.ajax?fileType=xls&…) was retired by BlackRock and returns 404.
+# The new endpoint downloads the same XLS directly; only portfolioId differs
+# between funds (World=251882, EM=251858).
 # ---------------------------------------------------------------------------
+_BLACKROCK_DOC_API = (
+    "https://www.blackrock.com/varnish-api/uk-retail01-product-data/product-data/"
+    "api/v1/get-fund-document?appType=PRODUCT_PAGE&appSubType=ISHARES"
+    "&targetSite=de-ishares-v2&locale=de_DE&portfolioId={portfolio_id}"
+    "&component=fundDownloadV2&userType=individual"
+)
+
 SOURCES = {
     "world": {
-        "url": (
+        "url": _BLACKROCK_DOC_API.format(portfolio_id="251882"),
+        # Warm-up page for cookies — the fund's product page.
+        "product_page": (
             "https://www.ishares.com/de/privatanleger/de/produkte/251882/"
-            "ishares-msci-world-ucits-etf-acc-fund/1535604580385.ajax"    # ← this timestamp
-            "?fileType=xls&fileName=iShares-Core-MSCI-World-UCITS-ETF_fund&dataType=fund"
+            "ishares-msci-world-ucits-etf-acc-fund"
         ),
-        ...
+        "fund_id": "IWDA",
+        "label": "World",
     },
     "em": {
-        "url": (
+        "url": _BLACKROCK_DOC_API.format(portfolio_id="251858"),
+        "product_page": (
             "https://www.ishares.com/de/privatanleger/de/produkte/251858/"
-            "ishares-msci-emerging-markets-ucits-etf-acc-fund/1535604580385.ajax"    # ← same
-            "?fileType=xls&fileName=iShares-MSCI-EM-UCITS-ETF-USD-Acc_fund&dataType=fund"
+            "ishares-msci-emerging-markets-ucits-etf-acc-fund"
         ),
-        ...
+        "fund_id": "MSCI_EM",
+        "label": "EM",
     },
 }
 
@@ -210,16 +224,21 @@ _MAX_RETRIES = 3
 _RETRY_DELAY = 15   # seconds
 
 
-def _download_xls(url: str, label: str) -> bytes:
-    """Download an XLS file from iShares with retries."""
+def _download_xls(url: str, label: str, product_page: str = "") -> bytes:
+    """Download an XLS file from iShares/BlackRock with retries.
+
+    product_page is the fund's product page, visited first so the session picks
+    up cookies before the document API call. Passed in explicitly because the new
+    get-fund-document URL has no timestamp path to derive it from.
+    """
     session = requests.Session()
     # Warm-up: visit the product page so cookies are set
-    product_page = url.split("/1535604580385.ajax")[0]
-    try:
-        session.get(product_page, headers=_HEADERS, timeout=30)
-        time.sleep(2)
-    except Exception:
-        pass  # warm-up is best-effort
+    if product_page:
+        try:
+            session.get(product_page, headers=_HEADERS, timeout=30)
+            time.sleep(2)
+        except Exception:
+            pass  # warm-up is best-effort
 
     for attempt in range(1, _MAX_RETRIES + 1):
         try:
@@ -237,10 +256,32 @@ def _download_xls(url: str, label: str) -> bytes:
 
 
 # ---------------------------------------------------------------------------
-# XLS (SpreadsheetML) parser
+# XLS/XLSX parser — auto-detects the download format
 # ---------------------------------------------------------------------------
+# BlackRock's fund-document endpoint may return any of three formats depending
+# on the fund and how the endpoint is feeling that day:
+#   1. SpreadsheetML 2003 XML  — starts with "<?xml" / "<Workbook"
+#   2. Modern .xlsx (OOXML)    — a ZIP, starts with the bytes "PK\x03\x04"
+#   3. Legacy .xls (BIFF8)     — an OLE2 compound file, starts with D0 CF 11 E0
+# All three carry the SAME logical layout (same columns, same German markers),
+# so each parser below returns list[list[str]] and the rest of the pipeline is
+# unchanged. Format is chosen by sniffing the leading bytes, not the URL.
+
+def _parse_holdings_file(raw_bytes: bytes) -> list[list[str]]:
+    """Detect the file format from its magic bytes and dispatch to the right parser."""
+    head = raw_bytes.lstrip()[:8]
+    if head[:2] == b"PK":
+        # ZIP container → modern .xlsx (OOXML)
+        return _parse_xlsx(raw_bytes)
+    if head[:4] == b"\xd0\xcf\x11\xe0":
+        # OLE2 compound document → legacy binary .xls (BIFF)
+        return _parse_legacy_xls(raw_bytes)
+    # Default: assume SpreadsheetML 2003 XML (what the old .ajax endpoint returned)
+    return _parse_spreadsheetml(raw_bytes)
+
+
 def _parse_spreadsheetml(raw_bytes: bytes) -> list[list[str]]:
-    """Parse iShares SpreadsheetML XML → list of rows (list of cell strings)."""
+    """Parse iShares SpreadsheetML 2003 XML → list of rows (list of cell strings)."""
     text = raw_bytes.decode("utf-8-sig", errors="replace")
     # Strip all namespace declarations for simpler parsing
     text = re.sub(r'\s+xmlns(?::\w+)?="[^"]*"', "", text)
@@ -248,7 +289,9 @@ def _parse_spreadsheetml(raw_bytes: bytes) -> list[list[str]]:
     try:
         root = ET.fromstring(text)
     except ET.ParseError as exc:
-        sys.exit(f"[msci-refresh] XML parse error: {exc}")
+        # Give a useful error rather than a raw XML exception: show what we got.
+        preview = text[:200].replace("\n", " ")
+        sys.exit(f"[msci-refresh] XML parse error: {exc} | first 200 chars: {preview!r}")
 
     rows: list[list[str]] = []
     for table in root.findall(".//Table"):
@@ -258,6 +301,53 @@ def _parse_spreadsheetml(raw_bytes: bytes) -> list[list[str]]:
                 data = cell.find("Data")
                 cells.append(data.text if data is not None and data.text else "")
             rows.append(cells)
+    return rows
+
+
+def _parse_xlsx(raw_bytes: bytes) -> list[list[str]]:
+    """Parse a modern .xlsx (OOXML) file → list of rows (list of cell strings)."""
+    try:
+        import openpyxl  # noqa: F401
+    except ImportError:
+        sys.exit("[msci-refresh] file is .xlsx but openpyxl is not installed "
+                 "— add 'openpyxl' to requirements.txt")
+    import io
+    from openpyxl import load_workbook
+
+    wb = load_workbook(io.BytesIO(raw_bytes), read_only=True, data_only=True)
+    ws = wb.active
+    rows: list[list[str]] = []
+    for xl_row in ws.iter_rows(values_only=True):
+        # Normalize every cell to a string; None → "" so column indexing stays stable.
+        cells = ["" if v is None else str(v) for v in xl_row]
+        rows.append(cells)
+    wb.close()
+    return rows
+
+
+def _parse_legacy_xls(raw_bytes: bytes) -> list[list[str]]:
+    """Parse a legacy binary .xls (BIFF/OLE2) file → list of rows.
+
+    Requires xlrd. Only reached if BlackRock serves true binary .xls, which is
+    rare — SpreadsheetML and .xlsx cover the observed cases.
+    """
+    try:
+        import xlrd
+    except ImportError:
+        sys.exit("[msci-refresh] file is legacy binary .xls but xlrd is not installed "
+                 "— add 'xlrd' to requirements.txt (or the endpoint changed format)")
+    book = xlrd.open_workbook(file_contents=raw_bytes)
+    sheet = book.sheet_by_index(0)
+    rows: list[list[str]] = []
+    for r in range(sheet.nrows):
+        cells = []
+        for c in range(sheet.ncols):
+            v = sheet.cell_value(r, c)
+            # xlrd returns floats for numbers; keep integers clean (327.0 → "327")
+            if isinstance(v, float) and v.is_integer():
+                v = int(v)
+            cells.append("" if v == "" else str(v))
+        rows.append(cells)
     return rows
 
 
@@ -412,12 +502,13 @@ def _process(key: str, out_path: Path | None, meta_path: Path | None) -> list[di
     cfg = SOURCES[key]
     label = cfg["label"]
     url   = cfg["url"]
+    product_page = cfg.get("product_page", "")
 
     print(f"[msci-refresh:{label}] downloading from iShares …")
-    raw = _download_xls(url, label)
+    raw = _download_xls(url, label, product_page)
 
     print(f"[msci-refresh:{label}] parsing XLS …")
-    rows = _parse_spreadsheetml(raw)
+    rows = _parse_holdings_file(raw)
 
     holdings = _extract_holdings(rows, cfg["fund_id"])
     print(f"[msci-refresh:{label}] {len(holdings)} equity holdings extracted")
