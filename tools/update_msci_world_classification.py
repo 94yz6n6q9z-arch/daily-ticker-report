@@ -53,20 +53,18 @@ SOURCES = {
     "world": {
         "url": (
             "https://www.ishares.com/de/privatanleger/de/produkte/251882/"
-            "ishares-msci-world-ucits-etf-acc-fund/1535604580385.ajax"
+            "ishares-msci-world-ucits-etf-acc-fund/1535604580385.ajax"    # ← this timestamp
             "?fileType=xls&fileName=iShares-Core-MSCI-World-UCITS-ETF_fund&dataType=fund"
         ),
-        "fund_id": "IWDA",
-        "label": "World",
+        ...
     },
     "em": {
         "url": (
             "https://www.ishares.com/de/privatanleger/de/produkte/251858/"
-            "ishares-msci-emerging-markets-ucits-etf-acc-fund/1535604580385.ajax"
+            "ishares-msci-emerging-markets-ucits-etf-acc-fund/1535604580385.ajax"    # ← same
             "?fileType=xls&fileName=iShares-MSCI-EM-UCITS-ETF-USD-Acc_fund&dataType=fund"
         ),
-        "fund_id": "MSCI_EM",
-        "label": "EM",
+        ...
     },
 }
 
