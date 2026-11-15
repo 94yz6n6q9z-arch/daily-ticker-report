@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 """
-update_msci_world_classification.py  v3.0.0
+update_msci_world_classification.py  v3.1.0
 ============================================
-Downloads the official iShares XLS holdings files for:
+Fetches the official iShares holdings (product-data JSON API) for:
   • MSCI World (251882) — ~1,300 developed-market stocks
   • MSCI EM standard (251858) — ~830 emerging-market stocks
 
-Each XLS row contains: RawTicker, Name, Sector, AssetClass, MarketValue,
-Weight%, NominalValue, Shares, Price, Country, Exchange, Currency.
+Holdings arrive as parallel column arrays (ticker, name, sector, asset class,
+weight, ISIN, currency, country, exchange) and are flattened into rows for the
+extraction pipeline.
 
 The Exchange column is the source of truth for Yahoo Finance suffix mapping.
-No regex, no country ETFs, no guessing — 54 exact exchange name → suffix entries.
+No regex, no country ETFs, no guessing — exact exchange name → suffix entries.
 
 Usage
 -----
@@ -26,6 +27,15 @@ VERSION HISTORY
        Exchange column → exact suffix lookup (54 entries).
        Drops Russia, unlisted, fund-of-fund rows.
        No country ETFs. No msci_manual_tickers.json. No EIMI.
+3.1.0  Source switched from the get-fund-document XLS to the iShares product-data
+       JSON API (component=holdings.all), for BOTH World and EM. The XLS stopped
+       including the Börse (exchange) and Standort (country) columns in Nov 2026,
+       which emptied the universe to 0 holdings (→ sanity-guard ABORT, CSV frozen).
+       The JSON still carries exchange, country and now ISIN. Also: added
+       "Deutsche Börse AG" → .DE mapping; ISIN column now populated; _find_header
+       aborts loudly when a required column is absent by name instead of silently
+       falling back to a fixed position. XLS parser (_download_xls / _parse_*)
+       retained below as unused reference code.
 """
 
 from __future__ import annotations
@@ -62,7 +72,7 @@ _BLACKROCK_DOC_API = (
 
 SOURCES = {
     "world": {
-        "url": _BLACKROCK_DOC_API.format(portfolio_id="251882"),
+        "portfolio_id": "251882",
         # Warm-up page for cookies — the fund's product page.
         "product_page": (
             "https://www.ishares.com/de/privatanleger/de/produkte/251882/"
@@ -72,7 +82,7 @@ SOURCES = {
         "label": "World",
     },
     "em": {
-        "url": _BLACKROCK_DOC_API.format(portfolio_id="251858"),
+        "portfolio_id": "251858",
         "product_page": (
             "https://www.ishares.com/de/privatanleger/de/produkte/251858/"
             "ishares-msci-emerging-markets-ucits-etf-acc-fund"
@@ -99,6 +109,7 @@ EXCHANGE_SUFFIX: dict[str, str | None] = {
     "Irish Stock Exchange - All Market":            ".IR",
     # ── Continental Europe ─────────────────────────────────────────────────
     "Xetra":                                        ".DE",
+    "Deutsche Börse AG":                            ".DE",   # Frankfurt/Prime Standard (e.g. QIAGEN) — Yahoo quotes it .DE
     "Nyse Euronext - Euronext Paris":               ".PA",
     "Euronext Amsterdam":                           ".AS",
     "Borsa Italiana":                               ".MI",
@@ -256,6 +267,124 @@ def _download_xls(url: str, label: str, product_page: str = "") -> bytes:
 
 
 # ---------------------------------------------------------------------------
+# Holdings source — iShares product-data JSON API (component=holdings.all)
+# ---------------------------------------------------------------------------
+# WHY THIS REPLACED THE XLS DOWNLOAD (Nov 2026):
+# The get-fund-document XLS endpoint stopped including the Börse (exchange) and
+# Standort (country) columns — the file now has only ticker/name/sector/class/
+# weight/currency. Because Exchange is the sole source of truth for the Yahoo
+# suffix, every row mapped to an empty exchange and the whole universe dropped
+# to 0 holdings (→ sanity-guard ABORT, CSV frozen).
+# This JSON endpoint is the one that powers the on-page holdings table. It still
+# carries exchange, countryOfRisk and isin. It returns each column as a parallel
+# array under componentsByNameMap.holdings.containersByNameMap.all
+#   .dataPointsByNameMap[<field>].formattedValue — we flatten those arrays back
+# into the same header+rows shape the XLS parser produced, so the entire
+# downstream pipeline (_find_header / _extract_holdings / suffix map / guard)
+# is reused unchanged.
+_HOLDINGS_JSON_API = (
+    "https://www.ishares.com/varnish-api/uk-retail01-product-data/product-data/"
+    "api/v2/get-product-data?appSubType=ISHARES&appType=PRODUCT_PAGE"
+    "&component=holdings.all&locale=de_DE&portfolioId={portfolio_id}"
+    "&targetSite=de-ishares-v2&userType=individual&excludeContent=true&includeConfig=true"
+)
+
+# JSON field  →  German header emitted into the rows table (matched by _find_header).
+_JSON_FIELD_HEADER: list[tuple[str, str]] = [
+    ("ticker",             "Emittententicker"),
+    ("issueName",          "Name"),
+    ("sectorName",         "Sektor"),
+    ("assetClass",         "Anlageklasse"),
+    ("holdingPercent",     "Gewichtung (%)"),
+    ("isin",               "ISIN"),
+    ("marketCurrencyCode", "Marktwährung"),
+    ("countryOfRisk",      "Standort"),
+    ("exchange",           "Börse"),
+]
+# Fields that MUST be present, or the parse is broken — abort loudly rather than
+# silently emitting an empty exchange (which drops every holding).
+_JSON_REQUIRED_FIELDS = ("ticker", "assetClass", "exchange", "countryOfRisk")
+
+
+def _fetch_holdings_rows(portfolio_id: str, label: str,
+                         product_page: str = "") -> tuple[list[list[str]], str]:
+    """Fetch holdings JSON from iShares and flatten it to rows (header + data).
+
+    Returns (rows, source_url). rows[0] is a ``["Stand", <asOfDate>]`` metadata
+    line, rows[1] is the German header, every later row is one holding aligned to
+    it — so _find_header / _extract_holdings consume it exactly like the old XLS.
+    """
+    url = _HOLDINGS_JSON_API.format(portfolio_id=portfolio_id)
+    session = requests.Session()
+    if product_page:                       # best-effort cookie warm-up
+        try:
+            session.get(product_page, headers=_HEADERS, timeout=30)
+            time.sleep(1)
+        except Exception:
+            pass
+
+    data = None
+    for attempt in range(1, _MAX_RETRIES + 1):
+        try:
+            resp = session.get(url, headers=_HEADERS, timeout=60)
+            resp.raise_for_status()
+            data = resp.json()
+            print(f"[msci-refresh:{label}] fetched holdings JSON "
+                  f"({len(resp.content):,} bytes, attempt {attempt})")
+            break
+        except Exception as exc:
+            print(f"[msci-refresh:{label}] attempt {attempt}/{_MAX_RETRIES} failed: {exc}")
+            if attempt < _MAX_RETRIES:
+                time.sleep(_RETRY_DELAY * attempt)
+    if data is None:
+        sys.exit(f"[msci-refresh:{label}] all {_MAX_RETRIES} holdings fetches failed — aborting")
+
+    try:
+        dp = (data["componentsByNameMap"]["holdings"]
+                  ["containersByNameMap"]["all"]["dataPointsByNameMap"])
+    except (KeyError, TypeError):
+        sys.exit(f"[msci-refresh:{label}] unexpected JSON shape — "
+                 f"no componentsByNameMap.holdings…dataPointsByNameMap")
+
+    missing = [f for f in _JSON_REQUIRED_FIELDS if f not in dp]
+    if missing:
+        sys.exit(f"[msci-refresh:{label}] holdings JSON missing required field(s) {missing} "
+                 f"— source format changed. Available: {sorted(dp.keys())}")
+
+    def col_values(field: str) -> list[str]:
+        node = dp.get(field, {})
+        fv = node.get("formattedValue", []) if isinstance(node, dict) else []
+        if not isinstance(fv, list):       # scalar (e.g. a single asOfDate) → not a column
+            fv = []
+        return ["" if v is None else str(v).strip() for v in fv]
+
+    columns = {field: col_values(field) for field, _ in _JSON_FIELD_HEADER}
+    n = len(columns["ticker"])
+    if n == 0:
+        sys.exit(f"[msci-refresh:{label}] holdings JSON returned 0 rows — aborting")
+    for field, vals in columns.items():    # all columns must align, or rows mismap silently
+        if len(vals) != n:
+            sys.exit(f"[msci-refresh:{label}] column '{field}' has {len(vals)} values, "
+                     f"expected {n} — misaligned JSON, aborting")
+
+    as_of_node = dp.get("asOfDate", {})
+    as_of = as_of_node.get("formattedValue", "") if isinstance(as_of_node, dict) else ""
+    if isinstance(as_of, list):
+        as_of = as_of[0] if as_of else ""
+
+    header = [hdr for _, hdr in _JSON_FIELD_HEADER]
+    rows: list[list[str]] = [["Stand", str(as_of)], header]
+    for i in range(n):
+        rows.append([columns[field][i] for field, _ in _JSON_FIELD_HEADER])
+    print(f"[msci-refresh:{label}] flattened {n} holdings rows from JSON (as of {as_of})")
+    return rows, url
+
+
+# ---------------------------------------------------------------------------
+# XLS/XLSX parser (LEGACY — retained for reference; no longer on the hot path
+# because the XLS download lost the Börse/Standort columns). _download_xls and
+# the _parse_* helpers below are unused by _process now.
+# ---------------------------------------------------------------------------
 # XLS/XLSX parser — auto-detects the download format
 # ---------------------------------------------------------------------------
 # BlackRock's fund-document endpoint may return any of three formats depending
@@ -369,6 +498,7 @@ _HEADER_ALIASES: dict[str, tuple[str, ...]] = {
     "sector":   ("sektor", "sector"),
     "class":    ("anlageklasse", "asset class"),
     "weight":   ("gewichtung (%)", "weight (%)", "gewichtung", "weight"),
+    "isin":     ("isin",),
     "country":  ("standort", "location", "land", "country"),
     "exchange": ("börse", "boerse", "exchange"),
     "currency": ("marktwährung", "market currency", "währung", "currency"),
@@ -397,6 +527,15 @@ def _find_header(rows: list[list[str]]) -> tuple[int, dict[str, int]]:
                 if n in aliases:
                     colmap[key] = j
                     break
+        # A REQUIRED column that is absent BY NAME means the source layout changed.
+        # Do NOT paper over it with a fixed fallback position — that is exactly what
+        # silently mapped 'exchange' onto a non-existent column and dropped every
+        # holding (0 holdings → ABORT). Fail loudly and legibly instead.
+        missing = [k for k in _REQUIRED_COLS if k not in colmap]
+        if missing:
+            sys.exit(f"[msci-refresh] data header found but required column(s) {missing} "
+                     f"absent by name — source format changed. Header row was: {row}")
+        # Fallback positions only ever fill genuinely optional columns.
         for key, pos in _FALLBACK_POS.items():
             colmap.setdefault(key, pos)
         return i, colmap
@@ -433,6 +572,7 @@ def _extract_holdings(rows: list[list[str]], fund_id: str) -> list[dict]:
         sector     = row[col["sector"]].strip()
         country    = row[col["country"]].strip()
         weight     = row[col["weight"]].strip()
+        isin       = row[col["isin"]].strip() if "isin" in col else ""
 
         if not raw_ticker:
             skipped_rows += 1
@@ -465,7 +605,7 @@ def _extract_holdings(rows: list[list[str]], fund_id: str) -> list[dict]:
             "Sector":            sector,
             "RawTicker":         raw_ticker,
             "Exchange":          exchange,
-            "ISIN":              "",
+            "ISIN":              isin,
             "WeightPct":         weight,
             "SourceFund":        fund_id,
             "SourceURL":         "",          # filled in by caller
@@ -561,14 +701,10 @@ def _existing_row_count(path: Path | None) -> int:
 def _process(key: str, out_path: Path | None, meta_path: Path | None) -> list[dict]:
     cfg = SOURCES[key]
     label = cfg["label"]
-    url   = cfg["url"]
     product_page = cfg.get("product_page", "")
 
-    print(f"[msci-refresh:{label}] downloading from iShares …")
-    raw = _download_xls(url, label, product_page)
-
-    print(f"[msci-refresh:{label}] parsing XLS …")
-    rows = _parse_holdings_file(raw)
+    print(f"[msci-refresh:{label}] fetching holdings from iShares …")
+    rows, url = _fetch_holdings_rows(cfg["portfolio_id"], label, product_page)
 
     holdings = _extract_holdings(rows, cfg["fund_id"])
     print(f"[msci-refresh:{label}] {len(holdings)} equity holdings extracted")
