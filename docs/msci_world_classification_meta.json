@@ -1,10 +1,10 @@
 {
-  "as_of": "2026-11-20",
+  "as_of": "2026-11-21",
   "source_url": "https://www.ishares.com/varnish-api/uk-retail01-product-data/product-data/api/v2/get-product-data?appSubType=ISHARES&appType=PRODUCT_PAGE&component=holdings.all&locale=de_DE&portfolioId=251882&targetSite=de-ishares-v2&userType=individual&excludeContent=true&includeConfig=true",
-  "n_tickers": 1247,
+  "n_tickers": 1248,
   "label": "World",
   "countries": {
-    "Vereinigte Staaten": 513,
+    "Vereinigte Staaten": 514,
     "Japan": 167,
     "Kanada": 81,
     "Vereinigtes Königreich": 65,
