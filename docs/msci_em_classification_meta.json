@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-11-24",
+  "as_of": "2026-11-25",
   "source_url": "https://www.ishares.com/varnish-api/uk-retail01-product-data/product-data/api/v2/get-product-data?appSubType=ISHARES&appType=PRODUCT_PAGE&component=holdings.all&locale=de_DE&portfolioId=251858&targetSite=de-ishares-v2&userType=individual&excludeContent=true&includeConfig=true",
   "n_tickers": 753,
   "label": "EM",
